@@ -127,21 +127,16 @@ const NO_FORM_NEEDED = {
   // published scale), so the missing form kept out the customer rather than the
   // invented data. The forms carry those rules unchanged.
 
-  // Examined together. The prompt library has pages -- /prompt-library and
-  // /prompt-library/:slug -- carrying exactly one form: "Fill the template",
-  // which posts to /prompt-library/:slug/render, produces a preview to read,
-  // and saves nothing. So none of these four is reachable from a page.
-  //
-  // Left without forms for a stated reason rather than as a gap: what these
-  // pages render is curated content in data/prompts-chat-reference.cjs, and a
-  // customer-authored row saved beside it would be indistinguishable from the
-  // curated set on the page that lists them. That is the same objection
-  // recorded for growth touchpoints above, and it wants the same answer first:
-  // a column marking a row as customer-authored.
-  "/api/prompt-library/collections": "Reachable only by API. The library's one form renders a preview and saves nothing, and a customer-authored row would be indistinguishable from the curated reference set beside it.",
-  "/api/prompt-library/connections": "Reachable only by API, for the same reason as collections above.",
-  "/api/prompt-library/runs": "Reachable only by API. A run records that a template was used; the form that would create one renders a preview instead.",
-  "/api/prompt-library/templates": "Reachable only by API. Saving a customer's own template needs a column separating it from the curated reference set first."
+  // The four prompt-library entries that stood here -- templates, collections,
+  // connections, runs -- are gone because the forms exist now, on the studio
+  // /prompts pages and each saved instruction's own page. Their reason was that
+  // "a customer-authored row saved beside it would be indistinguishable from the
+  // curated set" and needed a column first. It did not hold: the curated set is
+  // BUILTIN_PROMPT_TEMPLATES in lib/sonara-prompt-library.cjs and never touches
+  // sonara_prompt_templates, and a saved row already carries its organization,
+  // author, source_type and provenance, shown in a card of its own -- under a
+  // page that had been telling customers to "save your own" with nothing to
+  // save it with. Checked 7 October 2026.
 };
 
 describe("form reachability", () => {

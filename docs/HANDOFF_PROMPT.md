@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 156 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 453 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 454 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,50 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 28 most recent entries of 448 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 28 most recent entries of 449 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A workspace saves its own instructions
+
+The three studio prompt pages said "use these starter instructions straight
+away, or save your own" and listed "Your saved instructions". Nothing on them
+saved one. `tests/form-reachability.test.js` excused the four save endpoints
+because "saving a customer's own template needs a column separating it from the
+curated reference set first". There was nothing to separate: the curated set is
+`BUILTIN_PROMPT_TEMPLATES` in `lib/sonara-prompt-library.cjs` and never touches
+the table, and a saved instruction is already its own row carrying its
+organization, author and provenance. The promise was true and the excuse was
+stale.
+
+`lib/sonara-prompt-library-pages.cjs` renders the forms, and the existing API
+handlers answer a browser with a redirect and a named notice. Saving, the safety
+review's refusal (rendered as this server's sentences, never carried in an
+address), filling in and recording a use (no provider is called and the page says
+so), a new version, a collection, adding to it, and connecting two instructions
+all post to the same endpoints a JSON client uses. Every saved instruction has a
+page at `/<studio>/prompts/:id`. Public visibility is not offered: publishing
+beyond the workspace goes through review, and a form offering it would describe a
+step the page does not take.
+
+**The test harness had been hiding a failed read.** `tests/helpers/fake-supabase.cjs`
+threw on `or=(…,and(…))`, which is how the library asks for "shared with the
+workspace, or private and mine". The route caught the throw as a failed read, so
+in tests every list was empty, and the first draft of "a private instruction is
+kept to its author" passed by listing nothing for anyone. The fake now parses
+nested `and(...)` groups, and the test asserts the colleague's list shows a shared
+instruction before it trusts the private one's absence. The test's
+`supabaseHeaders` stub also dropped `Prefer`, which turned the collection upsert
+into a plain insert. It now builds headers as `server.js` does.
+
+Falsified six ways, each failing by name: the list ignoring visibility, the save
+form pointing nowhere, the run ignoring the filled-in values, browsers answered
+with JSON, the instruction page's private check removed, and the fake evaluating
+`and(...)` as "any". Workspace fallbacks 38 -> 33.
+
+
 
 ### 2026-10-07 - A route with no page says why, and the reason is checked
 
@@ -2006,79 +2045,3 @@ four ways: a stale literal in a page (fails by file and sentence), a parent tool
 leaving the free set (fails naming why no plan covers it), the detector losing a
 pattern (fails naming the fixture), and the studios going unequal -- which
 correctly passed, because the sentence adapts.
-
-
-
-### 2026-10-02 - The Creator Project Graph, and the question nobody answered
-
-Creator Studio could hold an asset and could hold a file. It could not say which
-brief a piece belonged to, which version of it was current, who had approved
-which version, or whether a machine made it. Four questions, and the fourth is the
-one that matters commercially: publishing a generated piece without a disclosure
-is a provenance claim made on a creator's behalf.
-
-**Three tables and one column.** `supabase/migrations/20261002010000_creator_approval_graph.sql`
-adds `creator_briefs`, `creator_asset_versions` and `creator_asset_approvals`, and
-one nullable `brief_id` on the `creator_assets` table that
-`routes/sonara-asset-file-routes.cjs` already writes. All three are keyed on
-`organization_id`, RLS on with no policy, and granted select/insert/update but
-never delete -- a rejection is a recorded state, and deleting the row erases the
-record that somebody said no.
-
-**`ai_disclosure` is nullable on purpose.** Yes / no / **nobody has answered** are
-three states, and the cheapest defect in this codebase to ship would be
-`Boolean(row.ai_disclosure)`, which reads the third as the second. The migration's
-own `do $$` block asserts `is_nullable = 'YES'` against the live catalogue;
-`scripts/verify-supabase-contract.mjs` asserts the text that produces it and
-refuses a `NOT NULL` or a default. Two checks that fail for different reasons, so
-a change defeating one does not pass the other.
-
-**An approval belongs to one version, not to the asset.** If
-`creator_asset_approvals.asset_version_id` pointed at `creator_assets`, approving
-v1 would clear v2 and every later edit -- a gate asked once and then answered for
-work nobody saw. The contract gate asserts the foreign key; the test asserts the
-behaviour, because a key pointing at the right table is not the same as a decision
-function reading it.
-
-`lib/sonara-creator-project-graph.cjs` holds the decisions and nothing else.
-`publishReadiness` refuses on two grounds and reports both at once: not approved,
-and machine-made with no recorded disclosure. It will not use `provenance` to
-answer the disclosure question -- how a file was made and what was declared about
-it are different, and using one for the other is how a disclosure nobody gave
-starts reading as one that was.
-
-**A comment that asserted the opposite of the code.** The module said "a later
-`review_requested` does not undo an approval". The code sorts by
-`decidedAt || createdAt` and takes the latest, so it does. The test was written,
-it failed, and **the comment was corrected rather than the behaviour**: somebody
-asking for another review is somebody who is no longer sure, and the safe reading
-is "under review". The ordinary flow is untouched, and the test now asserts that
-too -- a review request created before the approval that answers it still loses to
-it.
-
-**Registered, and with real forms.** `routes/sonara-creator-project-graph-routes.cjs`
-serves `/creator-studio/owner/project-graph` and six POST endpoints, all behind
-`requireWorkspaceAccess("creator_studio")`, every write scoped by
-`organization_id` as well as by id because the service-role key bypasses RLS.
-Three gates caught what was missing rather than my reading it:
-`verify-route-registry` refused the page as absent from the canonical registry,
-`tests/form-reachability.test.js` named five endpoints with no form, and
-`report-orphan-tables` would have named the tables had the routes not been wired
-into `server.js`. Every endpoint now has a form on the page, offering only the
-values the schema's check constraints allow, read from the module rather than
-retyped. Problem codes round-trip through the query string and the sentence is
-looked up on the page, so a crafted link cannot put text in this product's voice.
-
-**Verified by breaking it.** Five contract assertions each failed by name with the
-migration broken and passed after `md5sum -c` restored it: `ai_disclosure` made
-`not null default false`, the approval repointed at `creator_assets`, the unique
-constraint removed, a delete grant added, the `brief_id` column renamed. Five more
-against the code: `disclosureOf` returning `declared_human` for an absent answer
-(6 tests red), the disclosure blocker disabled (3 red), the route writing `false`
-instead of `null` (1 red, by name), the organization filter dropped from the
-id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red).
-
-`pnpm run verify:migration-replay` applies 141 migrations in order to an empty
-PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
-tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
-none unfiltered, which is the six new reads and writes accounted for.

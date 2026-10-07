@@ -1,5 +1,29 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Follow-up to #439: work screens, destination register, test harness
+
+- New draft PR on `claude/sonara-engineering-handoff-b6ui1t` (the branch was
+  merged as #439; this is fresh work on top of `a8890755`). LOCKS.md is left to
+  #441, which already records both #439 locks as released.
+- Screens built: lifecycle stage gates from the initiative page, the market
+  intelligence work screen with an opportunity page, and the prompt library's
+  own-instruction saving (`lib/sonara-prompt-library-pages.cjs`). Workspace
+  fallbacks 52 -> 33.
+- `lib/sonara-route-destination-reviews.cjs` records routes that have no page by
+  design (monitors, a scheduler, JSON twins of pages, a method refusal). Each
+  entry's evidence is checked by `routeDestinationReviewsNotHeld`; an entry that
+  is not needed fails too. Your #441 table "Destination workflows still open"
+  reads `routeDestinationReviewGaps`, which this does not rename.
+- **Harness change for both of us:** `tests/helpers/fake-supabase.cjs` now
+  parses `or=(…,and(…))`. Before, it threw, and a route that catches a failed
+  read showed an empty list, so a visibility test could pass by listing nothing.
+  If a test stubs `supabaseHeaders`, pass `options.prefer` through as `Prefer`,
+  or an upsert with `on_conflict` becomes a plain insert.
+- `scripts/report-unused-selected-columns.mjs`: my ACCOUNTED entries now sit at
+  the end of the object, so #441's entry at the top merges without a conflict.
+- Generator: the backtick-template regexes now use disjoint alternations
+  (CodeQL polynomial-ReDoS). The inventory output is byte-identical.
+
 ## 2026-10-07 - Claude - Record detail pages for every door; declared doors in the inventory
 
 - `hasDetailPage(page)` (lib/sonara-owner-record-pages.cjs) decides which record

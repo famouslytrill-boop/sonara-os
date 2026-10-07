@@ -2,6 +2,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A workspace saves its own instructions
+
+The three studio prompt pages said "use these starter instructions straight
+away, or save your own" and listed "Your saved instructions". Nothing on them
+saved one. `tests/form-reachability.test.js` excused the four save endpoints
+because "saving a customer's own template needs a column separating it from the
+curated reference set first". There was nothing to separate: the curated set is
+`BUILTIN_PROMPT_TEMPLATES` in `lib/sonara-prompt-library.cjs` and never touches
+the table, and a saved instruction is already its own row carrying its
+organization, author and provenance. The promise was true and the excuse was
+stale.
+
+`lib/sonara-prompt-library-pages.cjs` renders the forms, and the existing API
+handlers answer a browser with a redirect and a named notice. Saving, the safety
+review's refusal (rendered as this server's sentences, never carried in an
+address), filling in and recording a use (no provider is called and the page says
+so), a new version, a collection, adding to it, and connecting two instructions
+all post to the same endpoints a JSON client uses. Every saved instruction has a
+page at `/<studio>/prompts/:id`. Public visibility is not offered: publishing
+beyond the workspace goes through review, and a form offering it would describe a
+step the page does not take.
+
+**The test harness had been hiding a failed read.** `tests/helpers/fake-supabase.cjs`
+threw on `or=(…,and(…))`, which is how the library asks for "shared with the
+workspace, or private and mine". The route caught the throw as a failed read, so
+in tests every list was empty, and the first draft of "a private instruction is
+kept to its author" passed by listing nothing for anyone. The fake now parses
+nested `and(...)` groups, and the test asserts the colleague's list shows a shared
+instruction before it trusts the private one's absence. The test's
+`supabaseHeaders` stub also dropped `Prefer`, which turned the collection upsert
+into a plain insert. It now builds headers as `server.js` does.
+
+Falsified six ways, each failing by name: the list ignoring visibility, the save
+form pointing nowhere, the run ignoring the filled-in values, browsers answered
+with JSON, the instruction page's private check removed, and the fake evaluating
+`and(...)` as "any". Workspace fallbacks 38 -> 33.
+
 ### 2026-10-07 - A route with no page says why, and the reason is checked
 
 The capability inventory gave every route the page that renders it, or -- when

@@ -11,21 +11,21 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 939,
+    "routeOperationCount": 945,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 566,
+      "GET": 569,
       "PATCH": 10,
-      "POST": 360
+      "POST": 363
     },
     "workspaceCount": 12,
     "declaredPageCount": 300,
     "workspaceRouteCounts": {
-      "business_builder": 339,
+      "business_builder": 341,
       "business_builder_agent_ops": 7,
-      "creator_studio": 133,
+      "creator_studio": 135,
       "cross_workspace_formulas": 5,
-      "growth_studio": 129,
+      "growth_studio": 131,
       "research_catalog": 12,
       "research_lab": 15,
       "shared_account": 28,
@@ -34,25 +34,25 @@
       "sonara_shared_api": 117
     },
     "actionDestinationCounts": {
-      "exact": 355,
-      "form_reference": 340,
+      "exact": 358,
+      "form_reference": 345,
       "machine_ingress": 3,
-      "parent_route": 74,
+      "parent_route": 77,
       "reviewed_no_page": 5,
       "route_pair": 123,
       "static_page_link": 1,
-      "workspace_fallback": 38
+      "workspace_fallback": 33
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 153,
       "explicit_resource_registry": 262,
-      "handler_source_table_reference": 492,
+      "handler_source_table_reference": 498,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 38,
-    "formActionLinkCount": 120,
+    "routesUsingWorkspaceHomeFallback": 33,
+    "formActionLinkCount": 125,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "routesTruncatedByPersistenceTraceBudget": [],
@@ -85,7 +85,7 @@
     "migrationCount": 156,
     "databaseFunctionCount": 38,
     "databaseTriggerCount": 51,
-    "routesCallingDatabaseFunctions": 654,
+    "routesCallingDatabaseFunctions": 660,
     "routesWithMissingDatabaseFunctionDefinition": 0,
     "routeDataContractsNeedingExplicitReview": 0,
     "routeDataReviewByMethod": {},
@@ -94,7 +94,7 @@
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
       "growth_studio": 5,
-      "sonara_shared_api": 22
+      "sonara_shared_api": 17
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -136,7 +136,7 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 339,
+      "routeCount": 341,
       "registeredPageCount": 96,
       "registeredPageRoutes": [
         "/business-builder/automations",
@@ -255,6 +255,7 @@
         "/business-builder/pricing",
         "/business-builder/product-lifecycle",
         "/business-builder/prompts",
+        "/business-builder/prompts/:templateId",
         "/business-builder/readiness",
         "/business-builder/records",
         "/business-builder/records/free",
@@ -465,7 +466,7 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 133,
+      "routeCount": 135,
       "registeredPageCount": 68,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
@@ -516,6 +517,7 @@
         "/creator-studio/prompt-blueprints",
         "/creator-studio/prompt-blueprints/:recordId/edit",
         "/creator-studio/prompts",
+        "/creator-studio/prompts/:templateId",
         "/creator-studio/records",
         "/creator-studio/records/free",
         "/creator-studio/releases",
@@ -690,7 +692,7 @@
         "/api/growth-studio",
         "/api/growth"
       ],
-      "routeCount": 129,
+      "routeCount": 131,
       "registeredPageCount": 58,
       "registeredPageRoutes": [
         "/growth-studio/analytics",
@@ -725,6 +727,7 @@
         "/growth-studio/pipeline",
         "/growth-studio/product-lifecycle",
         "/growth-studio/prompts",
+        "/growth-studio/prompts/:templateId",
         "/growth-studio/provider-jobs",
         "/growth-studio/providers",
         "/growth-studio/records",
@@ -50801,7 +50804,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 85
+        "line": 86
       },
       "contractCompleteness": {
         "route": true,
@@ -51205,7 +51208,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 263
+        "line": 280
       },
       "contractCompleteness": {
         "route": true,
@@ -51309,7 +51312,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 96
+        "line": 97
       },
       "contractCompleteness": {
         "route": true,
@@ -51732,7 +51735,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 127
+        "line": 128
       },
       "contractCompleteness": {
         "route": true,
@@ -116091,10 +116094,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -116429,13 +116435,403 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 385
+        "line": 361
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /business-builder/prompts/:templateId",
+      "method": "GET",
+      "route": "/business-builder/prompts/:templateId",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [],
+        "query": [
+          "done",
+          "problem"
+        ],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect",
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/${row.product_area.replace(",
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_runs",
+            "tableId": "table:sonara_prompt_runs",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 382
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -146353,10 +146749,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -146691,13 +147090,403 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 385
+        "line": 361
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/prompts/:templateId",
+      "method": "GET",
+      "route": "/creator-studio/prompts/:templateId",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/prompts/:templateId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [],
+        "query": [
+          "done",
+          "problem"
+        ],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect",
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/${row.product_area.replace(",
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_runs",
+            "tableId": "table:sonara_prompt_runs",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 382
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -178737,10 +179526,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -179075,13 +179867,403 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 385
+        "line": 361
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /growth-studio/prompts/:templateId",
+      "method": "GET",
+      "route": "/growth-studio/prompts/:templateId",
+      "kind": "page_or_download",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/prompts/:templateId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [],
+        "query": [
+          "done",
+          "problem"
+        ],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect",
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/${row.product_area.replace(",
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_runs",
+            "tableId": "table:sonara_prompt_runs",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 382
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -198118,7 +199300,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 28
+        "line": 29
       },
       "contractCompleteness": {
         "route": true,
@@ -198201,7 +199383,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 50
+        "line": 51
       },
       "contractCompleteness": {
         "route": true,
@@ -310872,9 +312054,14 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/prompts",
+          "/creator-studio/prompts",
+          "/growth-studio/prompts"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -310900,6 +312087,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "description",
           "name",
           "product_area",
@@ -310916,6 +312104,11 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "description",
+          "name",
+          "visibility"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -310924,8 +312117,7 @@
         ],
         "statusCodes": [
           201,
-          400,
-          503
+          400
         ],
         "jsonFieldsObserved": [
           "allowed",
@@ -310933,7 +312125,7 @@
           "ok"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -311255,7 +312447,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 273
+        "line": 290
       },
       "contractCompleteness": {
         "route": true,
@@ -311265,7 +312457,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -311331,6 +312523,7 @@
           "id"
         ],
         "body": [
+          "back",
           "order",
           "product_area",
           "productArea",
@@ -311369,7 +312562,7 @@
           "ok"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -311720,7 +312913,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 293
+        "line": 310
       },
       "contractCompleteness": {
         "route": true,
@@ -311741,9 +312934,14 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/prompts/:templateId",
+          "/creator-studio/prompts/:templateId",
+          "/growth-studio/prompts/:templateId"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -311774,6 +312972,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "label",
           "order",
           "product_area",
@@ -311793,6 +312992,10 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "label",
+          "target_id"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -311801,18 +313004,15 @@
         ],
         "statusCodes": [
           201,
-          400,
-          403,
-          503
+          400
         ],
         "jsonFieldsObserved": [
           "allowed",
           "code",
-          "errors",
           "ok"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -312150,7 +313350,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 316
+        "line": 315
       },
       "contractCompleteness": {
         "route": true,
@@ -312160,7 +313360,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -312270,7 +313470,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 115
+        "line": 116
       },
       "contractCompleteness": {
         "route": true,
@@ -312291,9 +313491,14 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/prompts/:templateId",
+          "/creator-studio/prompts/:templateId",
+          "/growth-studio/prompts/:templateId"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -312339,6 +313544,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "input_values",
           "inputValues",
           "model_slug",
@@ -312366,7 +313572,8 @@
       },
       "response": {
         "kinds": [
-          "json"
+          "json",
+          "send"
         ],
         "statusCodes": [
           201,
@@ -312378,13 +313585,12 @@
         "jsonFieldsObserved": [
           "allowed",
           "code",
-          "findings",
           "ok",
           "providerCalled",
           "run"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -312722,7 +313928,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 210
+        "line": 213
       },
       "contractCompleteness": {
         "route": true,
@@ -312743,9 +313949,14 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/prompts",
+          "/creator-studio/prompts",
+          "/growth-studio/prompts"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -312791,33 +314002,12 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "content",
           "description",
-          "input_schema",
-          "inputSchema",
-          "license_status",
-          "licenseStatus",
-          "mcp_compatibility",
-          "mcpCompatibility",
-          "model_compatibility",
-          "modelCompatibility",
-          "output_schema",
-          "outputSchema",
           "product_area",
           "productArea",
-          "prompt_body",
           "prompt_type",
-          "promptBody",
-          "promptType",
-          "provenance",
-          "slug",
-          "source_commit",
-          "source_repository",
-          "source_type",
-          "sourceCommit",
-          "sourceRepository",
-          "sourceType",
-          "status",
           "tags",
           "title",
           "visibility"
@@ -312827,11 +314017,19 @@
         "bodyAccessed": true,
         "queryAccessed": false,
         "paramsAccessed": false,
-        "wholeBodyForwarded": false,
+        "wholeBodyForwarded": true,
         "computedBodyFieldAccess": false,
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "content",
+          "description",
+          "prompt_type",
+          "tags",
+          "title",
+          "visibility"
+        ],
         "openApiBody": "declared_without_single_line_ref"
       },
       "response": {
@@ -312848,13 +314046,10 @@
         "jsonFieldsObserved": [
           "allowed",
           "code",
-          "errors",
-          "ok",
-          "safety",
-          "template"
+          "ok"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -313179,7 +314374,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 137
+        "line": 138
       },
       "contractCompleteness": {
         "route": true,
@@ -313189,7 +314384,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -313200,9 +314395,14 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/prompts/:templateId",
+          "/creator-studio/prompts/:templateId",
+          "/growth-studio/prompts/:templateId"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -313255,6 +314455,7 @@
           "id"
         ],
         "body": [
+          "back",
           "change_note",
           "changeNote",
           "content",
@@ -313275,6 +314476,11 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "change_note",
+          "content",
+          "title"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -313292,13 +314498,10 @@
         "jsonFieldsObserved": [
           "allowed",
           "code",
-          "errors",
-          "ok",
-          "safety",
-          "version"
+          "ok"
         ],
         "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": true,
+        "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
       },
@@ -313623,7 +314826,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 174
+        "line": 177
       },
       "contractCompleteness": {
         "route": true,
@@ -313633,7 +314836,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -354554,6 +355757,393 @@
       "action": true
     },
     {
+      "id": "POST /business-builder/prompts/:templateId/collections",
+      "method": "POST",
+      "route": "/business-builder/prompts/:templateId/collections",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [
+          "back",
+          "collection_id",
+          "order"
+        ],
+        "query": [],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collection_items",
+            "tableId": "table:sonara_prompt_collection_items",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 430
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /business-builder/tools/break-even",
       "method": "POST",
       "route": "/business-builder/tools/break-even",
@@ -372818,6 +374408,393 @@
       "action": true
     },
     {
+      "id": "POST /creator-studio/prompts/:templateId/collections",
+      "method": "POST",
+      "route": "/creator-studio/prompts/:templateId/collections",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/prompts/:templateId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [
+          "back",
+          "collection_id",
+          "order"
+        ],
+        "query": [],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collection_items",
+            "tableId": "table:sonara_prompt_collection_items",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 430
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /creator-studio/sound-identity/:recordId",
       "method": "POST",
       "route": "/creator-studio/sound-identity/:recordId",
@@ -383613,6 +385590,393 @@
         "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /growth-studio/prompts/:templateId/collections",
+      "method": "POST",
+      "route": "/growth-studio/prompts/:templateId/collections",
+      "kind": "form_or_action",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/prompts/:templateId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "templateId"
+        ],
+        "body": [
+          "back",
+          "collection_id",
+          "order"
+        ],
+        "query": [],
+        "params": [
+          "templateId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "organization_memberships",
+          "organizations",
+          "profiles",
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_templates"
+        ],
+        "candidateTables": [
+          "sonara_prompt_collection_items",
+          "sonara_prompt_collections",
+          "sonara_prompt_connections",
+          "sonara_prompt_runs",
+          "sonara_prompt_templates"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "sonara_prompt_collection_items",
+            "tableId": "table:sonara_prompt_collection_items",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_collections",
+            "tableId": "table:sonara_prompt_collections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "sonara_prompt_templates",
+            "tableId": "table:sonara_prompt_templates",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260726163000_sonara_prompt_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql"
+              ],
+              "rlsEvidence": [],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-prompt-library-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260726163000_sonara_prompt_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-prompt-library-routes.cjs",
+        "line": 430
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -397855,7 +400219,7 @@
       },
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 67
+        "line": 68
       },
       "contractCompleteness": {
         "route": true,
@@ -400074,6 +402438,74 @@
         "source_name",
         "source_url",
         "summary",
+        "title"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/prompt-library/collections",
+      "pages": [
+        "/business-builder/prompts",
+        "/creator-studio/prompts",
+        "/growth-studio/prompts"
+      ],
+      "formFieldNamesObserved": [
+        "description",
+        "name",
+        "visibility"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/prompt-library/connections",
+      "pages": [
+        "/business-builder/prompts/:templateId",
+        "/creator-studio/prompts/:templateId",
+        "/growth-studio/prompts/:templateId"
+      ],
+      "formFieldNamesObserved": [
+        "label",
+        "target_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/prompt-library/runs",
+      "pages": [
+        "/business-builder/prompts/:templateId",
+        "/creator-studio/prompts/:templateId",
+        "/growth-studio/prompts/:templateId"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
+      "action": "/api/prompt-library/templates",
+      "pages": [
+        "/business-builder/prompts",
+        "/creator-studio/prompts",
+        "/growth-studio/prompts"
+      ],
+      "formFieldNamesObserved": [
+        "content",
+        "description",
+        "prompt_type",
+        "tags",
+        "title",
+        "visibility"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/prompt-library/templates/:parameter/versions",
+      "pages": [
+        "/business-builder/prompts/:templateId",
+        "/creator-studio/prompts/:templateId",
+        "/growth-studio/prompts/:templateId"
+      ],
+      "formFieldNamesObserved": [
+        "change_note",
+        "content",
         "title"
       ]
     },
@@ -491628,7 +494060,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 96
+        "line": 97
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -491764,31 +494196,11 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "POST /api/prompt-library/collections",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 273
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "POST /api/prompt-library/collections/:id/items",
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 293
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/connections",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 316
+        "line": 310
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -491798,37 +494210,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 115
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/runs",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 210
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/templates",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 137
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/templates/:id/versions",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 174
+        "line": 116
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

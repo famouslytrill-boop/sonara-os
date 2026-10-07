@@ -1521,12 +1521,12 @@ function buildInventory() {
   // shapes are read: a template literal inside one call, starting with "/" or with
   // a constant declared as a string in the same function or file.
   function escapedFormAction(tag, code, file) {
-    const wrapped = tag.match(/\baction\s*=\s*(["'])\$\{\s*[A-Za-z_$][\w$.]*\(\s*`((?:\$\{[^{}]*\}|[^`])*)`\s*\)\s*\}\1/i);
+    const wrapped = tag.match(/\baction\s*=\s*(["'])\$\{\s*[A-Za-z_$][\w$.]*\(\s*`((?:\$\{[^{}]*\}|[^`$]|\$(?!\{))*)`\s*\)\s*\}\1/i);
     if (!wrapped) return null;
     let inner = wrapped[2];
     const lead = inner.match(/^\$\{\s*([A-Za-z_$][\w$]*)\s*\}/);
     if (lead) {
-      const declaration = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(lead[1])}\\s*=\\s*(?:\`((?:\\$\\{[^{}]*\\}|[^\`])*)\`|"([^"]*)"|'([^']*)')`);
+      const declaration = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(lead[1])}\\s*=\\s*(?:\`((?:\\$\\{[^{}]*\\}|[^\`$]|\\$(?!\\{))*)\`|"([^"]*)"|'([^']*)')`);
       const found = String(code).match(declaration) || readSource(file).match(declaration);
       if (!found) return null;
       inner = (found[1] ?? found[2] ?? found[3]) + inner.slice(lead[0].length);
@@ -1576,7 +1576,7 @@ function buildInventory() {
       for (const match of code.matchAll(/<form\b[^>]*>/gi)) {
         // An interpolated id can carry its own quotes -- `${encodeURIComponent(String(row.id || ""))}` --
         // and stopping at the first one read the action as ending mid-expression.
-        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\])+)\1/i)?.[2]
+        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\$]|\$(?!\{))+)\1/i)?.[2]
           || escapedFormAction(match[0], code, file);
         if (!action) continue;
         const method = (match[0].match(/\bmethod\s*=\s*["'](get|post|patch|delete)["']/i)?.[1] || "GET").toUpperCase();
