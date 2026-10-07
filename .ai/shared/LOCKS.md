@@ -1,13 +1,27 @@
 # Locks
 
 Active:
-- HELD: capability inventory tracer and route data reviews -- Claude, branch
+- HELD: Business Builder management organization scope -- Codex, branch
+  `codex/business-management-scope-20261007`, taken 2026-10-07. Covers
+  `requireBusinessManager` in `server.js`, the primary organization resolver,
+  the new request scope module and their regression tests. No membership,
+  credential, schema or role changes. Release when the scope PR merges or closes.
+- HELD: Creator marketplace reconciliation and delivery snapshot checks -- Codex,
+  PR #441, branch `codex/convergence-execution-contract-20261007`, taken 2026-10-07.
+  Covers the new seller report, buyer receipt/download guards and connected
+  checkout pagination. No schema, inventory or Growth changes. Release when
+  PR #441 merges or closes.
+
+History:
+- RELEASED: both Claude #439 tracer/data-review and stock-linkage locks below;
+  PR #439 merged at `a8890755d8bdfdcf8f899f7ab1b235f8461d8840` on 2026-10-06.
+- RELEASED: capability inventory tracer and route data reviews -- Claude, branch
   `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-06. Covers
   `scripts/generate-capability-inventory.cjs`, `lib/sonara-route-data-reviews.cjs`
   and `unwrapHandler` in `lib/sonara-async-route-safety.cjs`. Regenerating
   `data/capability-inventory.json` is fine from any branch; editing the tracer
   is not, until this merges. Release when its PR merges or closes.
-- HELD: inventory/order/fulfilment linkage -- Claude, branch
+- RELEASED: inventory/order/fulfilment linkage -- Claude, branch
   `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-06. Covers a new
   `inventory_reservations` table and its stock functions,
   `lib/sonara-merchant-storefront.cjs`, `routes/sonara-merchant-store-routes.cjs`
@@ -15,7 +29,6 @@ Active:
   `merchant_product_variants` / `business_work_order_materials` stock link. Does
   not touch payments, webhooks or billing. Release when its PR merges or closes.
 
-History:
 - RELEASED: commerce webhook recovery -- Codex, branch `codex/commerce-recovery-20261006`, completed locally 2026-10-06. Marketplace and merchant webhook recovery and inventory lineage are tested; public publication awaits owner approval after automatic review rejected the upload.
 - RELEASED: connected-account commerce payment surfaces -- Claude, branch
   `claude/sonara-engineering-handoff-b6ui1t`, PR #436, taken 2026-10-06. Covers

@@ -406,3 +406,12 @@ behaviour, not settlement, deployment or real customer/device evidence.
   suite (`5,109 passing`, `6 pending`), route smoke, client-secret scan, and
   desktop/mobile browser checks. Hosted CI was green and PR #379 merged into
   `main` as `24a2fdc5`.
+
+## 2026-10-07 — managed business scope convergence (Codex)
+
+- Main inspected at `a8890755d8bdfdcf8f899f7ab1b235f8461d8840`; Claude #439 is merged. #440 LinkedIn execution and #442 leasing safeguards remain separate active PRs.
+- Creator reconciliation and exact licence/private delivery are in draft #441. Its 82 focused tests and full 6,341-test suite pass; current exact-head release/browser checks remain on that PR. No live customer transaction was performed.
+- Source review found a manager authorization/record mismatch: the gate checked an active management membership in one business, while delegated record APIs independently selected the actor's first primary membership in another.
+- The scope branch carries the verified membership's organization and role through delegated asynchronous work using request-local storage. Different actors cannot inherit it, concurrent workspaces stay isolated, and ordinary primary resolution remains available outside management requests. No membership or role is granted, no credential is changed and no schema is written.
+- Twelve focused resolver/isolation cases pass locally. Ten real-server regressions drive selected-workspace resource/waitlist reads and writes, unrelated/employee/inactive/malformed-membership denial and concurrent requests; their full-repository CI result remains pending. Source/syntax checks are not a substitute for that run.
+- Booking/resource/waitlist destination screens remain next. This security prerequisite does not reduce the remaining 61 fallback count or prove a customer notification.

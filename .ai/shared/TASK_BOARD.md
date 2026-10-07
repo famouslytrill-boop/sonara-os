@@ -97,3 +97,12 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 - Current audited source `main`: `fa9402a8671bae7934925c5c64f147a221bf4e16`.
 - Latest READY Vercel production commit found: `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`.
 - Production remains behind source until an exact-SHA controlled deployment proves otherwise.
+
+## Convergence scope prerequisite — 2026-10-07
+
+- [x] Inspect merged Claude #439 and keep active #440/#442 work separate.
+- [x] Implement request-local scope binding from the management membership already verified by the server. Primary staff membership in another organization cannot select its records during that management request.
+- [x] Pass 12 focused cases for actual resolver behavior, same-user workspace concurrency, actor mismatch and cleanup after errors.
+- [ ] Pass the 10 real-server regressions and all release checks on the published scope branch.
+- [ ] Add usable booking/resource/waitlist destination screens after their record scope is verified. The current 61 destination fallbacks remain open.
+- [ ] Prove actual provider/customer commerce and physical-device execution; the scope fix and #441 source checks do not establish that evidence.
