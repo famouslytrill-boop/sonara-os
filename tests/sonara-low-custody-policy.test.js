@@ -6,6 +6,8 @@ const {
   SOFTWARE_FEES, MERCHANT_FLOWS, NEVER_SUPPORTED,
   externalPaymentLinkReview, lowCustodyDecision, externalReceiptEvidence
 } = require("../lib/sonara-low-custody-policy.cjs");
+const { connectReadiness, canAcceptPayments, createAccount, onboardingLink } =
+  require("../lib/sonara-connected-payments.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const FOREIGN="22222222-2222-4222-8222-222222222222";
 const merchant=(overrides={})=>({
@@ -143,5 +145,37 @@ describe("SONARA externally reported payment receipts cannot become paid grants"
   it("unknown payment methods and missing attestation remain blocked",()=>{
     assert.ok(externalReceiptEvidence(receipt({method:"sonara_escrow"})).issues.includes("external_method_unknown"));
     assert.ok(externalReceiptEvidence(receipt({sellerAttested:false})).issues.includes("seller_attestation_missing"));
+  });
+});
+
+describe("runtime-reviewed low-custody opt-in switch",()=>{
+  it("external_only blocks Connect even with legacy Connect enabled",()=>{
+    const deps={getEnv:name=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"external_only",
+      STRIPE_CONNECT_ENABLED:"true",STRIPE_SECRET_KEY:"sk_test_"+"a".repeat(38)
+    })[name]};
+    const decision=connectReadiness(deps);
+    assert.equal(decision.ok,false);
+    assert.equal(decision.status,"setup_required");
+    assert.ok(decision.detail.includes("intentionally disabled"));
+  });
+  it("Connect-disabled account creation cannot call provider or storage", async ()=>{
+    let networkCalls=0;
+    const deps={getEnv:key=>key==="SONARA_CUSTOMER_FUNDS_MODE"?"external_only":
+      key==="STRIPE_CONNECT_ENABLED"?"true":key==="STRIPE_SECRET_KEY"?"sk_test_"+"a".repeat(38):""};
+    const neverFetch=async()=>{networkCalls++;throw Error("network access unexpected")};
+    const result=await createAccount(deps,{
+      organizationId:ORG,country:"US",email:"merchant@example.com",createdBy:ORG
+    },neverFetch);
+    assert.equal(result.ok,false);
+    assert.equal(networkCalls,0);
+  });
+  it("Connect-disabled eligibility never attempts Stripe or Supabase reads",async()=>{
+    let networkCalls=0;
+    const deps={getEnv:key=>key==="SONARA_CUSTOMER_FUNDS_MODE"?"external_only":
+      key==="STRIPE_CONNECT_ENABLED"?"true":key==="STRIPE_SECRET_KEY"?"sk_test_"+"a".repeat(38):""};
+    const result=await canAcceptPayments(deps,ORG,async()=>{networkCalls++;throw Error("unexpected")});
+    assert.equal(result.ok,false);
+    assert.equal(networkCalls,0);
   });
 });
