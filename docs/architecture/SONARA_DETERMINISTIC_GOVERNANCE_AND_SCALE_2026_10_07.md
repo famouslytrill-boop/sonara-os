@@ -149,3 +149,14 @@ Never claim a headcount or resource plan can satisfy a regulatory reporting dead
 - PGMQ durability/visibility timeout (not exactly-once side effects): https://github.com/pgmq/pgmq
 
 **No deployment, data migration, legal certification, content moderation service, human legal reviewer or customer financial transaction has been activated by writing this plan.**
+
+
+## 10. Governed optional model execution: current draft code
+
+- `lib/sonara-content-compliance-engine.cjs` + dedicated tests: deterministic case routing, candidate TAKE IT DOWN deadline based on verified valid notice receipt, separate rights and AI media evidence, and educational unreviewed contract drafting with no automatic legal execution.
+- `lib/sonara-governed-ai-draft-packets.cjs` + dedicated tests: bounded metadata-only packets for six content/document outlines; only pre-approved source registry identifiers; optional provider model revision; explicit refusal of unbounded or sensitive fields; untrusted model output validation; mandatory human review and no automatic public release.
+- `lib/sonara-deterministic-capacity-planner.cjs` + dedicated tests: exact-integer scenario calculations for churn, acquisition, replicated storage, queued processing capacity and monthly subscription contribution.
+- `lib/sonara-lease-ledger.cjs`: pending deductions are memo-only and no longer reduce draft security-deposit liability; a final deduction requires a **separate lawful settlement design** and cannot be inferred from a memo.
+- `tests/sonara-control-plane-schema-proposal.test.js`: static checks on the ten-table SQL proposal, privacy-first grants, review case shape, resource quotas and customer money separation.
+
+**Go-live constraints:** These are pure functions and design artifacts. No authenticated router/writer, live model adapter, legal reviewer, approved policy registry, licensed provider connection, queue, or SQL migration has been activated. A successful static check only verifies source expectations; it is not PostgreSQL syntax validation, RLS replay, bank confirmation, proof of copyright ownership or an attorney opinion.
