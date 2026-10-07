@@ -8,6 +8,7 @@ const {
   evaluateIntegrationActivation,
   requiresActivationReview
 } = require("../lib/sonara-integration-activation-policy.cjs");
+const { knownProviderDirectAccess } = require("../lib/sonara-customer-provider-pathways.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -646,6 +647,36 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   }
 
+  app.get("/business-builder/businesses/:businessId/integrations/:id/open-provider", workspaceAccess, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.redirect(303, "/account/setup");
+    const loaded = await loadBusiness(ctx, req.params.businessId);
+    if (!loaded.ok) return res.status(loaded.status).type("html").send(friendlyPage("Business not found", "The requested business is unavailable or outside your workspace.", [linkAction("/business-builder/control-center", "All businesses")]));
+    const definition = RESOURCES.integrations;
+    const allowed = await permission(req, ctx, loaded.business.id, "integrations.read", definition.ownerOnly);
+    if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow connected-tool access.", [linkAction(`/business-builder/businesses/${loaded.business.id}`, "Return to business")]));
+    const result = await rest(
+      definition.table,
+      `select=id,provider_key,connection_mode,connection_status&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
+    );
+    if (!result.ok) return res.status(503).type("html").send(friendlyPage("Provider access unavailable", "SONARA could not verify this connected-tool record.", [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]));
+    const connection = result.rows[0];
+    if (!connection) return res.status(404).type("html").send(friendlyPage("Provider connection not found", "That provider connection is not available in this business.", [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]));
+    const access = knownProviderDirectAccess(connection.provider_key);
+    if (!access.ok) {
+      await audit(ctx, loaded.business.id, "integrations.provider_access_unavailable", "integrations", connection.id, "denied", { providerKey: connection.provider_key, code: access.code });
+      return res.status(409).type("html").send(friendlyPage(
+        "Direct provider access needs verification",
+        "SONARA does not redirect to a provider address supplied by a browser. This provider needs a reviewed official destination or verified custom-provider manifest first.",
+        [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]
+      ));
+    }
+    await audit(ctx, loaded.business.id, "integrations.provider_access_opened", "integrations", connection.id, "success", { providerKey: connection.provider_key });
+    res.set("Referrer-Policy", "no-referrer");
+    res.set("Cache-Control", "no-store");
+    return res.redirect(303, access.navigationUrl);
+  });
+
   app.get("/business-builder/businesses/:businessId/manage/:resource", workspaceAccess, async (req, res) => {
     const definition = RESOURCES[req.params.resource];
     if (!definition) return res.status(404).type("html").send(friendlyPage("Business tool not found", "That Business Builder tool is not available.", [linkAction(`/business-builder/businesses/${req.params.businessId}`, "Return to business")]));
@@ -855,7 +886,9 @@ function recordCard(businessId, key, definition, row) {
   const title = row.name || row.display_name || row.customer_name || row.title || row.provider_key || row.permission_key || "Saved record";
   const status = row.status || row.connection_status || row.role_key || "active";
   const details = recordDetails(row);
-  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}/archive"><button class="bb-quiet-action" type="submit">Archive</button></form></article>`;
+  const providerAccess = key === "integrations" ? knownProviderDirectAccess(row.provider_key) : null;
+  const directAccess = providerAccess?.ok ? `<a class="bb-quiet-action" href="/business-builder/businesses/${encodeURIComponent(businessId)}/integrations/${encodeURIComponent(row.id)}/open-provider">Open provider</a>` : "";
+  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><div class="card-actions">${directAccess}<form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}/archive"><button class="bb-quiet-action" type="submit">Archive</button></form></div></article>`;
 }
 
 function recordDetails(row) {
