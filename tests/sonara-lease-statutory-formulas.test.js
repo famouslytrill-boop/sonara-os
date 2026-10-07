@@ -143,6 +143,20 @@ describe("FTC report-influenced housing adverse action", () => {
     assert.ok(result.blockers.includes("consumer_dispute_right_missing"));
     assert.ok(result.blockers.includes("free_report_60_day_right_missing"));
   });
+  it("requires additional notice evidence when a credit score influenced the action", () => {
+    let result = reportNotice({ creditScoreUsed: true, scoreNotice: {} });
+    for (const code of [
+      "credit_score_disclosure_missing","credit_score_source_disclosure_missing",
+      "credit_score_date_disclosure_missing","credit_score_range_disclosure_missing",
+      "credit_score_key_factors_missing"
+    ]) assert.ok(result.blockers.includes(code), code);
+    result = reportNotice({ creditScoreUsed: true, scoreNotice: {
+      scoreDisclosureIncluded: true, scoreSourceDisclosed: true,
+      scoreDateDisclosed: true, scoreRangeDisclosed: true,
+      keyAdverseFactorsDisclosed: true
+    }});
+    assert.equal(result.status, "draft_notice_evidence_ready");
+  });
   it("blocks bypassing permissible-purpose and CRA contact requirements", () => {
     const result = reportNotice({ consumerReportPermissiblePurposeVerified: false, reportVendor: {} });
     assert.ok(result.blockers.includes("fcra_permissible_purpose_missing"));
