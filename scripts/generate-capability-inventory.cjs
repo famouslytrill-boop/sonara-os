@@ -27,6 +27,15 @@ function sorted(values) {
   return [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b)));
 }
 
+// Every regex character, backslash included. The identifiers interpolated
+// below cannot contain most of these, but `$` is legal in a JavaScript name
+// and is an anchor in a pattern, and an escape that handles some characters
+// and not others is the shape CodeQL reports as incomplete -- correctly, since
+// it holds only for the inputs somebody happened to think of.
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function normalizeRouteParams(value) {
   return String(value).replace(/:[A-Za-z_$][\w$]*/g, ":parameter");
 }
@@ -656,7 +665,7 @@ function buildInventory() {
         if (wrappers.has(name)) continue;
         const body = bodies.get(name);
         for (const [wrapper, position] of wrappers) {
-          for (const call of body.matchAll(new RegExp(`(?<![.$\\w])${wrapper}\\s*\\(`, "g"))) {
+          for (const call of body.matchAll(new RegExp(`(?<![.$\\w])${escapeRegExp(wrapper)}\\s*\\(`, "g"))) {
             const argument = callArguments(body, call.index + call[0].length - 1)[position];
             const forwarded = names.findIndex((parameter) => parameter && argument === parameter);
             if (forwarded >= 0) { wrappers.set(name, forwarded); changed = true; break; }
@@ -670,7 +679,7 @@ function buildInventory() {
   function tablesThroughRestWrappers(sourceFile, code) {
     const found = new Set();
     for (const [wrapper, position] of restWrappersFor(sourceFile)) {
-      for (const call of code.matchAll(new RegExp(`(?<![.$\\w])${wrapper.replace(/[.$]/g, "\\$&")}\\s*\\(`, "g"))) {
+      for (const call of code.matchAll(new RegExp(`(?<![.$\\w])${escapeRegExp(wrapper)}\\s*\\(`, "g"))) {
         const argument = callArguments(code, call.index + call[0].length - 1)[position] || "";
         const table = argument.match(/^["'`]([a-z_][a-z0-9_]*)(?:[?/"'`]|\$\{)/)?.[1];
         if (table && tableNameSet.has(table)) found.add(table);
@@ -823,8 +832,65 @@ function buildInventory() {
         if (close >= 0) functions.set(match[1], source.slice(open + 1, close));
       }
     }
+    // Arrows whose body is an expression -- `const channelForm = () => \`<form
+    // ...>\`` -- were not recorded at all, so every form and query written that
+    // way was invisible: the growth channel and event pages, among others, read
+    // as having no form for routes they post to on every visit. Recorded after
+    // the block-bodied definitions, and never in place of one.
+    const expressionHeads = [
+      /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(/g,
+      /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?[A-Za-z_$][\w$]*\s*=>/g
+    ];
+    for (const head of expressionHeads) {
+      for (const match of source.matchAll(head)) {
+        if (functions.has(match[1])) continue;
+        let arrowEnd;
+        if (match[0].endsWith("(")) {
+          const parametersClose = closingParen(source, match.index + match[0].length - 1);
+          if (parametersClose < 0) continue;
+          const arrow = source.slice(parametersClose + 1, parametersClose + 40).match(/^\s*=>/);
+          if (!arrow) continue;
+          arrowEnd = parametersClose + 1 + arrow[0].length;
+        } else {
+          arrowEnd = match.index + match[0].length;
+        }
+        const start = arrowEnd + (source.slice(arrowEnd).match(/^\s*/)?.[0].length || 0);
+        if (source[start] === "{") continue;
+        const end = expressionEnd(source, start);
+        if (end > start) functions.set(match[1], source.slice(start, end));
+      }
+    }
     localFunctionCache.set(sourceFile, functions);
     return functions;
+  }
+  // Where an arrow's expression body ends: a `;` or `,` at depth zero, the
+  // closing bracket of whatever encloses it, or a line break that does not
+  // continue the expression.
+  function expressionEnd(source, start) {
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let index = start; index < source.length; index += 1) {
+      const char = source[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") { quote = char; continue; }
+      if ("([{".includes(char)) depth += 1;
+      else if (")]}".includes(char)) {
+        if (depth === 0) return index;
+        depth -= 1;
+      } else if ((char === ";" || char === ",") && depth === 0) {
+        return index;
+      } else if (char === "\n" && depth === 0) {
+        const next = source.slice(index + 1).match(/^\s*(\S{1,2})/)?.[1] || "";
+        if (!/^(?:[.?:+\-*/%&|<>=]|\?\?|&&|\|\|)/.test(next)) return index;
+      }
+    }
+    return source.length;
   }
   function importedFunctionsFor(sourceFile) {
     if (importedFunctionCache.has(sourceFile)) return importedFunctionCache.get(sourceFile);
@@ -1270,7 +1336,7 @@ function buildInventory() {
         const pattern = argument.slice(1, -1).split(/\$\{[^}]*\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+");
         return new RegExp(`^${pattern}$`).test(routePath);
       };
-      const calls = [...source.matchAll(new RegExp(`(?<![.$\\w])${helper.name}\\s*\\(`, "g"))]
+      const calls = [...source.matchAll(new RegExp(`(?<![.$\\w])${escapeRegExp(helper.name)}\\s*\\(`, "g"))]
         .map((call) => callArguments(source, call.index + call[0].length - 1))
         .filter((args) => produces(args[routeParameter]));
       if (calls.length === 1) {
@@ -1360,7 +1426,7 @@ function buildInventory() {
     // so `supabaseList(config, resource.table)` reads as the table it names.
     let boundEvidenceSource = tableEvidenceSource;
     for (const [expression, value] of loopBindings.literals) {
-      boundEvidenceSource = boundEvidenceSource.replace(new RegExp(`\\b${expression.replace(".", "\\s*\\.\\s*")}\\b`, "g"), value);
+      boundEvidenceSource = boundEvidenceSource.replace(new RegExp(`\\b${expression.split(".").map(escapeRegExp).join("\\s*\\.\\s*")}\\b`, "g"), value);
     }
     const graphEvidence = localCallGraphPersistenceReferences(sourceFile, [handlerEntrySource, boundEvidenceSource].filter(Boolean).join("\n"), `${method} ${routePath}`, loopBindings);
     for (const group of ["body", "query", "params"]) {
@@ -1449,8 +1515,27 @@ function buildInventory() {
   const FORM_WALK_FUNCTION_BUDGET = 400;
   const FORM_WALK_DEPTH_LIMIT = 4;
   const formWalkTruncatedPages = new Set();
+  // An action written through an escaping call -- `action="${escape(`/api/x/${id}/follow`)}"`
+  // or `action="${escape(`${base}/follow`)}"` with `const base = `/api/x/${id}``
+  // declared beside it -- is the same action as one written out. Only those two
+  // shapes are read: a template literal inside one call, starting with "/" or with
+  // a constant declared as a string in the same function or file.
+  function escapedFormAction(tag, code, file) {
+    const wrapped = tag.match(/\baction\s*=\s*(["'])\$\{\s*[A-Za-z_$][\w$.]*\(\s*`((?:\$\{[^{}]*\}|[^`])*)`\s*\)\s*\}\1/i);
+    if (!wrapped) return null;
+    let inner = wrapped[2];
+    const lead = inner.match(/^\$\{\s*([A-Za-z_$][\w$]*)\s*\}/);
+    if (lead) {
+      const declaration = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(lead[1])}\\s*=\\s*(?:\`((?:\\$\\{[^{}]*\\}|[^\`])*)\`|"([^"]*)"|'([^']*)')`);
+      const found = String(code).match(declaration) || readSource(file).match(declaration);
+      if (!found) return null;
+      inner = (found[1] ?? found[2] ?? found[3]) + inner.slice(lead[0].length);
+    }
+    return inner.startsWith("/") ? inner : null;
+  }
   function formActionsForPage(page) {
     const found = new Map();
+    const scripts = new Set();
     const seen = new Set();
     function visit(file, source, depth, closureBindings = new Map()) {
       if (seen.size >= FORM_WALK_FUNCTION_BUDGET) {
@@ -1462,7 +1547,8 @@ function buildInventory() {
       for (const match of code.matchAll(/<form\b[^>]*>/gi)) {
         // An interpolated id can carry its own quotes -- `${encodeURIComponent(String(row.id || ""))}` --
         // and stopping at the first one read the action as ending mid-expression.
-        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\])+)\1/i)?.[2];
+        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\])+)\1/i)?.[2]
+          || escapedFormAction(match[0], code, file);
         if (!action) continue;
         const method = (match[0].match(/\bmethod\s*=\s*["'](get|post|patch|delete)["']/i)?.[1] || "GET").toUpperCase();
         const operation = `${method} ${action.replace(/\$\{[^}]+\}/g, ":parameter").split("?")[0]}`;
@@ -1474,6 +1560,9 @@ function buildInventory() {
           found.get(operation).add(field[1]);
         }
       }
+      // Scripts the page loads: a route called only from one of these has this
+      // page as its screen.
+      for (const script of code.matchAll(/<script\b[^>]*\bsrc\s*=\s*["'](\/[^"'?#]+\.js)/gi)) scripts.add(script[1]);
       // A lookbehind, not a consumed character: `(^|[^.$\w])name\(` used up the
       // "(" before a nested call, so `Promise.resolve(handler(req))` never
       // reached `handler` and neither did any other call written directly
@@ -1482,7 +1571,7 @@ function buildInventory() {
       for (const match of code.matchAll(calls)) {
         const name = match[1];
         const localBody = localFunctionsFor(file).get(name);
-        const imported = localBody === undefined ? closureBindings.get(name) || importedFunctionsFor(file).get(name) : null;
+        const imported = localBody === undefined ? closureBindings.get(name) || importedFunctionsFor(file).get(name) || injectedFunctionsFor(file).get(name) : null;
         const targetFile = imported?.file || file;
         const body = localBody === undefined ? imported?.body : localBody;
         const key = `${targetFile}:${name}`;
@@ -1494,10 +1583,16 @@ function buildInventory() {
     }
     const handlerNames = (page.handlerNames || []).filter((name) => name && name !== "anonymous").map((name) => `${name}()`);
     visit(page.source.file, [...handlerNames, page.handlerSource, page.registrationSource].filter(Boolean).join("\n"), 0);
-    return [...found.entries()].map(([operation, fields]) => ({ operation, fields: sorted(fields) }));
+    return { forms: [...found.entries()].map(([operation, fields]) => ({ operation, fields: sorted(fields) })), scripts };
   }
+  const scriptPages = new Map();
   for (const page of getPageRoutes) {
-    for (const { operation, fields } of formActionsForPage(page)) {
+    const walked = formActionsForPage(page);
+    for (const script of walked.scripts) {
+      if (!scriptPages.has(script)) scriptPages.set(script, new Set());
+      scriptPages.get(script).add(page.route);
+    }
+    for (const { operation, fields } of walked.forms) {
       if (!formActionPages.has(operation)) formActionPages.set(operation, new Set());
       formActionPages.get(operation).add(page.route);
       if (!formActionFields.has(operation)) formActionFields.set(operation, new Set());
@@ -1525,6 +1620,160 @@ function buildInventory() {
     sonara_shared_api: "/dashboard",
     sonara_shared: "/dashboard"
   };
+  // Path segments agree when they are equal or when either side is a
+  // parameter: a literal "module_output" fills a route's ":resourceType".
+  const pathSegmentsAgree = (left, right) => {
+    const a = normalizeRouteParams(String(left).split(/[?#]/)[0]).split("/");
+    const b = normalizeRouteParams(String(right).split(/[?#]/)[0]).split("/");
+    return a.length === b.length && a.every((segment, index) => segment === b[index] || segment === ":parameter" || b[index] === ":parameter");
+  };
+  // The pages whose forms post to this route, the route's own parameters
+  // accepting whatever literal a form fills them with.
+  function formPagesFor(route) {
+    const pages = new Set();
+    const own = normalizeRouteParams(route.route).split("/");
+    for (const [operation, set] of formActionPages) {
+      const method = operation.slice(0, operation.indexOf(" "));
+      const action = operation.slice(operation.indexOf(" ") + 1).split("/");
+      if (method !== route.method || action.length !== own.length) continue;
+      if (action.every((segment, index) => segment === own[index] || own[index] === ":parameter")) for (const page of set) pages.add(page);
+    }
+    return pages;
+  }
+  // Where the handler sends a browser back to: `res.redirect(303, `${back}?...`)`
+  // with `const back = `/business-builder/owner/purchase-orders/${id}`` beside it.
+  function redirectTargetsFor(route) {
+    const source = withoutComments([route.handlerSource, route.registrationSource].filter(Boolean).join("\n"));
+    const declared = (name) => {
+      const pattern = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(name)}\\s*=\\s*(?:\`([^\`]*)\`|"([^"]*)"|'([^']*)')`);
+      const found = source.match(pattern)
+        || (route.source.file ? readSource(route.source.file).match(pattern) : null);
+      return found ? (found[1] ?? found[2] ?? found[3]) : null;
+    };
+    const targets = new Set();
+    for (const call of source.matchAll(/\bres\.redirect\(\s*(?:\d+\s*,\s*)?(`[^`]*`|"[^"]*"|'[^']*'|[A-Za-z_$][\w$]*)/g)) {
+      let target = /^[`"']/.test(call[1]) ? call[1].slice(1, -1) : declared(call[1]);
+      if (!target) continue;
+      const lead = target.match(/^\$\{\s*([A-Za-z_$][\w$]*)\s*\}/);
+      if (lead) {
+        const base = declared(lead[1]);
+        if (!base) continue;
+        target = base + target.slice(lead[0].length);
+      }
+      if (target.startsWith("/")) targets.add(target.replace(/\$\{[^}]*\}/g, ":parameter").split(/[?#]/)[0]);
+    }
+    return [...targets];
+  }
+  // The pages that load a script in public/ which calls this route.
+  const publicScripts = (() => {
+    const directory = path.join(ROOT, "public");
+    if (!fs.existsSync(directory)) return [];
+    return fs.readdirSync(directory).filter((name) => name.endsWith(".js")).sort()
+      .map((name) => ({ src: `/${name}`, code: withoutComments(fs.readFileSync(path.join(directory, name), "utf8")) }));
+  })();
+  function scriptPagesFor(route) {
+    const pattern = new RegExp(`${route.route.split("/").map((segment) => (segment.startsWith(":") ? "[^/\"'\`\\s]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).join("/")}(?![\\w/-])`);
+    const pages = new Set();
+    for (const script of publicScripts) {
+      if (!pattern.test(script.code)) continue;
+      for (const page of scriptPages.get(script.src) || []) pages.add(page);
+    }
+    return pages;
+  }
+  // One screen from several: the page the handler redirects back to, else the
+  // page the others sit under, else every page, listed.
+  function destinationAmong(route, pages, reason) {
+    const list = sorted(pages);
+    if (list.length === 1) return { route: list[0], confidence: "form_reference", reason };
+    const targets = redirectTargetsFor(route);
+    const redirected = list.filter((page) => targets.some((target) => pathSegmentsAgree(page, target)));
+    if (redirected.length === 1) return { route: redirected[0], confidence: "form_reference", reason: `${reason}_and_redirect_target`, pages: list };
+    const parent = list.find((page) => list.every((other) => other === page || other.startsWith(`${page}/`)));
+    if (parent) return { route: parent, confidence: "form_reference", reason: `${reason}_on_a_page_and_those_under_it`, pages: list };
+    return { route: list[0], confidence: "form_reference", reason: `${reason}_on_several_pages`, pages: list };
+  }
+  // Doors a shared handler renders only for the pages that declare them.
+  //
+  // The record detail page is one handler registered for every record kind
+  // with a page of its own, and it renders the share card only where the kind
+  // declares `shareableAs` and the publish card only where it declares
+  // `publishHandle`. The workspace page handler renders saved-result share
+  // controls only on a `free_records` page. Source is identical for every page
+  // such a handler serves, so reading source credited the publish form to all
+  // thirteen record pages and the share form to every workspace page -- and the
+  // first of those alphabetically was reported as the destination: the publish
+  // form "on" the bookings page, which has never shown it.
+  //
+  // The declarations decide, so the declarations are read. Held from both sides
+  // by map.validation.declaredDoorsNotRendered: a door route that is not
+  // registered, a declared page that is not registered (which is the defect
+  // that left quotes, bookings and artist profiles with a door and no page),
+  // and a declared page whose source does not render the form all fail.
+  const declaredDoors = (() => {
+    const records = require(path.join(ROOT, "lib", "sonara-owner-record-pages.cjs"));
+    const { createProductPages } = require(path.join(ROOT, "lib", "sonara-product-pages.cjs"));
+    const productPages = createProductPages({ linkAction: () => "", logoutAction: () => "" });
+    const workspacePages = ["business-builder", "creator-studio", "growth-studio"]
+      .flatMap((slug) => Object.values(productPages.getProductPageDefinitions(slug)).flat());
+    const recordPagesWhere = (predicate) => [...records.ALL_OWNER_PAGES, ...records.CREATOR_RECORD_PAGES]
+      .filter(predicate).map((page) => `${page.path}/:recordId`);
+    const doors = [
+      {
+        routes: ["POST /api/creator-profiles/:id/publish", "POST /api/creator-profiles/:id/unpublish"],
+        pages: recordPagesWhere((page) => page.publishHandle)
+      },
+      {
+        routes: ["POST /api/shared-links/:resourceType/:id/share", "POST /api/shared-links/:resourceType/:id/revoke"],
+        pages: [
+          ...recordPagesWhere((page) => page.shareableAs),
+          ...workspacePages.filter((page) => page.module === "free_records").map((page) => page.path)
+        ]
+      },
+      // The detail handler renders these two cards by table rather than by a
+      // declared field: `page.table === "purchase_orders"` and
+      // `page.table === "business_work_orders"` in routes/sonara-last9-routes.cjs.
+      {
+        routes: ["POST /api/business/purchase-orders/:recordId/approval"],
+        pages: recordPagesWhere((page) => page.table === "purchase_orders")
+      },
+      {
+        routes: ["POST /api/business/work-orders/:workOrderId/transition", "POST /api/business/work-orders/:workOrderId/invoice"],
+        pages: recordPagesWhere((page) => page.table === "business_work_orders")
+      }
+    ];
+    return Object.assign(new Map(doors.flatMap((door) => door.routes.map((id) => [id, door.pages]))), {
+      recordDetailPages: recordPagesWhere((page) => records.hasDetailPage(page))
+    });
+  })();
+  function declaredDoorProblems() {
+    const problems = [];
+    // The other side. A form the source credits to every record detail page is
+    // a card the one detail handler renders for some of them, and which ones is
+    // a declaration this list has to carry -- otherwise the next such card is
+    // credited to all thirteen pages, and the first of them alphabetically is
+    // reported as where it lives.
+    const detailPages = declaredDoors.recordDetailPages;
+    if (detailPages.length < 2) problems.push(`only ${detailPages.length} record detail pages were found, so the check for undeclared doors has gone blind`);
+    const declaredOperations = new Set([...declaredDoors.keys()].map((id) => `${id.slice(0, id.indexOf(" "))} ${normalizeRouteParams(id.slice(id.indexOf(" ") + 1))}`));
+    for (const [operation, pages] of formActionPages) {
+      if (detailPages.length < 2 || !detailPages.every((page) => pages.has(page))) continue;
+      if (!declaredOperations.has(operation)) problems.push(`${operation}: credited to every record detail page, and no declared door says which ones render it`);
+    }
+    for (const [id, pages] of declaredDoors) {
+      if (!routeIds.has(id)) {
+        problems.push(`${id}: not a registered route`);
+        continue;
+      }
+      if (!pages.length) problems.push(`${id}: no page declares this door, so this check has gone blind`);
+      const [method, routePath] = [id.slice(0, id.indexOf(" ")), id.slice(id.indexOf(" ") + 1)];
+      const rendered = formPagesFor({ method, route: routePath });
+      for (const page of pages) {
+        if (!routeIds.has(`GET ${page}`)) problems.push(`${id}: declared on ${page}, which is not a registered page`);
+        else if (!rendered.has(page)) problems.push(`${id}: declared on ${page}, whose handler source does not render it`);
+      }
+    }
+    return problems;
+  }
   function pageForAction(route) {
     if (route.method === "GET" && !route.route.startsWith("/api/")) return { route: route.route, confidence: "exact", reason: "page_route" };
     if (route.kind === "webhook") return { route: null, confidence: "machine_ingress", reason: "provider_or_system_webhook" };
@@ -1555,8 +1804,12 @@ function buildInventory() {
       const parent = nearestRegisteredPage(exactPage, "nearest_registered_product_workspace_page");
       if (parent && parent.route !== prefix) return parent;
     }
-    const uiPages = formActionPages.get(`${route.method} ${normalizeRouteParams(route.route)}`);
-    if (uiPages?.size === 1) return { route: [...uiPages][0], confidence: "form_reference", reason: "rendered_form_action" };
+    const declaredPages = declaredDoors.get(route.id);
+    if (declaredPages?.length) return destinationAmong(route, new Set(declaredPages), "declared_door_on_the_page_that_renders_it");
+    const uiPages = formPagesFor(route);
+    if (uiPages.size) return destinationAmong(route, uiPages, "rendered_form_action");
+    const scriptPagesForRoute = scriptPagesFor(route);
+    if (scriptPagesForRoute.size) return destinationAmong(route, scriptPagesForRoute, "page_script_calls_route");
     const literalOptions = [route.route, strippedApi];
     for (const [page, handlerSource] of pageCandidateText) {
       if (literalOptions.some((value) => value && handlerSource.includes(value))) return { route: page, confidence: "form_reference", reason: "page_handler_mentions_action_path" };
@@ -2111,6 +2364,12 @@ function buildInventory() {
   const formHasRoute = (link) => {
     const id = `${link.method} ${normalizeRouteParams(link.action)}`;
     if (normalizedRouteIds.has(id)) return true;
+    const action = normalizeRouteParams(link.action).split("/");
+    if (routes.some((route) => {
+      const own = normalizeRouteParams(route.route).split("/");
+      return route.method === link.method && own.length === action.length
+        && action.every((segment, index) => segment === own[index] || own[index] === ":parameter");
+    })) return true;
     if (!link.action.includes(":parameter")) return false;
     const pattern = new RegExp(`^${link.method} ${link.action.split(":parameter").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+")}$`);
     const matched = routes.filter((route) => pattern.test(`${route.method} ${normalizeRouteParams(route.route)}`)).map((route) => route.id);
@@ -2323,6 +2582,7 @@ function buildInventory() {
     routesMissingDestination: routes.filter((route) => !route.contractCompleteness.destination).map((route) => route.id),
     apiRoutesMissingOpenApiContract: routes.filter((route) => route.route.startsWith("/api/") && !route.openApi).map((route) => route.id),
     formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).map((link) => `${link.method} ${link.action}`),
+    declaredDoorsNotRendered: declaredDoorProblems(),
     ownerActionsWithoutRegisteredRoute: ownerActionContractChecks.filter((action) => !action.routeRegistered).map((action) => action.id),
     ownerActionsWithoutActiveTable: ownerActionContractChecks.filter((action) => !action.tableInMigrations).map((action) => action.id),
     activeTablesWithoutCreateMigration: tables.filter((table) => table.migrationLineage.createdBy.length === 0).map((table) => table.name),

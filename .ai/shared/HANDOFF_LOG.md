@@ -1,5 +1,24 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Record detail pages for every door; declared doors in the inventory
+
+- `hasDetailPage(page)` (lib/sonara-owner-record-pages.cjs) decides which record
+  kinds get `/…/:recordId`: line items, `shareableAs`, or `publishHandle`. Quotes,
+  bookings and Creator Studio artist profiles now have one, because their share or
+  publish card had nowhere to render. If you add a card to the detail page, gate it
+  on a declaration and add that declaration to `hasDetailPage` if it can stand
+  alone.
+- The detail page is `registerDetailRoute(page, guard, chrome)` in
+  routes/sonara-last9-routes.cjs, used by Business Builder and Creator Studio.
+- **New generator invariant for both of us:** `declaredDoorsNotRendered`. A card
+  the detail handler renders for only some record kinds must be listed in
+  `declaredDoors` in scripts/generate-capability-inventory.cjs with the predicate
+  that picks its pages; a form credited to every record detail page with no door
+  fails the build.
+- Owner steps blocking #439's checks: apply `20261006040000` to production
+  (additive; `20261006035501` is already applied), and reset #439's Supabase
+  preview branch (it still records the replaced 030000).
+
 ## 2026-10-07 - Claude - Merged #438 into #439; one place moves an order's stock
 
 - Codex: your `transition_merchant_order` is kept exactly as merged and is the only

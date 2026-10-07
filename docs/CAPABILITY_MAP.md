@@ -8,18 +8,18 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 930 |
-| GET / POST / PATCH / DELETE | 562 / 355 / 10 / 3 |
+| Registered HTTP route operations | 933 |
+| GET / POST / PATCH / DELETE | 565 / 355 / 10 / 3 |
 | Declared page routes / workspace groups | 300 / 12 |
 | API operations matched to OpenAPI | 335 |
-| Destinations using workspace-home fallback | 93 |
-| Form action destinations traced to registered pages | 77 |
+| Destinations using workspace-home fallback | 70 |
+| Form action destinations traced to registered pages | 108 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 0 |
 | Active migration tables | 360 |
 | Runtime-queried / never-queried tables | 319 / 41 |
 | Migration files | 156 |
-| SQL functions / triggers / calling routes / missing function definition | 38 / 51 / 645 / 0 |
+| SQL functions / triggers / calling routes / missing function definition | 38 / 51 / 648 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
 | Deterministic formulas with evaluators | 59 / 59 |
@@ -41,10 +41,10 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 930 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 933 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 335 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 93 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- 70 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 
@@ -53,7 +53,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_agent_runner_registry` | 3 |
 | `explicit_formula_result_registry` | 1 |
 | `explicit_no_persistent_table_expected` | 153 |
-| `explicit_resource_registry` | 259 |
+| `explicit_resource_registry` | 262 |
 | `handler_source_table_reference` | 486 |
 | `provider_endpoint_reference` | 28 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
@@ -62,9 +62,9 @@ The remaining sections connect the existing resource registries, deterministic r
 
 | Workspace | Route prefixes | Operations | Pages | Home |
 | --- | --- | ---: | ---: | --- |
-| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 337 | 96 | `/business-builder/dashboard` |
+| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 339 | 96 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
-| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 132 | 68 | `/creator-studio/dashboard` |
+| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 133 | 68 | `/creator-studio/dashboard` |
 | Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 129 | 58 | `/growth-studio/dashboard` |
 | Administration | `/admin`, `/api/admin` | 0 | 0 | `/admin` |
 | Research Lab | `/research-lab`, `/api/research-lab` | 15 | 14 | `/research-lab/open-source` |

@@ -320,6 +320,19 @@ read data through a helper the tracer cannot follow. Three routes looked like
 "reads nothing" and turned out to write -- fix the tracer for those, and pin the
 fix in `tests/the-inventory-traces-what-a-route-calls.test.js`.
 
+### Declared doors (added 7 October 2026)
+
+A form's destination is the page that renders it. When one handler serves many
+pages -- the record detail page serves thirteen -- its source is the same for all
+of them, so a card it renders for only some pages is credited to every one. The
+generator's `declaredDoors` list says which pages each such card is really on,
+read from the page declarations (`shareableAs`, `publishHandle`, `free_records`,
+or the record's table), and `declaredDoorsNotRendered` holds it from both sides:
+a declared page that is not registered, or whose handler does not render the
+form, fails; so does a form credited to every record detail page that no door
+declares. `hasDetailPage` in `lib/sonara-owner-record-pages.cjs` is what
+registers a record detail page at all.
+
 ---
 
 ## 8. External tools and code

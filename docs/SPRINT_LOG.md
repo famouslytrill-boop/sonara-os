@@ -2,6 +2,80 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A door with no page: share, publish, and the record page they need
+
+**The defect.** The share card (quotes, bookings, invoices) and the publish card
+(artist profiles) were written for the record detail page, and that page was
+registered only for record kinds with line items. Three of the four kinds that
+declare a door have no lines, so "Create a link" on a quote or a booking and
+"Publish this profile" on an artist rendered nowhere. The endpoints worked and
+only an API client could reach them. The shared-link test checked that every
+shareable kind was *declared* on a page -- it was -- and nothing checked that the
+page was registered. A test comment beside it had noticed the symptom ("quotes
+has no child table, so it has no detail route at all") and worked around it.
+
+**The fix.** `hasDetailPage(page)` in `lib/sonara-owner-record-pages.cjs` -- line
+items, a share link, or a public address -- is the one predicate the
+registration, the list's Open column and the status-change return path all ask.
+The detail page is now a registrar, `registerDetailRoute(page, guard, chrome)`,
+called by Business Builder behind the business-manager guard and by Creator
+Studio behind the workspace guard, the way `registerEditRoutes` already was. On
+quotes, bookings and artist profiles the status control moves from the list row
+to the record page, by the existing one-place-per-page rule.
+
+Pinned by "a page for every record that has a door" in
+`tests/a-shared-link-is-a-link-not-a-leak.test.js`: for every kind declaring a
+share or publish card, the record page answers 200 with the form, the form returns
+to that page, and the list links to it. Falsified three ways: predicate back to
+line items only (bookings, quotes, artists fail), the Creator Studio registration
+removed (artists answers 404), the Open column back to line items only (three
+fail).
+
+**The inventory said the same wrong thing.** A card rendered by one shared
+handler was credited to every page that handler serves -- the publish form to all
+thirteen record pages, the share form to every workspace page -- and the first of
+those alphabetically was reported as the destination: publish "on" the bookings
+page, and the work order's Raise draft invoice "on" bookings too. The generator
+now reads the declarations (`publishHandle`, `shareableAs`, `free_records`, and
+the two cards the detail handler renders by table) and holds them two-sided in
+`map.validation.declaredDoorsNotRendered`. Falsified five ways, each failing by
+name: the predicate reverted (six "declared on a page that is not registered" --
+the defect above, now caught by the inventory as well), a door naming an
+unregistered route, the detail handler no longer rendering the share card, no
+page declaring publish ("this check has gone blind"), and the work-order door
+removed ("credited to every record detail page, and no declared door says which
+ones render it").
+
+**Workspace fallbacks 93 -> 70.** The rest of the 23 came from reading what the
+generator could not: arrows with expression bodies (the growth channel and event
+forms were invisible), form actions written through an escaping call
+(`action="${escape(`${base}/follow`)}"`), scripts a page loads from `public/`,
+the redirect target when a form sits on several pages, and a literal action
+segment filling a route parameter (`module_output` for `:resourceType`). The 70
+left are listed in `data/capability-inventory.json`; most are a screen nobody has
+built (market intelligence, waitlist and reservation resources, prompt library,
+sensory profiles, integration jobs) rather than a scanner gap.
+
+**CodeQL on #439.** One high alert, "Incomplete string escaping", in the
+generator: a wrapper name escaped for `.` and `$` and nothing else. One complete
+`escapeRegExp` now serves all six patterns built from identifiers; the inventory
+is byte-identical before and after.
+
+**#439's other two red checks are owner steps, not code:**
+
+- `production-deploy-dry-run` -- its deep verification lists three lines with one
+  cause: production has not applied `20261006040000`, so `inventory_reservations`
+  is missing. `20261006035501` (Codex's) is recorded as applied. The migration is
+  additive -- one table, two functions, and a trigger that does nothing until a
+  hold exists -- so applying it ahead of the merge is safe.
+- `Supabase Preview` -- "Remote migration versions not found in local migrations
+  directory." It passed on #439's first two commits and failed on the
+  reconciliation, which replaced `20261006030000`: this PR's preview database
+  applied 030000 when the PR opened. Production never had it (the dry-run lists
+  only 040000). Reset this PR's preview branch in Supabase; the connector in this
+  session has no permission to. The entry below said 030000 was "never applied
+  anywhere", which was a reason reasoned rather than verified -- corrected there.
+
 ### 2026-10-07 - Stock holds reconciled with Codex's fulfilment (#438)
 
 Codex's #438 merged while #439 was open: each order line now freezes its stock
@@ -15,7 +89,8 @@ main to do anything.
 Resolution, keeping Codex's function as the only thing that moves on-hand stock
 for an order:
 
-- `20261006030000` (never applied anywhere) is replaced by `20261006040000`.
+- `20261006030000` (never applied to production; it was applied to #439's Supabase
+  preview branch, see the entry above) is replaced by `20261006040000`.
   `inventory_order_hold` only *holds*: it locks the order, then its items in id
   order -- the order fulfilment locks them -- and holds the line's **frozen**
   link, the one fulfilment consumes. Its `fulfil` and `release` actions are gone.
