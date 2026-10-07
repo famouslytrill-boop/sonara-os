@@ -5,6 +5,18 @@
 (() => {
   const browser = globalThis.window || globalThis;
   const root = globalThis.document.documentElement;
+
+  // Install before the first render. A skipped native document transition
+  // rejects ready while normal navigation still completes. Handle only the
+  // browser's expected animation cancellations, never unrelated page errors.
+  for (const type of ["pageswap", "pagereveal"]) {
+    browser.addEventListener?.(type, (event) => {
+      event.viewTransition?.ready?.catch((error) => {
+        if (["AbortError", "InvalidStateError", "TimeoutError"].includes(error?.name)) return;
+        throw error;
+      });
+    });
+  }
   let theme = "system";
   let language = "en-US";
 
