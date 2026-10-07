@@ -1713,6 +1713,7 @@ Schema-only/read-only subsystem groups: 9. See `lib/sonara-subsystem-registry.cj
 | lib/sonara-formula-engine.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-formula-library.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-lease-statutory-formulas.cjs | Governed runtime or registry; inspect before activation |
+| lib/sonara-security-geometry-formulas.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-spreadsheet-formulas.cjs | Governed runtime or registry; inspect before activation |
 
 ### Infrastructure service and pipeline inventory
