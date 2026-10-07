@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3089 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 155 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 156 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 448 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 452 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,306 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 27 most recent entries of 441 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 28 most recent entries of 446 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Every roadmap stage gate can be passed from the page
+
+`/product-lifecycle/initiatives/:id` showed the readiness score and what was
+missing, and three of the seven stages could not be passed from it:
+
+- **plan** needs a target for the primary metric. The create form never asked for
+  one, and nothing could edit an initiative after it was created.
+- **build** needs an iteration with a Definition of Done that is active or done.
+  There was no iteration form, and nothing could move an iteration along.
+- **beta, launch, learn & scale** are blocked by any open critical finding, and
+  nothing could close one -- one critical finding blocked an initiative for good.
+
+The page now has an edit form (the fields the gates read), an iteration form, and
+a status control on each iteration and each finding. Closing a finding needs a
+note saying how it was dealt with: the gate reads only the status, so the note is
+the only record of why a blocker went away.
+
+Two defects in the gate itself, found on the way:
+
+- **A failed read was graded as an empty one.** `loadInitiativeBundle` never
+  checked whether its five child reads succeeded. A failed feedback read made "no
+  unresolved critical feedback" true -- the one criterion that is also a blocker
+  -- so a launch could advance past an open critical finding on the strength of a
+  request that did not happen. The bundle now refuses to grade unless every read
+  succeeded, and says which failed.
+- **The JSON PATCH could set the stage.** `lifecycle_stage` (and the statuses a
+  review decides) were accepted, so any caller could skip every gate by naming
+  the stage it wanted. Refused by name now; the stage moves through a review only.
+
+Also: the roadmap dashboard rendered a failed read exactly like a business with
+no initiatives; it says which it is now.
+
+Pinned by `tests/a-stage-gate-can-be-passed-from-the-page.test.js`, which drives
+only the page's own forms through the plan, build and beta gates to the advancing
+review, and checks the failed-read and PATCH cases. Falsified eight ways, each
+failing by name: no iteration form, no status routes, failed read graded as empty,
+the PATCH refusal removed, the PATCH writing the stage again, the target not
+editable, closing without a note, and the dashboard hiding a failed read.
+
+**Inventory, 70 -> 61 workspace fallbacks.** A JSON route with a page-form twin
+(`POST /api/x/:id/evidence` beside `POST /x/:id/evidence`) now takes the twin's
+page; markup held in a module-level constant is read for forms and script tags
+(the device-permissions script was in one); and `"/api/calls/" + id + "/signals"`
+in a public script is read as the path it builds. The status routes name their
+own tables so the trace sees what each one writes.
+
+
+
+### 2026-10-07 - A door with no page: share, publish, and the record page they need
+
+**The defect.** The share card (quotes, bookings, invoices) and the publish card
+(artist profiles) were written for the record detail page, and that page was
+registered only for record kinds with line items. Three of the four kinds that
+declare a door have no lines, so "Create a link" on a quote or a booking and
+"Publish this profile" on an artist rendered nowhere. The endpoints worked and
+only an API client could reach them. The shared-link test checked that every
+shareable kind was *declared* on a page -- it was -- and nothing checked that the
+page was registered. A test comment beside it had noticed the symptom ("quotes
+has no child table, so it has no detail route at all") and worked around it.
+
+**The fix.** `hasDetailPage(page)` in `lib/sonara-owner-record-pages.cjs` -- line
+items, a share link, or a public address -- is the one predicate the
+registration, the list's Open column and the status-change return path all ask.
+The detail page is now a registrar, `registerDetailRoute(page, guard, chrome)`,
+called by Business Builder behind the business-manager guard and by Creator
+Studio behind the workspace guard, the way `registerEditRoutes` already was. On
+quotes, bookings and artist profiles the status control moves from the list row
+to the record page, by the existing one-place-per-page rule.
+
+Pinned by "a page for every record that has a door" in
+`tests/a-shared-link-is-a-link-not-a-leak.test.js`: for every kind declaring a
+share or publish card, the record page answers 200 with the form, the form returns
+to that page, and the list links to it. Falsified three ways: predicate back to
+line items only (bookings, quotes, artists fail), the Creator Studio registration
+removed (artists answers 404), the Open column back to line items only (three
+fail).
+
+**The inventory said the same wrong thing.** A card rendered by one shared
+handler was credited to every page that handler serves -- the publish form to all
+thirteen record pages, the share form to every workspace page -- and the first of
+those alphabetically was reported as the destination: publish "on" the bookings
+page, and the work order's Raise draft invoice "on" bookings too. The generator
+now reads the declarations (`publishHandle`, `shareableAs`, `free_records`, and
+the two cards the detail handler renders by table) and holds them two-sided in
+`map.validation.declaredDoorsNotRendered`. Falsified five ways, each failing by
+name: the predicate reverted (six "declared on a page that is not registered" --
+the defect above, now caught by the inventory as well), a door naming an
+unregistered route, the detail handler no longer rendering the share card, no
+page declaring publish ("this check has gone blind"), and the work-order door
+removed ("credited to every record detail page, and no declared door says which
+ones render it").
+
+**Workspace fallbacks 93 -> 70.** The rest of the 23 came from reading what the
+generator could not: arrows with expression bodies (the growth channel and event
+forms were invisible), form actions written through an escaping call
+(`action="${escape(`${base}/follow`)}"`), scripts a page loads from `public/`,
+the redirect target when a form sits on several pages, and a literal action
+segment filling a route parameter (`module_output` for `:resourceType`). The 70
+left are listed in `data/capability-inventory.json`; most are a screen nobody has
+built (market intelligence, waitlist and reservation resources, prompt library,
+sensory profiles, integration jobs) rather than a scanner gap.
+
+**CodeQL on #439.** One high alert, "Incomplete string escaping", in the
+generator: a wrapper name escaped for `.` and `$` and nothing else. One complete
+`escapeRegExp` now serves all six patterns built from identifiers; the inventory
+is byte-identical before and after.
+
+**#439's other two red checks are owner steps, not code:**
+
+- `production-deploy-dry-run` -- its deep verification lists three lines with one
+  cause: production has not applied `20261006040000`, so `inventory_reservations`
+  is missing. `20261006035501` (Codex's) is recorded as applied. The migration is
+  additive -- one table, two functions, and a trigger that does nothing until a
+  hold exists -- so applying it ahead of the merge is safe.
+- `Supabase Preview` -- "Remote migration versions not found in local migrations
+  directory." It passed on #439's first two commits and failed on the
+  reconciliation, which replaced `20261006030000`: this PR's preview database
+  applied 030000 when the PR opened. Production never had it (the dry-run lists
+  only 040000). Reset this PR's preview branch in Supabase; the connector in this
+  session has no permission to. The entry below said 030000 was "never applied
+  anywhere", which was a reason reasoned rather than verified -- corrected there.
+
+
+
+### 2026-10-07 - Stock holds reconciled with Codex's fulfilment (#438)
+
+Codex's #438 merged while #439 was open: each order line now freezes its stock
+link at insert, and `transition_merchant_order` is the order status machine --
+fulfilment requires payment, takes stock off the shelf once and writes a stock
+receipt. #439 also took stock off the shelf at fulfilment, so merged as it was a
+shipped order would have left the shelf **twice**. My lock for this work was on my
+branch only, which is why Codex could not see it; a lock has to be visible from
+main to do anything.
+
+Resolution, keeping Codex's function as the only thing that moves on-hand stock
+for an order:
+
+- `20261006030000` (never applied to production; it was applied to #439's Supabase
+  preview branch, see the entry above) is replaced by `20261006040000`.
+  `inventory_order_hold` only *holds*: it locks the order, then its items in id
+  order -- the order fulfilment locks them -- and holds the line's **frozen**
+  link, the one fulfilment consumes. Its `fulfil` and `release` actions are gone.
+- A trigger on `merchant_orders.status` settles holds in the same transaction:
+  fulfilled -> consumed, cancelled -> released. Held and on hand cannot drift
+  between two requests because there is no second request.
+- The owner's status route is Codex's, untouched; the route never writes a hold
+  or a count. Placement still holds stock before any checkout, so the last mug
+  cannot be paid for twice (Codex's design had "Checkout does not reserve stock",
+  which let the second payment be taken and then fail at fulfilment -- a refund,
+  which AGENTS.md reserves for the owner).
+- `inventory_material_stock` now locks the same item rows rather than an
+  advisory lock, so jobs, holds and fulfilment share one lock.
+
+Proven in the replay with Codex's own fulfilment tests alongside: a fulfilled
+order consumes its hold and on hand drops once (5 -> 2, not -1), a cancelled order
+releases, a cancelled order cannot be held again, a fulfilled one cannot be
+cancelled, and the two-session last-item race. Falsified: trigger removed -> "a
+cancelled order kept its hold"; item row lock removed -> the race test fails.
+
+
+
+### 2026-10-06 - Every route has a data contract, and the inventory can no longer say otherwise
+
+The P0 "close the route/data-contract gaps". `data/capability-inventory.json` listed
+**300** routes whose tables it could not name. Most were not missing contracts; the
+generator could not read them, and the same blind spots labelled **39** routes that
+do read tables "no persistent table expected" -- `/service-catalog`, `/call/:token`,
+`/account/permissions`, `/shared/:token`, the public marketplace, the `/staff/*`
+pages and more.
+
+**Twelve defects in `scripts/generate-capability-inventory.cjs`, each found by
+asking why one route was on the list:**
+
+1. **It read the async safety net instead of the route.** Every handler is wrapped
+   by `lib/sonara-async-route-safety.cjs`, so the "live registered handler" the
+   generator captured was the same seven lines for all 930 routes.
+   `unwrapHandler` now exposes the original, and the generator throws if it ever
+   captures the wrapper again (it did, for 930 routes, when falsified).
+2. Helpers handed over in `deps` (`saveModuleOutput`, `safeListTable`) were never
+   followed. Now resolved from the registration call itself, only to what it passes.
+3. Local REST wrappers -- `read(pathAndQuery)`, `rows(ctx, table, query)` -- were
+   recognised in one commerce module only. Now any function proven to put a
+   parameter straight after `/rest/v1/`, local, imported or injected.
+4. Parameter lists were matched with `\([^)]*\)`, so a function with a default
+   like `fetch: request = (...args) => fetch(...args)` was never recorded --
+   the creator project store was invisible for that alone.
+5. Routes registered in a loop over a literal list, a `Map.forEach`, or a
+   registration helper (`registerCatalogRoute(path, handler)`) now bind the
+   handler of the entry that produced the path, and only that one.
+6. Anonymous stack frames have no parentheses, so 66 routes registered inside a
+   callback were placed on the enclosing function's line.
+7. The call regex consumed the character before a name, so `f(g(x))` never
+   reached `g`.
+8. `module.exports = { ... }` members were unreachable as `mod.fn(...)`.
+9. Supabase Auth, Storage and Stripe endpoints are now a data contract of their own
+   (`provider_endpoint_reference`): a sign-in has one; it is held by Auth.
+10. The trace stopped silently at 40 functions or depth 5 on 352-544 routes. Now
+   400 and 8, stopping on none, and any stop is reported per route.
+11. Form actions with quotes inside `${...}` were cut short, and a templated
+   segment (`/api/growth/${key}`) is now matched as a pattern and named.
+12. An imported `FORMULA_TABLES` list credited every formula table to any body that
+   mentioned it -- including the static readiness report that only prints their
+   names. Credited now only alongside a database call; and a route may no longer
+   carry a "no table" reason while tracing a table (`routesSayingNoTableWhileTracingOne`).
+
+**What is left was read, one route at a time:** 58 routes whose handler reads
+nothing -- redirects, in-repository catalogues, rendered pages, computations,
+cookies -- recorded with a reason in `lib/sonara-route-data-reviews.cjs`. The
+generator refuses an entry the trace contradicts, an entry for an unregistered
+route, and an entry nobody needed; `tests/a-route-that-reads-nothing-reads-nothing.test.js`
+calls each route's own handler with Supabase configured and every outbound request
+recorded, with a control route that must be caught. Three routes that looked like
+these turned out to write data (`/login/verify`, the creator project API,
+`/api/integrations/providers`) and are traced instead.
+
+**Gaps: 300 -> 0, and `routesWithoutDataContract` is now a generator invariant.**
+A new route traces to what it reaches or is reviewed. 486 routes trace to tables
+(221 before), 28 to a provider endpoint. Workspace fallbacks 96 -> 93 as a side
+effect of the form walk seeing nested calls.
+
+**Falsified:** each of the first eleven fixes reverted one at a time -- the generator
+refused every one (`routesWithoutDataContract: 1..68`, or the wrapper guard) and
+`tests/the-inventory-traces-what-a-route-calls.test.js` failed on the route written
+for it. Register: contradicting, unregistered, unneeded and missing entries each
+refused; a reviewed handler made to read a table failed both the generator and the
+runtime test; a blinded recorder failed the control; the formula naming rule put
+back failed `routesSayingNoTableWhileTracingOne`.
+
+
+
+### 2026-10-06 - Stock moves with orders and jobs
+
+*Superseded in part on 7 October: fulfilment now moves stock only in Codex's `transition_merchant_order`, and this migration was replaced by `20261006040000`. See the entry above.*
+
+The P0 "inventory/order/fulfilment linkage", and the inventory step of both the
+storefront chain (order -> payment -> **fulfilment**) and the Business Builder job
+chain (job -> **inventory** -> work completion). `inventory_items.quantity` was a
+number somebody typed; a variant's stock link "links rather than deducts" said its
+own form. A shop could sell its last mug twice and a job's cable never left the reel.
+
+**Ledger and functions** (`20261006030000_stock_moves_with_orders_and_jobs.sql`):
+`inventory_reservations`, one row per movement a sale or job caused -- `held`,
+`consumed`, `released`, `returned` -- unique per source so a retry cannot move stock
+twice, no DELETE, revoke-before-grant (the lesson of 20261006010000). Available =
+on hand - held; on hand moves only when goods move. Two SECURITY INVOKER functions
+under one advisory lock per organization: `inventory_order_stock` (reserve
+all-or-nothing per item with the shortages named / fulfil / release; a reinstated
+order is held again subject to stock; an order placed before its stock was linked is
+consumed at fulfilment, even below zero) and `inventory_material_stock` (a job's
+material used or returned; a job is never refused -- the material is already used).
+No FK to the source, so a work order's cascade neither blocks nor erases the history.
+
+**Proven on PostgreSQL**, not in a fake: `tests/sql/inventory-stock.sql` in the
+migration replay (holds, shortages, retries, release, fulfilment once, shipped stock
+not released, reinstatement, archived items, job use below zero and return, tenancy),
+and a **two-session race for the last mug** -- exactly one hold. Falsified: lock
+removed -> the race probe fails; shortage check removed -> "oversold". The first
+replay run also caught a real design flaw: a released hold could never be held again
+(the unique index), so a reinstated order would have reported `already_reserved`
+holding nothing.
+
+**Application**: the shop withholds a sold-out version (and, if stock cannot be
+read, a linked one -- never offered blind), shows "N left" and caps the form; an
+order asks the stock function before any checkout, and a refusal or a check that
+could not run **cancels** the order with its reason rather than leaving it placed
+with nothing held. The owner's status change moves stock first and the status only
+if it moved (fulfilled consumes, cancelled releases, reinstated re-holds), with the
+outcome rebuilt from counts. A work-order material saved as used or returned moves
+the count and the record page says what happened -- including below zero.
+
+**Two existing defects found on the way.** (1) A work-order material picked from
+inventory with no typed description was refused as `missing_required` on **every**
+save (the line handler re-checks the "either" fields after filling, and materials
+filled nothing), so nothing could ever be recorded against stock by picking it; it
+now fills its name from the item. (2) The line handler redirected refusals as
+`?problem=` and **no page read it** -- a line that did not save came back in silence;
+record pages now say what happened. Also: the Supabase contract gate could not see
+a table named inside a template string, so the ledger was invisible to it; it is now
+named through `*_TABLE` constants and has its own reviewed group (falsified: removing
+it from the group fails by name).
+
+Tests: `tests/stock-moves-with-orders-and-jobs.test.js` (23; the stock function's
+answers scripted and every call recorded -- re-implementing the SQL in JS would test
+the copy); `tests/helpers/fake-supabase.cjs` can now script an RPC. Falsified, each
+red by name: no reserve on placement; refused order left placed; status set before
+stock moved; sold-out offered; unreadable stock offered; material hook removed;
+material fill removed; a garbled stock reply read as success; an unrecorded count
+read as zero.
+
+**Not done here**: no restock on refund (a refund is money; whether goods came back
+is the owner's to record), and an unpaid order's hold lasts until the owner cancels
+it -- there is no automatic expiry yet.
+
+
 
 ### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
 
@@ -1794,346 +2089,3 @@ the new assertion red by name. Restores were copy-aside plus `md5sum -c`.
 clock -- it rests on there being no date literal left in either route test and on
 both expectations deriving from the clock the route reads. Worth saying plainly
 rather than claiming more.
-
-
-
-
-### 2026-10-01 - Ordering by a column was counting as reading it
-
-`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
-a column fetched into the response and compared to nothing, the way
-`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
-not the select list asks for it, and the select string and the order clause live
-in separate template chunks -- so stripping the select left `&order=created_at.desc`
-behind, the column name was still in the scope, and it read as used.
-
-Proven on a synthetic scope before touching anything: a function selecting
-`id,status,created_at` and using the timestamp for nothing but `order=`, reported
-zero unused columns. Had `consent_scope` also been ordered on, this check would
-have missed it entirely.
-
-### Four real ones, and three that look identical and are not
-
-Stripping order clauses surfaced seven. Each was opened rather than trusted, and
-they split two ways.
-
-**Genuinely fetched and never read** -- the column is now simply not selected, and
-the ordering is unaffected:
-
-- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
-- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
-  `created_at` is not among the fields printed.
-- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
-  `row.title` and `row.name` and nothing else.
-- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
-  `consent_scope` IS read there, which is worth noting, because that is the column
-  the original defect was about.
-
-**Read by a different file**, which tier 1 cannot see, so each ruling cites the
-line that reads the value:
-
-- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
-  `const when = record.created_at ? new Date(record.created_at) : null`.
-- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
-  in the Recent activity card. Removing it from either select would empty that
-  card.
-- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
-  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
-  on that file already named. It had never surfaced, because the query also
-  carries `order=category.asc`. The masking demonstrating itself.
-
-That ratio is the thing to carry forward: **tier 1 means "not named in this file",
-not "unused".** Three of seven were live readers one file away, and acting on them
-without opening the consumer would have broken a visible card.
-
-### Broken both ways
-
-Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
-Reverting the order-strip while keeping the three rulings fails with all three as
-"outlived their reason" -- which also proves the strip is the load-bearing part
-rather than decoration, since the rulings only exist because of it. Restores were
-copy-aside plus `md5sum -c`.
-
-One stale note corrected while here: an earlier session recorded that this script
-also counted a column named in a comment as used. It does not -- line 303 says "A
-column named in a comment is a column discussed, not used" and it strips comments
-through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
-order clause remained.
-
-
-
-
-### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
-
-Setting out to measure the Creator Studio gap for the project-graph work rather
-than assume it, `creator_export_packages` turned out to have no writer: the export
-step in briefs -> assets -> versions -> approvals -> exports -> publishing is a
-table nothing fills. Then the odd part. `pnpm run verify:orphan-tables` was green,
-and its own message is "tables created and never queried", so either the gate knew
-and had accounted for it, or the gate could not see it.
-
-It could not see it. `scripts/report-orphan-tables.mjs` keeps a list of files whose
-mention of a table must not count as usage -- the generated contracts, the
-capability inventory, the generators. `lib/sonara-ecosystem-manifest.cjs` was not
-on it, and it is a declarative map from a domain name to a list of table names.
-Neither was `lib/creator-music-system-config.cjs`, which holds a required-tables
-array and a table-name-to-label map. Naming a table in either made it read as
-queried.
-
-Adding both surfaced **twenty** more tables. The report had been saying "20 unused
-tables, all accounted for"; the true figure is 40. Shape 2 from
-`.claude/skills/checks-that-cannot-lie`: measuring a different population from the
-one claimed. It claims to find tables nothing queries and actually finds tables
-nothing mentions.
-
-**This is the second time this exact defect has been found in this one file.** Its
-own comments record the first: the scan counted a `.ts` file as usage and reported
-"0 tables created and never queried" while ten were. Same shape, different hiding
-place.
-
-Verified before trusting the number: five of the twenty were checked by hand
-(`sonara_platform_pages`, `music_tracks`, `employee_posts`,
-`reference_intelligence_sources`, `creator_voice_profiles`) and each is referenced
-only by the four ignored inventories, `data/capability-inventory.json`, and the
-ecosystem manifest -- no runtime reference of any kind.
-
-All twenty are recorded with `decision: "keep"`, and none of those notes
-recommends building anything. Dropping a table is the destructive change AGENTS.md
-puts behind owner approval, and whether each gets wired or retired is a product
-decision nobody has made, so each note says what was measured instead of asserting
-an intent. Four clusters came out of it, which are worth knowing as clusters: the
-migration-016 artist-system subtree is unreachable because nothing creates a
-`creator_artist_system`; the migration-012 music tables are unreachable because
-nothing creates a `music_track`; five `sonara_platform_*` tables are a
-site-builder model with no reader while `scroll_sites` is the one that ships; and
-`employee_posts` overlaps `employee_announcements`, which is the one the
-application reads.
-
-Both directions were broken to prove the gate works. Removing one disposition
-fails naming it. Reverting the ignore-list change while keeping the twenty entries
-fails with all twenty as "listed as never queried and now are queried" -- which
-also proves the ignore-list change is the load-bearing part rather than
-decoration. Restores were copy-aside plus `md5sum -c`.
-
-### What this says about the Creator Project Graph
-
-The chain the owner asked for is further from existing than the table count
-suggests. 28 `creator_*` tables exist, and of the chain: there is no brief table
-(`creator_production_notes` is closest and is unread), no version lineage on
-`creator_assets` at all, no approval workflow (Growth Studio and the Prompt
-Library each have one, Creator Studio has none), and exports are an unwritten
-table. AI-generated-content disclosure exists at generation time --
-`lib/sonara-generation-provenance.cjs` renders `generated`, `rights_attested` and
-`consent_attested` from `creator_generation_assets` -- and stops there, because
-the rows it would travel into are never written.
-
-Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
-with a service-role-only policy and every read filters by organization, so a null
-row is an orphan rather than a leak -- but it is a tenant column that can be
-absent, which newer tables assert against.
-
-
-
-
-### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
-
-`entity_agent_tool_registry` has had `enabled boolean not null default false` and
-`requires_approval boolean not null default true` since migration 008 -- two
-columns that look exactly like tool permissions, with safe defaults. Nothing has
-ever read either. Measured 1 October 2026: every reference is a contract list, a
-subsystem registry or a planning document, plus
-`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
-entity_agent_tool_registry registers a tool; it does not run one".
-
-The obvious move was to wire it up, and it would have been a cross-tenant
-authorization read. That table keys on `entity_id`; `public.entities` has no
-`organization_id` (008 line 32), which migration 20260813120000 already records
-for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
-an `organizationId`. Consulting one tenant's row to authorise another's work is
-worse than no check, because it looks like one.
-
-So `agent_tool_permissions` is organization-scoped, the registry stays the
-operator research record it was, and the distinction is written into the
-migration, the contract gate's new table group and the route's wiring comment.
-
-### Four kinds of absence, which the usual two would have collapsed
-
-`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
-`[]` is not `0`:
-
-- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
-  action at every unwired caller, a worse way to find a deployment gap. It is the
-  state the breaker sat in silently until this morning.
-- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
-  opposite of what the breaker does with a failed history read: the breaker is a
-  reliability heuristic, so absent evidence of failure must not penalise an
-  agent, while this is authorization, so absent evidence of permission must not
-  grant one. "Ask the owner" is not an outage.
-- **unconfigured** -- read succeeded, no rows. The model is not in force; the
-  authority module still governs. No rows as deny-everything would make applying
-  the migration an outage for every existing deployment, and as allow-everything
-  would make the table decorative. Opt-in per tenant, strict once opted in.
-- **denied** -- rows exist and this tool is absent, or present and not allowed.
-
-A truncated page reports as unreadable rather than as a short list: a tool missing
-from a partial read would otherwise be refused with a false reason attached.
-
-### What was broken to prove it
-
-25 new tests across two files. `...-is-actually-connected.test.js` drives the real
-Express route and injects nothing. Removing `readPermissions` from
-`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
-three asserting the read happens and that the outcome changes; the two that stay
-green assert an action is NOT denied, correct in both states. That visible
-signature is exactly what was missing when the breaker was wired to nothing.
-
-Letting a permission row relax a gated action turns the invariant test red by
-name. Making an unreadable set fail open turns `verify:supabase-contract` red by
-name -- that gate checks both directions, because a model that only ever refuses
-is as broken as one that only ever permits and only the second gets noticed.
-Restores were copy-aside plus `md5sum -c`.
-
-### Left for the owner, and one small untruth left alone
-
-Nothing writes these rows yet, so every organization is `unconfigured` and
-behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
-is a security setting change, which AGENTS.md puts behind owner approval.
-
-The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
-opened "One table" and the list had held two since August. Left as found rather
-than fixed inside a change about something else, recorded here so it was a known
-inaccuracy rather than a believed one -- and then fixed in its own commit, which
-is the whole reason it was deferred.
-
-
-
-### 2026-10-01 - "2026-07-28" was a string, not a requirement
-
-Asked to upgrade the Integration Gateway for current MCP authorization
-requirements, with no connector bypassing tenant-scoped credentials or audit
-logging. Establishing what "current" means came first: the training cutoff behind
-this work is May 2026 and it is now October, so the specification was read, not
-recalled -- `modelcontextprotocol.io/specification/versioning` and
-`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
-
-Not a formality. Two findings contradict what an assistant would write from
-memory, and both are load-bearing:
-
-- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
-  retained only for authorization servers without Client ID Metadata Documents. A
-  gateway written from training would have made a deprecated mechanism its primary
-  registration path.
-- **Negotiation is no longer the `initialize` handshake.** Every request carries
-  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
-  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
-  answers `UnsupportedProtocolVersionError`. The handshake is the
-  backward-compatibility path for `2025-11-25` and earlier.
-
-### The defect that was already here
-
-`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
-Line 273 of that same file said "declaring a spec version is not runtime proof".
-`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
-independently. Nothing compared them, and no module held what the revision
-requires, so no check could measure a connector against anything.
-
-`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
-the citation it was read from and its level in the specification's own word -- a
-SHOULD recorded as a MUST would make this repository stricter than the standard it
-claims to implement. Three functions carry the sharp edges:
-
-- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
-  specification forbids scheme/host case folding, default-port elision,
-  trailing-slash and percent-encoding normalization before comparing. Tolerance
-  here is the vulnerability, not a convenience.
-- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
-  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
-  pass -- and an implementation missing it behaves correctly on every honest
-  request.
-- `evaluateConnectorAuthorization` decides by transport, and both directions are
-  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
-  a stdio connector held to them can never be enabled, since stdio takes
-  credentials from the environment. Unrecognised transports fail closed.
-
-Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
-every transport including the one the specification exempts from OAuth.
-
-### What was broken to prove it
-
-`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
-caught by the test naming it: `issuerMatches` folding case and stripping a trailing
-slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
-treating an unrecognised transport as HTTP (**1**), drifting the contract's
-revision from the declared baseline (**3**), holding stdio to the HTTP requirements
-(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
-
-`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
-Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
-registry record to `adapter_available`, replacing the issuer comparison with
-`new URL().href`, and making the classifier deny everything. The last matters most
--- an all-deny classifier satisfies every refusal assertion in the file, so the
-gate also probes that a conforming connector is still admitted, and that probe was
-the only thing that fired. The `new URL().href` break is the realistic one: it is
-what a developer reaches for, and it accepted four forbidden forms at once.
-
-The gate asserts its own population too. Two registry records are MCP-capable
-(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
-than passes, because that means the scan stopped matching.
-
-### And one the scanner found, which took two attempts and a primary source
-
-CodeQL raised two high-severity "clear-text logging of sensitive information"
-alerts on the gate, both naming `BLOCKING_OAUTH_KEYS`. Nothing secret was logged
--- the constant holds requirement identifiers -- but the alert was not wrong
-about the name.
-
-The first fix was wrong, and worth recording because the reasoning was
-plausible. The constant was renamed to `BLOCKING_OAUTH_REQUIREMENT_IDS` on the
-theory that the `KEYS` suffix was the trigger. CodeQL failed again on the new
-head, identically. The theory was comfortable and untested.
-
-The answer was in CodeQL's own source --
-`shared/concepts/codeql/concepts/internal/SensitiveDataHeuristics.qll` in
-`github/codeql`, read 1 October 2026. `maybePassword()` matches the literal
-string **`oauth`**:
-
-```
-(pass(wd|word|code|.?phrase)(?!.*question)|(auth(entication|ori[sz]ation)?).?key|oauth|api.?(key|tok)|([_-]|\b)mfa([_-]|\b))
-```
-
-So `KEYS` was never the trigger and the first rename kept the one that was. Note
-also that bare `auth` does NOT match -- only `oauth`, or `auth`/`authorization`
-followed by `key` -- which is why `AUTHORIZATION_PATH` in the same module was
-never flagged, and `notSensitiveRegexp` excludes anything containing `path`
-anyway.
-
-The constants are now `SPEC_REQUIREMENT_IDS` and `BLOCKING_SPEC_REQUIREMENT_IDS`,
-and the objects' `key` field is `id`. Renamed rather than suppressed, so no
-security check is weakened and `SECURITY_NOTES.md` needs no entry.
-`record.key` in the gate is deliberately untouched: it is the `AI_INTEGRATIONS`
-record's own field, and CodeQL did not flag it.
-
-Verified before pushing this time, not after, by transcribing those regexes and
-running them over every identifier in the three files: the gate script, where
-both alerts were, classifies **zero** identifiers as sensitive. The two tokens
-that still match (`OAuth`, `secrets`) sit inside string literals, which are
-prose rather than names. That transcription lives in the scratchpad rather than
-the repository -- it is a one-off measurement against an external project's
-internals, and a copy of somebody else's regex kept here would be a claim that
-rots the next time they change it.
-
-The reject-row break was re-run after each rename, and still turns the test red
-both times: a refactor that quietly disarms its own tests would be this
-repository's defect wearing a tidier name.
-
-### What this is not
-
-No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
-only. This is the prerequisite
-`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
-names, written before the runtime so the runtime cannot be built around it; the
-gate refuses any MCP-capable record that becomes production-reachable while no
-runtime exists, so wiring one means producing conformance evidence rather than
-changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
-Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
-nothing here has been exercised against a live authorization server.

@@ -2,6 +2,291 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Every roadmap stage gate can be passed from the page
+
+`/product-lifecycle/initiatives/:id` showed the readiness score and what was
+missing, and three of the seven stages could not be passed from it:
+
+- **plan** needs a target for the primary metric. The create form never asked for
+  one, and nothing could edit an initiative after it was created.
+- **build** needs an iteration with a Definition of Done that is active or done.
+  There was no iteration form, and nothing could move an iteration along.
+- **beta, launch, learn & scale** are blocked by any open critical finding, and
+  nothing could close one -- one critical finding blocked an initiative for good.
+
+The page now has an edit form (the fields the gates read), an iteration form, and
+a status control on each iteration and each finding. Closing a finding needs a
+note saying how it was dealt with: the gate reads only the status, so the note is
+the only record of why a blocker went away.
+
+Two defects in the gate itself, found on the way:
+
+- **A failed read was graded as an empty one.** `loadInitiativeBundle` never
+  checked whether its five child reads succeeded. A failed feedback read made "no
+  unresolved critical feedback" true -- the one criterion that is also a blocker
+  -- so a launch could advance past an open critical finding on the strength of a
+  request that did not happen. The bundle now refuses to grade unless every read
+  succeeded, and says which failed.
+- **The JSON PATCH could set the stage.** `lifecycle_stage` (and the statuses a
+  review decides) were accepted, so any caller could skip every gate by naming
+  the stage it wanted. Refused by name now; the stage moves through a review only.
+
+Also: the roadmap dashboard rendered a failed read exactly like a business with
+no initiatives; it says which it is now.
+
+Pinned by `tests/a-stage-gate-can-be-passed-from-the-page.test.js`, which drives
+only the page's own forms through the plan, build and beta gates to the advancing
+review, and checks the failed-read and PATCH cases. Falsified eight ways, each
+failing by name: no iteration form, no status routes, failed read graded as empty,
+the PATCH refusal removed, the PATCH writing the stage again, the target not
+editable, closing without a note, and the dashboard hiding a failed read.
+
+**Inventory, 70 -> 61 workspace fallbacks.** A JSON route with a page-form twin
+(`POST /api/x/:id/evidence` beside `POST /x/:id/evidence`) now takes the twin's
+page; markup held in a module-level constant is read for forms and script tags
+(the device-permissions script was in one); and `"/api/calls/" + id + "/signals"`
+in a public script is read as the path it builds. The status routes name their
+own tables so the trace sees what each one writes.
+
+### 2026-10-07 - A door with no page: share, publish, and the record page they need
+
+**The defect.** The share card (quotes, bookings, invoices) and the publish card
+(artist profiles) were written for the record detail page, and that page was
+registered only for record kinds with line items. Three of the four kinds that
+declare a door have no lines, so "Create a link" on a quote or a booking and
+"Publish this profile" on an artist rendered nowhere. The endpoints worked and
+only an API client could reach them. The shared-link test checked that every
+shareable kind was *declared* on a page -- it was -- and nothing checked that the
+page was registered. A test comment beside it had noticed the symptom ("quotes
+has no child table, so it has no detail route at all") and worked around it.
+
+**The fix.** `hasDetailPage(page)` in `lib/sonara-owner-record-pages.cjs` -- line
+items, a share link, or a public address -- is the one predicate the
+registration, the list's Open column and the status-change return path all ask.
+The detail page is now a registrar, `registerDetailRoute(page, guard, chrome)`,
+called by Business Builder behind the business-manager guard and by Creator
+Studio behind the workspace guard, the way `registerEditRoutes` already was. On
+quotes, bookings and artist profiles the status control moves from the list row
+to the record page, by the existing one-place-per-page rule.
+
+Pinned by "a page for every record that has a door" in
+`tests/a-shared-link-is-a-link-not-a-leak.test.js`: for every kind declaring a
+share or publish card, the record page answers 200 with the form, the form returns
+to that page, and the list links to it. Falsified three ways: predicate back to
+line items only (bookings, quotes, artists fail), the Creator Studio registration
+removed (artists answers 404), the Open column back to line items only (three
+fail).
+
+**The inventory said the same wrong thing.** A card rendered by one shared
+handler was credited to every page that handler serves -- the publish form to all
+thirteen record pages, the share form to every workspace page -- and the first of
+those alphabetically was reported as the destination: publish "on" the bookings
+page, and the work order's Raise draft invoice "on" bookings too. The generator
+now reads the declarations (`publishHandle`, `shareableAs`, `free_records`, and
+the two cards the detail handler renders by table) and holds them two-sided in
+`map.validation.declaredDoorsNotRendered`. Falsified five ways, each failing by
+name: the predicate reverted (six "declared on a page that is not registered" --
+the defect above, now caught by the inventory as well), a door naming an
+unregistered route, the detail handler no longer rendering the share card, no
+page declaring publish ("this check has gone blind"), and the work-order door
+removed ("credited to every record detail page, and no declared door says which
+ones render it").
+
+**Workspace fallbacks 93 -> 70.** The rest of the 23 came from reading what the
+generator could not: arrows with expression bodies (the growth channel and event
+forms were invisible), form actions written through an escaping call
+(`action="${escape(`${base}/follow`)}"`), scripts a page loads from `public/`,
+the redirect target when a form sits on several pages, and a literal action
+segment filling a route parameter (`module_output` for `:resourceType`). The 70
+left are listed in `data/capability-inventory.json`; most are a screen nobody has
+built (market intelligence, waitlist and reservation resources, prompt library,
+sensory profiles, integration jobs) rather than a scanner gap.
+
+**CodeQL on #439.** One high alert, "Incomplete string escaping", in the
+generator: a wrapper name escaped for `.` and `$` and nothing else. One complete
+`escapeRegExp` now serves all six patterns built from identifiers; the inventory
+is byte-identical before and after.
+
+**#439's other two red checks are owner steps, not code:**
+
+- `production-deploy-dry-run` -- its deep verification lists three lines with one
+  cause: production has not applied `20261006040000`, so `inventory_reservations`
+  is missing. `20261006035501` (Codex's) is recorded as applied. The migration is
+  additive -- one table, two functions, and a trigger that does nothing until a
+  hold exists -- so applying it ahead of the merge is safe.
+- `Supabase Preview` -- "Remote migration versions not found in local migrations
+  directory." It passed on #439's first two commits and failed on the
+  reconciliation, which replaced `20261006030000`: this PR's preview database
+  applied 030000 when the PR opened. Production never had it (the dry-run lists
+  only 040000). Reset this PR's preview branch in Supabase; the connector in this
+  session has no permission to. The entry below said 030000 was "never applied
+  anywhere", which was a reason reasoned rather than verified -- corrected there.
+
+### 2026-10-07 - Stock holds reconciled with Codex's fulfilment (#438)
+
+Codex's #438 merged while #439 was open: each order line now freezes its stock
+link at insert, and `transition_merchant_order` is the order status machine --
+fulfilment requires payment, takes stock off the shelf once and writes a stock
+receipt. #439 also took stock off the shelf at fulfilment, so merged as it was a
+shipped order would have left the shelf **twice**. My lock for this work was on my
+branch only, which is why Codex could not see it; a lock has to be visible from
+main to do anything.
+
+Resolution, keeping Codex's function as the only thing that moves on-hand stock
+for an order:
+
+- `20261006030000` (never applied to production; it was applied to #439's Supabase
+  preview branch, see the entry above) is replaced by `20261006040000`.
+  `inventory_order_hold` only *holds*: it locks the order, then its items in id
+  order -- the order fulfilment locks them -- and holds the line's **frozen**
+  link, the one fulfilment consumes. Its `fulfil` and `release` actions are gone.
+- A trigger on `merchant_orders.status` settles holds in the same transaction:
+  fulfilled -> consumed, cancelled -> released. Held and on hand cannot drift
+  between two requests because there is no second request.
+- The owner's status route is Codex's, untouched; the route never writes a hold
+  or a count. Placement still holds stock before any checkout, so the last mug
+  cannot be paid for twice (Codex's design had "Checkout does not reserve stock",
+  which let the second payment be taken and then fail at fulfilment -- a refund,
+  which AGENTS.md reserves for the owner).
+- `inventory_material_stock` now locks the same item rows rather than an
+  advisory lock, so jobs, holds and fulfilment share one lock.
+
+Proven in the replay with Codex's own fulfilment tests alongside: a fulfilled
+order consumes its hold and on hand drops once (5 -> 2, not -1), a cancelled order
+releases, a cancelled order cannot be held again, a fulfilled one cannot be
+cancelled, and the two-session last-item race. Falsified: trigger removed -> "a
+cancelled order kept its hold"; item row lock removed -> the race test fails.
+
+### 2026-10-06 - Every route has a data contract, and the inventory can no longer say otherwise
+
+The P0 "close the route/data-contract gaps". `data/capability-inventory.json` listed
+**300** routes whose tables it could not name. Most were not missing contracts; the
+generator could not read them, and the same blind spots labelled **39** routes that
+do read tables "no persistent table expected" -- `/service-catalog`, `/call/:token`,
+`/account/permissions`, `/shared/:token`, the public marketplace, the `/staff/*`
+pages and more.
+
+**Twelve defects in `scripts/generate-capability-inventory.cjs`, each found by
+asking why one route was on the list:**
+
+1. **It read the async safety net instead of the route.** Every handler is wrapped
+   by `lib/sonara-async-route-safety.cjs`, so the "live registered handler" the
+   generator captured was the same seven lines for all 930 routes.
+   `unwrapHandler` now exposes the original, and the generator throws if it ever
+   captures the wrapper again (it did, for 930 routes, when falsified).
+2. Helpers handed over in `deps` (`saveModuleOutput`, `safeListTable`) were never
+   followed. Now resolved from the registration call itself, only to what it passes.
+3. Local REST wrappers -- `read(pathAndQuery)`, `rows(ctx, table, query)` -- were
+   recognised in one commerce module only. Now any function proven to put a
+   parameter straight after `/rest/v1/`, local, imported or injected.
+4. Parameter lists were matched with `\([^)]*\)`, so a function with a default
+   like `fetch: request = (...args) => fetch(...args)` was never recorded --
+   the creator project store was invisible for that alone.
+5. Routes registered in a loop over a literal list, a `Map.forEach`, or a
+   registration helper (`registerCatalogRoute(path, handler)`) now bind the
+   handler of the entry that produced the path, and only that one.
+6. Anonymous stack frames have no parentheses, so 66 routes registered inside a
+   callback were placed on the enclosing function's line.
+7. The call regex consumed the character before a name, so `f(g(x))` never
+   reached `g`.
+8. `module.exports = { ... }` members were unreachable as `mod.fn(...)`.
+9. Supabase Auth, Storage and Stripe endpoints are now a data contract of their own
+   (`provider_endpoint_reference`): a sign-in has one; it is held by Auth.
+10. The trace stopped silently at 40 functions or depth 5 on 352-544 routes. Now
+   400 and 8, stopping on none, and any stop is reported per route.
+11. Form actions with quotes inside `${...}` were cut short, and a templated
+   segment (`/api/growth/${key}`) is now matched as a pattern and named.
+12. An imported `FORMULA_TABLES` list credited every formula table to any body that
+   mentioned it -- including the static readiness report that only prints their
+   names. Credited now only alongside a database call; and a route may no longer
+   carry a "no table" reason while tracing a table (`routesSayingNoTableWhileTracingOne`).
+
+**What is left was read, one route at a time:** 58 routes whose handler reads
+nothing -- redirects, in-repository catalogues, rendered pages, computations,
+cookies -- recorded with a reason in `lib/sonara-route-data-reviews.cjs`. The
+generator refuses an entry the trace contradicts, an entry for an unregistered
+route, and an entry nobody needed; `tests/a-route-that-reads-nothing-reads-nothing.test.js`
+calls each route's own handler with Supabase configured and every outbound request
+recorded, with a control route that must be caught. Three routes that looked like
+these turned out to write data (`/login/verify`, the creator project API,
+`/api/integrations/providers`) and are traced instead.
+
+**Gaps: 300 -> 0, and `routesWithoutDataContract` is now a generator invariant.**
+A new route traces to what it reaches or is reviewed. 486 routes trace to tables
+(221 before), 28 to a provider endpoint. Workspace fallbacks 96 -> 93 as a side
+effect of the form walk seeing nested calls.
+
+**Falsified:** each of the first eleven fixes reverted one at a time -- the generator
+refused every one (`routesWithoutDataContract: 1..68`, or the wrapper guard) and
+`tests/the-inventory-traces-what-a-route-calls.test.js` failed on the route written
+for it. Register: contradicting, unregistered, unneeded and missing entries each
+refused; a reviewed handler made to read a table failed both the generator and the
+runtime test; a blinded recorder failed the control; the formula naming rule put
+back failed `routesSayingNoTableWhileTracingOne`.
+
+### 2026-10-06 - Stock moves with orders and jobs
+
+*Superseded in part on 7 October: fulfilment now moves stock only in Codex's `transition_merchant_order`, and this migration was replaced by `20261006040000`. See the entry above.*
+
+The P0 "inventory/order/fulfilment linkage", and the inventory step of both the
+storefront chain (order -> payment -> **fulfilment**) and the Business Builder job
+chain (job -> **inventory** -> work completion). `inventory_items.quantity` was a
+number somebody typed; a variant's stock link "links rather than deducts" said its
+own form. A shop could sell its last mug twice and a job's cable never left the reel.
+
+**Ledger and functions** (`20261006030000_stock_moves_with_orders_and_jobs.sql`):
+`inventory_reservations`, one row per movement a sale or job caused -- `held`,
+`consumed`, `released`, `returned` -- unique per source so a retry cannot move stock
+twice, no DELETE, revoke-before-grant (the lesson of 20261006010000). Available =
+on hand - held; on hand moves only when goods move. Two SECURITY INVOKER functions
+under one advisory lock per organization: `inventory_order_stock` (reserve
+all-or-nothing per item with the shortages named / fulfil / release; a reinstated
+order is held again subject to stock; an order placed before its stock was linked is
+consumed at fulfilment, even below zero) and `inventory_material_stock` (a job's
+material used or returned; a job is never refused -- the material is already used).
+No FK to the source, so a work order's cascade neither blocks nor erases the history.
+
+**Proven on PostgreSQL**, not in a fake: `tests/sql/inventory-stock.sql` in the
+migration replay (holds, shortages, retries, release, fulfilment once, shipped stock
+not released, reinstatement, archived items, job use below zero and return, tenancy),
+and a **two-session race for the last mug** -- exactly one hold. Falsified: lock
+removed -> the race probe fails; shortage check removed -> "oversold". The first
+replay run also caught a real design flaw: a released hold could never be held again
+(the unique index), so a reinstated order would have reported `already_reserved`
+holding nothing.
+
+**Application**: the shop withholds a sold-out version (and, if stock cannot be
+read, a linked one -- never offered blind), shows "N left" and caps the form; an
+order asks the stock function before any checkout, and a refusal or a check that
+could not run **cancels** the order with its reason rather than leaving it placed
+with nothing held. The owner's status change moves stock first and the status only
+if it moved (fulfilled consumes, cancelled releases, reinstated re-holds), with the
+outcome rebuilt from counts. A work-order material saved as used or returned moves
+the count and the record page says what happened -- including below zero.
+
+**Two existing defects found on the way.** (1) A work-order material picked from
+inventory with no typed description was refused as `missing_required` on **every**
+save (the line handler re-checks the "either" fields after filling, and materials
+filled nothing), so nothing could ever be recorded against stock by picking it; it
+now fills its name from the item. (2) The line handler redirected refusals as
+`?problem=` and **no page read it** -- a line that did not save came back in silence;
+record pages now say what happened. Also: the Supabase contract gate could not see
+a table named inside a template string, so the ledger was invisible to it; it is now
+named through `*_TABLE` constants and has its own reviewed group (falsified: removing
+it from the group fails by name).
+
+Tests: `tests/stock-moves-with-orders-and-jobs.test.js` (23; the stock function's
+answers scripted and every call recorded -- re-implementing the SQL in JS would test
+the copy); `tests/helpers/fake-supabase.cjs` can now script an RPC. Falsified, each
+red by name: no reserve on placement; refused order left placed; status set before
+stock moved; sold-out offered; unreadable stock offered; material hook removed;
+material fill removed; a garbled stock reply read as success; an unrecorded count
+read as zero.
+
+**Not done here**: no restock on refund (a refund is money; whether goods came back
+is the owner's to record), and an unpaid order's hold lasts until the owner cancels
+it -- there is no automatic expiry yet.
+
 ### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
 
 ### 2026-10-06 - Commerce recovery and truthful route/data lineage

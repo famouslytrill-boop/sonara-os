@@ -37,11 +37,18 @@
 //     leaving a buyer to assume they have paid.
 //   * **Sends nothing.** Alerts are off or explicitly user-controlled by default.
 //     Placing an order writes rows; nobody is emailed.
-// Stock is consumed only when the owner fulfills a confirmed order. Checkout
-// does not reserve stock. The database snapshots links when lines are inserted.
+//   * **Moves stock in two places, and nowhere else.** A version linked to a
+//     stock item has that stock held when an order is placed
+//     (`inventory_order_hold`, 20261006040000), so two buyers cannot both be sold
+//     the last one. It comes off the shelf when the owner fulfils a confirmed
+//     order (`transition_merchant_order`, 20261006035501, which also writes the
+//     stock receipt). Fulfilling or cancelling settles the hold in the same
+//     transaction. The database snapshots each line's stock link when the line is
+//     inserted; unlinked versions move nothing.
 
 const storefront = require("../lib/sonara-merchant-storefront.cjs");
 const merchantPay = require("../lib/sonara-merchant-payments.cjs");
+const stock = require("../lib/sonara-inventory-stock.cjs");
 const checkout = require("../lib/sonara-connected-checkout.cjs");
 const { createMerchantPayments } = require("./sonara-merchant-payment-routes.cjs");
 
@@ -56,6 +63,8 @@ const PRODUCT_TABLE = "merchant_products";
 const VARIANT_TABLE = "merchant_product_variants";
 const ORDER_TABLE = "merchant_orders";
 const LINE_TABLE = "merchant_order_lines";
+const STOCK_ITEM_TABLE = "inventory_items";
+const STOCK_HOLD_TABLE = "inventory_reservations";
 
 const PRODUCT_CAP = 300;
 const VARIANT_CAP = 600;
@@ -127,8 +136,24 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const products = await rest(config,
       `${PRODUCT_TABLE}?select=id,name,status&${orgFilter}&order=name.asc&limit=${PRODUCT_CAP}`);
     const variants = await rest(config,
-      `${VARIANT_TABLE}?select=id,product_id,variant_name,price_cents,currency,status&${orgFilter}&order=variant_name.asc&limit=${VARIANT_CAP}`);
-    return { ok: products.ok && variants.ok, products: products.rows, variants: variants.rows };
+      `${VARIANT_TABLE}?select=id,product_id,variant_name,price_cents,currency,status,inventory_item_id&${orgFilter}&order=variant_name.asc&limit=${VARIANT_CAP}`);
+    const level = variants.ok ? await readStock(config, organizationId, variants.rows) : null;
+    return { ok: products.ok && variants.ok, products: products.rows, variants: variants.rows, stock: level };
+  }
+
+  // What is available of each stock item a variant is linked to: on hand less
+  // what is held for orders not yet shipped. `undefined` when nothing is linked
+  // (there is nothing to read), `null` when a read failed -- storefrontFor then
+  // withholds the linked variants rather than offering them blind.
+  async function readStock(config, organizationId, variants) {
+    const ids = [...new Set(variants.map((variant) => variant.inventory_item_id).filter(Boolean))];
+    if (!ids.length) return undefined;
+    const orgFilter = `organization_id=eq.${enc(organizationId)}`;
+    const list = ids.map(enc).join(",");
+    const items = await rest(config, `${STOCK_ITEM_TABLE}?select=id,quantity,status&${orgFilter}&id=in.(${list})&limit=${VARIANT_CAP}`);
+    const held = await rest(config, `${STOCK_HOLD_TABLE}?select=inventory_item_id,quantity&${orgFilter}&state=eq.held&inventory_item_id=in.(${list})&limit=5000`);
+    if (!items.ok || !held.ok) return null;
+    return stock.availabilityFor({ items: items.rows, held: held.rows });
   }
 
   // ---------------------------------------------------------------------------
@@ -181,9 +206,11 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     published: "Your shop's address is saved.",
     status: "Saved where that order has got to."
   });
-  const noticeFor = (query) => DONE_SENTENCES[String(query?.done || "")]
-    || storefront.problemSentence(String(query?.problem || ""))
-    || null;
+  const noticeFor = (query) => {
+    const done = DONE_SENTENCES[String(query?.done || "")];
+    if (done) return done;
+    return storefront.problemSentence(String(query?.problem || "")) || null;
+  };
   const back = (params) => `${OWNER_PAGE}?${new URLSearchParams(params).toString()}`;
 
   // ---------------------------------------------------------------------------
@@ -225,7 +252,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
 
     const shop = shops.rows[0] || null;
     const window = storefront.shopWindow(shop);
-    const split = storefront.storefrontFor({ storefront: shop, products: catalogue.products, variants: catalogue.variants });
+    const split = storefront.storefrontFor({ storefront: shop, products: catalogue.products, variants: catalogue.variants, stock: catalogue.stock });
 
     const sections = [];
     const fulfillmentByOrder = new Map(fulfillments.rows.map((receipt) => [receipt.order_id, receipt]));
@@ -253,7 +280,8 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         `On sale (${split.offered.length})`,
         "<ul>" + split.offered.map((entry) =>
           `<li>${escapeHtml(entry.product.name)}${entry.variant.variant_name ? ` — ${escapeHtml(entry.variant.variant_name)}` : ""}: `
-          + `${escapeHtml(storefront.money(entry.offer.priceCents, entry.offer.currency))}</li>`).join("") + "</ul>"
+          + `${escapeHtml(storefront.money(entry.offer.priceCents, entry.offer.currency))}`
+          + `${Number.isInteger(entry.available) ? ` — ${escapeHtml(String(entry.available))} available` : ""}</li>`).join("") + "</ul>"
       ));
     }
 
@@ -302,7 +330,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     ));
     sections.push(brandCard(
       "Stock and fulfillment",
-      "Confirm the order, then mark it fulfilled when the goods are handed over. Fulfillment consumes linked stock and saves a stock receipt in one transaction. Checkout does not reserve stock. Online orders need verified full payment; for offline orders, collect payment separately. Fulfilled orders cannot be cancelled here, and refunds do not put goods back into stock. This shop does not email the buyer."
+      "Placing an order holds any linked stock, so the last one cannot be sold twice. Confirm the order, then mark it fulfilled when the goods are handed over: fulfillment takes the stock off the shelf and saves a stock receipt in one transaction, and cancelling first gives the held stock back. Online orders need verified full payment; for offline orders, collect payment separately. Fulfilled orders cannot be cancelled here, and refunds do not put goods back into stock. This shop does not email the buyer."
     ));
 
     sections.push(brandCard("Name your shop", shopForm(shop)));
@@ -470,7 +498,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         ${escapeHtml(entry.product.name)}${entry.variant.variant_name ? ` — ${escapeHtml(entry.variant.variant_name)}` : ""}
         at ${escapeHtml(storefront.money(entry.offer.priceCents, entry.offer.currency))}: how many?
       </label>
-      <input id="qty-${escapeHtml(entry.variant.id)}" name="qty_${escapeHtml(entry.variant.id)}" type="number" min="0" max="${storefront.QUANTITY_MAX}" value="0">`).join("")}
+      <input id="qty-${escapeHtml(entry.variant.id)}" name="qty_${escapeHtml(entry.variant.id)}" type="number" min="0" max="${Number.isInteger(entry.available) ? Math.min(entry.available, storefront.QUANTITY_MAX) : storefront.QUANTITY_MAX}" value="0">${Number.isInteger(entry.available) ? ` <span>${escapeHtml(String(entry.available))} left</span>` : ""}`).join("")}
       <label for="buyer-name">Your name</label>
       <input id="buyer-name" name="buyer_name" type="text" maxlength="${storefront.NAME_MAX}" required>
       <label for="buyer-email">Your email, so the shop can reach you</label>
@@ -529,6 +557,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const split = storefront.storefrontFor({
       storefront: found.shop,
       products: catalogue.ok ? catalogue.products : null,
+      stock: catalogue.ok ? catalogue.stock : null,
       variants: catalogue.ok ? catalogue.variants : null
     });
     // `offered` is [] both when nothing is on sale and when the catalogue could not
@@ -664,6 +693,22 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         status: 503
       });
       return res.status(page.status).type("html").send(page.html);
+    }
+
+    // Hold the stock, or refuse the order. The stock function is the one that says
+    // yes or no -- under the order and item row locks fulfilment also takes, so two
+    // buyers cannot both take the last one. A refusal, or a check that could not run, cancels the order rather
+    // than leaving a placed order nothing is held for, and no checkout is opened.
+    const held = await stock.holdOrderStock(config, supabaseHeaders, { organizationId: loaded.shop.organization_id, orderId });
+    if (!held.ok) {
+      const short = held.code === "insufficient_stock";
+      await write(config, `${ORDER_TABLE}?id=eq.${enc(orderId)}&organization_id=eq.${enc(loaded.shop.organization_id)}`, {
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: short ? "Sold out before the order could be held." : "The stock check could not run, so the order was not taken.",
+        updated_at: new Date().toISOString()
+      }, "PATCH");
+      return refuse(short ? stock.shortageSentence(held) : storefront.problemSentence("stock_unavailable"), short ? 409 : 503);
     }
 
     const receiptPath = `/store/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderId)}?t=${encodeURIComponent(receiptKey.token)}`;

@@ -382,6 +382,44 @@ function main() {
       select 'generation_concurrent_holds_' || count(*) from public.generation_usage_reservations where organization_id = '${concurrentOrg}';
       delete from public.organizations where id = '${concurrentOrg}';`, ["generation_concurrent_holds_1"]);
 
+    // Stock held by orders and moved by jobs (20261006040000), together with
+    // fulfilment's own consumption (20261006035501): holds, shortages, retries,
+    // a fulfilled order consuming its hold once, a cancelled one releasing it,
+    // job use and return, tenancy.
+    behaves(psql, "stock holds, ships, releases and isolates tenants",
+      fs.readFileSync(path.join(root, "tests/sql/inventory-stock.sql"), "utf8"),
+      ["stock_holds_ships_releases_and_isolates"]);
+
+    // The case the stock functions exist for: two buyers, one mug left, two real
+    // sessions at the same moment. Exactly one may hold it.
+    const stockOrg = "20000000-0000-4000-8000-000000000009";
+    behaves(psql, "last-item race fixture", `
+      insert into public.organizations(id, name) values ('${stockOrg}', 'Last mug');
+      insert into public.inventory_items(id, organization_id, name, quantity, status) values ('20000000-0000-4000-8000-000000000091', '${stockOrg}', 'Mug', 1, 'active');
+      insert into public.merchant_products(id, organization_id, name, status) values ('20000000-0000-4000-8000-000000000092', '${stockOrg}', 'Mug', 'active');
+      insert into public.merchant_product_variants(id, organization_id, product_id, variant_name, price_cents, currency, inventory_item_id, status)
+        values ('20000000-0000-4000-8000-000000000093', '${stockOrg}', '20000000-0000-4000-8000-000000000092', 'One', 1200, 'usd', '20000000-0000-4000-8000-000000000091', 'active');
+      insert into public.merchant_orders(id, organization_id, buyer_name, buyer_email, subtotal_cents, currency) values
+        ('20000000-0000-4000-8000-000000000094', '${stockOrg}', 'First', 'first@example.com', 1200, 'usd'),
+        ('20000000-0000-4000-8000-000000000095', '${stockOrg}', 'Second', 'second@example.com', 1200, 'usd');
+      insert into public.merchant_order_lines(organization_id, order_id, variant_id, description, quantity, unit_price_cents, line_total_cents, currency) values
+        ('${stockOrg}', '20000000-0000-4000-8000-000000000094', '20000000-0000-4000-8000-000000000093', 'Mug', 1, 1200, 1200, 'usd'),
+        ('${stockOrg}', '20000000-0000-4000-8000-000000000095', '20000000-0000-4000-8000-000000000093', 'Mug', 1, 1200, 1200, 'usd');
+      select 'stock_race_ready';`, ["stock_race_ready"]);
+    const stockCommands = ["4", "5"].map((digit) => {
+      const file = path.join(socketDir, `stock-session-${digit}.sql`);
+      fs.writeFileSync(file, `begin; select public.inventory_order_hold('${stockOrg}', '20000000-0000-4000-8000-00000000009${digit}'); select pg_sleep(0.2); commit;`);
+      if (owner) execFileSync("chown", [owner, file]);
+      return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+    });
+    const raced = shell(`${stockCommands[0]} & ${stockCommands[1]} & wait`);
+    if (raced.status !== 0 || !(raced.stdout || "").includes("insufficient_stock") || !(raced.stdout || "").includes("\"reserved\"")) {
+      stop(`Two buyers racing for the last item did not resolve to exactly one hold and one refusal: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "the last item is held once", `
+      select 'stock_race_holds_' || count(*) from public.inventory_reservations where organization_id = '${stockOrg}' and state = 'held';
+      delete from public.organizations where id = '${stockOrg}';`, ["stock_race_holds_1"]);
+
     // Proof the replay built something, rather than passing on a cluster where
     // every statement quietly did nothing.
     const missing = [];
@@ -658,7 +696,7 @@ function main() {
           and not exists (
             select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = c.relname);
-    `, ["closed_count_55", "closed_set_agent_evaluation_runs,agent_tool_permissions,audit_log,business_management_credentials,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,creator_asset_approvals,creator_asset_versions,creator_briefs,creator_licence_grants,creator_listings,creator_marketplace_entries,creator_marketplace_orders,creator_marketplace_payment_events,creator_version_files,db_health_snapshots,event_delivery_attempts,event_outbox,generation_usage_reservations,growth_campaign_sends,growth_channel_directory,growth_channel_posts,growth_channels,growth_event_rsvps,growth_events,growth_post_reports,growth_venues,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,merchant_order_lines,merchant_order_payment_events,merchant_orders,merchant_storefronts,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
+    `, ["closed_count_56", "closed_set_agent_evaluation_runs,agent_tool_permissions,audit_log,business_management_credentials,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,creator_asset_approvals,creator_asset_versions,creator_briefs,creator_licence_grants,creator_listings,creator_marketplace_entries,creator_marketplace_orders,creator_marketplace_payment_events,creator_version_files,db_health_snapshots,event_delivery_attempts,event_outbox,generation_usage_reservations,growth_campaign_sends,growth_channel_directory,growth_channel_posts,growth_channels,growth_event_rsvps,growth_events,growth_post_reports,growth_venues,inventory_reservations,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,merchant_order_lines,merchant_order_payment_events,merchant_orders,merchant_storefronts,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
 
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text

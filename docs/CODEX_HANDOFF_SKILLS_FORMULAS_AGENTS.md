@@ -299,6 +299,40 @@ Each entry's reason must be something you **verified**, with the file you opened
 and the date. "Reviewed and approved" is not checkable. If you cannot say which
 file you opened, say so in the comment instead of asserting it.
 
+### Route data contracts (added 6 October 2026)
+
+Every registered route has a data contract, and the inventory generator fails
+the release when one does not (`routesWithoutDataContract`). A route's contract is
+what `scripts/generate-capability-inventory.cjs` traces from the handler it
+registered: the tables, SQL functions and provider endpoints (Supabase Auth and
+Storage, Stripe) it reaches through local, imported, injected and loop-bound
+helpers. A route that reaches none is read by a person and recorded in
+`lib/sonara-route-data-reviews.cjs` with its kind and reason.
+
+That register is the two-sided list above, held three ways: the generator
+refuses an entry the trace contradicts, an entry for a route that is not
+registered, and an entry for a route that did not need one;
+`tests/a-route-that-reads-nothing-reads-nothing.test.js` calls each reviewed
+handler with Supabase configured and fails on any outbound request.
+
+When your new route fails `routesWithoutDataContract`, check whether it *does*
+read data through a helper the tracer cannot follow. Three routes looked like
+"reads nothing" and turned out to write -- fix the tracer for those, and pin the
+fix in `tests/the-inventory-traces-what-a-route-calls.test.js`.
+
+### Declared doors (added 7 October 2026)
+
+A form's destination is the page that renders it. When one handler serves many
+pages -- the record detail page serves thirteen -- its source is the same for all
+of them, so a card it renders for only some pages is credited to every one. The
+generator's `declaredDoors` list says which pages each such card is really on,
+read from the page declarations (`shareableAs`, `publishHandle`, `free_records`,
+or the record's table), and `declaredDoorsNotRendered` holds it from both sides:
+a declared page that is not registered, or whose handler does not render the
+form, fails; so does a form credited to every record detail page that no door
+declares. `hasDetailPage` in `lib/sonara-owner-record-pages.cjs` is what
+registers a record detail page at all.
+
 ---
 
 ## 8. External tools and code
@@ -478,6 +512,15 @@ to any of them is a change to this section first:
    reports them; nothing here issues a refund (AGENTS.md: owner approval).
 6. **Prices come from the server's rows.** A posted price is a buyer naming their
    own. Amounts are snapshotted onto the order when it is created.
+
+7. **Stock moves in two places.** On-hand stock for an order comes off the shelf
+   only in `transition_merchant_order` (20261006035501), at fulfilment, with its
+   stock receipt; a job's materials only in `inventory_material_stock`. A placed
+   order *holds* its lines' frozen stock links through `inventory_order_hold`
+   (20261006040000), and a trigger on the order's status settles the hold in the
+   same transaction. The hold and fulfilment lock the order and then its item
+   rows in id order; the job function locks the item row it moves.
+   No route writes `inventory_items.quantity` or a hold itself.
 
 **Platform billing is separate.** `lib/sonara-billing.cjs` and
 `/api/stripe/webhook` charge *SONARA's* customers on SONARA's own account, with

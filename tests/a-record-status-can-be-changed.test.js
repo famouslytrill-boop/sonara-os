@@ -23,7 +23,7 @@ const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-last9-routes.cjs");
-const { ALL_OWNER_PAGES, childrenOf } = require("../lib/sonara-owner-record-pages.cjs");
+const { ALL_OWNER_PAGES, hasDetailPage } = require("../lib/sonara-owner-record-pages.cjs");
 const recordStatus = require("../lib/sonara-record-status.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
@@ -113,11 +113,12 @@ describe("An owner can change a record's status", () => {
       const options = recordStatus.statusOptionsFor(page);
       const row = { id: RECORD_ID, status: options[0] };
       const app = buildApp({ rowsByTable: { [page.table]: [row] } });
-      // A record with line items has a detail page and the control is there;
-      // everything else only has the list. Whichever it is, the form has to be
-      // on a page that exists -- a control on an unregistered detail page is
-      // the same as no control.
-      const where = childrenOf(page).length > 0 ? `${page.path}/${RECORD_ID}` : page.path;
+      // A record with a detail page has the control there; everything else
+      // only has the list. Whichever it is, the form has to be on a page that
+      // exists -- a control on an unregistered detail page is the same as no
+      // control. hasDetailPage is what the routes register by, so this asks
+      // the same question they do.
+      const where = hasDetailPage(page) ? `${page.path}/${RECORD_ID}` : page.path;
       const result = await request(app).get(where).set("accept", "text/html");
       assert.equal(result.status, 200, `${where} did not render`);
       const action = `${page.path}/${RECORD_ID}/status`;

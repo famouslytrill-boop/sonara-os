@@ -67,6 +67,9 @@ function world({ env = {}, chargesEnabled = true, expireFails = false, sessions 
       merchant_order_lines: { created_at: () => new Date().toISOString() }
     },
     unique: { merchant_order_payment_events: [{ name: "merchant_order_payment_events_pkey", columns: ["stripe_event_id"] }] },
+    // Nothing in this shop is linked to a stock item, so the stock function holds
+    // nothing; holding stock is tests/stock-moves-with-orders-and-jobs.test.js.
+    rpc: { inventory_order_hold: () => ({ ok: true, code: "reserved", held: 0, untracked: 1 }) },
     tables: seed({ chargesEnabled })
   });
   const stripe = [];

@@ -74,6 +74,10 @@ function buildApp({
   writeOk = true, orderInsertReturns = [{ id: ORDER }], lineWriteOk = true,
   organization = ORG,
   configOk = true,
+  // What the stock function answers. This file is about pricing; holding stock
+  // is tests/stock-moves-with-orders-and-jobs.test.js, and the function itself
+  // is proven against PostgreSQL by the migration replay.
+  stockAnswer = { ok: true, code: "reserved", held: 0, untracked: 1 },
   fulfillments = [], fulfillmentsOk = true, rpcResult = null
 } = {}) {
   const app = express();
@@ -93,6 +97,9 @@ function buildApp({
       if (href.includes("/merchant_products")) return { ok: productsOk, status: productsOk ? 200 : 500, json: async () => products };
       if (href.includes("/merchant_orders")) return { ok: ordersOk, status: ordersOk ? 200 : 500, json: async () => orders };
       return { ok: true, status: 200, json: async () => [] };
+    }
+    if (href.includes("/rpc/inventory_order_hold")) {
+      return { ok: true, status: 200, json: async () => stockAnswer };
     }
     if (href.includes("/rpc/transition_merchant_order")) {
       const result = rpcResult || { ok: true, status: JSON.parse(init.body).p_status, noop: false };
@@ -648,15 +655,16 @@ describe("a price nobody set is not free", () => {
       assert.equal(patches(missing.calls, "merchant_orders").length, 0);
     });
 
-    it("explains offline payment and when stock is consumed", async () => {
+    it("explains offline payment, the hold an order places, and when stock is consumed", async () => {
       // With online payment on, the same card says buyers pay on Stripe -- asserted
       // in tests/a-storefront-order-is-paid-on-the-shops-account.test.js.
       const { app } = buildApp();
       const response = await request(app).get(OWNER_PAGE);
       assert.match(response.text, /Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored/);
       assert.doesNotMatch(response.text, /goes straight to Stripe's checkout/);
-      assert.match(response.text, /Fulfillment consumes linked stock/);
-      assert.match(response.text, /Checkout does not reserve stock/);
+      assert.match(response.text, /Placing an order holds any linked stock, so the last one cannot be sold twice/);
+      assert.match(response.text, /fulfillment takes the stock off the shelf and saves a stock receipt in one transaction/);
+      assert.doesNotMatch(response.text, /Checkout does not reserve stock/);
     });
 
     it("passes only the server's organization, actor and payment mode to fulfillment", async () => {
@@ -734,10 +742,18 @@ describe("a price nobody set is not free", () => {
       }
     });
 
-    it("decrements no stock", () => {
+    // Was "decrements no stock", while nothing did. Stock moves now -- held by
+    // inventory_order_hold when an order is placed, consumed by
+    // transition_merchant_order when it is fulfilled -- and never by a route
+    // writing a count it read a moment ago (that is the two-buyers-one-mug race).
+    it("moves stock only through the stock functions, never by writing a count itself", () => {
       for (const source of sources) {
-        assert.ok(!source.includes("inventory_items"), "the store path touches inventory; nothing here decrements stock and implying it does would be a false claim");
+        assert.doesNotMatch(source, /write\([^)]*inventory_items/, "the store path writes inventory_items directly");
+        assert.doesNotMatch(source, /inventory_items[^\n]*(PATCH|POST)/, "the store path writes inventory_items directly");
+        assert.doesNotMatch(source, /inventory_reservations[^\n]*(PATCH|POST)/, "the store path writes the stock ledger directly");
       }
+      assert.ok(sources.some((source) => source.includes("stock.holdOrderStock(")), "the store path never holds stock; this check has gone blind");
+      assert.ok(sources.some((source) => source.includes("/rpc/transition_merchant_order")), "the store path never fulfils through the status function; this check has gone blind");
     });
   });
 

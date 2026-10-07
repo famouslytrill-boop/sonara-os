@@ -8,6 +8,7 @@ const {
   ALL_OWNER_PAGES,
   childrenOf,
   CREATOR_RECORD_PAGES,
+  hasDetailPage,
   REFERENCE_SOURCES,
   money,
   pageForApi
@@ -35,6 +36,7 @@ const recordFilter = require("../lib/sonara-record-filter.cjs");
 const recordArchive = require("../lib/sonara-record-archive.cjs");
 const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
+const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -1214,28 +1216,39 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.redirect(303, `/business-builder/owner/receivables/${encodeURIComponent(String(id))}`);
   });
 
-  // The four pages whose records have line items: purchase orders, stock
-  // counts, transfers and vendor invoices. A purchase order with no lines is a
-  // number with nothing behind it, so the parent page alone was not the
-  // feature.
+  // A record's own page.
   //
-  // Lines are reachable only through their parent. lib/sonara-orphan-tables.cjs
-  // classified all four line tables "build-with-parent" for that reason: a
-  // standalone "add a line" form would be a way to create rows belonging to
-  // nothing.
-  ALL_OWNER_PAGES.filter((page) => childrenOf(page).length > 0).forEach((page) => {
+  // Registered for every record kind that has something to put on one: line
+  // items (purchase orders, stock counts, transfers, vendor invoices and the
+  // rest), a share link (quotes, bookings, invoices), or a public address
+  // (artist profiles). lib/sonara-owner-record-pages.cjs decides which, in
+  // hasDetailPage, so this registration, the list's "Open" column and where a
+  // status change returns to cannot disagree.
+  //
+  // It was registered for line items only. The share and publish cards below
+  // were written for this page, and three of the four record kinds declaring
+  // them have no lines -- so "Create a link" for a quote or a booking, and
+  // "Publish this profile" for an artist, rendered nowhere. The endpoints
+  // worked and only an API client could reach them. The shared-link test
+  // checked that each kind was *declared* on a page, which it was; nothing
+  // checked that the page the declaration needs was ever registered.
+  //
+  // A registrar rather than a copy, for the reason registerEditRoutes gives:
+  // Creator Studio artist profiles are the publishable kind, and they sit
+  // behind the workspace guard rather than the business-manager one.
+  function registerDetailRoute(page, guard, chrome) {
     const children = childrenOf(page);
-    app.get(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
+    app.get(`${page.path}/:recordId`, guard, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
       const recordId = String(req.params.recordId || "");
       if (!isUuid(recordId)) return res.status(404).type("html").send(ui.layout({
         title: page.title,
-        eyebrow: "Business Builder operations",
+        eyebrow: chrome.eyebrow,
         heading: "Not found",
         body: "That record reference is not one of ours.",
         sections: [ui.card("Nothing to show", "Go back to the list and open a record from there.")],
-        actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
+        actions: [ui.link(page.path, page.title), ...chrome.links]
       }));
 
       let parent = null;
@@ -1279,7 +1292,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // The line forms below have pickers of their own. The list handler
           // loads these; the detail handler never did, which is the other half
           // of why a child reference field always rendered empty.
-          references = await loadReferences(config, org.organizationId, page);
+          // Only where there are line forms to fill. A record page with no
+          // lines has no picker on it, and loading them anyway is a read whose
+          // answer nothing uses.
+          if (children.length) references = await loadReferences(config, org.organizationId, page);
 
           // Whether this record is already published, if this kind can be.
           //
@@ -1314,9 +1330,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         }
       }
 
+      const lineNotice = lineOutcome(req.query);
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
+            ...(lineNotice ? [ui.card("What just happened", ui.escape(lineNotice))] : []),
             summaryCard(page, parent, ui),
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
@@ -1329,9 +1347,9 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
       return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
         title: page.title,
-        eyebrow: "Business Builder operations",
+        eyebrow: chrome.eyebrow,
         heading: page.title,
-        body: children.map((spec) => spec.title).join(" "),
+        body: children.length ? children.map((spec) => spec.title).join(" ") : page.body,
         sections,
         actions: [
           // Only when the record was actually read. Offering a download for a
@@ -1340,11 +1358,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // there -- two answers to the same question, one of them wrong.
           ...(parent ? downloadsOf(page).map((entry) => ui.link(entry.href(recordId), entry.label)) : []),
           ui.link(page.path, `All ${page.title.toLowerCase()}`),
-          ui.link("/business-builder/owner", "Owner Dashboard"),
-          ui.link("/business-builder/dashboard", "Dashboard")
+          ...chrome.links
         ]
       }));
     });
+  }
+
+  // Lines are reachable only through their parent. lib/sonara-orphan-tables.cjs
+  // classified the line tables "build-with-parent" for that reason: a
+  // standalone "add a line" form would be a way to create rows belonging to
+  // nothing.
+  ALL_OWNER_PAGES.filter((page) => hasDetailPage(page)).forEach((page) => {
+    const children = childrenOf(page);
+    registerDetailRoute(page, requireBusinessManager, OWNER_CHROME);
 
     // Saving a line returns to the record it belongs to, not to a JSON body.
     children.forEach((spec) => {
@@ -1492,6 +1518,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             paymentId: saved?.rows?.[0]?.id || null
           });
         } catch { /* a saved payment is not undone by a notification that failed */ }
+      }
+
+      // A work-order material recorded as used or returned moves the stock count,
+      // through the same locked function family the storefront uses. The line is
+      // saved either way -- the material was used -- and the page says whether the
+      // count moved, from codes and numbers rather than from carried text.
+      if (spec.table === "business_work_order_materials" && saved?.ok !== false && isUuid(String(saved?.rows?.[0]?.id || ""))) {
+        const moved = await inventoryStock.materialStock(config, (c) => headers(c), { organizationId: org.organizationId, materialId: saved.rows[0].id });
+        if (!acceptsHtml(req)) return res.status(200).json({ ...saved, stock: moved });
+        const params = moved.ok
+          ? { line: "saved", stock: moved.code, ...(Number.isFinite(Number(moved.quantity)) ? { qty: String(moved.quantity) } : {}), ...(Number.isFinite(Number(moved.onHand)) ? { on_hand: String(moved.onHand) } : {}) }
+          : { line: "saved", stock: "not_moved" };
+        return res.redirect(303, `${back}?${new URLSearchParams(params).toString()}`);
       }
 
       return respond(saved?.ok === false ? 502 : 200, saved);
@@ -1826,6 +1865,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     registerEditRoutes(page, requireWorkspaceAccess("creator_studio"), CREATOR_CHROME);
     registerArchiveRoute(page, requireWorkspaceAccess("creator_studio"));
     registerStatusRoute(page, requireWorkspaceAccess("creator_studio"));
+    if (hasDetailPage(page)) registerDetailRoute(page, requireWorkspaceAccess("creator_studio"), CREATOR_CHROME);
     app.get(page.path, requireWorkspaceAccess("creator_studio"), async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
@@ -2419,6 +2459,33 @@ function dropBlanks(body) {
   return Object.fromEntries(Object.entries(body || {}).filter(([, value]) => !(typeof value === "string" && value.trim() === "")));
 }
 
+// What a line save did, for the record page it returns to.
+//
+// The line handler has always redirected with `?problem=<code>` when it refused,
+// and no page read it: a line that did not save came back to the same page with
+// nothing said. Rebuilt here from codes and numbers only -- never from text carried
+// in the address -- for the refusals and for what a material line did to stock.
+function lineOutcome(query = {}) {
+  if (query.line === "saved" && query.stock) {
+    const number = (value) => (/^-?\d{1,9}(\.\d{1,2})?$/.test(String(value ?? "")) ? Number(value) : null);
+    const code = String(query.stock);
+    if (code === "not_moved") return `Saved. ${inventoryStock.materialStockSentence({ ok: false })}`;
+    return `Saved. ${inventoryStock.materialStockSentence({ ok: true, code, quantity: number(query.qty), onHand: number(query.on_hand) })}`;
+  }
+  const problem = String(query.problem || "");
+  if (!problem) return null;
+  if (/_not_yours$/.test(problem)) return "That was not saved: it pointed at something that does not belong to this workspace.";
+  if (/_invalid$/.test(problem)) return "That was not saved: one of the choices could not be read. Pick it again.";
+  if (/_unreadable$/.test(problem)) return "That was not saved: we could not check one of the choices just now. Try again shortly.";
+  return ({
+    missing_required: "That was not saved: something it needs was left empty.",
+    parent_required: "That was not saved: it was not attached to a record.",
+    setup_required: "That was not saved: the database is not reachable just now.",
+    insert_failed: "That was not saved. Nothing changed -- try again shortly.",
+    not_saved: "That was not saved. Nothing changed -- try again shortly."
+  })[problem] || "That was not saved.";
+}
+
 function acceptsHtml(req) {
   return String(req.get?.("accept") || "").includes("text/html")
     || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
@@ -2565,20 +2632,21 @@ function pagerLinks(page, loaded, ui, term = null) {
 
 // Where a status change goes back to.
 //
-// A record with line items has a detail page and that is where the control is;
-// everything else only has the list. Sending somebody back to a detail page
-// that was never registered would answer 404 immediately after a change that
-// actually succeeded -- which reads as a failure and is not one.
+// A record with a detail page has the control there; everything else only has
+// the list. Sending somebody back to a detail page that was never registered
+// would answer 404 immediately after a change that actually succeeded -- which
+// reads as a failure and is not one. hasDetailPage is the same predicate the
+// registration uses, so the two cannot drift apart.
 function statusReturnPath(page, recordId) {
   const id = encodeURIComponent(String(recordId || ""));
-  return childrenOf(page).length > 0 ? `${page.path}/${id}` : page.path;
+  return hasDetailPage(page) ? `${page.path}/${id}` : page.path;
 }
 
 function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
-  // A record with line items gets an extra column linking to them. Without it
-  // the detail page exists and nothing points at it, which is the shape of
+  // A record with a page of its own gets an extra column linking to it. Without
+  // it the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
-  const opens = childrenOf(page).length > 0;
+  const opens = hasDetailPage(page);
 
   // And an action a row can take on itself.
   //
@@ -2595,11 +2663,12 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
 
   // And, for the record kinds with no detail page, the status control itself.
   //
-  // Eleven pages declare a status; only four of those have line items and so a
-  // detail page to put a card on. The other seven -- quotes, bookings,
-  // customers, services, areas, payments made, receivables -- have the list and
-  // nothing else, so the control lives in the row. Exactly one place per page:
-  // where there is a detail page the card is there and this column is not.
+  // A record kind that declares a status and has a detail page gets the control
+  // as a card there; one that has only the list gets it in the row. Exactly one
+  // place per page: where there is a detail page the card is there and this
+  // column is not. (The counts that were written here -- "eleven", "four",
+  // "seven" -- were wrong by the time a fifth page had line items, which is why
+  // they are not repeated. hasDetailPage is the answer, read at runtime.)
   const rowStatus = recordStatus.hasStatus(page) && !opens ? recordStatus.statusOptionsFor(page) : null;
 
   // And a way to correct it. Every row, on every page whose form is a create

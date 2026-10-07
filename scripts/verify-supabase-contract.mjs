@@ -77,6 +77,10 @@ const growthEventMigrationNames = [
 // The shop and the orders placed on it, added 2 October 2026. Its own list rather
 // than folded into businessOperationsMigrationNames: that group is the back office,
 // and this is a public front door with its own rule about what a zero price means.
+// Stock that moves with orders and jobs: the ledger and its two locked functions.
+const inventoryStockMigrationNames = [
+  "20261006040000_stock_holds_with_orders_and_jobs.sql"
+];
 const merchantStoreMigrationNames = [
   "20261002120000_a_storefront_a_stranger_can_buy_from.sql",
   // Payment on the shop's connected account, and the insert-only payment events.
@@ -341,6 +345,12 @@ const MERCHANT_STORE_TABLES = Object.freeze([
   "merchant_order_lines",
   "merchant_order_payment_events"
 ]);
+// The stock ledger. Its own group: rows are written only by
+// inventory_order_hold, inventory_material_stock and the trigger that settles a
+// hold when transition_merchant_order fulfils or cancels its order, all under the
+// item row locks fulfilment takes -- the guarantee that two buyers cannot both
+// take the last item, proven by the two-session race in verify-migration-replay.mjs.
+const INVENTORY_STOCK_TABLES = Object.freeze(["inventory_reservations"]);
 const GROWTH_EVENT_TABLES = Object.freeze([
   "growth_venues",
   "growth_events",
@@ -512,6 +522,7 @@ const agentToolPermissionSql = readExtension(agentToolPermissionMigrationNames, 
 const creatorProjectGraphSql = readExtension(creatorProjectGraphMigrationNames, "Creator Studio project graph");
 const growthEventSql = readExtension(growthEventMigrationNames, "Growth Studio events and RSVPs");
 const merchantStoreSql = readExtension(merchantStoreMigrationNames, "merchant storefront and orders");
+const inventoryStockSql = readExtension(inventoryStockMigrationNames, "inventory stock ledger");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
@@ -750,6 +761,7 @@ for (const required of [
 }
 
 verifyExtension(MERCHANT_STORE_TABLES, merchantStoreSql, "merchant storefront and orders");
+verifyExtension(INVENTORY_STOCK_TABLES, inventoryStockSql, "inventory stock ledger");
 // The schema half, comments stripped -- the same split as the events check above,
 // and for the same reason: the do-block names '%card%' in order to assert no such
 // column exists, and the header comment quotes AGENTS.md on card data.
@@ -1026,7 +1038,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES, ...MARKETPLACE_SALE_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...INVENTORY_STOCK_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES, ...MARKETPLACE_SALE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {

@@ -641,7 +641,7 @@ describe("a shared link is a link, not a leak", () => {
     // the guard rather than the card. The first version went through server.js,
     // got a 303, and wrapped every assertion in `if (status === 200)` -- so the
     // whole block reported green while checking nothing.
-    function buildOwnerApp(sharedLinksAnswer, { invoiceMissing = false } = {}) {
+    function buildOwnerApp(sharedLinksAnswer, { invoiceMissing = false, extraRows = {} } = {}) {
       const express = require("express");
       const registerRoutes = require("../routes/sonara-last9-routes.cjs");
       const app = express();
@@ -672,7 +672,8 @@ describe("a shared link is a link, not a leak", () => {
         // renders something rather than passing over a 404.
         purchase_orders: [{ id: PO_ID, organization_id: ORG, po_number: "PO-2026-001", status: "sent", total_cents: 5000, currency: "gbp" }],
         purchase_order_lines: [],
-        shared_links: [{ resource_id: INVOICE_ID, token: INVOICE_TOKEN }]
+        shared_links: [{ resource_id: INVOICE_ID, token: INVOICE_TOKEN }],
+        ...extraRows
       };
       global.fetch = async (url, options = {}) => {
         const table = (String(url).split("/rest/v1/")[1] || "").split("?")[0];
@@ -750,12 +751,14 @@ describe("a shared link is a link, not a leak", () => {
     // The field is per page, not per application. A page that never declared a
     // download must not grow one because the renderer stopped checking.
     //
-    // Purchase orders rather than quotes: quotes has no child table, so it has
-    // no detail route at all, and asking for one answers 404 with an empty body
-    // that contains no "/pdf" for reasons that have nothing to do with this
-    // guard. The first version of this test did exactly that and passed while
-    // the guard was removed. The 200 below is the half that makes it mean
-    // something.
+    // The first version of this test asked for a quote, which at the time had
+    // no detail route at all -- quotes have no child table, and the page was
+    // registered for line items only -- so it answered 404 with a body that
+    // contained no "/pdf" for reasons that had nothing to do with this guard,
+    // and passed while the guard was removed. The 200 below is the half that
+    // makes it mean something. (That missing route was itself the defect: the
+    // quote's share card had nowhere to render. See "a page for every record
+    // that has a door" below.)
     it("offers no such file on a record page that has not declared one", async () => {
       const savedFetch = global.fetch;
       try {
@@ -771,6 +774,90 @@ describe("a shared link is a link, not a leak", () => {
         global.fetch = savedFetch;
       }
     });
+  });
+
+  // A share or publish card is declared on the record kind and rendered on the
+  // record's own page. The test above checks the declaration; this checks the
+  // page. Both halves are needed, because the declaration was complete while
+  // the page was registered for line items only -- so a quote, a booking and
+  // an artist profile each declared a door that rendered nowhere.
+  describe("a page for every record that has a door", () => {
+    const { ALL_OWNER_PAGES, CREATOR_RECORD_PAGES, hasDetailPage } = require("../lib/sonara-owner-record-pages.cjs");
+    const RECORD_ID = "aaaaaaaa-3333-4000-8000-00000000003a";
+    const shareable = ALL_OWNER_PAGES.filter((page) => page.shareableAs);
+    const publishable = [...ALL_OWNER_PAGES, ...CREATOR_RECORD_PAGES].filter((page) => page.publishHandle);
+
+    function buildApp(page, { sharedLinks = [] } = {}) {
+      const express = require("express");
+      const registerRoutes = require("../routes/sonara-last9-routes.cjs");
+      const app = express();
+      app.use(express.urlencoded({ extended: false }));
+      const authenticate = (req, res, next) => {
+        req.sonaraUser = { id: USER };
+        return next();
+      };
+      const escape = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+      registerRoutes(app, {
+        layout: ({ title, heading, body, sections = [], actions = [] }) => `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p><nav>${actions.join("")}</nav>${sections.join("")}</html>`,
+        brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><p>${cardBody}</p></article>`,
+        linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+        escapeHtml: escape,
+        requireCustomer: authenticate,
+        requireBusinessManager: authenticate,
+        requireWorkspaceAccess: () => authenticate,
+        getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORG }),
+        getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
+      });
+      const rows = {
+        [page.table]: [{ id: RECORD_ID, organization_id: ORG, status: "active", created_at: "2026-10-01T00:00:00Z" }],
+        shared_links: sharedLinks
+      };
+      global.fetch = async (url) => {
+        const table = (String(url).split("/rest/v1/")[1] || "").split("?")[0];
+        return { ok: true, status: 200, headers: { get: () => "0-0/1" }, json: async () => rows[table] || [] };
+      };
+      return app;
+    }
+
+    it("has record kinds to check", () => {
+      assert.ok(shareable.length >= 3, `only ${shareable.length} record pages offer a share link; this check has gone blind`);
+      assert.ok(publishable.length >= 1, "no record page offers a public address; this check has gone blind");
+    });
+
+    for (const page of [...ALL_OWNER_PAGES, ...CREATOR_RECORD_PAGES].filter((entry) => entry.shareableAs || entry.publishHandle)) {
+      it(`renders the door on ${page.path}/:id and links to it from the list`, async () => {
+        assert.ok(hasDetailPage(page), `${page.path} declares a share or publish card and no detail page to put it on`);
+        const savedFetch = global.fetch;
+        try {
+          const app = buildApp(page);
+          const detail = await request(app).get(`${page.path}/${RECORD_ID}`).set("accept", "text/html");
+          assert.equal(detail.status, 200, `${page.path}/:id answered ${detail.status}, so its door renders nowhere`);
+          const action = page.shareableAs
+            ? `/api/shared-links/${page.shareableAs}/${RECORD_ID}/share`
+            : `/api/creator-profiles/${RECORD_ID}/publish`;
+          assert.ok(
+            detail.text.includes(`action="${action}"`),
+            `${page.path}/:id rendered without the form that posts to ${action}`
+          );
+          // The form sends its maker back to this page, so this page is where
+          // a successful share lands. If it were not registered the success
+          // would read as a 404.
+          assert.ok(
+            detail.text.includes(`name="back" value="${page.path}/${RECORD_ID}"`),
+            `the form on ${page.path}/:id does not return to the page it is on`
+          );
+
+          const list = await request(app).get(page.path).set("accept", "text/html");
+          assert.equal(list.status, 200, `${page.path} answered ${list.status}, so the list was not checked`);
+          assert.ok(
+            list.text.includes(`href="${page.path}/${RECORD_ID}"`),
+            `${page.path} lists the record without linking to the page its door is on`
+          );
+        } finally {
+          global.fetch = savedFetch;
+        }
+      });
+    }
   });
 
   describe("the control the customer presses", () => {

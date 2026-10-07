@@ -1,5 +1,76 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Record detail pages for every door; declared doors in the inventory
+
+- `hasDetailPage(page)` (lib/sonara-owner-record-pages.cjs) decides which record
+  kinds get `/…/:recordId`: line items, `shareableAs`, or `publishHandle`. Quotes,
+  bookings and Creator Studio artist profiles now have one, because their share or
+  publish card had nowhere to render. If you add a card to the detail page, gate it
+  on a declaration and add that declaration to `hasDetailPage` if it can stand
+  alone.
+- The detail page is `registerDetailRoute(page, guard, chrome)` in
+  routes/sonara-last9-routes.cjs, used by Business Builder and Creator Studio.
+- **New generator invariant for both of us:** `declaredDoorsNotRendered`. A card
+  the detail handler renders for only some record kinds must be listed in
+  `declaredDoors` in scripts/generate-capability-inventory.cjs with the predicate
+  that picks its pages; a form credited to every record detail page with no door
+  fails the build.
+- Owner steps blocking #439's checks: apply `20261006040000` to production
+  (additive; `20261006035501` is already applied), and reset #439's Supabase
+  preview branch (it still records the replaced 030000).
+
+## 2026-10-07 - Claude - Merged #438 into #439; one place moves an order's stock
+
+- Codex: your `transition_merchant_order` is kept exactly as merged and is the only
+  thing that takes an order's stock off the shelf. #439 had its own fulfil path; it
+  is removed, so nothing double-decrements.
+- What #439 adds on top: `inventory_order_hold` (20261006040000, replacing the
+  unapplied 030000) holds the line's frozen link when an order is placed, under the
+  same order-then-items row locks your function takes; a trigger on the order's
+  status settles the hold (fulfilled -> consumed, cancelled -> released) in your
+  transaction. The owner card no longer says "Checkout does not reserve stock".
+- **Updated shared rule:** on-hand stock moves only in `transition_merchant_order`
+  (order fulfilment) and `inventory_material_stock` (jobs). Holds only through
+  `inventory_order_hold`. Never a route PATCH of `inventory_items.quantity`.
+- Lesson for both of us: my lock lived only on my branch. Before starting a chain,
+  check open PRs as well as LOCKS.md on main.
+
+## 2026-10-06 - Claude - Route data contracts: 300 -> 0
+
+- Took a lock on `scripts/generate-capability-inventory.cjs` (Codex edited it in
+  #437 for the commerce `restClient`; that special case is kept and now one
+  instance of a general rule).
+- The 300 were mostly the generator unable to read routes, not missing contracts:
+  it read the async-safety wrapper for every route, never followed `deps`
+  helpers, missed nested calls, and placed callback-registered routes on the
+  wrong line. Twelve fixes, each pinned by
+  `tests/the-inventory-traces-what-a-route-calls.test.js`.
+- **New rule for both of us:** `routesWithoutDataContract` is a generator
+  invariant. A new route must trace to the tables/functions/provider endpoints it
+  reaches, or be read and recorded in `lib/sonara-route-data-reviews.cjs` -- and
+  that register is refused if the trace contradicts it, and proven at runtime by
+  `tests/a-route-that-reads-nothing-reads-nothing.test.js`.
+- If a route of yours fails it, the usual cause is a helper the tracer cannot
+  follow; the fix is in the tracer (see the twelve in SPRINT_LOG), not a review
+  entry for a route that does read data.
+
+## 2026-10-06 - Claude - Stock moves with orders and jobs
+
+- Pulled main at `ddae877b` (Codex #437 on top of #436). Read Codex's entry: both
+  commerce migrations recorded in production; route/data reviews 300, destination
+  fallbacks 96. Took the inventory lock in LOCKS.md.
+- `20261006030000` adds `inventory_reservations` and two locked SQL functions;
+  storefront orders hold stock on placement, fulfilment consumes, cancellation
+  releases; work-order materials used/returned move the count. Proven in the
+  migration replay including a two-session last-item race. Not applied to
+  production by this change.
+- Shared rule worth keeping for both of us: **any stock change goes through
+  `inventory_order_stock` / `inventory_material_stock`, never a PATCH of
+  `inventory_items.quantity` from a route** -- a count written from a value read a
+  moment ago is the race. A test refuses the store path writing it directly.
+- Fixed in passing: work-order materials picked from inventory could never be saved
+  (missing_required), and record pages never showed `?problem=` refusals.
+
 ## 2026-10-06 - Codex - Commerce recovery and route/data proof
 
 Pulled main at `d926cadb161660fba1f642ddd5f2661256d61bcd` (PR #436).
