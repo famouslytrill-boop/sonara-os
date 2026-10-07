@@ -15,6 +15,8 @@ const TABLES = Object.freeze({
   invoicePayments: "customer_invoice_payments",
   invoices: "customer_invoices",
   shopOrders: "merchant_orders",
+  workOrders: "business_work_orders",
+  workOrderMaterials: "business_work_order_materials",
   locations: "location_events"
 });
 const BUSINESS_ASSET_TYPES = new Set(pages.RESOURCE_TYPES);
@@ -124,13 +126,14 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     const floor = start.toISOString();
     const floorDay = floor.slice(0, 10);
     const org = scope.organizationId;
-    const [bookings, time, inventory, invoicePayments, shopOrders, locations] = await Promise.all([
+    const [bookings, time, inventory, invoicePayments, shopOrders, locations, workOrders] = await Promise.all([
       list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${encodeURIComponent(floor)},created_at.gte.${encodeURIComponent(floor)})`, READ_LIMIT),
       list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT),
       list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,status", "", READ_LIMIT),
       list(scope.config, TABLES.invoicePayments, org, "id,invoice_id,amount_cents,received_on", `&received_on=gte.${encodeURIComponent(floorDay)}`, READ_LIMIT),
       list(scope.config, TABLES.shopOrders, org, "id,payment_state,amount_paid_cents,refunded_cents,currency,paid_at", `&paid_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT),
-      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT)
+      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT),
+      list(scope.config, TABLES.workOrders, org, "id,status,completed_at,agreed_amount_cents,labor_cost_cents,travel_cost_cents,other_cost_cents,currency", `&status=in.(completed,invoiced,closed)&completed_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT)
     ]);
 
     // An invoice payment carries no currency; its invoice does. Read in small
@@ -147,10 +150,24 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       for (const row of read.rows) currencyByInvoice.set(row.id, row.currency);
     }
 
-    const sources = { bookings, time, inventory, invoicePayments, invoices, shopOrders, locations };
+    // A finished job's materials, in small batches. A batch that fails, or comes
+    // back at its limit, makes the job figures unreadable rather than quietly
+    // cheaper: a material line that was not read is a cost left out, and a
+    // profit missing a cost is overstated.
+    const jobIds = workOrders.ok ? workOrders.rows.map((row) => row.id).filter(validUuid) : [];
+    const workOrderMaterials = { ok: true, rows: [] };
+    for (let index = 0; workOrders.ok && index < jobIds.length; index += 20) {
+      const batch = jobIds.slice(index, index + 20);
+      const read = await request(scope.config, TABLES.workOrderMaterials,
+        `organization_id=eq.${enc(org)}&work_order_id=in.(${batch.map(enc).join(",")})&select=work_order_id,quantity_planned,quantity_used,unit_cost_cents&limit=${READ_LIMIT}`);
+      if (!read.ok || read.rows.length >= READ_LIMIT) { workOrderMaterials.ok = false; break; }
+      workOrderMaterials.rows.push(...read.rows);
+    }
+
+    const sources = { bookings, time, inventory, invoicePayments, invoices, shopOrders, locations, workOrders, workOrderMaterials };
     const unreadableSources = Object.entries(sources).filter(([, result]) => !result.ok).map(([name]) => name);
     if (unreadableSources.length) return { ok: false, code: "analytics_sources_unreadable", unreadableSources };
-    const truncatedSources = Object.entries({ bookings, time, inventory, invoicePayments, shopOrders, locations })
+    const truncatedSources = Object.entries({ bookings, time, inventory, invoicePayments, shopOrders, locations, workOrders })
       .filter(([, result]) => result.rows.length >= READ_LIMIT)
       .map(([name]) => name);
 
@@ -159,6 +176,8 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       bookings: bookings.rows, timeEntries: time.rows, inventoryItems: inventory.rows,
       invoicePayments: invoicePayments.rows.map((row) => ({ ...row, currency: currencyByInvoice.get(row.invoice_id) || null })),
       shopOrders: shopOrders.rows,
+      workOrders: workOrders.rows,
+      workOrderMaterials: workOrderMaterials.rows,
       locationEvents: locations.rows
     });
     return { ...summary, days, truncatedSources };
@@ -182,7 +201,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       title: "How the business is doing", eyebrow: "Business Builder", heading: "How the business is doing",
       body: "Money received, bookings, hours worked and stock, from what you have recorded.",
       sections,
-      actions: [linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/dashboard", "Back to your workspace")]
+      actions: [linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/owner/work-orders", "Work orders"), linkAction("/business-builder/dashboard", "Back to your workspace")]
     }));
     const scope = await context(req);
     if (!scope.ok) return page([operationsPages.unreadableCard(["workspace"], escapeHtml)], scope.status);

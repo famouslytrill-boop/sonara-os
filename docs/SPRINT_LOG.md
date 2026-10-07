@@ -2,6 +2,28 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Profit over the jobs a business finished
+
+Each job's page has always worked out its direct profit: the agreed price less
+labour, travel, other costs and materials. Nothing added those up, so the
+Business Builder chain ended at one job, and "is the work paying" had no answer
+across a month.
+
+`/business-builder/owner/operations` now has a Jobs finished card. It covers
+work orders that reached completed, invoiced or closed within the period, with
+direct profit per currency from `workOrderLifecycle.profitability`, the same
+function the job page uses, so the two cannot disagree:
+- A job with a price or a cost not recorded has no known profit. It is counted
+  apart and adds nothing, rather than its agreed price standing in for a
+  profit.
+- Materials are read in batches of 20 jobs. A batch that fails or comes back at
+  its limit makes the job figures unreadable, because a material line not read
+  is a cost left out and an overstated profit.
+- The card says overheads are not included.
+
+Falsified three ways, each failing by name: materials ignored, a job with
+unrecorded labour counted, and a failed materials read ignored.
+
 ### 2026-10-07 - A campaign says whether it paid for itself
 
 The Growth chain ran lead → campaign → send → conversion → attribution and

@@ -9859,6 +9859,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -9932,7 +9934,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
@@ -9947,7 +9949,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 300
+        "line": 319
       },
       "contractCompleteness": {
         "route": true,
@@ -14227,6 +14229,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -14542,7 +14546,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -14567,7 +14571,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 290
+        "line": 309
       },
       "contractCompleteness": {
         "route": true,
@@ -15885,6 +15889,8 @@
         "directTables": [
           "business_bookings",
           "business_memberships",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -15899,6 +15905,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -16005,6 +16013,45 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "business_work_order_materials",
+            "tableId": "table:business_work_order_materials",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_work_orders",
+            "tableId": "table:business_work_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_work_orders_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -16507,7 +16554,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -16544,7 +16591,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 169
+        "line": 188
       },
       "contractCompleteness": {
         "route": true,
@@ -19890,6 +19937,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -20169,7 +20218,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -20196,7 +20245,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 194
+        "line": 213
       },
       "contractCompleteness": {
         "route": true,
@@ -25085,6 +25134,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -25386,7 +25437,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -25412,7 +25463,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 229
+        "line": 248
       },
       "contractCompleteness": {
         "route": true,
@@ -82152,6 +82203,8 @@
         "directTables": [
           "business_bookings",
           "business_memberships",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -82166,6 +82219,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -82272,6 +82327,45 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "business_work_order_materials",
+            "tableId": "table:business_work_order_materials",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_work_orders",
+            "tableId": "table:business_work_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_work_orders_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -82774,7 +82868,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -82811,7 +82905,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 179
+        "line": 198
       },
       "contractCompleteness": {
         "route": true,
@@ -112191,6 +112285,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -112519,7 +112615,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -112547,7 +112643,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 95
+        "line": 97
       },
       "contractCompleteness": {
         "route": true,
@@ -231527,6 +231623,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -231600,7 +231698,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
@@ -231615,7 +231713,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 308
+        "line": 327
       },
       "contractCompleteness": {
         "route": true,
@@ -254276,6 +254374,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -254555,7 +254655,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -254582,7 +254682,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 202
+        "line": 221
       },
       "contractCompleteness": {
         "route": true,
@@ -265993,6 +266093,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -266294,7 +266396,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -266320,7 +266422,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 237
+        "line": 256
       },
       "contractCompleteness": {
         "route": true,
@@ -266458,6 +266560,8 @@
           "bookings",
           "business_assets",
           "business_bookings",
+          "business_work_order_materials",
+          "business_work_orders",
           "customer_invoice_payments",
           "customer_invoices",
           "employee_time_entries",
@@ -266759,7 +266863,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-operations-expansion-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 11,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -266785,7 +266889,7 @@
       },
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 273
+        "line": 292
       },
       "contractCompleteness": {
         "route": true,
@@ -407139,7 +407243,7 @@
     {
       "id": "module:routes/sonara-operations-expansion-routes.cjs",
       "source": "routes/sonara-operations-expansion-routes.cjs",
-      "tableCount": 9,
+      "tableCount": 11,
       "tables": [
         {
           "table": "bookings",
@@ -407162,6 +407266,18 @@
             "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
             "supabase/migrations/20260721213000_complete_runtime_database_contract.sql",
             "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        },
+        {
+          "table": "business_work_order_materials",
+          "migrations": [
+            "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
+          ]
+        },
+        {
+          "table": "business_work_orders",
+          "migrations": [
+            "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql"
           ]
         },
         {
@@ -496444,7 +496560,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
-        "line": 290
+        "line": 309
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

@@ -121,6 +121,45 @@ describe("how the business is doing counts real money", () => {
     assert.deepEqual(answered.body.unreadableSources, ["invoices"]);
   });
 
+  it("totals direct profit over finished jobs the way each job's page works it out", async () => {
+    const done = crypto.randomUUID();
+    const missingLabour = crypto.randomUUID();
+    const elsewhere = crypto.randomUUID();
+    const app = start(seeded({
+      business_work_orders: [
+        { id: done, organization_id: ORG, status: "completed", completed_at: recent(2), agreed_amount_cents: 50000, labor_cost_cents: 10000, travel_cost_cents: 0, other_cost_cents: 0, currency: "gbp" },
+        { id: missingLabour, organization_id: ORG, status: "invoiced", completed_at: recent(3), agreed_amount_cents: 30000, labor_cost_cents: null, travel_cost_cents: 0, other_cost_cents: 0, currency: "gbp" },
+        { id: elsewhere, organization_id: OTHER_ORG, status: "completed", completed_at: recent(2), agreed_amount_cents: 9000000, labor_cost_cents: 0, travel_cost_cents: 0, other_cost_cents: 0, currency: "gbp" }
+      ],
+      business_work_order_materials: [
+        { id: crypto.randomUUID(), organization_id: ORG, work_order_id: done, quantity_used: 2, unit_cost_cents: 2500 }
+      ]
+    }));
+    const shown = await request(app).get(PAGE).set("accept", "text/html");
+    assert.match(shown.text, /<h2>Jobs finished<\/h2>/);
+    assert.match(shown.text, /GBP 350\.00/, "500 agreed less 100 labour and 50 materials is not shown as the profit");
+    assert.match(shown.text, /2 job\(s\) finished in this period/);
+    assert.match(shown.text, /1 of them have a price or a cost not recorded/, "a job with unrecorded labour was counted at its full price");
+    assert.doesNotMatch(shown.text, /90000\.00|90350\.00/, "another business's job was counted");
+  });
+
+  it("shows no job figures when the materials could not be read", async () => {
+    const done = crypto.randomUUID();
+    const app = start(seeded({
+      business_work_orders: [{ id: done, organization_id: ORG, status: "completed", completed_at: recent(2), agreed_amount_cents: 50000, labor_cost_cents: 0, travel_cost_cents: 0, other_cost_cents: 0, currency: "gbp" }],
+      business_work_order_materials: []
+    }));
+    const installed = global.fetch;
+    global.fetch = async (input, init = {}) => {
+      if (String(typeof input === "string" ? input : input?.url).includes("/rest/v1/business_work_order_materials?")) return { ok: false, status: 500, headers: { get: () => null }, json: async () => ({}) };
+      return installed(input, init);
+    };
+    const shown = await request(app).get(PAGE).set("accept", "text/html");
+    assert.equal(shown.status, 503);
+    assert.match(shown.text, /the materials used on finished jobs/);
+    assert.doesNotMatch(shown.text, /GBP 500\.00/, "a job was shown at full profit with its materials unread");
+  });
+
   it("says a total is at least the figure when a read came back at its limit", async () => {
     const orders = Array.from({ length: 1000 }, () => ({ id: crypto.randomUUID(), organization_id: ORG, payment_state: "paid", amount_paid_cents: 100, refunded_cents: 0, currency: "usd", paid_at: recent(1) }));
     const app = start(seeded({ merchant_orders: orders }));
