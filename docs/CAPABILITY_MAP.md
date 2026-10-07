@@ -81,19 +81,21 @@ These operations still resolve to workspace homes. Each needs a real destination
 
 | Operation | Workspace | Current fallback | Source |
 | --- | --- | --- | --- |
+| `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1341` |
+| `GET /api/business-builder/control-plane` | business_builder | `/business-builder/dashboard` | `routes/sonara-business-control-plane-routes.cjs:425` |
 | `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1340` |
 | `GET /api/business-builder/control-plane` | business_builder | `/business-builder/dashboard` | `routes/sonara-business-control-plane-routes.cjs:426` |
 | `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:202` |
 | `GET /api/business/operations/analytics` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:65` |
 | `GET /api/business/reservation-resources` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:101` |
 | `GET /api/business/waitlist` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:138` |
-| `GET /api/checkout/session` | sonara_shared_api | `/dashboard` | `server.js:1303` |
-| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1522` |
-| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1546` |
+| `GET /api/checkout/session` | sonara_shared_api | `/dashboard` | `server.js:1304` |
+| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1523` |
+| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1547` |
 | `GET /api/growth/consents` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:804` |
 | `GET /api/growth/metrics` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:1103` |
 | `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:89` |
-| `GET /api/health` | sonara_shared_api | `/dashboard` | `server.js:1570` |
+| `GET /api/health` | sonara_shared_api | `/dashboard` | `server.js:1571` |
 | `GET /api/infrastructure/manifest` | shared_infrastructure | `/infrastructure` | `routes/sonara-infrastructure-routes.cjs:10` |
 | `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2174` |
 | `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1955` |
@@ -112,6 +114,9 @@ These operations still resolve to workspace homes. Each needs a real destination
 | `GET /api/prompt-library/discovery` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:96` |
 | `GET /api/prompt-library/templates` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:127` |
 | `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
+| `GET /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/support/status` | sonara_shared_api | `/dashboard` | `server.js:969` |
 | `GET /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2174` |
 | `GET /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2174` |
 | `GET /api/support/status` | sonara_shared_api | `/dashboard` | `server.js:968` |
