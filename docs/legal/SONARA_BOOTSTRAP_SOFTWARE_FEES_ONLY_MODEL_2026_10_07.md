@@ -86,4 +86,24 @@ If customers later demand deeply integrated sales payment, **alternative requiri
 - SONARA accepts a cut of real-estate lease proceeds or advances money while claiming its compensation is “just SaaS.”
 - Own subscription cancellation/fees/refund disclosures do not match the actual service.
 
-**Verified state today:** new draft source committed, isolated policy tests have run. No deployment configuration, real Stripe connected accounts, card charges, hosted payment links, financial data, or public legal terms have been modified.  
+**Verified state today:** new draft source committed, isolated policy tests have run. No deployment configuration, real Stripe connected accounts, card charges, hosted payment links, financial data, or public legal terms have been modified.
+
+
+## Exact-head engineering follow-up — strict default and historical reconciliation
+
+**Important change:** The Connect checkout gate now **fails closed when `SONARA_CUSTOMER_FUNDS_MODE` is missing, unknown, or `external_only`**, even if an old production environment still has `STRIPE_CONNECT_ENABLED=true`. To use Connect again later, the runtime must explicitly set `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed` **and** `STRIPE_CONNECT_ENABLED=true` after a separately recorded professional/owner decision. This dual opt-in is **necessary but not sufficient** for legal clearance or actual provider eligibility. The reviewed value is a technical feature-mode name, **not** evidence that counsel actually signed off.
+
+The `.env.example` file now includes both `SONARA_CUSTOMER_FUNDS_MODE=external_only` and `STRIPE_CONNECT_ENABLED=false`; it is an example file, not a live Vercel/production variable. The actual public deployment has not been inspected or modified in this PR.
+
+### Preserve honest old transactions while forbidding new ones
+
+- **Blocked when fee-only:** onboarding new managed Stripe Connect accounts, creating marketplace/storefront Checkout Sessions, using the Connect account eligibility flow, and expiring Checkout Sessions through this checked helper. All checkout operations implemented by `lib/sonara-connected-checkout.cjs` now rely on the two opt-ins for writes.
+- **Still permitted with existing server keys and appropriate tenant authorization:** processor **GET** requests for preexisting connected-account Checkout Sessions. Read-only recovery/reconciliation of legitimately paid orders must not disappear just because SONARA stops offering integrated checkout. **No new customer charge** results from a GET; actual bank deposit is still separate proof.
+- **Continue to accept signed historic Connect webhooks** until existing orders, disputes, refunds, and outstanding legitimate customer funds records are safely reconciled. The server's **own** platform billing webhook/Checkout/Customer Portal remains separately implemented and unchanged.
+- **Cutover warning:** turning off an app checkout button does **not** cancel existing hosted Checkout Sessions, remove a seller's external payment links, resolve all already-pending charges, cancel preexisting merchant payment authorizations, or retroactively undo losses. Inventory of live/expired/paid sessions, merchant contacts, recovery and customer notifications need approved operational handling before deploying the new mode. Do not unilaterally delete merchant records or send unapproved refunds.
+- **Security caveat:** browser or seller-provided payment link strings remain unverified destinations even if their URL host appears to be Stripe/PayPal. No default conversion from these URL strings into an in-SONARA paid checkout or automated entitlement delivery.
+- **Scope of this PR:** the files above are **draft branch changes only**. Historical webhook tests, runtime route wiring tests, new-money suppression, and unchanged SONARA Billing behavior must pass in real Node24/Mocha, CI and permitted staging before a controlled production deployment.
+
+### Integration tests updated for dual opt-in
+
+All existing mocked legacy Connect flows that intentionally exercise checkout now explicitly declare `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed` in test fixtures, without silently enabling Connect in an actual deployment. The new fee-only test suite checks missing/invalid mode, unchanged hosted subscription boundary, old-mode Connect flag not overriding the kill switch, no-network creation denial, merchant checkout denial, read-only historic session GET and denied session-expiration POST. These isolated checks are not a production go-live verdict.
