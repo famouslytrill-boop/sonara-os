@@ -38,8 +38,10 @@
       "form_reference": 340,
       "machine_ingress": 3,
       "parent_route": 74,
-      "route_pair": 115,
-      "workspace_fallback": 52
+      "reviewed_no_page": 5,
+      "route_pair": 123,
+      "static_page_link": 1,
+      "workspace_fallback": 38
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
@@ -49,7 +51,7 @@
       "handler_source_table_reference": 492,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 52,
+    "routesUsingWorkspaceHomeFallback": 38,
     "formActionLinkCount": 120,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
@@ -89,12 +91,10 @@
     "routeDataReviewByMethod": {},
     "routeDestinationReviewByWorkspace": {
       "business_builder": 8,
-      "business_builder_agent_ops": 1,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
       "growth_studio": 5,
-      "shared_infrastructure": 1,
-      "sonara_shared_api": 34
+      "sonara_shared_api": 22
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -27278,9 +27278,10 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": null,
+        "confidence": "reviewed_no_page",
+        "reason": "method_refusal",
+        "consumers": []
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -43885,9 +43886,13 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": null,
+        "confidence": "reviewed_no_page",
+        "reason": "monitor",
+        "consumers": [
+          ".github/workflows/reliability-performance-smoke.yml",
+          ".github/workflows/controlled-production-deploy.yml"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -44008,9 +44013,13 @@
       "kind": "api",
       "workspace": "shared_infrastructure",
       "destination": {
-        "route": "/infrastructure",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/research-2026-commerce-store-operations.html",
+        "confidence": "static_page_link",
+        "reason": "linked_evidence",
+        "consumers": [
+          "public/research-2026-commerce-store-operations.html",
+          "public/research-2026-ecosystem-adoption-enterprise.html"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -46570,9 +46579,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "market_intelligence_competitors"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -47004,9 +47016,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "function": "getMarketIntelligenceFramework"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -48059,9 +48074,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "market_intelligence_opportunities"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -48748,9 +48766,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "market_intelligence_segments"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -49182,9 +49203,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "market_intelligence_signals"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -49616,9 +49640,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": null,
+        "confidence": "reviewed_no_page",
+        "reason": "monitor",
+        "consumers": [
+          ".github/workflows/controlled-production-deploy.yml"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -50169,9 +50196,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/product-lifecycle/initiatives/:initiativeId",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "product_lifecycle_iterations"
+        }
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -50792,9 +50822,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "sonara_prompt_collections"
+        }
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -51297,9 +51330,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "table": "sonara_prompt_templates"
+        }
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -53480,9 +53516,12 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": null,
+        "confidence": "reviewed_no_page",
+        "reason": "monitor",
+        "consumers": [
+          "scripts/smoke-live-routes.mjs"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -61392,7 +61431,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 444
+        "line": 445
       },
       "contractCompleteness": {
         "route": true,
@@ -139847,7 +139886,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 444
+        "line": 445
       },
       "contractCompleteness": {
         "route": true,
@@ -174634,7 +174673,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 444
+        "line": 445
       },
       "contractCompleteness": {
         "route": true,
@@ -194140,7 +194179,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 444
+        "line": 445
       },
       "contractCompleteness": {
         "route": true,
@@ -220589,9 +220628,12 @@
       "kind": "api",
       "workspace": "business_builder_agent_ops",
       "destination": {
-        "route": "/owner/agent-activity",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": null,
+        "confidence": "reviewed_no_page",
+        "reason": "scheduler",
+        "consumers": [
+          ".github/workflows/agent-schedule-tick.yml"
+        ]
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -392166,7 +392208,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 386
+        "line": 387
       },
       "contractCompleteness": {
         "route": true,
@@ -392609,7 +392651,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 393
+        "line": 394
       },
       "contractCompleteness": {
         "route": true,
@@ -469979,9 +470021,12 @@
         "kind": "api",
         "workspace": "business_builder_agent_ops",
         "destination": {
-          "route": "/owner/agent-activity",
-          "confidence": "workspace_fallback",
-          "reason": "no_exact_page_binding_found"
+          "route": null,
+          "confidence": "reviewed_no_page",
+          "reason": "scheduler",
+          "consumers": [
+            ".github/workflows/agent-schedule-tick.yml"
+          ]
         },
         "accessMiddleware": [],
         "routeRegistry": null,
@@ -491489,16 +491534,6 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "GET /api/checkout/session",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "server.js",
-        "line": 1303
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "GET /api/creator-studio/readiness",
       "workspace": "creator_studio",
       "source": {
@@ -491549,26 +491584,6 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "GET /api/health",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "server.js",
-        "line": 1570
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/infrastructure/manifest",
-      "workspace": "shared_infrastructure",
-      "source": {
-        "file": "routes/sonara-infrastructure-routes.cjs",
-        "line": 10
-      },
-      "currentDestination": "/infrastructure",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "GET /api/integrations/jobs",
       "workspace": "sonara_shared_api",
       "source": {
@@ -491609,101 +491624,11 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "GET /api/market-intelligence/competitors",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 103
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/framework",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 39
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/portfolio",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 43
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/segments",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 74
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/signals",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 215
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/product-lifecycle/framework",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/product-lifecycle-routes.cjs",
-        "line": 95
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/product-lifecycle/initiatives/:initiativeId/summary",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/product-lifecycle-routes.cjs",
-        "line": 133
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/prompt-library/collections",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 263
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "GET /api/prompt-library/discovery",
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
         "line": 96
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/prompt-library/templates",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 127
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -491736,26 +491661,6 @@
         "line": 2171
       },
       "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/support/status",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "server.js",
-        "line": 968
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/agents/schedule/tick",
-      "workspace": "business_builder_agent_ops",
-      "source": {
-        "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 912
-      },
-      "currentDestination": "/owner/agent-activity",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
@@ -491962,6 +491867,7 @@
     "apiRoutesMissingOpenApiContract": [],
     "formActionsWithoutRegisteredRoute": [],
     "declaredDoorsNotRendered": [],
+    "routeDestinationReviewsNotHeld": [],
     "ownerActionsWithoutRegisteredRoute": [],
     "ownerActionsWithoutActiveTable": [],
     "activeTablesWithoutCreateMigration": [],

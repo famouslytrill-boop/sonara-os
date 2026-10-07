@@ -2,6 +2,39 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A route with no page says why, and the reason is checked
+
+The capability inventory gave every route the page that renders it, or -- when
+it found none -- the workspace home, flagged as a fallback. Some fallbacks are
+screens nobody built. Others have no screen because they should not: a deploy
+check calls `/api/health`, a scheduled workflow calls the agent tick, and the
+market and prompt-library list endpoints answer as JSON what a page already
+renders. Counting those as missing screens hid the ones that are.
+
+`lib/sonara-route-destination-reviews.cjs` records them by kind, and each kind
+carries evidence the generator checks rather than takes on trust
+(`routeDestinationReviewsNotHeld`): a monitor or scheduler names files that exist
+and call the route; a JSON twin names a registered page, and the route and the
+page read the same table or call the same function; a method refusal is recorded
+as one in `lib/sonara-route-data-reviews.cjs`. An entry the generator would not
+have needed fails, as does an entry for a route that is not registered.
+Falsified eight ways, each failing by name: a consumer that does not call the
+route, a consumer that does not exist, the wrong table, the wrong function, an
+entry that is not needed, an unregistered route, a refusal not recorded as one,
+and an empty register.
+
+Workspace fallbacks 52 -> 38. What is left is mostly screens: waitlist and
+bookable resources, operations analytics and the map snapshot, prompt library
+saving, sensory profiles, growth consents and metrics, integration jobs (which
+nothing runs), the readiness endpoints with no in-repository consumer, and
+`/api/motion/events`, which nothing has ever posted to.
+
+Known and not fixed here: routes registered by the generic `registerRestResource`
+are credited with every table the shared handler can reach, including a
+plan-limit branch only one resource takes -- so `POST /api/sensory/profiles` is
+listed as reading `billing_subscriptions`. An over-statement rather than a gap;
+the tracer cannot evaluate the branch.
+
 ### 2026-10-07 - Market evidence is recorded from the page
 
 `/market-intelligence` and its three studio pages promised "track customer

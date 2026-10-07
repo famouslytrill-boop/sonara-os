@@ -103,11 +103,46 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 28 most recent entries of 447 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 28 most recent entries of 448 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A route with no page says why, and the reason is checked
+
+The capability inventory gave every route the page that renders it, or -- when
+it found none -- the workspace home, flagged as a fallback. Some fallbacks are
+screens nobody built. Others have no screen because they should not: a deploy
+check calls `/api/health`, a scheduled workflow calls the agent tick, and the
+market and prompt-library list endpoints answer as JSON what a page already
+renders. Counting those as missing screens hid the ones that are.
+
+`lib/sonara-route-destination-reviews.cjs` records them by kind, and each kind
+carries evidence the generator checks rather than takes on trust
+(`routeDestinationReviewsNotHeld`): a monitor or scheduler names files that exist
+and call the route; a JSON twin names a registered page, and the route and the
+page read the same table or call the same function; a method refusal is recorded
+as one in `lib/sonara-route-data-reviews.cjs`. An entry the generator would not
+have needed fails, as does an entry for a route that is not registered.
+Falsified eight ways, each failing by name: a consumer that does not call the
+route, a consumer that does not exist, the wrong table, the wrong function, an
+entry that is not needed, an unregistered route, a refusal not recorded as one,
+and an empty register.
+
+Workspace fallbacks 52 -> 38. What is left is mostly screens: waitlist and
+bookable resources, operations analytics and the map snapshot, prompt library
+saving, sensory profiles, growth consents and metrics, integration jobs (which
+nothing runs), the readiness endpoints with no in-repository consumer, and
+`/api/motion/events`, which nothing has ever posted to.
+
+Known and not fixed here: routes registered by the generic `registerRestResource`
+are credited with every table the shared handler can reach, including a
+plan-limit branch only one resource takes -- so `POST /api/sensory/profiles` is
+listed as reading `billing_subscriptions`. An over-statement rather than a gap;
+the tracer cannot evaluate the branch.
+
+
 
 ### 2026-10-07 - Market evidence is recorded from the page
 
@@ -2047,27 +2082,3 @@ id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red)
 PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
 tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
 none unfiltered, which is the six new reads and writes accounted for.
-
-
-### 2026-10-02 - Creator Project Graph and fifteen anonymous tools
-
-Built on Claude's main baseline a9aa277. Added private creative projects with
-owned source references, clip placement/mute, timed captions, optimistic
-revision updates, archive/restore, and real JSON/WebVTT/CSV downloads. Reused
-the existing asset library and storage. Updated the Creator dashboard/catalog,
-route/OpenAPI/schema contracts, migration checksums and capability inventory.
-Exactly four studio tools per child are public, plus three local SONARA tools.
-Their results need no signup. The graph itself opens through the existing
-Creator subscription guard, without an intake/quote or provider requirement.
-
-The full suite passed: 5,459 tests, six existing pending. Dependency audit,
-parse/type/lint/build and API/route/schema checks passed. Isolated PostgreSQL/WASM
-execution validated the graph migration and privileges; native full-history
-replay and rendered browser checks could not run locally. Browser downloads
-were truncated; this container cannot switch to an unprivileged user for
-PostgreSQL initdb. CI must supply that evidence before merge/activation.
-
-`docs/architecture/CREATOR_PROJECT_GRAPH_V1.md` records implemented behavior
-and the larger marketplace/community/device/worker/subscription-allowance
-roadmap. Research entries are not silently installed or enabled. Production
-migration application and deployment are still outstanding.

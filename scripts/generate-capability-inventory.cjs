@@ -1814,6 +1814,58 @@ function buildInventory() {
     }
     return problems;
   }
+  // Routes whose screen is not a page, each with evidence checked below. See
+  // lib/sonara-route-destination-reviews.cjs for the kinds and what each must
+  // prove.
+  const { KINDS: DESTINATION_REVIEW_KINDS, ROUTE_DESTINATION_REVIEWS } = require(path.join(ROOT, "lib", "sonara-route-destination-reviews.cjs"));
+  const destinationReviewByRoute = new Map(ROUTE_DESTINATION_REVIEWS.map((entry) => [entry.route, entry]));
+  const destinationReviewsUsed = new Set();
+  function reviewedDestination(route) {
+    const reviewed = destinationReviewByRoute.get(route.id);
+    if (!reviewed) return null;
+    destinationReviewsUsed.add(route.id);
+    if (reviewed.kind === "json_form_of_page") return { route: reviewed.page, confidence: "route_pair", reason: "json_form_of_page", evidence: reviewed.evidence };
+    if (reviewed.kind === "linked_evidence") return { route: reviewed.page, confidence: "static_page_link", reason: reviewed.kind, consumers: reviewed.consumers };
+    return { route: null, confidence: "reviewed_no_page", reason: reviewed.kind, consumers: reviewed.consumers || [] };
+  }
+  function destinationReviewProblems() {
+    const problems = [];
+    if (ROUTE_DESTINATION_REVIEWS.length < 5) problems.push(`only ${ROUTE_DESTINATION_REVIEWS.length} destination reviews were read, so this check has gone blind`);
+    const callsRoute = (text, routePath) => new RegExp(`${routePath.split("/").map((segment) => (segment.startsWith(":") ? "[^/\"'\`\\s]+" : escapeRegExp(segment))).join("/")}(?![\\w/-])`).test(text);
+    for (const entry of ROUTE_DESTINATION_REVIEWS) {
+      if (!DESTINATION_REVIEW_KINDS[entry.kind]) { problems.push(`${entry.route}: unknown kind ${entry.kind}`); continue; }
+      const raw = rawRoutes.find((candidate) => candidate.id === entry.route);
+      if (!raw) { problems.push(`${entry.route}: not a registered route`); continue; }
+      if (!destinationReviewsUsed.has(entry.route)) problems.push(`${entry.route}: the generator places it on a page without this entry, so the entry is not needed`);
+      if (["monitor", "scheduler", "linked_evidence"].includes(entry.kind) && !(entry.consumers || []).length) problems.push(`${entry.route}: names no consumer`);
+      for (const consumer of entry.consumers || []) {
+        const file = path.join(ROOT, consumer);
+        if (!fs.existsSync(file)) problems.push(`${entry.route}: ${consumer} does not exist`);
+        else if (!callsRoute(fs.readFileSync(file, "utf8"), raw.route)) problems.push(`${entry.route}: ${consumer} does not call it`);
+      }
+      if (entry.kind === "linked_evidence" && !fs.existsSync(path.join(ROOT, "public", String(entry.page || "").replace(/^\//, "")))) {
+        problems.push(`${entry.route}: ${entry.page} is not a page in public/`);
+      }
+      if (entry.kind === "json_form_of_page") {
+        const page = rawRoutes.find((candidate) => candidate.id === `GET ${entry.page}`);
+        if (!page) problems.push(`${entry.route}: ${entry.page} is not a registered page`);
+        else if (entry.evidence?.table) {
+          for (const [label, subject] of [["the route", raw], ["the page", page]]) {
+            if (!(subject.directTableReferences || []).includes(entry.evidence.table)) problems.push(`${entry.route}: ${label} does not read ${entry.evidence.table}, so it is not the JSON form of ${entry.page}`);
+          }
+        } else if (entry.evidence?.function) {
+          const call = new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`);
+          for (const [label, subject] of [["the route", raw], ["the page", page]]) {
+            if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.page}`);
+          }
+        } else problems.push(`${entry.route}: gives no evidence that it is the JSON form of ${entry.page}`);
+      }
+      if (entry.kind === "method_refusal" && ROUTE_DATA_REVIEWS.find((review) => review.route === entry.route)?.kind !== "method_not_allowed") {
+        problems.push(`${entry.route}: lib/sonara-route-data-reviews.cjs does not record it as a route that only refuses a method`);
+      }
+    }
+    return problems;
+  }
   const twinSeen = new Set();
   function pageForAction(route) {
     if (route.method === "GET" && !route.route.startsWith("/api/")) return { route: route.route, confidence: "exact", reason: "page_route" };
@@ -1871,6 +1923,8 @@ function buildInventory() {
     for (const [page, handlerSource] of pageCandidateText) {
       if (literalOptions.some((value) => value && handlerSource.includes(value))) return { route: page, confidence: "form_reference", reason: "page_handler_mentions_action_path" };
     }
+    const reviewed = reviewedDestination(route);
+    if (reviewed) return reviewed;
     const home = homeByWorkspace[route.workspace] || workspaceHome(route.workspace);
     if (routeIds.has(`GET ${home}`)) return { route: home, confidence: "workspace_fallback", reason: "no_exact_page_binding_found" };
     return { route: null, confidence: "no_user_page", reason: "machine_api_or_workspace_home_not_registered" };
@@ -2260,7 +2314,9 @@ function buildInventory() {
       contractCompleteness: {
         route: Boolean(route.route),
         workspace: Boolean(route.workspace),
-        destination: Boolean(destination.route || destination.confidence === "machine_ingress"),
+        // A reviewed route with no page is complete: its consumer is recorded and
+        // checked in lib/sonara-route-destination-reviews.cjs.
+        destination: Boolean(destination.route || ["machine_ingress", "reviewed_no_page"].includes(destination.confidence)),
         inputEvidence: route.inputs.body.length || route.inputs.query.length || route.inputs.pathParams.length ? "handler_form_or_path_fields_found" : "no_named_fields_found_or_delegated",
         outputEvidence: route.response.evidence,
         persistence: dataMappingStatus,
@@ -2640,6 +2696,7 @@ function buildInventory() {
     apiRoutesMissingOpenApiContract: routes.filter((route) => route.route.startsWith("/api/") && !route.openApi).map((route) => route.id),
     formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).map((link) => `${link.method} ${link.action}`),
     declaredDoorsNotRendered: declaredDoorProblems(),
+    routeDestinationReviewsNotHeld: destinationReviewProblems(),
     ownerActionsWithoutRegisteredRoute: ownerActionContractChecks.filter((action) => !action.routeRegistered).map((action) => action.id),
     ownerActionsWithoutActiveTable: ownerActionContractChecks.filter((action) => !action.tableInMigrations).map((action) => action.id),
     activeTablesWithoutCreateMigration: tables.filter((table) => table.migrationLineage.createdBy.length === 0).map((table) => table.name),
@@ -2896,7 +2953,10 @@ function validateMap(map) {
   }
   if (!map.routeOperations.length) errors.push("no live route registrations were discovered");
   if (map.routeOperations.some((route) => !route.source.file || !route.workspace)) errors.push("one or more routes lack source or workspace ownership");
-  if (map.routeOperations.some((route) => !route.destination.route && route.destination.confidence !== "machine_ingress")) errors.push("one or more routes lack a page or machine-ingress destination");
+  // A null destination is allowed for a webhook and for a route recorded in
+  // lib/sonara-route-destination-reviews.cjs as having no page by design --
+  // whose evidence routeDestinationReviewsNotHeld has already checked.
+  if (map.routeOperations.some((route) => !route.destination.route && !["machine_ingress", "reviewed_no_page"].includes(route.destination.confidence))) errors.push("one or more routes lack a page or a reviewed reason for having none");
   return errors;
 }
 
