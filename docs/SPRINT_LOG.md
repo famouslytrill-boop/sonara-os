@@ -192,6 +192,44 @@ Falsified:
 - A changed package name and a reintroduced `android/` path each fail
   `verify-android-twa` by name.
 
+### 2026-10-07 - Commerce evidence identity and staged governance convergence
+
+Started from main `b8684abd` including Claude PR #444 and the shared handoff.
+The checked capability inventory reports 955 routes, zero unresolved route/data
+contract reviews and 15 workspace fallbacks. These are structural measurements,
+not real customer, settlement, bank receipt or device proof.
+
+Seller reconciliation previously accepted an expanded charge with another
+payment intent and an expanded balance transaction with another source. It now
+requires the charge's exact intent, successful paid/captured status, bounded and
+consistent refund amounts, and a balance source naming that charge with
+`net = amount - fee` in the balance transaction's own currency. Unknown or
+inconsistent evidence remains unknown; no refund or payout is executed.
+
+The 29 new governance modules from #442/#443 remain staged. Each now has an
+individual TEST_ONLY reason naming the missing consumer/evidence integration.
+No authorization, money movement, legal publishing or provider mode is enabled
+by accounting for these modules. The existing two-sided report still rejects a
+missing reason and a stale reason after runtime integration.
+
+Falsification: two new reconciliation tests failed against the prior code for a
+foreign charge intent and foreign balance source, then passed with the fix.
+Removing a staged-module reason failed by its module name; adding a temporary
+non-test reference failed the stale-entry side. Both probes were restored.
+
+Validation: frozen pnpm install, moderate dependency audit, typecheck, lint,
+build, client-secret scan, route smoke and repository database checks passed.
+Full suite: 6,832 passing / 6 pending. Local PostgreSQL replay is skipped because
+binaries are absent; no migration was executed. Browser/physical-device and
+live-provider tests were not run for this change. Release gate result is tracked
+in the pull request validation, rather than inferred from these static checks.
+
+Stripe primary references checked 2026-10-07:
+https://docs.stripe.com/api/charges/object and
+https://docs.stripe.com/api/balance_transactions/object.
+Charge evidence is not bank-deposit evidence; the original charge balance excludes
+later refund/dispute impact. Physical-device and live-provider proof stay open.
+
 ### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
 
 PR #444 had become unmergeable against main, which had taken #440, #442 and

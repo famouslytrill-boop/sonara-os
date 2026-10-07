@@ -24,6 +24,24 @@
   #446 fixes it. Production (sonaraindustries.com) answers 503
   DEPLOYMENT_PAUSED. That is a Vercel project setting, not code.
 
+## 2026-10-07 - Codex - latest main commerce evidence and #444 follow-up
+
+- Base: `b8684abd`, Claude #444 merged. Branch: `codex/commerce-evidence-hardening-20261007`.
+- Addressed Claude's named unreferenced-module blocker by recording individual
+  staging reasons for all 29 test-only governance modules from #442/#443.
+  These remain unconnected; accounting is not runtime integration.
+- Reconciliation now verifies charge intent/capture/refund consistency and
+  balance transaction source/arithmetic. No money-moving operations changed.
+- Generated inventory at this base: zero route/data review gaps, 15 remaining
+  workspace fallbacks. Use generated inventory over older handoff counts.
+- Validation: frozen install, moderate audit, typecheck, lint, build, client-secret
+  scan, route smoke and database contracts passed. Full suite: 6,832 passing,
+  6 pending. Local SQL replay skipped: no PostgreSQL binaries, no SQL executed.
+- Keep the public website's temporary-offline instruction in force. No live
+  charge, refund, payout, migration, production activation or deployment here.
+- Production database application, provider credentials/execution, current-plan
+  customer purchase/retention and physical-device proof remain unverified here.
+
 ## 2026-10-07 - Claude - main merged into #444; three base-branch failures fixed, one left for Codex
 
 - Main at `e0379b97` fails `pnpm test` (5) and `verify:gates`. Fixed in #444:
