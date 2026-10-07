@@ -415,3 +415,22 @@ behaviour, not settlement, deployment or real customer/device evidence.
 - The scope branch carries the verified membership's organization and role through delegated asynchronous work using request-local storage. Different actors cannot inherit it, concurrent workspaces stay isolated, and ordinary primary resolution remains available outside management requests. No membership or role is granted, no credential is changed and no schema is written.
 - Thirteen focused resolver/isolation cases pass locally. Ten real-server regressions drive selected-workspace resource/waitlist reads and writes, unrelated/employee/inactive/malformed-membership denial and concurrent requests; their full-repository CI result remains pending. Source/syntax checks are not a substitute for that run.
 - Booking/resource/waitlist destination screens remain next. This security prerequisite does not reduce the remaining 61 fallback count or prove a customer notification.
+
+## Booking workflow convergence — 2026-10-07
+
+- Creator PR #441 is ready: 6,341 tests and 34 Chromium cases passed at
+  `cc629ed12097fea6b77d4ae8166b5d5bb9c0223c`.
+- Management scope PR #443 is ready: 6,320 tests passed at
+  `3ba58318eb91969ed8cb0e4c007d871048b15fa7`.
+- This branch adds resource and waitlist screens linked from bookings, native
+  form saves, workspace-preserving redirects and a conditional offer update
+  that cannot revive or overwrite a changed booking. A recorded offer is not
+  a customer notification or confirmed booking.
+- Local checks: 24 focused controller/JSON equality tests pass. Six actual
+  server workflow cases and four desktop/mobile browser cases await full CI.
+- The intended destination closure is five existing endpoints. Regenerate and
+  inspect the measured inventory before claiming any fallback reduction.
+- Based on PR #443; merge that prerequisite first. PR #444 independently owns
+  market-intelligence/prompt destinations and the destination evidence register.
+  Do not replace its generator or fake Supabase nested logical-filter work.
+- No production deployment, migration, customer message or live transaction.

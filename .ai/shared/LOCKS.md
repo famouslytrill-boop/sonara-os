@@ -1,6 +1,14 @@
 # Locks
 
 Active:
+- HELD: reservation-resource and waitlist destination workflow -- Codex,
+  branch `codex/reservation-workflows-20261007`, taken 2026-10-07. Covers
+  the operations expansion controller, reservation page renderer, bookings
+  navigation, route declarations and their workflow tests. Builds on PR #443's
+  verified management organization scope. No payment, inventory, schema,
+  market-intelligence or prompt-library changes. The fake Supabase change
+  models jsonb equality only; preserve Claude #444's nested logical filters.
+  Release when this workflow PR merges or closes.
 - HELD: Business Builder management organization scope -- Codex, branch
   `codex/business-management-scope-20261007`, taken 2026-10-07. Covers
   `requireBusinessManager` in `server.js`, the primary organization resolver,

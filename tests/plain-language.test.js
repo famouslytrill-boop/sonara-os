@@ -365,7 +365,9 @@ describe("signed-in workspaces speak plainly", () => {
   // which answers 503 here for the same reason -- it cannot read a workspace, and
   // a page comparing payments with Stripe says so rather than showing nothing as
   // "everything agrees".
-  const SIGNED_IN_SKIPPED = 120;
+  // The two owner booking work screens require business sign-in; this
+  // offline crawl records those refusals rather than calling them readable.
+  const SIGNED_IN_SKIPPED = 122;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

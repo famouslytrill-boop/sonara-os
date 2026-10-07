@@ -6,6 +6,7 @@ on:
       - codex/durable-generation-lifecycle-20260916
       - codex/google-signin-no-legacy-rebase-20260919
       - codex/business-management-scope-20261007
+      - codex/reservation-workflows-20261007
 
 permissions:
   contents: write
@@ -32,7 +33,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Regenerate management scope evidence
-        if: github.ref_name == 'codex/business-management-scope-20261007'
+        if: github.ref_name == 'codex/business-management-scope-20261007' || github.ref_name == 'codex/reservation-workflows-20261007'
         run: |
           pnpm run capability-map:write
           pnpm run report:capability-coverage
