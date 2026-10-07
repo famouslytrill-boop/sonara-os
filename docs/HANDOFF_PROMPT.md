@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 160 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 494 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 495 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,38 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 37 most recent entries of 462 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 38 most recent entries of 463 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - The server starts from what is shipped
+
+Docker Image CI failed on 9c30834c, and the cause was mine. The route serving
+`/.well-known/assetlinks.json` read `android/twa/build-contract.json` when it
+was registered. Every test passed because every test runs from the repository
+root. The Dockerfile does not copy `android/`, so the image's `pnpm run build`
+died at startup with ENOENT. `vercel.json` bundles only `public`, `routes` and
+`lib` by declaration, so a production function could have done the same.
+
+The fix:
+- The package name, path, fingerprint variable and relations now live in
+  `lib/sonara-android-app-association.cjs`.
+- `verify-android-twa` fails when those values differ from the build contract,
+  and when the serving route reads anything under `android/` at runtime. The
+  rule that the built app and the vouched-for app cannot drift is now held by a
+  check, not by a runtime read of a file the server is not shipped with.
+- `tests/the-server-starts-from-what-is-shipped.test.js` copies exactly what the
+  Dockerfile's COPY lines name, reading the Dockerfile rather than a list of its
+  own, and starts the server from that copy.
+
+Falsified:
+- The previous route restored fails the new test with the same ENOENT CI saw.
+- A changed package name and a reintroduced `android/` path each fail
+  `verify-android-twa` by name.
+
+
 
 ### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
 

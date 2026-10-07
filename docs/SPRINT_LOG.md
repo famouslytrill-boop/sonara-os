@@ -2,6 +2,31 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - The server starts from what is shipped
+
+Docker Image CI failed on 9c30834c, and the cause was mine. The route serving
+`/.well-known/assetlinks.json` read `android/twa/build-contract.json` when it
+was registered. Every test passed because every test runs from the repository
+root. The Dockerfile does not copy `android/`, so the image's `pnpm run build`
+died at startup with ENOENT. `vercel.json` bundles only `public`, `routes` and
+`lib` by declaration, so a production function could have done the same.
+
+The fix:
+- The package name, path, fingerprint variable and relations now live in
+  `lib/sonara-android-app-association.cjs`.
+- `verify-android-twa` fails when those values differ from the build contract,
+  and when the serving route reads anything under `android/` at runtime. The
+  rule that the built app and the vouched-for app cannot drift is now held by a
+  check, not by a runtime read of a file the server is not shipped with.
+- `tests/the-server-starts-from-what-is-shipped.test.js` copies exactly what the
+  Dockerfile's COPY lines name, reading the Dockerfile rather than a list of its
+  own, and starts the server from that copy.
+
+Falsified:
+- The previous route restored fails the new test with the same ENOENT CI saw.
+- A changed package name and a reintroduced `android/` path each fail
+  `verify-android-twa` by name.
+
 ### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
 
 PR #444 had become unmergeable against main, which had taken #440, #442 and
