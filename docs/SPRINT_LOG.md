@@ -2,6 +2,34 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A finished job can be booked again
+
+The Business Builder chain ends invoice → payment → repeat job → profitability.
+Nothing turned a finished job into the next one. A regular customer's second
+visit was typed in from nothing, and nothing linked the two visits.
+
+What changed:
+- **The rule:** `workOrderLifecycle.repeatWorkOrder` decides what carries over.
+  - Carried over: the customer, place, vehicle, title, notes, priority and
+    agreed price.
+  - Not carried over: what belonged to the visit that happened. That means its
+    schedule, actual start and finish, recorded costs, booking, route session,
+    quote (one job per accepted quote is a unique index) and number.
+  - Crew and materials are not copied either. A copied material line would hold
+    stock for a job nobody has scheduled.
+  - Only a completed, invoiced or closed job repeats. The new job records
+    `metadata.repeat_of`.
+- **The action:** `POST /api/business/work-orders/:id/repeat` reads the job
+  within the organization, writes the draft and opens it.
+- **The button:** the job's page offers "Book this job again" on a finished job
+  only.
+
+Falsified four ways, each failing a named test:
+- an unfinished job repeated;
+- the first visit's labour cost copied;
+- the read unscoped by organization;
+- the button removed.
+
 ### 2026-10-07 - A campaign email says what happened to it
 
 The Growth chain runs lead → campaign → channel → outbound connector → delivery

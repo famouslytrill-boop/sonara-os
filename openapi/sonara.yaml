@@ -1219,6 +1219,22 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-orders/{workOrderId}/repeat:
+    post:
+      operationId: repeatBusinessWorkOrder
+      tags: [Operations]
+      summary: Book a finished work order again as a new draft for the same customer, place and price.
+      description: >-
+        Only a completed, invoiced or closed job repeats. The schedule, recorded costs, quote,
+        booking, crew and materials belong to the visit that happened and are not copied; the
+        new job records the one it repeats in metadata.repeat_of.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes/{quoteId}/invoice:
     post:
       operationId: convertBusinessQuoteToInvoice

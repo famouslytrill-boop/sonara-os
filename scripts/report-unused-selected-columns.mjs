@@ -138,13 +138,14 @@ const ACCOUNTED = Object.freeze({
     ].join(" ")
   },
   "routes/sonara-last9-routes.cjs": {
-    columns: ["capabilities", "category", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
+    columns: ["agreed_amount_cents", "capabilities", "category", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
     reason: [
       "capabilities, category and connection_mode: PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to.",
       "category was added to this list on 1 October 2026, and it is the clearest demonstration of what this check used to miss. It was always in the same position as the other two -- forwarded, never read here -- but the query also carries `order=category.asc`, and until the order clause stopped counting as a reading of the value, `category` never surfaced and nobody had to account for it.",
       "customer_email and customer_phone: booking rows are handed whole to buildCalendarInvite and buildCalendarFeed in lib/sonara-calendar-invite.cjs, which writes the email as an RFC 5545 ATTENDEE line and the phone into the DESCRIPTION. The route moves the values and must not render them -- a booking page showing a customer's number is what shareShows on the bookings record page exists to prevent.",
       "email, phone and tags: customer rows are handed whole to buildContactCard and buildContactBook in lib/sonara-contact-card.cjs, which writes EMAIL, TEL and a Tags note into the vCard. Both modules opened to confirm every one of the five.",
-      "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so."
+      "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so.",
+      "agreed_amount_cents: the repeat-job route reads a finished work order and hands the row whole to repeatWorkOrder in lib/sonara-work-order-lifecycle.cjs, which carries the agreed price into the new draft (`finiteNonNegative(source.agreed_amount_cents)`, checked 7 October 2026). The other columns that select names are each read in this file elsewhere."
     ].join(" ")
   },
   "routes/sonara-route-registry-routes.cjs": {

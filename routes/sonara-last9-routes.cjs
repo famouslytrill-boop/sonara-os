@@ -1219,6 +1219,41 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.redirect(303, `/business-builder/owner/receivables/${encodeURIComponent(String(id))}`);
   });
 
+  // A finished job, booked again for the same customer. The rules for what
+  // carries over are workOrderLifecycle.repeatWorkOrder; this reads the job
+  // within the organization, writes the new draft, and opens it.
+  app.post("/api/business/work-orders/:workOrderId/repeat", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const found = await supabaseList(
+      config,
+      "business_work_orders",
+      `?select=id,organization_id,status,customer_id,location_id,vehicle_id,title,description,priority,agreed_amount_cents,currency&id=eq.${encodeURIComponent(workOrderId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return refuse(503, "work_order_unreadable", "We could not read the job to book it again. Nothing was created.");
+    if (!found.rows[0]) return refuse(404, "work_order_not_yours", "That work order is not in your business.");
+
+    const repeat = workOrderLifecycle.repeatWorkOrder(found.rows[0], { organizationId: org.organizationId, userId: org.userId || null });
+    if (!repeat.ok) return refuse(409, repeat.code, "Only a finished job can be booked again. Complete this one first.");
+
+    const created = await supabaseInsert(config, "business_work_orders", repeat.row);
+    const newId = created.ok ? created.rows?.[0]?.id : null;
+    if (!newId) return refuse(503, "work_order_not_saved", "The new job could not be saved. Nothing was created; try again shortly.");
+    if (!acceptsHtml(req)) return res.status(201).json({ ok: true, workOrderId: newId, repeatOf: workOrderId });
+    return res.redirect(303, `/business-builder/owner/work-orders/${encodeURIComponent(newId)}?work_done=${encodeURIComponent("Booked again as a new draft job. Set its date and crew, then schedule it.")}`);
+  });
+
   // A record's own page.
   //
   // Registered for every record kind that has something to put on one: line
@@ -3024,6 +3059,9 @@ function workOrderLifecycleCard(row, ui, problem, done) {
   const invoice = current === "completed"
     ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/invoice"><button class="action" type="submit">Raise draft invoice</button></form>`
     : "";
+  const repeat = workOrderLifecycle.REPEATABLE_STATES.includes(current)
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/repeat"><button type="submit">Book this job again</button></form><p class="fine">Makes a new draft job for the same customer, place and price. The date, crew, materials and recorded costs are set for the new visit.</p>`
+    : "";
   return [
     '<article class="card">',
     '<h2>Job stage</h2>',
@@ -3032,6 +3070,7 @@ function workOrderLifecycleCard(row, ui, problem, done) {
     outcome,
     transition,
     invoice,
+    repeat,
     '</article>'
   ].join("");
 }

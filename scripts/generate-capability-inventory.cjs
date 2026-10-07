@@ -1777,7 +1777,7 @@ function buildInventory() {
         pages: recordPagesWhere((page) => page.table === "purchase_orders")
       },
       {
-        routes: ["POST /api/business/work-orders/:workOrderId/transition", "POST /api/business/work-orders/:workOrderId/invoice"],
+        routes: ["POST /api/business/work-orders/:workOrderId/transition", "POST /api/business/work-orders/:workOrderId/invoice", "POST /api/business/work-orders/:workOrderId/repeat"],
         pages: recordPagesWhere((page) => page.table === "business_work_orders")
       }
     ];
