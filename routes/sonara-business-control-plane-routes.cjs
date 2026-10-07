@@ -656,7 +656,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const allowed = await permission(req, ctx, loaded.business.id, "integrations.read", definition.ownerOnly);
     if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow connected-tool access.", [linkAction(`/business-builder/businesses/${loaded.business.id}`, "Return to business")]));
     const result = await rest(
-      definition.table,
+      "business_integration_connections",
       `select=id,provider_key,connection_mode,connection_status&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
     );
     if (!result.ok) return res.status(503).type("html").send(friendlyPage("Provider access unavailable", "SONARA could not verify this connected-tool record.", [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]));
