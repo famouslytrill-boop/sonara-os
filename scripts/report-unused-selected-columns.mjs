@@ -77,6 +77,14 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "routes/market-intelligence-routes.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "The opportunity page reads its reviews and hands the rows to reviewsCard in lib/sonara-market-intelligence-pages.cjs,",
+      "which reads the timestamp directly (line 198 on 7 October 2026: `dateOnly(review.created_at)`) for the When column of the reviews table.",
+      "Fetched to be used, in the file the rows travel to; the select names only the five columns that table shows."
+    ].join(" ")
+  },
   "routes/sonara-marketplace-checkout-routes.cjs": {
     columns: ["consent_attested", "rights_attested"],
     reason: [

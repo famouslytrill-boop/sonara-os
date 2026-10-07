@@ -361,7 +361,8 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
     if (!loaded.ok) return unavailable(loaded.status === 404 ? 404 : 502, loaded.status === 404 ? "That opportunity is not in your business, or it has been removed." : "We could not read that opportunity just now. Nothing has changed.");
     const row = loaded.row;
-    const reviews = await rest(config, TABLES.reviews, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&opportunity_id=eq.${encodeURIComponent(row.id)}&order=created_at.desc&limit=100`);
+    // The columns the reviews table on this page shows, and no others.
+    const reviews = await rest(config, TABLES.reviews, `select=id,created_at,decision,market_score,rationale&organization_id=eq.${encodeURIComponent(context.organizationId)}&opportunity_id=eq.${encodeURIComponent(row.id)}&order=created_at.desc&limit=100`);
     const back = `/market-intelligence/opportunities/${row.id}`;
     const options = { back, escape: ui.escape };
     return res.status(200).type("html").send(ui.layout({
