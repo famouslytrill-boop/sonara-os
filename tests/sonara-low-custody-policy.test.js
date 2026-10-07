@@ -22,7 +22,7 @@ const subscription=(overrides={})=>({
 });
 const receipt=(overrides={})=>({
   flow:"business_invoice",organizationId:ORG,serverOrganizationId:ORG,
-  method:"stripe_direct_merchant",sellerAttested:true,
+  method:"stripe_independent_merchant",sellerAttested:true,
   amountCents:12500,currency:"USD",externalReference:"seller_ref_123",...overrides
 });
 describe("SONARA low-budget / no-custody architecture decisions",()=>{
