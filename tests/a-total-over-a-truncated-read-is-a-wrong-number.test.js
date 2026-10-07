@@ -365,7 +365,11 @@ describe("a total over a truncated read is a wrong number", () => {
       const { app, fetchImpl, seen } = marketHarness({ counts: { [SEGMENTS_TABLE]: 7 } });
       await withFetch(fetchImpl, () => request(app).get(MARKET_PAGE).set("Accept", "text/html"));
 
-      const read = seen.find((url) => url.includes(`/rest/v1/${SEGMENTS_TABLE}?`));
+      // The page lists the segments as well now -- the newest hundred, with the
+      // form that adds one -- so the count is the read that selects ids only.
+      // The list is not the count, and asserting about whichever segments read
+      // came first would check the wrong one.
+      const read = seen.find((url) => url.includes(`/rest/v1/${SEGMENTS_TABLE}?select=id&`));
       assert.ok(read, "the page never counted the segments");
       // One row, not a thousand ids. The count comes from Content-Range.
       assert.match(read, /limit=1(?!\d)/, `the count still transfers rows to measure them: ${read}`);

@@ -16,6 +16,8 @@ const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 const { getGoogleSearchConsoleReadContract } = require("../lib/sonara-google-search-console-read.cjs");
 
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
+const campaignResults = require("../lib/sonara-campaign-results.cjs");
+const campaignResultsPages = require("../lib/sonara-campaign-results-pages.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
 const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
@@ -1312,6 +1314,89 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       }));
     });
   }
+
+  // One campaign: what it cost, what came of it, whether it paid for itself and
+  // what to do next. The arithmetic is lib/sonara-campaign-results.cjs.
+  const CAMPAIGN_PAGE = "/growth-studio/your-campaigns";
+  const campaignPage = (res, status, sections, heading = "Campaign") => res.status(status).type("html").send(ui.layout({
+    title: heading, eyebrow: "Growth Studio", heading, body: "What this campaign cost, what came of it, and whether it paid for itself.", sections,
+    actions: [ui.link(CAMPAIGN_PAGE, "Your campaigns"), ui.link("/growth-studio/enquiries", "Enquiries"), ui.link("/growth-studio/conversions", "Conversions")]
+  }));
+
+  // Read first, scoped by organization as well as id: the service key bypasses
+  // row level security, so without the filter a guessed id from another
+  // workspace would open.
+  async function campaignFor(config, context, campaignId) {
+    if (!validUuid(campaignId)) return { ok: true, campaign: null };
+    const found = await rest(config, TABLES.campaigns, `select=id,name,goal,channel,status&id=eq.${encodeURIComponent(campaignId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`);
+    return found.ok ? { ok: true, campaign: found.rows[0] || null } : { ok: false };
+  }
+
+  app.get(`${CAMPAIGN_PAGE}/:campaignId`, access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return campaignPage(res, 503, [ui.card("Not available right now", "Your workspace could not be read, so this campaign cannot be shown.")]);
+    const found = await campaignFor(config, context, req.params.campaignId);
+    if (!found.ok) return campaignPage(res, 502, [ui.card("Not available right now", "We could not read this campaign just now. Nothing has changed.")]);
+    if (!found.campaign) return campaignPage(res, 404, [ui.card("Not found", "That campaign is not in this workspace.")]);
+    const capped = (result, limit) => (result.ok ? { ...result, truncated: result.rows.length >= limit } : result);
+    const [spend, conversions, leads, sends] = await Promise.all([
+      rest(config, TABLES.spend, `select=id,kind,amount_cents,currency,spent_on,description,reference&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=spent_on.desc&limit=500`).then((result) => capped(result, 500)),
+      rest(config, TABLES.conversions, `select=id,value,currency,attribution_confidence,occurred_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=occurred_at.desc&limit=1000`).then((result) => capped(result, 1000)),
+      rest(config, TABLES.leads, `select=id,status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=2000`).then((result) => capped(result, 2000)),
+      rest(config, TABLES.sends, `select=status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=5000`).then((result) => capped(result, 5000))
+    ]);
+    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends });
+    const today = new Date().toISOString().slice(0, 10);
+    const defaultCurrency = (spend.ok && spend.rows[0]?.currency) || (conversions.ok && conversions.rows.find((row) => row.currency)?.currency) || "usd";
+    const sections = [
+      campaignResultsPages.notice(req.query, ui.escape),
+      campaignResultsPages.campaignCard(found.campaign, ui.escape),
+      summary.ok ? campaignResultsPages.returnCard(summary, ui.escape) : campaignResultsPages.unreadableCard(summary, ui.escape),
+      campaignResultsPages.nextStepCard(summary, ui.escape),
+      summary.ok ? campaignResultsPages.activityCard(summary) : "",
+      campaignResultsPages.spendCard(spend, { action: `${CAMPAIGN_PAGE}/${encodeURIComponent(found.campaign.id)}/spend`, defaultCurrency, today, escape: ui.escape })
+    ].filter(Boolean);
+    return campaignPage(res, 200, sections, found.campaign.name || "Campaign");
+  });
+
+  // Recording what a campaign cost. Append-only: a mistake is answered by a
+  // correction row, never an edit, so what was claimed and when stays readable.
+  app.post(`${CAMPAIGN_PAGE}/:campaignId/spend`, access, async (req, res) => {
+    const back = (key, value) => res.redirect(303, `${CAMPAIGN_PAGE}/${encodeURIComponent(req.params.campaignId)}?${key}=${value}`);
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return back("problem", "not_saved");
+    const found = await campaignFor(config, context, req.params.campaignId);
+    if (!found.ok) return back("problem", "not_saved");
+    if (!found.campaign) return res.redirect(303, `${CAMPAIGN_PAGE}?problem=not_found`);
+    const kind = oneOf(req.body?.kind, ["spend", "correction"], "spend");
+    const amountCents = campaignResults.parseAmountCents(req.body?.amount, { allowNegative: kind === "correction" });
+    if (amountCents === null || amountCents === 0) return back("problem", "amount_invalid");
+    // Read whole, then checked: trimming to three characters first would turn
+    // "dollars" into "dol" and accept it.
+    const currency = clean(req.body?.currency, 20).toLowerCase();
+    if (!/^[a-z]{3}$/.test(currency)) return back("problem", "currency_invalid");
+    const spentOn = normalizeDateOnly(req.body?.spent_on);
+    if (!spentOn || spentOn > new Date().toISOString().slice(0, 10)) return back("problem", "date_invalid");
+    const description = clean(req.body?.description, 300);
+    if (!description) return back("problem", "description_required");
+    const created = await insert(config, TABLES.spend, {
+      organization_id: context.organizationId,
+      campaign_id: found.campaign.id,
+      kind,
+      amount_cents: amountCents,
+      currency,
+      spent_on: spentOn,
+      description,
+      reference: nullable(req.body?.reference, 200),
+      source: "owner",
+      recorded_by: context.userId
+    });
+    if (!created.ok) return back("problem", "not_saved");
+    await controlEvent(config, context, "campaign.spend_recorded", "success", { kind, amount_cents: amountCents, currency }, found.campaign.id);
+    return back("done", "spend");
+  });
 };
 
 // The totals, counted by the database rather than by whatever fitted on a page.
@@ -1401,11 +1486,13 @@ function recordTableCard(page, rows, escape, context = null) {
   // that will refuse.
   const action = page.rowAction || null;
   const heads = [...page.columns.map((column) => `<th>${escape(column.label)}</th>`)];
+  if (page.detailPath) heads.push(`<th>${escape(page.detailLabel || "Details")}</th>`);
   if (action) heads.push(`<th>${escape(action.columnLabel || "Action")}</th>`);
   const width = heads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`);
+      if (page.detailPath) cells.push(`<td><a href="${escape(`${page.path}/${encodeURIComponent(String(row.id || ""))}`)}">Open</a></td>`);
       if (action) cells.push(`<td>${actionCell(action, row, escape, context)}</td>`);
       return `<tr>${cells.join("")}</tr>`;
     }).join("")

@@ -28,6 +28,39 @@ function parseCondition(text) {
   return { column: match[1], operator: match[2], value: match[3] };
 }
 
+// Split a group's members on the commas at its own depth, so a nested
+// and(...) or an in.(...) list stays one member.
+function splitTopLevel(text) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const char of String(text)) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  parts.push(current);
+  return parts;
+}
+
+// One member of an or= group: a condition, or and(...) of conditions. The
+// prompt library asks for "shared with the workspace, or private and mine" as
+// or=(visibility.eq.organization,and(visibility.eq.private,created_by.eq.<me>)),
+// and refusing that shape made every saved-instruction list read as a failure.
+function parseMember(text) {
+  const group = String(text).match(/^and\((.*)\)$/s);
+  if (group) {
+    const conditions = splitTopLevel(group[1]).map(parseMember);
+    return conditions.some((condition) => !condition) ? null : { all: conditions };
+  }
+  return parseCondition(text);
+}
+
 function parseFilters(searchParams) {
   const filters = [];
   for (const [key, value] of searchParams.entries()) {
@@ -37,7 +70,7 @@ function parseFilters(searchParams) {
     // written as a conjunction when one end of the interval is nullable.
     if (key === "or") {
       const inner = String(value).replace(/^\(|\)$/g, "");
-      const conditions = inner.split(",").map(parseCondition);
+      const conditions = splitTopLevel(inner).map(parseMember);
       if (conditions.some((condition) => !condition)) {
         throw new Error(`fake-supabase cannot parse or=${value}. Model it rather than letting the query match every row.`);
       }
@@ -82,6 +115,7 @@ function parseFilters(searchParams) {
 
 function matches(row, filter) {
   if (filter.any) return filter.any.some((condition) => matches(row, condition));
+  if (filter.all) return filter.all.every((condition) => matches(row, condition));
   if (filter.negate) return !matches(row, { column: filter.column, operator: filter.operator, value: filter.value });
   const actual = row[filter.column];
   switch (filter.operator) {

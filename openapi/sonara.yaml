@@ -2365,6 +2365,19 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/creator/generation/jobs/{jobId}/retry:
+    post:
+      operationId: retryCreatorGenerationJob
+      tags: [Creator Studio]
+      summary: Try a failed or stopped job again as a new job, re-running every check a new request runs; the original is not changed.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
   /api/creator/generation/voice-consents:
     get:
       operationId: listCreatorVoiceConsents

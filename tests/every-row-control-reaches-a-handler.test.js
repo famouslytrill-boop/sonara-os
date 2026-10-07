@@ -83,6 +83,10 @@ const SEEDED_ROW = Object.freeze({
   email: "seeded@example.com",
   archived_at: null,
   medium: "mixed",
+  // `text not null` with a check constraint on the prompt library tables, so a
+  // real row always has one. Without it a saved instruction's page refused the
+  // seeded row as belonging to no studio.
+  product_area: "business_builder",
   revision: 1,
   graph: { version: 1, nodes: [], edges: [] }
 });

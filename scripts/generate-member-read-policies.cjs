@@ -123,6 +123,16 @@ const ORGANIZATION_READ_TABLES = [
   // since the platform redesign, but that one predates `to authenticated` and
   // is invisible to the check that asks this question.
   "research_sources",
+  // Added 7 October 2026, when the business control plane began reading it for
+  // the curated provider dashboards. Which providers a business has connected
+  // and whether each is working -- "Secret material is never stored here", as
+  // its creating migration says, and credential_reference names where a secret
+  // lives rather than holding it. 20260723060500 already lets organization
+  // members read it through sonara_is_org_member, but that policy predates
+  // `to authenticated` and is invisible to the check, the same case as
+  // research_sources above. So this grants nothing members could not already
+  // read; it states it in the form the check can see.
+  "business_integration_connections",
   // ---- measured anonymously; kept because additive, see above ----
   "audio_assets",
   "automation_rules",
@@ -272,7 +282,8 @@ const APPLIED_MIGRATIONS = Object.freeze([
   "20260729040000_member_read_policies_core_tables.sql",
   "20260729220000_member_read_policies_consent_and_zones.sql",
   "20260729233000_member_read_policies_staff_tables.sql",
-  "20260913193000_member_read_policies_purchase_orders.sql"
+  "20260913193000_member_read_policies_purchase_orders.sql",
+  "20260923070000_member_read_policies_business_work_orders.sql"
 ]);
 
 // 20260728120000 -- first thirty-three
@@ -280,7 +291,8 @@ const APPLIED_MIGRATIONS = Object.freeze([
 // 20260729220000 -- consent records and location zones, applied
 // 20260729233000 -- staff schedules, tasks and announcements, applied
 // 20260819030000 -- research sources, for the crawl permission gate
-const migrationName = "20260923070000_member_read_policies_business_work_orders.sql";
+// 20260923070000 -- business work orders, on main since 23 September
+const migrationName = "20261007120000_member_read_policies_integration_connections.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 

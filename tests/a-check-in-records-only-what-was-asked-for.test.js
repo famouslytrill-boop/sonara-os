@@ -162,9 +162,13 @@ describe("capturing a check-in in the browser", () => {
   // The reason the rounding is shared rather than done server-side: by the time
   // a coordinate reaches the server it has already left the device.
   it("rounds on the device before anything is posted", () => {
+    // The request body is built as `raw` (then named and timed for the offline
+    // queue), and posted from there. Both have to come after the reduction.
     const capture = code.indexOf("precision.reduce(");
-    const post = code.indexOf("post({");
-    assert.ok(capture > -1 && post > -1 && capture < post, "the reduction must happen before the request is built");
+    const built = code.indexOf("var raw = {");
+    const post = code.indexOf("return post(body)");
+    assert.ok(capture > -1 && built > -1 && post > -1, "the reduction, the request body or the post was not found; this check has gone blind");
+    assert.ok(capture < built && built < post, "the reduction must happen before the request is built");
   });
 
   it("posts same-origin with the session cookie and nothing else", () => {

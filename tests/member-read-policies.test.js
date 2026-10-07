@@ -137,7 +137,7 @@ function tablesTheRuntimeReads() {
   // Adding a helper is easy and forgetting to add it here is easier, so the
   // final assertion in this file fails when a `(config, "table_name")` call
   // uses a name that is not listed.
-  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered|supabaseList|supabaseCount|supabaseInsert|supabasePatch|readMemberships|rest)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
+  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered|supabaseList|supabaseCount|supabaseInsertOnce|supabaseInsert|supabasePatch|readMemberships|rest)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
   const literal = /\/rest\/v1\/([a-z_]+)[?"'`]/g;
   // And a table named through a constant. Measured 3 October 2026: the two
   // patterns above saw 57 tables, and 30 more were read through declarations
@@ -364,6 +364,9 @@ describe("no read helper hides from the policy check", () => {
     "supabaseList",
     "supabaseCount",
     "supabaseInsert",
+    // The insert a resent check-in uses: ignored when the device's id is
+    // already recorded. routes/sonara-last9-routes.cjs.
+    "supabaseInsertOnce",
     "supabasePatch",
     // Reads organization_memberships and business_memberships in
     // lib/sonara-customer-organization.cjs -- the tenant boundary itself, so

@@ -1521,12 +1521,12 @@ function buildInventory() {
   // shapes are read: a template literal inside one call, starting with "/" or with
   // a constant declared as a string in the same function or file.
   function escapedFormAction(tag, code, file) {
-    const wrapped = tag.match(/\baction\s*=\s*(["'])\$\{\s*[A-Za-z_$][\w$.]*\(\s*`((?:\$\{[^{}]*\}|[^`])*)`\s*\)\s*\}\1/i);
+    const wrapped = tag.match(/\baction\s*=\s*(["'])\$\{\s*[A-Za-z_$][\w$.]*\(\s*`((?:\$\{[^{}]*\}|[^`$]|\$(?!\{))*)`\s*\)\s*\}\1/i);
     if (!wrapped) return null;
     let inner = wrapped[2];
     const lead = inner.match(/^\$\{\s*([A-Za-z_$][\w$]*)\s*\}/);
     if (lead) {
-      const declaration = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(lead[1])}\\s*=\\s*(?:\`((?:\\$\\{[^{}]*\\}|[^\`])*)\`|"([^"]*)"|'([^']*)')`);
+      const declaration = new RegExp(`(?:const|let|var)\\s+${escapeRegExp(lead[1])}\\s*=\\s*(?:\`((?:\\$\\{[^{}]*\\}|[^\`$]|\\$(?!\\{))*)\`|"([^"]*)"|'([^']*)')`);
       const found = String(code).match(declaration) || readSource(file).match(declaration);
       if (!found) return null;
       inner = (found[1] ?? found[2] ?? found[3]) + inner.slice(lead[0].length);
@@ -1576,7 +1576,7 @@ function buildInventory() {
       for (const match of code.matchAll(/<form\b[^>]*>/gi)) {
         // An interpolated id can carry its own quotes -- `${encodeURIComponent(String(row.id || ""))}` --
         // and stopping at the first one read the action as ending mid-expression.
-        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\])+)\1/i)?.[2]
+        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\$]|\$(?!\{))+)\1/i)?.[2]
           || escapedFormAction(match[0], code, file);
         if (!action) continue;
         const method = (match[0].match(/\bmethod\s*=\s*["'](get|post|patch|delete)["']/i)?.[1] || "GET").toUpperCase();
@@ -1785,6 +1785,57 @@ function buildInventory() {
       recordDetailPages: recordPagesWhere((page) => records.hasDetailPage(page))
     });
   })();
+  // Growth Studio's record pages, read from their declarations rather than
+  // paired by name. Each page in lib/sonara-growth-record-pages.cjs names the
+  // table it lists (`tableKey`), and the route file renders the create form of
+  // the spec in lib/sonara-growth-create-specs.cjs for the same table, posting
+  // to /api/growth/<spec.key>. Pairing by name found /growth-studio/segments
+  // for /api/growth/segments and missed /growth-studio/consent for
+  // /api/growth/consents -- a singular page name -- so the permission form a
+  // campaign depends on was reported as having no screen.
+  //
+  // Held by map.validation.growthRecordDoorsNotHeld: the page and the route are
+  // registered, a GET reads the page's table and a POST writes it, and every
+  // create spec has a page. A declaration the code stopped honouring fails.
+  const growthRecordDoors = (() => {
+    const { GROWTH_RECORD_PAGES } = require(path.join(ROOT, "lib", "sonara-growth-record-pages.cjs"));
+    const { GROWTH_CREATE_SPECS } = require(path.join(ROOT, "lib", "sonara-growth-create-specs.cjs"));
+    const { GROWTH_TABLES } = require(path.join(ROOT, "lib", "sonara-growth-tables.cjs"));
+    const doors = new Map();
+    for (const page of GROWTH_RECORD_PAGES) {
+      const table = GROWTH_TABLES[page.tableKey];
+      doors.set(`GET /api/growth/${page.tableKey}`, { page: page.path, table, reason: "growth_record_page_lists_its_table", optional: true });
+      for (const spec of GROWTH_CREATE_SPECS.filter((candidate) => candidate.tableKey === page.tableKey)) {
+        doors.set(`POST /api/growth/${spec.key}`, { page: page.path, table, reason: "growth_record_page_renders_its_create_form" });
+      }
+    }
+    const pagedTables = new Set(GROWTH_RECORD_PAGES.map((page) => page.tableKey));
+    return Object.assign(doors, {
+      pageCount: GROWTH_RECORD_PAGES.length,
+      specsWithoutPage: GROWTH_CREATE_SPECS.filter((spec) => !pagedTables.has(spec.tableKey)).map((spec) => spec.key)
+    });
+  })();
+  function growthRecordDoor(route) {
+    const door = growthRecordDoors.get(route.id);
+    if (!door) return null;
+    return { route: door.page, confidence: "route_pair", reason: door.reason, table: door.table };
+  }
+  function growthRecordDoorProblems() {
+    const problems = [];
+    if (growthRecordDoors.pageCount < 5 || growthRecordDoors.size < 5) problems.push(`only ${growthRecordDoors.pageCount} growth record pages and ${growthRecordDoors.size} doors were read, so this check has gone blind`);
+    for (const key of growthRecordDoors.specsWithoutPage) problems.push(`POST /api/growth/${key}: a create form is described and no growth record page lists its table, so nothing renders it`);
+    for (const [id, door] of growthRecordDoors) {
+      const raw = rawRoutes.find((candidate) => candidate.id === id);
+      if (!raw) {
+        if (!door.optional) problems.push(`${id}: described as a create form and not a registered route`);
+        continue;
+      }
+      if (!rawRoutes.some((candidate) => candidate.id === `GET ${door.page}`)) problems.push(`${id}: ${door.page} is not a registered page`);
+      if (!door.table) problems.push(`${id}: ${door.page} names a table key GROWTH_TABLES does not have`);
+      else if (!(raw.directTableReferences || []).includes(door.table)) problems.push(`${id}: does not touch ${door.table}, the table ${door.page} lists`);
+    }
+    return problems;
+  }
   function declaredDoorProblems() {
     const problems = [];
     // The other side. A form the source credits to every record detail page is
@@ -1814,6 +1865,81 @@ function buildInventory() {
     }
     return problems;
   }
+  // Routes whose screen is not a page, each with evidence checked below. See
+  // lib/sonara-route-destination-reviews.cjs for the kinds and what each must
+  // prove.
+  const { KINDS: DESTINATION_REVIEW_KINDS, ROUTE_DESTINATION_REVIEWS } = require(path.join(ROOT, "lib", "sonara-route-destination-reviews.cjs"));
+  const destinationReviewByRoute = new Map(ROUTE_DESTINATION_REVIEWS.map((entry) => [entry.route, entry]));
+  const destinationReviewsUsed = new Set();
+  function reviewedDestination(route) {
+    const reviewed = destinationReviewByRoute.get(route.id);
+    if (!reviewed) return null;
+    destinationReviewsUsed.add(route.id);
+    if (reviewed.kind === "json_form_of_page") return { route: reviewed.page, confidence: "route_pair", reason: "json_form_of_page", evidence: reviewed.evidence };
+    if (reviewed.kind === "json_form_of_action") {
+      const action = rawRoutes.find((candidate) => candidate.id === reviewed.action);
+      const page = action ? pageForAction(action) : null;
+      if (page?.route && !["workspace_fallback", "no_user_page"].includes(page.confidence)) {
+        return { route: page.route, confidence: "route_pair", reason: "json_form_of_action", action: reviewed.action, evidence: reviewed.evidence };
+      }
+      return null;
+    }
+    if (reviewed.kind === "linked_evidence") return { route: reviewed.page, confidence: "static_page_link", reason: reviewed.kind, consumers: reviewed.consumers };
+    return { route: null, confidence: "reviewed_no_page", reason: reviewed.kind, consumers: reviewed.consumers || [] };
+  }
+  function destinationReviewProblems() {
+    const problems = [];
+    if (ROUTE_DESTINATION_REVIEWS.length < 5) problems.push(`only ${ROUTE_DESTINATION_REVIEWS.length} destination reviews were read, so this check has gone blind`);
+    const callsRoute = (text, routePath) => new RegExp(`${routePath.split("/").map((segment) => (segment.startsWith(":") ? "[^/\"'\`\\s]+" : escapeRegExp(segment))).join("/")}(?![\\w/-])`).test(text);
+    for (const entry of ROUTE_DESTINATION_REVIEWS) {
+      if (!DESTINATION_REVIEW_KINDS[entry.kind]) { problems.push(`${entry.route}: unknown kind ${entry.kind}`); continue; }
+      const raw = rawRoutes.find((candidate) => candidate.id === entry.route);
+      if (!raw) { problems.push(`${entry.route}: not a registered route`); continue; }
+      if (!destinationReviewsUsed.has(entry.route)) problems.push(`${entry.route}: the generator places it on a page without this entry, so the entry is not needed`);
+      if (["monitor", "scheduler", "linked_evidence"].includes(entry.kind) && !(entry.consumers || []).length) problems.push(`${entry.route}: names no consumer`);
+      for (const consumer of entry.consumers || []) {
+        const file = path.join(ROOT, consumer);
+        if (!fs.existsSync(file)) problems.push(`${entry.route}: ${consumer} does not exist`);
+        else if (!callsRoute(fs.readFileSync(file, "utf8"), raw.route)) problems.push(`${entry.route}: ${consumer} does not call it`);
+      }
+      if (entry.kind === "linked_evidence" && !fs.existsSync(path.join(ROOT, "public", String(entry.page || "").replace(/^\//, "")))) {
+        problems.push(`${entry.route}: ${entry.page} is not a page in public/`);
+      }
+      if (entry.kind === "json_form_of_page") {
+        const page = rawRoutes.find((candidate) => candidate.id === `GET ${entry.page}`);
+        if (!page) problems.push(`${entry.route}: ${entry.page} is not a registered page`);
+        else if (entry.evidence?.table) {
+          for (const [label, subject] of [["the route", raw], ["the page", page]]) {
+            if (!(subject.directTableReferences || []).includes(entry.evidence.table)) problems.push(`${entry.route}: ${label} does not read ${entry.evidence.table}, so it is not the JSON form of ${entry.page}`);
+          }
+        } else if (entry.evidence?.function) {
+          const call = new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`);
+          for (const [label, subject] of [["the route", raw], ["the page", page]]) {
+            if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.page}`);
+          }
+        } else problems.push(`${entry.route}: gives no evidence that it is the JSON form of ${entry.page}`);
+      }
+      if (entry.kind === "json_form_of_action") {
+        const action = rawRoutes.find((candidate) => candidate.id === entry.action);
+        if (!action) problems.push(`${entry.route}: ${entry.action} is not a registered route`);
+        else {
+          const page = pageForAction(action);
+          if (!page.route || ["workspace_fallback", "no_user_page"].includes(page.confidence)) problems.push(`${entry.route}: ${entry.action} is not on a page either, so this places nothing`);
+          const call = entry.evidence?.function ? new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`) : null;
+          if (!call) problems.push(`${entry.route}: gives no function that it shares with ${entry.action}`);
+          else {
+            for (const [label, subject] of [["the route", raw], ["the action", action]]) {
+              if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.action}`);
+            }
+          }
+        }
+      }
+      if (entry.kind === "method_refusal" && ROUTE_DATA_REVIEWS.find((review) => review.route === entry.route)?.kind !== "method_not_allowed") {
+        problems.push(`${entry.route}: lib/sonara-route-data-reviews.cjs does not record it as a route that only refuses a method`);
+      }
+    }
+    return problems;
+  }
   const twinSeen = new Set();
   function pageForAction(route) {
     if (route.method === "GET" && !route.route.startsWith("/api/")) return { route: route.route, confidence: "exact", reason: "page_route" };
@@ -1836,6 +1962,8 @@ function buildInventory() {
       const parent = nearestRegisteredPage(route.route, "nearest_registered_parent_page");
       if (parent) return parent;
     }
+    const growthDoor = growthRecordDoor(route);
+    if (growthDoor) return growthDoor;
     const productApi = route.route.match(/^\/api\/(business-builder|business|creator-studio|creator|growth-studio|growth)\/(.+)$/);
     if (productApi) {
       const prefix = /^(business-builder|business)$/.test(productApi[1]) ? "/business-builder"
@@ -1871,6 +1999,8 @@ function buildInventory() {
     for (const [page, handlerSource] of pageCandidateText) {
       if (literalOptions.some((value) => value && handlerSource.includes(value))) return { route: page, confidence: "form_reference", reason: "page_handler_mentions_action_path" };
     }
+    const reviewed = reviewedDestination(route);
+    if (reviewed) return reviewed;
     const home = homeByWorkspace[route.workspace] || workspaceHome(route.workspace);
     if (routeIds.has(`GET ${home}`)) return { route: home, confidence: "workspace_fallback", reason: "no_exact_page_binding_found" };
     return { route: null, confidence: "no_user_page", reason: "machine_api_or_workspace_home_not_registered" };
@@ -2260,7 +2390,9 @@ function buildInventory() {
       contractCompleteness: {
         route: Boolean(route.route),
         workspace: Boolean(route.workspace),
-        destination: Boolean(destination.route || destination.confidence === "machine_ingress"),
+        // A reviewed route with no page is complete: its consumer is recorded and
+        // checked in lib/sonara-route-destination-reviews.cjs.
+        destination: Boolean(destination.route || ["machine_ingress", "reviewed_no_page"].includes(destination.confidence)),
         inputEvidence: route.inputs.body.length || route.inputs.query.length || route.inputs.pathParams.length ? "handler_form_or_path_fields_found" : "no_named_fields_found_or_delegated",
         outputEvidence: route.response.evidence,
         persistence: dataMappingStatus,
@@ -2640,6 +2772,8 @@ function buildInventory() {
     apiRoutesMissingOpenApiContract: routes.filter((route) => route.route.startsWith("/api/") && !route.openApi).map((route) => route.id),
     formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).map((link) => `${link.method} ${link.action}`),
     declaredDoorsNotRendered: declaredDoorProblems(),
+    routeDestinationReviewsNotHeld: destinationReviewProblems(),
+    growthRecordDoorsNotHeld: growthRecordDoorProblems(),
     ownerActionsWithoutRegisteredRoute: ownerActionContractChecks.filter((action) => !action.routeRegistered).map((action) => action.id),
     ownerActionsWithoutActiveTable: ownerActionContractChecks.filter((action) => !action.tableInMigrations).map((action) => action.id),
     activeTablesWithoutCreateMigration: tables.filter((table) => table.migrationLineage.createdBy.length === 0).map((table) => table.name),
@@ -2905,7 +3039,10 @@ function validateMap(map) {
   }
   if (!map.routeOperations.length) errors.push("no live route registrations were discovered");
   if (map.routeOperations.some((route) => !route.source.file || !route.workspace)) errors.push("one or more routes lack source or workspace ownership");
-  if (map.routeOperations.some((route) => !route.destination.route && route.destination.confidence !== "machine_ingress")) errors.push("one or more routes lack a page or machine-ingress destination");
+  // A null destination is allowed for a webhook and for a route recorded in
+  // lib/sonara-route-destination-reviews.cjs as having no page by design --
+  // whose evidence routeDestinationReviewsNotHeld has already checked.
+  if (map.routeOperations.some((route) => !route.destination.route && !["machine_ingress", "reviewed_no_page"].includes(route.destination.confidence))) errors.push("one or more routes lack a page or a reviewed reason for having none");
   return errors;
 }
 

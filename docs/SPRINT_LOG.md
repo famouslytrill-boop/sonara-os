@@ -2,6 +2,502 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
+
+PR #444 had become unmergeable against main, which had taken #440, #442 and
+#443. Only generated files conflicted, and they were regenerated from the merged
+tree. The merged tree failed nothing that main did not already fail, measured by
+running every gate separately on both rather than trusting the chain, which
+stops at its first failure. Main at `e0379b97` was red, and three of its failures
+are fixed here.
+
+**Seller reconciliation refused whenever new checkout was off.**
+- #442 made merchant Connect fail closed unless the owner sets
+  `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed`. The comment on that gate
+  says read-only reconciliation "must continue separately".
+- `stripeCall` keeps historical GET reads open on a valid secret key for exactly
+  that reason.
+- But `/creator-studio/owner/marketplace/reconciliation` first asked
+  `checkoutReadiness`, which now answers no, so the screen answered 503. Four of
+  its own tests were failing on main.
+- It now relies on the read's own refusal, and maps a missing key to "the
+  payment connection is unavailable".
+- Two tests pin the case: reconciliation runs while checkout is closed, and no
+  Stripe call is made without a key.
+- Falsified: restoring the gate fails four tests; dropping the key mapping fails
+  one.
+
+**Member read policy for `business_integration_connections`.**
+- The control plane reads this table. Its July policy lets members read it but
+  predates `to authenticated`, so the policy check could not see it.
+- It is added to the generator, which grants nothing members could not already
+  read.
+- `20260923070000` has been on main since September, so it joins
+  `APPLIED_MIGRATIONS`. The generator now writes
+  `20261007120000_member_read_policies_integration_connections.sql` rather than
+  rewriting a migration production may already have.
+
+**`docs/owner/PROVIDER-KEYS.md` regenerated** after #440 changed the LinkedIn
+provider.
+
+**Left red, deliberately:** `verify:unreferenced-modules` lists 29 modules from
+#442 and #443 required only by their tests. They include customer money
+pathways, lease policy gates and low-custody policy. Each needs to be wired,
+deleted or given a reason by whoever knows what it is waiting for. Writing 29
+reasons here would be writing them without knowing, which is the failure that
+gate exists to catch. `verify:coverage-floor` follows the suite and passes once
+it does.
+
+### 2026-10-07 - Every formula can be worked out, and saved
+
+`/formulas` listed fifty-nine formulas and nothing could be worked out from the
+page. The only way to evaluate one was to POST JSON to `/api/formulas/evaluate`,
+and `/api/formulas/results` had no caller at all. Both were on the list of
+routes that fell back to the workspace home page.
+
+The library is now usable:
+- `/formulas` links each formula to `/formulas/:formulaKey`.
+- That page draws one field per declared input. The fields come from the
+  definition, so the page cannot ask for something the evaluator ignores.
+- The answer is shown with the arithmetic that produced it.
+- "Save to my records" posts the inputs, not the answer, so the server works the
+  result out again. A saved figure is always one the evaluator produced.
+- `/formulas/:formulaKey/results` lists the business's saved results. It is
+  gated on the formula's workspace, and a failed read says so rather than
+  saying there are none.
+- The evaluate and results endpoints answer HTML forms and JSON callers.
+- Workspace fallbacks: 17 → 15.
+
+Building the save exposed the real defect. `sonara_formula_results.formula_key`
+references `sonara_formula_definitions`. Sixteen formulas the runtime evaluates
+had no row there, so the foreign key refused every save of them. The route
+reported that refusal as `setup_required`, telling the owner to finish a setup
+that was already finished. Migration `20261004130000` had fixed the same thing
+for twelve formulas and missed these sixteen, and nothing stopped it recurring.
+
+Fixes:
+- `20261007110000_every_formula_can_be_saved.sql` seeds the sixteen, generated
+  from the library rather than retyped.
+- A new test fails whenever a formula exists in the library without a seed row.
+  Its parser stops at `ON CONFLICT` or a line-ending semicolon, because a note
+  inside a seed row contains a semicolon. Without that it read 39 keys and
+  tripped its own "gone blind" floor.
+- A foreign-key refusal now answers `409 formula_not_in_database`. A missing
+  table is still `setup_required`, and anything else is `database_unavailable`.
+
+Two smaller defects fixed on the way:
+- A saved result stored the whole request body as `input_values`: the formula
+  key, any stray field, and anything a caller added. It now stores only the
+  formula's declared inputs.
+- An unparseable clock time in `shift_hours` reached the "divides by zero"
+  message. It is now an invalid input that names the field.
+
+Falsified four ways, each turning the suite red:
+- the seed migration removed;
+- the whole body stored again;
+- every failure collapsed back to `setup_required`;
+- the organization filter dropped from the saved-results read.
+
+**Owner step:** apply `20261007110000` to production. Until it is applied, saves
+of those sixteen answer `formula_not_in_database` rather than pretending setup is
+incomplete.
+
+### 2026-10-07 - The Android app can be vouched for
+
+The Android shell is a Trusted Web Activity (`android/twa`). Android opens it as
+an app, with no browser bar, only when this site serves
+`/.well-known/assetlinks.json` naming the app's signing certificate. The build
+contract recorded that as `setup_required` and nothing served the path, so the
+shell could only ever have opened as a browser tab.
+
+`routes/sonara-well-known-routes.cjs` serves it from
+`ANDROID_PLAY_SIGNING_SHA256`, the Play app-signing fingerprint, which the owner
+reads in the Play Console once the app is registered:
+- Several fingerprints are allowed, comma-separated, for a key rotation.
+- Every value has to be a well-formed SHA-256 fingerprint or none is used.
+  Serving the good half of a list with a typo would hide the typo.
+- Until the value is set the route answers 404, uncached. No association is the
+  honest answer before the key exists, and a file naming a debug or guessed
+  certificate would tell Android to trust whoever holds that key.
+- The package name and relations come from the build contract, so the app that
+  is built and the app the file vouches for cannot drift. The contract names
+  the serving file, and `verify-android-twa` fails if it is missing.
+- The route is its own route surface, `app_association`, declared `json`: it is
+  read by a machine, and it answers 404 by design until configured.
+
+Falsified three ways, each failing by name: serving the good half of a
+half-valid list, a package name written in the route instead of read from the
+contract, and the 404 cached. **Owner step:** set `ANDROID_PLAY_SIGNING_SHA256`
+in Vercel production once the Play app signing key exists. The contract keeps
+`setup_required` until then.
+
+### 2026-10-07 - A check-in with no signal is sent later, once
+
+The first P1 slice of the offline mutation engine, on the mutation that needs it
+most. Field staff check in where the signal is worst, and a check-in that could
+not be sent was lost: "nothing was recorded", and no record of having been
+there.
+
+**The device keeps it.** `public/sonara-offline-queue.js` is generic: name it,
+keep it, flush it.
+- It keeps the request body exactly as it would have been sent. For a check-in
+  that is already reduced on the device to the chosen precision, so the stored
+  copy is no finer than what the server would have received.
+- It holds at most 50 entries and refuses a 51st, saying so, rather than
+  dropping the oldest.
+- It sends on page load and when the browser reports it is back online.
+- When an entry has no answer or gets a 5xx, it waits, and later entries wait
+  behind it so order is kept.
+- A 4xx is dropped and counted as refused, since resending would be refused
+  again.
+- An entry older than a week is dropped and counted, never sent as fresh.
+
+**The server records it once, at the time it happened.** Migration
+`20261007100000` adds `location_events.client_event_id` with a unique constraint
+per organization. The device names each check-in when the button is pressed,
+and the insert is `on_conflict … ignore-duplicates`, so a send whose answer was
+lost is retried without a second row and reported as `duplicate`. Two
+concurrent retries cannot race a read-then-decide. `captured_at` is accepted
+from the device between a week back and five minutes ahead, refused outside
+that window, and `metadata.sent_later` marks a late arrival.
+
+Falsified five ways, each failing by name: a plain insert, no time window, a new
+id on each retry, a server failure treated as a refusal, and skipping past a
+waiting entry. **Owner step:** apply `20261007100000` to production.
+
+### 2026-10-07 - A failed generation can be tried again; stopping one cannot undo a charge
+
+**Retry.** A generation job that failed or was stopped could only be abandoned.
+The job page offered nothing, and starting again meant retyping the request.
+`POST /api/creator/generation/jobs/:jobId/retry` (a "Try again" button on the
+job page) makes a new job from the same request. It goes through the same
+`submitGeneration` path a new request does, now shared, so every check runs
+again:
+- the safety review;
+- an active voice permission, so one revoked since refuses it;
+- the project;
+- a fresh credit reservation;
+- the submission rate limit.
+
+The original job is never reopened, and each job's history names the other. A
+completed job is not retryable, because it delivered and was charged.
+
+**Cancel.** Stopping a job read its status and then wrote `cancelled`
+unconditionally. A job that completed and was charged between the read and the
+write was cancelled anyway, and the cancel releases the job's reserved credit:
+work delivered, credit returned. The write is now conditional on the job being
+unfinished (`status=not.in.(completed,failed,cancelled)`). When it matches
+nothing, the answer is "not cancellable", and nothing is released or recorded.
+
+Falsified four ways, each failing by name: the cancel write made unconditional,
+completed jobs made retryable, the retry skipping the safety and consent
+checks, and the link between the two jobs not recorded. The release is observed
+at the `generation_usage` RPC, because `updateJob` calls the allowance module
+directly rather than the injected one.
+
+### 2026-10-07 - Profit over the jobs a business finished
+
+Each job's page has always worked out its direct profit: the agreed price less
+labour, travel, other costs and materials. Nothing added those up, so the
+Business Builder chain ended at one job, and "is the work paying" had no answer
+across a month.
+
+`/business-builder/owner/operations` now has a Jobs finished card. It covers
+work orders that reached completed, invoiced or closed within the period, with
+direct profit per currency from `workOrderLifecycle.profitability`, the same
+function the job page uses, so the two cannot disagree:
+- A job with a price or a cost not recorded has no known profit. It is counted
+  apart and adds nothing, rather than its agreed price standing in for a
+  profit.
+- Materials are read in batches of 20 jobs. A batch that fails or comes back at
+  its limit makes the job figures unreadable, because a material line not read
+  is a cost left out and an overstated profit.
+- The card says overheads are not included.
+
+Falsified three ways, each failing by name: materials ignored, a job with
+unrecorded labour counted, and a failed materials read ignored.
+
+### 2026-10-07 - A campaign says whether it paid for itself
+
+The Growth chain ran lead → campaign → send → conversion → attribution and
+stopped there. Nothing recorded what a campaign cost, so "did it pay for
+itself" and "what next" could not be answered for anybody.
+
+`growth_campaign_spend` (migration `20261007090000_what_a_campaign_cost.sql`)
+records what the owner spent, append-only. A mistake is answered by a
+`correction` row, never an edit. The currency is required and never converted.
+A `source` column keeps a typed-in amount apart from one a connector reports
+later.
+
+Each campaign now has a page at `/growth-studio/your-campaigns/:campaignId`,
+linked from the list. It shows what the campaign cost, with the form to record
+it, the leads, sends and conversions recorded against it, and the return per
+currency (`lib/sonara-campaign-results.cjs`):
+- A return is worked out only where there is both spend and a conversion with a
+  value in that currency.
+- Spend with no recorded result reads "no result with a value yet", not -100%.
+  The results may simply not have been recorded.
+- A read that failed withholds the return, and a capped read is marked "at
+  least".
+- The next step is one sentence, people waiting to hear back before money.
+  Nothing is sent, paused or spent on the owner's behalf.
+
+The spend table is in the data export, declared as a child of the campaigns
+page. The replay's set of server-only tables records it (56 -> 57), and the
+contract names its migration.
+
+Falsified seven ways, each failing by name: currencies merged, no results read
+as a total loss, a failed read ignored, the campaign read without its
+organization filter, the currency field cut to three characters before checking
+(which turned "dollars" into "dol" and accepted it, a bug the test caught in the
+first draft), money ranked above people waiting, and the list without its link.
+**Owner step:** apply `20261007090000` to production before this merges.
+
+### 2026-10-07 - An exemption that said "listed" about rows nothing reads
+
+`tests/form-reachability.test.js` excused `POST /api/creator/reference-analyses`
+because the analyses were "listed at /creator-studio/generation/reference-analysis".
+That path is a 302 to the generation studio, and nothing in the runtime reads
+`creator_reference_analyses`: the insert is the only reference. The reason now
+says so. Whether customers may submit reference material for analysis at all is
+an anti-clone safety decision, which `routes/creator-generation-routes.cjs`
+leaves open on purpose. It is the owner's to make, and building a form would
+make it for them.
+
+Also: `GET /api/business-builder/control-plane` and
+`/business-builder/control-center` both call `listBusinesses`, so it is recorded
+as a JSON twin. Workspace fallbacks 18 -> 17. Of the 17 left, 12 are JSON
+endpoints nothing in the repository calls: four readiness endpoints, billing
+status, the integration provider list, the invention catalog, prompt discovery,
+the public route list, the map snapshot, workflow planning and motion events.
+Each one needs a consumer or a decision to remove it, not a page invented to
+hold it.
+
+### 2026-10-07 - A JSON endpoint that does what a form does
+
+`POST /api/prompt-library/render` fills in a starter template. The page's own
+form does the same at `POST /prompt-library/:slug/render`, with the slug in the
+path rather than the body, and both call `renderPrompt`.
+`POST /api/prompt-library/collections/:id/items` and the instruction page's
+add-to-collection form both call `addCollectionItem`. The generator's twin rule
+needs the same path without `/api`, so neither was placed, and both were
+reported as having no screen.
+
+The destination register gains `json_form_of_action`: the entry names the page
+action, the action must be registered and resolve to a page, and both handlers
+must call the function named in the evidence. Falsified twice, both failing
+`routeDestinationReviewsNotHeld` by name: a function neither handler calls, and
+an action that is not registered. Workspace fallbacks 20 -> 18.
+
+### 2026-10-07 - Two forms answered the person with JSON
+
+`/creator-studio/device-cues` carries three create forms: sound cues (the page's
+own) and, in `also` blocks, vibration patterns and feedback profiles. All three
+post to generic REST resources, which send a browser back to the page they came
+from, found by `pageForApi`. That function matched only a page's own `api`, so
+the two `also` forms answered the person who filled them in with
+`{"ok":true,"table":...}`, while the sound-cue form beside them went back to the
+page. The capability inventory uses the same function, which is why these four
+routes were reported as having no screen. It was right that they had no way
+back, and wrong about why.
+
+`pageForApi` now finds a page through its `also` blocks too.
+`tests/a-form-on-a-record-page-returns-to-it.test.js` posts every form the page
+declarations describe, as a browser does, and requires a 303 back to its page.
+Without the fix it fails, naming both forms and the JSON they returned. It also
+fails if it finds fewer than ten forms or no `also` form, so it cannot pass by
+walking nothing. Workspace fallbacks 24 -> 20.
+
+### 2026-10-07 - Money received was read from a table nothing writes
+
+`GET /api/business/operations/analytics` summarised a business's period:
+bookings, hours, stock, check-ins and money collected. Nothing showed it, and
+building the page found the money figure was never true. It read `payments`, a
+table no code path in the runtime writes, so "collected" was 0 for every
+business, including one that had recorded thousands against its invoices. It
+also added `amount_cents` across rows with no currency, so a business taking
+two currencies would have had them summed into one number.
+
+`lib/sonara-business-analytics.cjs` now reads money where the product records
+it: `customer_invoice_payments`, with the currency taken from the invoice, and
+`merchant_orders` paid through the shop, net of refunds. It totals per currency,
+with no grand total, because there is no exchange rate to make one. A disputed
+shop order is counted apart from money received. A payment whose invoice
+currency cannot be read is counted as unreadable rather than guessed.
+
+`/business-builder/owner/operations` renders it, and the API answers from the
+same `readOperations`, recorded as a JSON twin. A source that could not be read
+is named and no figures are shown. A read that came back at its 1,000-row limit
+is named beside the figure as "at least".
+
+Falsified five ways, each failing by name: currencies summed together, a dispute
+counted as received, the cap ignored, a failed invoice read ignored, and the
+`payments` table read again. Workspace fallbacks 25 -> 24.
+
+### 2026-10-07 - The permission form was there; the inventory paired by name
+
+`POST /api/growth/consents` was listed as a route with no screen. It has had one
+the whole time: `/growth-studio/consent` lists `growth_contact_consents` and
+renders the create form from `lib/sonara-growth-create-specs.cjs`. The generator
+paired `/api/growth/<x>` with a page called `/growth-studio/<x>`, which found
+`/growth-studio/segments` and missed a page named in the singular. So the form a
+campaign's consent check depends on was counted as missing, and
+`/api/growth/metrics` was missed beside `/growth-studio/attribution` for the
+same reason.
+
+The generator now reads the declarations. Each growth record page names its
+table, and the create form it renders is the spec for the same table, so
+`GET /api/growth/<tableKey>` and `POST /api/growth/<spec.key>` are placed on that
+page. `map.validation.growthRecordDoorsNotHeld` holds it from the code side:
+- the page and the route must be registered;
+- the route must touch the table the page lists;
+- every create spec must have a page.
+
+Falsified twice, both failing by name: a page renamed so its spec has no page,
+and the consent endpoint writing a different table. All 19 placements were
+checked against the pages that render them. Workspace fallbacks 28 -> 25.
+
+### 2026-10-07 - The waiting list is a page
+
+`routes/sonara-operations-expansion-routes.cjs` stored a waiting list (a
+`business_bookings` row marked `metadata.waitlist`) and bookable resources (a
+`business_assets` row marked `metadata.bookable`), and nothing showed either.
+`tests/form-reachability.test.js` excused both save endpoints because "the
+reservation page consumes the saved resource rows". There was no reservation
+page and nothing read those rows.
+
+`/business-builder/owner/waitlist` (`lib/sonara-waitlist-pages.cjs`) lists who
+is waiting and what can be booked, with forms to add to both. Each waiting entry
+can be marked as offered. **Marking it offered records it and tells nobody.**
+The endpoint has always answered `customerNotified: false`, and the page now says
+so beside the button and in the confirmation, so "Offered" does not read as
+"told". Confirming or cancelling the request happens on the booking's own page,
+which already had the status form. Once it is no longer `requested`, it leaves
+the list. A form posts one ticked resource as a string rather than an array, and
+the route took only arrays, so a single choice was silently dropped. It now
+accepts both. The page and the two JSON reads share `readWaitlist` and
+`readResources`, recorded as JSON twins in the destination register.
+
+Falsified six ways, each failing by name: browsers answered with JSON, a single
+tick dropped, the "tells nobody" sentence removed, the offer lookup without its
+organization filter, a failed read shown as an empty list, and an offered entry
+offered again. Separately, the register entry naming the wrong function fails the
+generator with `routeDestinationReviewsNotHeld`. Workspace fallbacks 33 -> 28.
+
+### 2026-10-07 - A workspace saves its own instructions
+
+The three studio prompt pages said "use these starter instructions straight
+away, or save your own" and listed "Your saved instructions". Nothing on them
+saved one. `tests/form-reachability.test.js` excused the four save endpoints
+because "saving a customer's own template needs a column separating it from the
+curated reference set first". There was nothing to separate: the curated set is
+`BUILTIN_PROMPT_TEMPLATES` in `lib/sonara-prompt-library.cjs` and never touches
+the table, and a saved instruction is already its own row carrying its
+organization, author and provenance. The promise was true and the excuse was
+stale.
+
+`lib/sonara-prompt-library-pages.cjs` renders the forms, and the existing API
+handlers answer a browser with a redirect and a named notice. Saving, the safety
+review's refusal (rendered as this server's sentences, never carried in an
+address), filling in and recording a use (no provider is called and the page says
+so), a new version, a collection, adding to it, and connecting two instructions
+all post to the same endpoints a JSON client uses. Every saved instruction has a
+page at `/<studio>/prompts/:id`. Public visibility is not offered: publishing
+beyond the workspace goes through review, and a form offering it would describe a
+step the page does not take.
+
+**The test harness had been hiding a failed read.** `tests/helpers/fake-supabase.cjs`
+threw on `or=(…,and(…))`, which is how the library asks for "shared with the
+workspace, or private and mine". The route caught the throw as a failed read, so
+in tests every list was empty, and the first draft of "a private instruction is
+kept to its author" passed by listing nothing for anyone. The fake now parses
+nested `and(...)` groups, and the test asserts the colleague's list shows a shared
+instruction before it trusts the private one's absence. The test's
+`supabaseHeaders` stub also dropped `Prefer`, which turned the collection upsert
+into a plain insert. It now builds headers as `server.js` does.
+
+Falsified six ways, each failing by name: the list ignoring visibility, the save
+form pointing nowhere, the run ignoring the filled-in values, browsers answered
+with JSON, the instruction page's private check removed, and the fake evaluating
+`and(...)` as "any". Workspace fallbacks 38 -> 33.
+
+### 2026-10-07 - A route with no page says why, and the reason is checked
+
+The capability inventory gave every route the page that renders it, or -- when
+it found none -- the workspace home, flagged as a fallback. Some fallbacks are
+screens nobody built. Others have no screen because they should not: a deploy
+check calls `/api/health`, a scheduled workflow calls the agent tick, and the
+market and prompt-library list endpoints answer as JSON what a page already
+renders. Counting those as missing screens hid the ones that are.
+
+`lib/sonara-route-destination-reviews.cjs` records them by kind, and each kind
+carries evidence the generator checks rather than takes on trust
+(`routeDestinationReviewsNotHeld`): a monitor or scheduler names files that exist
+and call the route; a JSON twin names a registered page, and the route and the
+page read the same table or call the same function; a method refusal is recorded
+as one in `lib/sonara-route-data-reviews.cjs`. An entry the generator would not
+have needed fails, as does an entry for a route that is not registered.
+Falsified eight ways, each failing by name: a consumer that does not call the
+route, a consumer that does not exist, the wrong table, the wrong function, an
+entry that is not needed, an unregistered route, a refusal not recorded as one,
+and an empty register.
+
+Workspace fallbacks 52 -> 38. What is left is mostly screens: waitlist and
+bookable resources, operations analytics and the map snapshot, prompt library
+saving, sensory profiles, growth consents and metrics, integration jobs (which
+nothing runs), the readiness endpoints with no in-repository consumer, and
+`/api/motion/events`, which nothing has ever posted to.
+
+Known and not fixed here: routes registered by the generic `registerRestResource`
+are credited with every table the shared handler can reach, including a
+plan-limit branch only one resource takes -- so `POST /api/sensory/profiles` is
+listed as reading `billing_subscriptions`. An over-statement rather than a gap;
+the tracer cannot evaluate the branch.
+
+### 2026-10-07 - Market evidence is recorded from the page
+
+`/market-intelligence` and its three studio pages promised "track customer
+segments, competitor evidence, pricing, market signals, scored opportunities,
+and portfolio decisions" and showed four counts and some guidance. Every record
+type could be written only by an API client. `tests/form-reachability.test.js`
+excused that as deliberate -- "a free-text form would produce exactly the
+invented market data the page exists to refuse" -- and the reason did not hold:
+the endpoints already accepted the same records from any client under the same
+validation, so the missing form kept out the customer, not invented data.
+
+Now each page lists its studio's segments, competitors, signals and
+opportunities (the parent page lists all four studios and asks which a new
+record belongs to), with a form under each that posts to the endpoint that was
+always there. The evidence rules are the endpoints' and reach the form
+unchanged: an https source and the date a competitor's details were checked or a
+signal was observed, a confidence level, a score on the published scale. A
+browser posting a form is sent back to the page with the outcome named by a key
+the page translates -- only known keys are printed, so a link cannot put its own
+sentence on the page -- and an API client gets the JSON it always got.
+
+`/market-intelligence/opportunities/:id` is new: the score shown as the sum it
+is, the reviews with the form that records one (a review is the only thing that
+moves the state), a rescore form that recalculates the score and leaves the
+state alone, and the focus evidence `lib/sonara-market-focus.cjs` reads, saved
+in exactly its shape (whole cents for one month, an ISO measured-at) and refused
+when any part is missing. Fetching a source page now shows the text beside a
+signal form prefilled with only the address and the site's name; nothing is
+written and the summary, type and confidence are never guessed.
+
+The option lists moved into `lib/sonara-market-intelligence-pages.cjs` and the
+routes validate against those same arrays. Pinned by
+`tests/market-evidence-is-recorded-from-the-page.test.js` (11 tests, every
+dropdown value posted and accepted); falsified eight ways, each failing by name:
+a browser answered with JSON, a studio page recording into no studio, a failed
+read shown as empty, any back address accepted, the rescore form carrying the
+state, partial focus evidence accepted, the notice printing text from the
+address, and the page listing nothing.
+
+Also corrected in the same exemption list: `/api/motion/events` was excused as
+"interface telemetry, posted by public/sonara-one.js". No file in `public/`
+posts to it and `git log -S` finds no commit that ever made one do so. The
+reason now says what is true. Workspace fallbacks 61 -> 52.
+
 ### 2026-10-07 - Every roadmap stage gate can be passed from the page
 
 `/product-lifecycle/initiatives/:id` showed the readiness score and what was

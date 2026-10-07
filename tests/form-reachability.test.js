@@ -38,8 +38,13 @@ const NO_FORM_NEEDED = {
   // where they set when it runs for them.
   "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
 
-  // Posted by client scripts, not by a person filling anything in.
-  "/api/motion/events": "Interface telemetry, posted by public/sonara-one.js.",
+  // Its reason here was "Interface telemetry, posted by public/sonara-one.js."
+  // Checked on 7 October 2026: no file in public/ posts to it, and
+  // `git log -S"/api/motion/events" -- public/` finds no commit that ever made
+  // one do so. The reason described a client that never existed. What is true:
+  // it stores raw device motion readings and nothing sends any, so it records
+  // nothing today -- and a form is the wrong way to send sensor readings anyway.
+  "/api/motion/events": "No client posts to it: nothing in public/ ever has. It stores raw device motion readings, which a person does not type, so a form is not the missing piece; a consented sensor client is.",
   // /api/location/events used to be here, exempted as "posted by client script"
   // while no script posted to it. It has a real form now -- the check-in form on
   // /staff/location -- so the exemption is gone rather than reworded. The
@@ -83,8 +88,6 @@ const NO_FORM_NEEDED = {
   // lets a hand-entered sale say it is not established; this table has no
   // equivalent. An offline-touchpoint feature starts with that column.
 
-  "/api/formulas/results": "Written when a formula is evaluated, not composed by hand.",
-
   // Examined, all of them. They divide into two kinds, and the distinction
   // matters more than the individual entries.
   //
@@ -96,66 +99,55 @@ const NO_FORM_NEEDED = {
   // routes/sonara-last9-routes.cjs exist, so a record written through them is
   // invisible from the moment it is created. That is the shape that made the
   // market-intelligence page worth fixing.
-  // Listed at /creator-studio/generation/reference-analysis. The generation
-  // form's capability picker does not offer reference_analysis, and the
-  // validator special-cases it (`capability !== "reference_analysis"`), so only
-  // a direct POST makes one.
-  "/api/creator/reference-analyses": "Listed at /creator-studio/generation/reference-analysis and creatable only by direct POST; the generation form's capability picker does not offer reference_analysis. A form belongs on that page.",
+  // Corrected 7 October 2026. This said the analyses were "listed at
+  // /creator-studio/generation/reference-analysis". They are not listed
+  // anywhere: that path is a 302 to the generation studio, and nothing in
+  // server.js, routes/ or lib/ reads creator_reference_analyses -- the insert
+  // is the only reference. Rows are written as review_required and no runner
+  // or reviewer reads them.
+  //
+  // Whether a customer should be able to submit reference material for
+  // analysis at all is an anti-clone safety decision (AGENTS.md: "Enforce
+  // provenance, consent, and anti-clone safety"), left open on purpose in
+  // routes/creator-generation-routes.cjs. It is the owner's to make, and a form
+  // would make it for them.
+  "/api/creator/reference-analyses": "Nothing reads creator_reference_analyses -- no list, no reviewer, no runner -- and offering the submission is an anti-clone safety decision that is the owner's to make. A form would collect requests nobody acts on.",
   // Examined. integration_jobs is inserted here and read by nothing: no runner,
   // no page, no status transition anywhere in the repository. A form would let
   // somebody queue work that will never run, which is worse than no form. Its
   // default status is manual_required rather than queued for the same reason --
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
-  "/api/business/reservation-resources": "Resource creation is intentionally a JSON workflow for an authenticated Business Builder manager surface; the reservation page consumes the saved resource rows.",
-  "/api/business/waitlist": "Waitlist creation is intentionally a JSON workflow for an authenticated reservation interface; a generic public form would create requests without a business context.",
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
-  // Examined. This one creates nothing at all -- it fetches the text of a page
-  // so it does not have to be pasted, and returns it. The create-shaped scan
-  // matches it on the POST, which is the right default and the wrong answer
-  // here.
-  //
-  // Its reason used to end "and the signal form is still the only way anything
-  // is written". There is no signal form. Nothing in this repository posts to
-  // any market-intelligence endpoint from a page -- grep finds no form action,
-  // no create spec, nothing. The clause described a form that was never built,
-  // which is the same defect as a page describing a capability it does not have,
-  // sitting in the reason a check was excused.
-  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read; nothing is written by it.",
-  // The four below are examined now, and they share one answer.
-  //
-  // All four accept POSTs and no page offers a form for any of them. That is
-  // deliberate rather than missing: /*/market-intelligence is guidance plus a
-  // count of what the organization has recorded, and these are research records
-  // whose fields are structured enough that a free-text form would produce
-  // exactly the invented market data the page exists to refuse.
-  //
-  // What was genuinely wrong is now fixed and is worth stating here, because it
-  // is why these were worth examining at all: the page claimed "the workspace
-  // starts empty until organization-scoped evidence is recorded" while reading
-  // nothing, so a record written through any of these four was invisible from
-  // the moment it was created. The page counts them now.
-  "/api/market-intelligence/competitors": "API-only research record. No form by design: the page counts what is recorded rather than offering free text, which is how invented market data gets in.",
-  "/api/market-intelligence/opportunities": "API-only research record, scored and reviewed through their own endpoints rather than typed. The page counts what is recorded.",
-  "/api/market-intelligence/segments": "API-only research record. No form by design; the page counts what is recorded.",
-  "/api/market-intelligence/signals": "API-only research record. No form by design; the page counts what is recorded.",
-  // Examined together. The prompt library has pages -- /prompt-library and
-  // /prompt-library/:slug -- carrying exactly one form: "Fill the template",
-  // which posts to /prompt-library/:slug/render, produces a preview to read,
-  // and saves nothing. So none of these four is reachable from a page.
-  //
-  // Left without forms for a stated reason rather than as a gap: what these
-  // pages render is curated content in data/prompts-chat-reference.cjs, and a
-  // customer-authored row saved beside it would be indistinguishable from the
-  // curated set on the page that lists them. That is the same objection
-  // recorded for growth touchpoints above, and it wants the same answer first:
-  // a column marking a row as customer-authored.
-  "/api/prompt-library/collections": "Reachable only by API. The library's one form renders a preview and saves nothing, and a customer-authored row would be indistinguishable from the curated reference set beside it.",
-  "/api/prompt-library/connections": "Reachable only by API, for the same reason as collections above.",
-  "/api/prompt-library/runs": "Reachable only by API. A run records that a template was used; the form that would create one renders a preview instead.",
-  "/api/prompt-library/templates": "Reachable only by API. Saving a customer's own template needs a column separating it from the curated reference set first."
+  // The five market-intelligence entries that stood here -- fetch-source and the
+  // four research records -- are gone because the forms exist now, on
+  // /market-intelligence and the three studio pages. Their reason was that "a
+  // free-text form would produce exactly the invented market data the page
+  // exists to refuse". It did not hold: the endpoints already accepted the same
+  // records from any API client under the same validation (an https source and
+  // the date it was checked or observed, a confidence level, a score on the
+  // published scale), so the missing form kept out the customer rather than the
+  // invented data. The forms carry those rules unchanged.
+
+  // The waitlist and reservation-resource entries that stood here are gone
+  // because /business-builder/owner/waitlist carries both forms. One reason said
+  // "the reservation page consumes the saved resource rows"; there was no
+  // reservation page and nothing read the rows. The other worried about "a
+  // generic public form" -- the form is on a manager-only page, behind the same
+  // requireBusinessManager as the endpoint. Checked 7 October 2026.
+
+  // The four prompt-library entries that stood here -- templates, collections,
+  // connections, runs -- are gone because the forms exist now, on the studio
+  // /prompts pages and each saved instruction's own page. Their reason was that
+  // "a customer-authored row saved beside it would be indistinguishable from the
+  // curated set" and needed a column first. It did not hold: the curated set is
+  // BUILTIN_PROMPT_TEMPLATES in lib/sonara-prompt-library.cjs and never touches
+  // sonara_prompt_templates, and a saved row already carries its organization,
+  // author, source_type and provenance, shown in a card of its own -- under a
+  // page that had been telling customers to "save your own" with nothing to
+  // save it with. Checked 7 October 2026.
 };
 
 describe("form reachability", () => {

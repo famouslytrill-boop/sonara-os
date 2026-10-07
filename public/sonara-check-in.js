@@ -88,6 +88,13 @@
     });
   }
 
+  // public/sonara-offline-queue.js, when it loaded. Without it a check-in
+  // with no signal is lost, as it always was, and the page says so.
+  var queue = window.SonaraOfflineQueue || null;
+
+  // No answer at all -- no signal, a timeout -- or the server failing comes
+  // back as `unreachable`, which is the case worth keeping and retrying. A 4xx
+  // is the server refusing this check-in, and sending it again would not help.
   function post(body) {
     return fetch(config.endpoint, {
       method: "POST",
@@ -95,9 +102,25 @@
       credentials: "same-origin",
       body: JSON.stringify(body)
     }).then(function (response) {
+      if (response.status >= 500) return { ok: false, code: "unreachable" };
       return response.json().catch(function () { return { ok: false, code: "unreadable" }; });
+    }, function () {
+      return { ok: false, code: "unreachable" };
     });
   }
+
+  function sendKept() {
+    if (!queue || !queue.pending()) return;
+    queue.flush().then(function (result) {
+      var delivered = result.sent + result.duplicates;
+      if (delivered && !result.waiting) say(delivered === 1 ? "Your check-in from earlier has now been recorded, at the time you made it." : delivered + " check-ins from earlier have now been recorded, at the times you made them.");
+      else if (result.waiting) say(result.waiting === 1 ? "One check-in is still waiting on this device to be sent." : result.waiting + " check-ins are still waiting on this device to be sent.");
+      if (result.refused) say("A check-in kept on this device was refused when it was sent, so it was not recorded.");
+      if (result.expired) say("A check-in kept on this device was more than a week old and was not sent.");
+    });
+  }
+  window.addEventListener("online", sendKept);
+  sendKept();
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -130,7 +153,7 @@
         // Reduced here, on the device. What goes on the wire is already
         // whatever coarseness was chosen.
         var reduced = precision.reduce(result.ok ? result.reading : null, mode);
-        return post({
+        var raw = {
           event_type: "check_in",
           // Sent because /staff/location lists check-ins by employee_id. Without
           // it the row is written, the request succeeds, and the person is told
@@ -144,12 +167,27 @@
           latitude: reduced.latitude,
           longitude: reduced.longitude,
           accuracy_meters: reduced.accuracyMeters
-        }).then(function (answer) {
-          return { answer: answer, reduced: reduced };
+        };
+        // Named and timed now, when the button was pressed, so a send that
+        // only succeeds later records the time it happened and is recorded
+        // once however many attempts it takes.
+        var body = queue ? queue.prepare(raw) || raw : raw;
+        return post(body).then(function (answer) {
+          return { answer: answer, reduced: reduced, body: body };
         });
       })
       .then(function (outcome) {
         if (!outcome) return;
+        if (outcome.answer && outcome.answer.code === "unreachable" && queue && outcome.body.client_event_id) {
+          var kept = queue.keep(config.endpoint, outcome.body);
+          if (kept.kept) {
+            say("No connection. Your check-in is saved on this device and will be sent when you are back online, recorded at the time you pressed the button.");
+          } else {
+            say(kept.reason === "full" ? "No connection, and this device is already holding as many check-ins as it can. Nothing new was kept." : "No connection, and this browser would not let us keep the check-in. Nothing was recorded.");
+          }
+          if (button) button.disabled = false;
+          return;
+        }
         if (!outcome.answer || outcome.answer.ok === false) {
           say("Your check-in was not saved. Press the button again.");
           if (button) button.disabled = false;

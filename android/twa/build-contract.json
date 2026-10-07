@@ -19,6 +19,7 @@
     "path": "/.well-known/assetlinks.json",
     "fingerprintSource": "Google Play App Signing certificate",
     "fingerprintEnvironment": "ANDROID_PLAY_SIGNING_SHA256",
+    "servedBy": "routes/sonara-well-known-routes.cjs",
     "relations": [
       "delegate_permission/common.handle_all_urls",
       "delegate_permission/common.get_login_creds"
