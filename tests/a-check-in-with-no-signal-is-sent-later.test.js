@@ -205,6 +205,9 @@ describe("a check-in with no signal is sent later", () => {
       assert.ok(entries.every((entry) => entry.id), "every review item needs an explicit discard token");
       const legacyEntry = entries.find((entry) => entry.source === "legacy");
       const blockedEntry = entries.find((entry) => entry.source === "account");
+      assert.equal(legacyEntry.capturedAt, null, "another person's check-in timestamp was disclosed");
+      assert.equal(blockedEntry.capturedAt, null, "blocked check-in timestamp was disclosed");
+      assert.equal(legacyEntry.eventType, "check_in", "untrusted event type was exposed");
       assert.equal(queue.discard(legacyEntry.id, { storage, scope, source: "legacy" }).discarded, true);
       assert.equal(queue.discard(blockedEntry.id, { storage, scope, source: "account" }).discarded, true);
       assert.equal(queue.review({ storage, scope }).entries.length, 0);
