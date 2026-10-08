@@ -21,13 +21,14 @@ function buildEvidence() {
   for (const [name, jobNames] of Object.entries(REQUIRED_JOBS)) {
     const id = ++runId;
     workflowRuns.push({
-      name, id, head_sha: sha, event: "push", status: "completed",
+      name, id, head_sha: sha, head_branch: "main", event: "push", status: "completed",
       conclusion: "success", created_at: "2026-10-08T18:00:00Z"
     });
     jobsByRunId[id] = {
       total_count: jobNames.length,
       jobs: jobNames.map(jobName => ({
-        name: jobName, run_id: id, status: "completed", conclusion: "success",
+        name: jobName, run_id: id, head_sha: sha, head_branch: "main",
+        status: "completed", conclusion: "success",
         steps: (REQUIRED_STEPS[name]?.[jobName] || REQUIRED_STEPS[name]?.["*"] || [])
           .map(stepName => ({ name: stepName, status: "completed", conclusion: "success" }))
       }))
@@ -46,6 +47,36 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     const run = v.workflowRuns.find(x => x.name === "Native migration replay");
     v.jobsByRunId[run.id].jobs[0].conclusion = "skipped";
     assert.ok(assess(v).failures.some(x => x.includes("job_not_successful")));
+  });
+
+  it("refuses push runs from another branch even when the SHA and workflow name match", () => {
+    const offBranch = buildEvidence();
+    const first = offBranch.workflowRuns[0];
+    first.head_branch = "feature/release-bypass";
+    const result = assess(offBranch);
+    assert.ok(result.failures.includes(first.name + ":workflow_missing"));
+  });
+
+  it("uses the matching main run, never the newer unrelated-branch run", () => {
+    const record = buildEvidence();
+    const legit = record.workflowRuns[0];
+    record.workflowRuns.push({
+      ...legit, id: 50000, head_branch: "staging",
+      created_at: "2026-10-08T23:00:00Z", conclusion: "failure"
+    });
+    assert.equal(assess(record).ok, true);
+  });
+
+  it("rejects jobs whose branch or commit does not match current protected main", () => {
+    const wrongRef = buildEvidence();
+    const first = wrongRef.workflowRuns[0];
+    wrongRef.jobsByRunId[first.id].jobs[0].head_branch = "feature/release-bypass";
+    assert.ok(assess(wrongRef).failures.includes(first.name + ":job_identity_mismatch"));
+
+    const wrongSha = buildEvidence();
+    const other = wrongSha.workflowRuns[0];
+    wrongSha.jobsByRunId[other.id].jobs[0].head_sha = "b".repeat(40);
+    assert.ok(assess(wrongSha).failures.includes(other.name + ":job_identity_mismatch"));
   });
 
   it("blocks absent or duplicate matrix jobs even if run concludes success", () => {
@@ -77,12 +108,14 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     const run = v.workflowRuns.find(x => x.name === "Node Runtime Compatibility");
     const ignored = OPTIONAL_SKIPPED["Node Runtime Compatibility"][0];
     v.jobsByRunId[run.id].jobs.push({
-      name: ignored, run_id: run.id, status: "completed", conclusion: "skipped"
+      name: ignored, run_id: run.id, head_sha: sha, head_branch: "main",
+      status: "completed", conclusion: "skipped"
     });
     v.jobsByRunId[run.id].total_count++;
     assert.equal(assess(v).ok, true);
     v.jobsByRunId[run.id].jobs.push({
-      name: "unknown critical job", run_id: run.id, status: "completed", conclusion: "skipped"
+      name: "unknown critical job", run_id: run.id, head_sha: sha, head_branch: "main",
+      status: "completed", conclusion: "skipped"
     });
     v.jobsByRunId[run.id].total_count++;
     assert.equal(assess(v).ok, false);
