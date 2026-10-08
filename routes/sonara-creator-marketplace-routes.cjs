@@ -52,6 +52,7 @@ const market = require("../lib/sonara-creator-marketplace.cjs");
 const payments = require("../lib/sonara-connected-payments.cjs");
 const checkout = require("../lib/sonara-connected-checkout.cjs");
 const orders = require("../lib/sonara-marketplace-orders.cjs");
+const { formatChargeAmount } = require("../lib/sonara-commerce-amounts.cjs");
 const storage = require("../lib/sonara-file-storage.cjs");
 const { registerMarketplaceReconciliationRoutes, RECONCILIATION_PAGE } = require("./sonara-marketplace-reconciliation-routes.cjs");
 
@@ -202,11 +203,11 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       totals.set(order.currency, (totals.get(order.currency) || 0) + Number(order.price_cents || 0));
     }
     const totalText = totals.size
-      ? [...totals.entries()].map(([currency, cents]) => `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`).join(", ")
+      ? [...totals.entries()].map(([currency, cents]) => formatChargeAmount(cents, currency)).join(", ")
       : "nothing yet";
     const stateText = Object.entries(counts).map(([state, count]) => `${count} ${state.replace(/_/g, " ")}`).join(", ");
     const list = rows.slice(0, 20).map((order) =>
-      `<li>${escapeHtml(order.title)} — ${escapeHtml((Number(order.price_cents) / 100).toFixed(2))} ${escapeHtml(String(order.currency).toUpperCase())}, `
+      `<li>${escapeHtml(order.title)} — ${escapeHtml(formatChargeAmount(order.price_cents, order.currency))}, `
       + `${escapeHtml(String(order.state).replace(/_/g, " "))}${order.paid_at ? `, paid ${escapeHtml(new Date(order.paid_at).toUTCString())}` : ""}</li>`).join("");
     return brandCard("Sales",
       `<p>Paid and not refunded: ${escapeHtml(totalText)}. Orders: ${escapeHtml(stateText)}${sold.rows.length > 200 ? " (the newest 200)" : ""}.</p>`
@@ -411,7 +412,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
           `<section class="card"><h2>${escapeHtml(listing.title || "Untitled")}</h2>${status}`
           + `<form method="post" action="${OWNER_PAGE}/${escapeHtml(listing.id)}">`
           + `<label>Title<input name="title" value="${escapeHtml(listing.title || "")}" maxlength="${TITLE_MAX}" required></label>`
-          + `<label>Price in pence or cents<input name="priceCents" type="number" min="0" step="1" value="${listing.price_cents === null || listing.price_cents === undefined ? "" : escapeHtml(String(listing.price_cents))}" placeholder="Leave empty if you have not decided"></label>`
+          + `<label>Price in payment units (100 = 1 USD; 100 = 100 JPY)<input name="priceCents" type="number" min="0" step="1" value="${listing.price_cents === null || listing.price_cents === undefined ? "" : escapeHtml(String(listing.price_cents))}" placeholder="Leave empty if you have not decided"></label>`
           + `<label>Currency<input name="currency" value="${escapeHtml(currencyOf(listing))}" maxlength="3"></label>`
           + `<label>What the buyer may do<select name="licence"><option value="">Not chosen</option>${licence}</select></label>`
           + attest("rightsAttested", listing.rights_attested, "I hold the rights to sell this")
@@ -518,7 +519,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     let priceCents = null;
     if (rawPrice !== "") {
       const parsed = market.integerCents(rawPrice);
-      if (parsed === null) return refuse(res, "A price has to be a whole number of pence or cents, or empty if you have not decided.");
+      if (parsed === null) return refuse(res, "A price has to be a whole number of payment units within the supported range, or empty if you have not decided.");
       priceCents = parsed;
     }
     const licence = String(req.body?.licence || "");
@@ -770,8 +771,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
 
   function money(cents, currency) {
     if (cents === null || cents === undefined) return "Not priced";
-    const symbol = { usd: "$", gbp: "£", eur: "€" }[String(currency || "").toLowerCase()] || "";
-    return `${symbol}${(cents / 100).toFixed(2)}${symbol ? "" : ` ${String(currency || "").toUpperCase()}`}`;
+    return formatChargeAmount(cents, currency, { style: "symbol" });
   }
 }
 

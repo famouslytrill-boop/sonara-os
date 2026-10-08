@@ -6,21 +6,12 @@ const checkout = require("../lib/sonara-connected-checkout.cjs");
 const payments = require("../lib/sonara-connected-payments.cjs");
 const orders = require("../lib/sonara-marketplace-orders.cjs");
 const report = require("../lib/sonara-marketplace-reconciliation.cjs");
+const { formatChargeAmount } = require("../lib/sonara-commerce-amounts.cjs");
 const RECONCILIATION_PAGE = "/creator-studio/owner/marketplace/reconciliation";
 const ORDER_LIMIT = 200;
 
 function money(minor, currency) {
-  try {
-    const format = new Intl.NumberFormat("en", { style: "currency", currency });
-    // Stripe keeps ISK/UGX API amounts in two decimals for compatibility even
-    // though Intl formats their displayed currency with zero decimal places.
-    // https://docs.stripe.com/currencies#special-cases
-    const digits = ["isk", "ugx"].includes(String(currency).toLowerCase())
-      ? 2 : format.resolvedOptions().maximumFractionDigits;
-    return format.format(minor / (10 ** digits));
-  } catch {
-    return String(minor) + " minor units " + String(currency || "").toUpperCase();
-  }
+  return formatChargeAmount(minor, currency, { style: "international" });
 }
 
 function registerMarketplaceReconciliationRoutes(app, deps) {
