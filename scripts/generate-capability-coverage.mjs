@@ -137,12 +137,12 @@ const content = `${lines.join("\n").trimEnd()}\n`;
 if (process.argv.includes("--check")) {
   const current = fs.existsSync(output) ? fs.readFileSync(output, "utf8") : "";
   if (current !== content) {
-    const currentLines = current.split("\\n");
-    const expectedLines = content.split("\\n");
+    const currentLines = current.split("\n");
+    const expectedLines = content.split("\n");
     // This is strictly diagnostic; drift still fails the release gate.
     // A first mismatch hides the actual set difference when route totals tie.
     const routeRows = (rows) => new Map(rows.flatMap((line) => {
-      const match = /^\\| (\\/[^|]+) \\| /.exec(line);
+      const match = /^\| (\/[^|]+) \| /.exec(line);
       return match ? [[match[1], line]] : [];
     }));
     const checkedRoutes = routeRows(currentLines);
