@@ -63,3 +63,10 @@ References:
 - FTC endorsement disclosure: https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers
 - W3C accessibility: https://www.w3.org/WAI/WCAG22/understanding/
 - Microsoft Graph throttling: https://learn.microsoft.com/graph/throttling
+
+## Phase 2 continuation (October 8)
+- Extended the single-industry deterministic planning script to reject unsafe provider-cost numeric precision.
+- Added cross-suite, 18-industry allowlisted aggregate planning in `scripts/plan-industry-portfolio.mjs`; no account identifiers accepted, duplicate suite/industry rejected, optional cost totals stay null if any required input is absent. The model assumes simultaneous peaks and a shared DB worker pool; it is NOT an actual admission controller or throughput benchmark.
+- Registered `plan:industry-portfolio` and `verify:industry-portfolio` in `package.json` and the Node 24/26 workflow plus `verify:gates`.
+- Added `docs/operations/2026-10-08-live-postgres-traffic-baseline.md` from read-only Supabase inspection: 60 max DB connections; 18 total observed sessions / 1 active / 0 lock waits; 4,862 retained query-stat entries with 21 deallocations; cumulative temp-file activity. Sampled slow queries are **not** yet attributed to customers or code paths. Build measured load/trace experiments before migrating performance-critical indexes.
+- This branch remains a DRAFT. No production migration, merge, website unpause, external processor action or unverified full-suite green claim.
