@@ -71,6 +71,8 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-community-discovery.cjs",
+    "Deterministic public-discovery research policy; explicitly NOT runtime-wired. It waits for reviewed server-owned public projections, authenticated consent/tenant checks, moderation and rights evidence, report/takedown controls, and a one-tenant gated pilot. Never activates social publishing."],
   // Explicitly staged governance work from #442/#443; these remain unconnected.
   ["lib/sonara-content-compliance-engine.cjs",
     "Draft content/legal review policy; waits for authenticated tenant evidence and a human-review route. It does not certify compliance or publish."],
