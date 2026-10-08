@@ -360,7 +360,7 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(requests, 1);
       assert.equal(result.sent, 1);
       assert.equal(result.waiting, 1);
-      assert.equal(JSON.parse(storage.getItem(queue.STORAGE_KEY))[0].body.n, 2);
+      assert.equal(JSON.parse(storage.getItem(queue.SCOPED_STORAGE_PREFIX + "." + ORG + "." + USER))[0].body.n, 2);
     });
 
     it("does not claim the queue was cleared when storage refuses the receipt update", async () => {
