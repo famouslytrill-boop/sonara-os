@@ -103,6 +103,8 @@ describe("canonical PWA contract", () => {
     assert.equal(executeExperience("/"), 1);
     assert.equal(executeExperience("/pricing"), 1);
     assert.equal(executeExperience("/legal/privacy"), 1);
+    assert.equal(executeExperience("/login"), 0);
+    assert.equal(executeExperience("/signup"), 0);
     assert.equal(executeExperience("/dashboard"), 0);
     assert.equal(executeExperience("/admin"), 0);
     assert.equal(executeExperience("/account"), 0);
