@@ -147,6 +147,19 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     }));
   }
 
+
+  function sendReservation(req, res, status, body, doneKey) {
+    if (!wantsHtml(req)) return res.status(status).json(body);
+    const destination = doneKey === "resource" ? RESOURCE_PAGE : WAITLIST_PAGE;
+    const workspaceId = req.sonaraBusinessMembership?.workspace_id;
+    if (status < 300 && body?.ok !== false) {
+      const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}&saved=${doneKey}` : `?saved=${doneKey}`;
+      return res.redirect(303, destination + query);
+    }
+    return renderReservationPage(req, res, doneKey === "resource" ? "resources" : "waitlist",
+      status, req.body || {}, body?.code || "database_request_failed");
+  }
+
   app.get(WAITLIST_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "waitlist"));
   app.get(RESOURCE_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "resources"));
 
@@ -255,23 +268,23 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
   app.post("/api/business/reservation-resources", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "resource");
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "resource");
     const name = clean(req.body?.name, 160);
-    if (!name) return respond(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
+    if (!name) return sendReservation(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
     const requestedType = clean(req.body?.resource_type || req.body?.resourceType || req.body?.asset_type, 40) || "equipment";
     const assetType = BUSINESS_ASSET_TYPES.has(requestedType) ? requestedType : "other";
     const capacity = Number(req.body?.capacity ?? 1);
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 1000) {
-      return respond(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
     }
     const locationId = req.body?.location_id || req.body?.locationId || null;
     if (locationId) {
-      if (!validUuid(locationId)) return respond(req, res, 400, { ok: false, code: "invalid_location_id" }, "resource");
+      if (!validUuid(locationId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_location_id" }, "resource");
       const owned = await list(scope.config, "business_locations", scope.organizationId,
         "id", `&id=eq.${enc(locationId)}`, 1);
-      if (!owned.ok) return respond(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
+      if (!owned.ok) return sendReservation(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
       if (!owned.rows.some((row) => row.id === locationId)) {
-        return respond(req, res, 403, { ok: false, code: "location_not_yours" }, "resource");
+        return sendReservation(req, res, 403, { ok: false, code: "location_not_yours" }, "resource");
       }
     }
     const created = await request(scope.config, TABLES.assets, "", {
@@ -291,7 +304,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       }
     });
     const confirmed = created.ok && Boolean(created.rows[0]?.id);
-    return respond(req, res, confirmed ? 201 : 502, {
+    return sendReservation(req, res, confirmed ? 201 : 502, {
       ok: confirmed, resource: created.rows[0] || null,
       code: confirmed ? null : created.code || "database_request_failed"
     }, "resource");
@@ -307,12 +320,12 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
   app.post("/api/business/waitlist", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "waitlist");
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "waitlist");
     const customerName = clean(req.body?.customer_name || req.body?.customerName, 200);
     const customerEmail = clean(req.body?.customer_email || req.body?.customerEmail, 320);
     const customerPhone = clean(req.body?.customer_phone || req.body?.customerPhone, 80);
     if (!customerName && !customerEmail && !customerPhone) {
-      return respond(req, res, 400, { ok: false, code: "waitlist_contact_required" }, "waitlist");
+      return sendReservation(req, res, 400, { ok: false, code: "waitlist_contact_required" }, "waitlist");
     }
     const created = await request(scope.config, TABLES.bookings, "", {
       method: "POST",
@@ -338,24 +351,24 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
         }
       }
     });
-    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, entry: created.rows[0] || null, code: created.code }, "waitlist");
+    return sendReservation(req, res, created.ok ? 201 : 502, { ok: created.ok, entry: created.rows[0] || null, code: created.code }, "waitlist");
   });
 
   app.post("/api/business/waitlist/:bookingId/offer", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "offer");
-    if (!validUuid(req.params.bookingId)) return respond(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "offer");
+    if (!validUuid(req.params.bookingId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
     const found = await request(scope.config, TABLES.bookings,
       `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}&select=id,metadata,status&limit=1`);
     const booking = found.rows[0];
-    if (!found.ok) return respond(req, res, 502, { ok: false, code: "database_request_failed" }, "offer");
-    if (!booking || booking?.metadata?.waitlist !== true) return respond(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
+    if (!found.ok) return sendReservation(req, res, 502, { ok: false, code: "database_request_failed" }, "offer");
+    if (!booking || booking?.metadata?.waitlist !== true) return sendReservation(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
     const metadata = { ...(booking.metadata || {}), waitlist_state: "offered", offered_at: new Date().toISOString() };
     const updated = await request(scope.config, TABLES.bookings,
       `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}`, {
         method: "PATCH", body: { metadata, updated_at: new Date().toISOString() }
       });
-    return respond(req, res, updated.ok ? 200 : 502, { ok: updated.ok, entry: updated.rows[0] || null, code: updated.code, customerNotified: false }, "offer");
+    return sendReservation(req, res, updated.ok ? 200 : 502, { ok: updated.ok, entry: updated.rows[0] || null, code: updated.code, customerNotified: false }, "offer");
   });
 
   app.get("/api/business/map/snapshot", requireBusinessManager, async (req, res) => {
@@ -386,8 +399,8 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 // named notice; an API client gets the JSON it always got. Only an address on
 // this site is a place to send somebody back to.
 function wantsHtml(req) {
-  const accept = String(req.headers?.accept || "");
-  return accept.includes("text/html") && !/^application\/json/.test(accept);
+  const accept = String(req.get?.("accept") || req.headers?.accept || "").toLowerCase();
+  return accept.includes("text/html") && !accept.startsWith("application/json");
 }
 
 function backFrom(req) {
