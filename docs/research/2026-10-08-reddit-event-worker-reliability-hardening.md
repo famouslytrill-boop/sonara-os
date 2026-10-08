@@ -74,3 +74,34 @@ Source review found a second independent false-success condition: `createEventCo
 - PR #511's exact-head CI was red before this patch even while its dedicated Event Consumer Activation Readiness job was green. A green single lane never overrides the red release matrix.
 
 **Next stage gate:** freeze exact PR head → real Node 24 `pnpm exec mocha tests/event-consumer-readiness.test.js` → full CI and native PostgreSQL replay → single authorized test-tenant canary with fresh enqueue IDs and result receipts → controlled owner release. Never enable payments, autoposting, messaging, production workers or the temporarily offline site based on these isolated tests.
+
+
+## Fourth engineering pass — repository exceptions and release-chain diagnostics
+
+**Concrete failure reproduced on original `main`:** `createEventConsumerWorker.runOnce` awaited `repository.claimNextFiltered` and `repository.settle` directly. A rejected promise or synchronous adapter exception propagated past `runOnce`, leaving no scoped `event.consumer` failure and making scheduled canary sample accounting incomplete. A settlement exception is especially ambiguous: the backing database or external side effect may already have completed.
+
+**Implementation on this draft branch:** three repository call sites (claim, successful delivery settlement, unsuccessful retry/dead-letter settlement) now use a single `safelyCallRepository(operation, code)` boundary. A thrown exception becomes a deterministic `{ok:false,code,row:null}` result that is consumed by existing structured failure logic, without logging the raw error text. Claims use `claim_request_failed`; settlements use `settle_request_failed`. The worker returns false rather than claiming delivery; it does not immediately re-run completed handlers.
+
+**Tests and proof:**
+- Two new test cases inject synchronous exceptions and rejected promises into claim and both settlement paths. They assert stable status, one handler execution at most, no settlement after claim failure, and no exposure of an intentionally secret-bearing exception message.
+- Direct execution of 19 runnable existing and new repository test bodies against the branch source passed; one canonical runtime-capability test requires the complete Node application environment and was not run in the isolated harness.
+- A separate before/after main-source probe showed `uncaught` with zero diagnostic events before the change, and `claim_failed` plus one structured diagnostic event afterward. This is executable unit evidence, **not** database staging validation, automatic recovery proof, or full GitHub CI.
+- The current safety boundary cannot guarantee cancellation of an external provider action after timeout, or exactly-once completion across multiple systems. A durable idempotency receipt, action-specific reconciliation and owner review of uncertain payments or publishing remain required.
+
+### Updated external research cross-check
+
+- [Reddit r/Supabase 2026-08-03 migration-drift report](https://www.reddit.com/r/Supabase/comments/1vepk4y/my_production_schema_had_drifted_from_my/): an anecdotal report highlights that migration-file history and live policies/grants can diverge. Do not treat an unversioned production SQL edit as a harmless repair.
+- [Reddit r/Supabase 2026-09-29 privilege-drift discussion](https://www.reddit.com/r/Supabase/comments/1wtp6cj/our_supabase_dashboard_can_silently_drift_from/): a tool author claims default schema diffs can miss effective grants. This is a vendor-adjacent claim, not an independently verified property in SONARA; validate actual role privileges using PostgreSQL catalog checks.
+- [GitHub's required status check guidance](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks): required status checks must succeed for the applicable latest commit / test-merge commit. A draft PR with individual green jobs but red mandatory jobs is not release-ready.
+
+### Concrete CI forensics from GitHub run logs (no bypasses)
+
+**PR #508:** `SONARA Industries CI` → `Run every release gate` fails because `data/capability-inventory.json` is stale; generator requests `node scripts/generate-capability-inventory.cjs --write`. Its native migration replay passed, but browser WebKit and Firefox jobs failed with missing expected elements and/or service 429/503 responses. The correct fix is to regenerate **on the exact source checkout**, review the diff, then test the target browsers independently. Do not edit generated JSON by hand, relax release checks, or modify public routes to hide 503s.
+
+**PR #509:** `SONARA Industries CI` and Node compatibility fail a handoff count assertion: generated `docs/HANDOFF_PROMPT.md` says 513 test files; the Mocha spec counts 516. Run `node scripts/generate-handoff-prompt.mjs` on the exact branch and review all output, including file-size limits. Its PostgreSQL replay fails `P1 policy definition drift on 25 policies; abort`. This is an intentional integrity guard; prove the canonical policy definitions with fresh database replay and inspect migration ordering before preparing any revised hash/proof or rollback. Unilaterally blessing the current definitions would defeat the gate.
+
+**PR #511:** its earlier synthetic canary readiness workflow passed, but release matrix jobs were red; new commits restart the exact-head verification. A passing narrow job or `mergeable:true` is insufficient.
+
+**PR #512:** its outbox response-integrity adapter was updated independently; the generated test-file count was preserved by integrating new regression cases into the existing test file. Review against #511 prior to any integration; source patches are not automatically conflict-free just because draft branches are separate.
+
+**Required next execution:** exact-head generated-artifact refresh and verified native migrations in the CI-fix branch → browser contract triage → full Node/Mocha checks on the updated worker/outbox branches → provider-free two-tenant staging tests → governance and separately approved controlled release. Preserve the owner's existing temporary production-offline instruction.
