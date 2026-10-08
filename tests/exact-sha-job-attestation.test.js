@@ -23,7 +23,9 @@ function buildEvidence() {
     const id = ++runId;
     workflowRuns.push({
       name, id, path: REQUIRED_WORKFLOW_FILES[name],
-      head_sha: sha, head_branch: "main", event: "push", status: "completed",
+      head_sha: sha, head_branch: "main",
+      event: name === "Browser Quality" ? "workflow_dispatch" : "push",
+      status: "completed",
       conclusion: "success", created_at: "2026-10-08T18:00:00Z"
     });
     jobsByRunId[id] = {
@@ -40,8 +42,51 @@ function buildEvidence() {
 }
 
 describe("immutable release SHA requires complete job-level evidence", () => {
-  it("accepts all six completed workflows only when every required job passed", () => {
+  it("accepts required push jobs and the manually dispatched three-browser matrix only when every job passed", () => {
     assert.deepEqual(assess(buildEvidence()), { ok: true, failures: [] });
+  });
+
+  it("rejects a green browser workflow with a skipped WebKit, Firefox or Chromium job", () => {
+    for (const browser of REQUIRED_JOBS["Browser Quality"]) {
+      const proof = buildEvidence();
+      const run = proof.workflowRuns.find(x => x.name === "Browser Quality");
+      proof.jobsByRunId[run.id].jobs.find(job => job.name === browser).conclusion = "skipped";
+      assert.ok(assess(proof).failures.some(x => x.includes("job_not_successful:" + browser)));
+    }
+  });
+
+  it("rejects browser success that bypassed contract execution or evidence upload", () => {
+    for (const step of ["Run browser contract", "Upload browser evidence"]) {
+      const proof = buildEvidence();
+      const run = proof.workflowRuns.find(x => x.name === "Browser Quality");
+      const job = proof.jobsByRunId[run.id].jobs[0];
+      job.steps.find(s => s.name === step).conclusion = "skipped";
+      assert.ok(assess(proof).failures.some(x => x.includes("required_step_missing_or_unsuccessful")));
+    }
+  });
+
+  it("refuses push or PR browser evidence and cannot reuse an older green manual run", () => {
+    for (const event of ["push", "pull_request"]) {
+      const wrong = buildEvidence();
+      wrong.workflowRuns.find(x => x.name === "Browser Quality").event = event;
+      assert.ok(assess(wrong).failures.includes("Browser Quality:workflow_missing"));
+    }
+    const stale = buildEvidence();
+    const passed = stale.workflowRuns.find(x => x.name === "Browser Quality");
+    stale.workflowRuns.push({ ...passed, id: 99991, created_at: "2026-10-09T00:00:00Z",
+      conclusion: "failure" });
+    assert.ok(assess(stale).failures.includes("Browser Quality:workflow_not_successful"));
+  });
+
+  it("refuses a successful browser job with the wrong SHA or branch", () => {
+    const wrongSha = buildEvidence();
+    const run = wrongSha.workflowRuns.find(x => x.name === "Browser Quality");
+    wrongSha.jobsByRunId[run.id].jobs[0].head_sha = "b".repeat(40);
+    assert.ok(assess(wrongSha).failures.includes("Browser Quality:job_identity_mismatch"));
+    const wrongRef = buildEvidence();
+    const refRun = wrongRef.workflowRuns.find(x => x.name === "Browser Quality");
+    wrongRef.jobsByRunId[refRun.id].jobs[0].head_branch = "feature/fake";
+    assert.ok(assess(wrongRef).failures.includes("Browser Quality:job_identity_mismatch"));
   });
 
   it("blocks a green workflow with a skipped required database replay job", () => {
@@ -183,6 +228,8 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     const good = await verify({ repo, exactSha: sha, token: "fake-token", get });
     assert.equal(good.ok, true);
     assert.equal(urls.length, Object.keys(REQUIRED_JOBS).length + 2);
+    assert.ok(urls.some(url => url.includes("&branch=main&per_page=100")));
+    assert.ok(!urls.some(url => url.includes("&event=push&per_page=100")));
     const noNetwork = await verify({
       repo, exactSha: sha, token: "fake-token", get: async () => { throw new Error("network down"); }
     });
