@@ -56,7 +56,7 @@ COMMIT;
 
 **P0 – access boundaries:** Examine 1,292 overlapping permissive-policy lint entries by actual role/grant, plus eight security-definer RPC warnings. In Postgres, permissive RLS policies OR together; do not remove policies or change roles without a tested access matrix. The security advisor also reports the `vector` extension in `public` and compromised-password protection not enabled; track independently.
 
-**P1 – snapshot:** Avoid repeatedly calling `sonara_database_deep_snapshot()` on routine page/API requests. It enumerates hundreds of tables and functions via correlated catalog lookups; investigate caller frequency and split lightweight operational health from comprehensive inventory. Keep the RPC output contract and server-only grants unchanged until tested. Do not add speculative user-table indexes to fix catalog query latency.
+**P1 – snapshot:** The repository search located `sonara_database_deep_snapshot()` in production-schema verification (`scripts/verify-production-supabase.mjs`) and its defining migration/tests, **not in an ordinary customer page route**. Its ~507 ms mean is therefore not evidence of user-facing latency. Keep its audit response contract and server-only grants unchanged; investigate only if actual scheduled audit frequency or database CPU costs justify refactoring. Do not add user-table indexes to fix catalog query latency.
 
 **P1 – FK indexes:** Reassess missing-FK coverage when rows, parent deletions, RLS membership lookups, or tenant joins become significant. Choose narrow, leading-key composite/partial indexes from actual query plans and writes. Never blindly install 379 new indexes.
 
