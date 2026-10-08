@@ -82,7 +82,7 @@ describe("the migrations are executed somewhere, not only read", () => {
       const current = fs.readFileSync(path.join(root, "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8");
       assert.match(legacy, /P1 policy definition drift on % policies/);
       assert.match(legacy, /ROLLBACK;\s*$/);
-      assert.match(current, /roles IS DISTINCT FROM '\\{service_role\\}'/);
+      assert.ok(current.includes("roles IS DISTINCT FROM '{service_role}'"), "hardened postflight no longer checks exclusive service-role scope");
       assert.match(current, /P1 post-migration policy definition drift/);
       assert.match(current, /ROLLBACK;\s*$/);
     });
