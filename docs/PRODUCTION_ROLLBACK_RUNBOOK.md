@@ -58,12 +58,14 @@ Download the `rollback-checkpoint-<run_id>` artifact. It contains:
 
 | File | What it is |
 |---|---|
-| `rollback-checkpoint.txt` | PITR restore target (UTC), previously-live commit SHA, incoming SHA |
+| `rollback-checkpoint.txt` | Pre-migration incident timestamp (UTC), previously-live commit SHA, incoming SHA |
 | `pre-migration-schema.sql` | Schema as it stood immediately before the migration |
 
 The artifact holds **no customer data** — the dump is schema-only by design, so
-it is safe to download and inspect. Data recovery goes through Supabase
-point-in-time recovery, using the recorded timestamp as the target.
+it is safe to download and inspect. The timestamp is incident/release evidence,
+**not a database backup and not a valid PITR target unless PITR has separately
+been enabled and restore-tested**. The current connected Supabase organization
+is on the Free plan, so this artifact alone cannot roll customer data back.
 
 Confirm what is actually live right now:
 
@@ -154,10 +156,13 @@ aliases have moved independently before.
 
 ## Step 4 — Roll the database back (destructive migrations only)
 
-**Do not run this unless Step 2 classified the migration as destructive.** PITR
-restores the *whole database* to a point in time, so every write committed after
-the checkpoint is lost — including customer writes made between the migration
-and your decision to roll back. The longer you wait, the more you lose.
+**Do not run this unless Step 2 classified the migration as destructive.**
+The current Free-plan production project does not have a proven PITR recovery
+path. Stop here unless a recovery mechanism was established and successfully
+restore-tested before the migration. If a future paid-plan PITR path is
+available, restoring the whole database to a point in time loses every write
+committed after the selected recovery point — including customer writes made
+between the migration and the rollback decision.
 
 1. Announce it. Data will be lost; someone other than you should know.
 2. Establish the loss window: from `checkpoint_utc` to now. Check whether real
@@ -175,9 +180,12 @@ and your decision to roll back. The longer you wait, the more you lose.
    supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
    ```
 
-If PITR is not enabled on the project, this step is not available and the only
-path is a hand-written down-migration. **Verify PITR is enabled before you need
-it** — see "Preventive work" below.
+If PITR is not enabled and there is no separately tested off-site logical
+database + Storage-object recovery set, **there is no proven customer-data
+rollback path**. A hand-written down-migration may reverse schema changes, but it
+is not a substitute for restoring lost or corrupted customer data. Establish
+and rehearse one of the recovery mechanisms in `docs/MONITORING_AND_BACKUPS.md`
+before approving a destructive production migration.
 
 ---
 
@@ -200,8 +208,10 @@ The rollback above is a recovery path, not a substitute for these:
 - **Write expand-only migrations.** Add, do not drop or narrow. Deploy the code
   that stops using a column in one release; drop the column in a later one. This
   keeps every rollback a Step 3, never a Step 4.
-- **Verify PITR is enabled** on the production project. Step 4 is impossible
-  without it, and finding that out during an incident is the worst time.
+- **Establish a real customer-data recovery mechanism.** Either use an eligible
+  managed backup/PITR plan and complete a dated restore drill, or maintain an
+  encrypted off-site logical database backup plus a separate Storage-object
+  backup and restore-test both. A timestamp and schema dump are not enough.
 - **Reorder the pipeline.** Deploying the application before migrating is
   possible whenever the migration is expand-only, and removes the split-state
   window entirely. Tracked as CRIT-5 in
