@@ -104,7 +104,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
 
   // The HTML and JSON views share the same organization-scoped readers.
-  async function renderReservationPage(req, res, kind, status = null, input = {}, problem = "") {
+  async function renderReservationPage(req, res, kind, status = null, input = {}, problem = "", readers = { readResources, readWaitlist }) {
     res.set("Cache-Control", "private, no-store");
     const scope = await context(req);
     const workspaceId = req.sonaraBusinessMembership?.workspace_id || "";
@@ -123,10 +123,10 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       invalid_time_window: "Enter real UTC times in chronological order."
     };
     const [resources, locations, waitlist] = scope.ok ? await Promise.all([
-      readResources(scope, 201),
+      readers.readResources(scope, 201),
       kind === "resources" ? list(scope.config, "business_locations", scope.organizationId,
         "id,name", "&status=eq.active&order=name.asc,id.asc", 201) : Promise.resolve({ ok: true, rows: [] }),
-      kind === "waitlist" ? readWaitlist(scope) : Promise.resolve({ ok: true, rows: [] })
+      kind === "waitlist" ? readers.readWaitlist(scope) : Promise.resolve({ ok: true, rows: [] })
     ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }, { ok: false, rows: [] }];
     const unreadable = !scope.ok || !resources.ok || (kind === "resources" ? !locations.ok : !waitlist.ok);
     const error = Boolean(issue || !scope.ok);
@@ -186,7 +186,14 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       status, req.body || {}, body?.code || "database_request_failed");
   }
 
-  app.get(WAITLIST_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "waitlist"));
+  // The registered page passes the SAME tenant-scoped reader functions that
+  // serve its JSON twins. Explicit thunk calls make the shared read chain
+  // independently auditable without reading private state or querying twice.
+  app.get(WAITLIST_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res,
+    "waitlist", null, {}, "", {
+      readResources: (scope, limit) => readResources(scope, limit),
+      readWaitlist: (scope) => readWaitlist(scope)
+    }));
   app.get(RESOURCE_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "resources"));
 
   // One reader for the page and the JSON, so they cannot disagree. A source
