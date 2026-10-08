@@ -2,7 +2,8 @@
 "use strict";
 const assert=require("node:assert/strict");
 const {
-  budgetBucketKey,consumeDurableResourceBudget,claimDurableConcurrency,releaseDurableConcurrency
+  budgetBucketKey,consumeDurableResourceBudget,claimDurableConcurrency,releaseDurableConcurrency,
+  acquireDurableRunEnvelope
 }=require("../lib/sonara-resource-budget-store.cjs");
 
 const KEY="service_role_test_key_123456789";
@@ -99,4 +100,84 @@ describe("durable weighted resource budget adapter",()=>{
     assert.equal(lease.code,"invalid_resource_budget_lease");
     assert.equal(calls,0);
   });
+  it("claims concurrency before spending resource budget",async()=>{
+    const calls=[];
+    const out=await acquireDurableRunEnvelope(deps,{
+      bucketKey:BUCKET,leaseId:LEASE,operationKey:"automation_run",
+      capacityUnits:100,refillUnitsPerMinute:10,dailyLimitUnits:1000,costUnits:10,
+      concurrencyLimit:2,leaseSeconds:300
+    },async(url,init)=>{
+      calls.push(url);
+      if(url.endsWith("sonara_claim_resource_concurrency"))
+        return response([{allowed:true,reason:"concurrency_lease_acquired",active_leases:1,lease_expires_at:"2026-10-08T23:00:00Z"}]);
+      if(url.endsWith("sonara_consume_resource_budget"))
+        return response([{allowed:true,reason:"within_budget",remaining_units:90,daily_remaining_units:990,retry_after_seconds:0}]);
+      throw new Error("unexpected RPC");
+    });
+    assert.equal(out.allowed,true);
+    assert.equal(out.leaseHeld,true);
+    assert.equal(out.budgetConsumed,true);
+    assert.match(calls[0],/sonara_claim_resource_concurrency$/);
+    assert.match(calls[1],/sonara_consume_resource_budget$/);
+    assert.equal(out.externalSideEffectAuthorized,false);
+  });
+
+  it("does not spend budget when concurrency is already saturated",async()=>{
+    const calls=[];
+    const out=await acquireDurableRunEnvelope(deps,{
+      bucketKey:BUCKET,leaseId:LEASE,operationKey:"automation_run",
+      capacityUnits:100,refillUnitsPerMinute:10,dailyLimitUnits:1000,costUnits:10,
+      concurrencyLimit:1,leaseSeconds:300
+    },async(url)=>{
+      calls.push(url);
+      return response([{allowed:false,reason:"concurrency_budget_exceeded",active_leases:1,lease_expires_at:null}]);
+    });
+    assert.equal(out.allowed,false);
+    assert.equal(out.budget,null);
+    assert.equal(out.budgetConsumed,false);
+    assert.equal(calls.length,1);
+  });
+
+  it("releases the lease when the daily or weighted budget refuses the run",async()=>{
+    const calls=[];
+    const out=await acquireDurableRunEnvelope(deps,{
+      bucketKey:BUCKET,leaseId:LEASE,operationKey:"automation_run",
+      capacityUnits:100,refillUnitsPerMinute:0,dailyLimitUnits:1000,costUnits:10,
+      concurrencyLimit:2,leaseSeconds:300
+    },async(url)=>{
+      calls.push(url);
+      if(url.endsWith("sonara_claim_resource_concurrency"))
+        return response([{allowed:true,reason:"concurrency_lease_acquired",active_leases:1,lease_expires_at:"2026-10-08T23:00:00Z"}]);
+      if(url.endsWith("sonara_consume_resource_budget"))
+        return response([{allowed:false,reason:"budget_exhausted_no_refill",remaining_units:0,daily_remaining_units:900,retry_after_seconds:0}]);
+      if(url.endsWith("sonara_release_resource_concurrency"))
+        return response([{released:true}]);
+      throw new Error("unexpected RPC");
+    });
+    assert.equal(out.allowed,false);
+    assert.equal(out.reason,"budget_exhausted_no_refill");
+    assert.equal(out.leaseHeld,false);
+    assert.equal(out.cleanupPending,false);
+    assert.equal(out.budgetConsumed,false);
+    assert.match(calls[2],/sonara_release_resource_concurrency$/);
+  });
+
+  it("marks cleanup pending if a failed budget cannot release its lease",async()=>{
+    const out=await acquireDurableRunEnvelope(deps,{
+      bucketKey:BUCKET,leaseId:LEASE,operationKey:"automation_run",
+      capacityUnits:100,refillUnitsPerMinute:0,dailyLimitUnits:1000,costUnits:10,
+      concurrencyLimit:2,leaseSeconds:30
+    },async(url)=>{
+      if(url.endsWith("sonara_claim_resource_concurrency"))
+        return response([{allowed:true,reason:"concurrency_lease_acquired",active_leases:1,lease_expires_at:"2026-10-08T23:00:00Z"}]);
+      if(url.endsWith("sonara_consume_resource_budget"))
+        return response([{allowed:false,reason:"budget_exhausted_no_refill",remaining_units:0,daily_remaining_units:900,retry_after_seconds:0}]);
+      return response({}, {status:503});
+    });
+    assert.equal(out.allowed,false);
+    assert.equal(out.leaseHeld,true);
+    assert.equal(out.cleanupPending,true);
+    assert.equal(out.externalSideEffectAuthorized,false);
+  });
+
 });
