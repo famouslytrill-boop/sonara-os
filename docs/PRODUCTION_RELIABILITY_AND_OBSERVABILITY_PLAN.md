@@ -186,13 +186,21 @@ notification. Push subscriptions already exist as a table with that posture.
 
 ## 5. Queue and retry telemetry
 
-**Exists, per attempt, in two places.** `lib/growth-studio-dispatch.cjs` bounds
-its fallback at `MAX_FALLBACK_BATCHES` and reports the recipients past that
-bound as **not attempted** rather than attempted and untracked.
-`public.growth_campaign_sends` (added 16 September 2026) records one row per
-recipient across accepted, failed and not-attempted, and
-`lib/growth-studio-send-records.cjs` answers "who still has not been reached"
-from it while refusing to answer from a failed read.
+**Draft improvement awaiting release gates (PR #533).** The Growth email
+dispatcher no longer retries ambiguous Resend batch responses as individual
+emails. Successful sends require unique per-recipient provider IDs and carry
+operation-scoped idempotency keys. Unknown completion is a separate API and
+telemetry state, and later batches are not attempted. The existing append-only
+`public.growth_campaign_sends` table records unknown completion under its
+legacy `status='failed'` storage envelope with `reason='provider_outcome_unknown'`.
+The remainder-read contract refuses **all** new remainder sends while those
+unknown outcomes remain. A read that fails is also still refused.
+
+**Important missing control:** a real provider-authoritative reconciliation
+workflow and durable adjudication record. The existing append-only table cannot
+simply flip an unknown row to verified. Until an owner-authorized reconciler
+records trustworthy proof, this safety gate deliberately prevents a replay.
+No production readiness can be inferred from the draft patch or mock tests.
 
 **Absent:** the >1,000-recipient cross-invocation queue. It needed that record
 and now has it, but it also needs the work to be resumable across invocations,
