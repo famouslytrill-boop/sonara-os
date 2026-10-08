@@ -61,6 +61,8 @@ const registerCustomerReadyExperience = require("./routes/customer-ready-experie
 // them. That generator is retired along with the other fifty-five, so nothing
 // writes here any more and the two bindings went with it.
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const { renderPublicFaq } = require("./lib/sonara-public-faq.cjs");
+const { emitEvent } = require("./lib/sonara-structured-log.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
@@ -951,7 +953,29 @@ app.get("/contact", (req, res) => {
   );
 });
 
-app.post("/contact", async (req, res) => {
+// Public contact can send a provider email and write a database row. Charge
+// both hashed origin and hashed email buckets before either costly side effect.
+// The database RPC is distributed; a bounded in-memory fallback is explicitly
+// reported as degraded by the shared rate-limit module.
+const contactSubmitLimiter = createRateLimiter({
+  name: "support.contact",
+  windowSeconds: 60 * 60,
+  maxAttempts: 60,
+  degradedMaxAttempts: 60,
+  scopes: ["ip", "subject"],
+  subjectFrom: (req) => req.body?.email,
+  getSupabaseServerConfig,
+  renderDenied({ req, res, retryAfterSeconds }) {
+    if (!acceptsHtml(req)) return false;
+    return res.status(429).type("html").send(responsePage(
+      "Too many support messages",
+      `This connection has submitted too many support messages. Try again in about ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s). No new request was stored or sent.`,
+      [linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
+    ));
+  }
+});
+
+app.post("/contact", contactSubmitLimiter, async (req, res) => {
   const request = normalizeSupportRequest(req.body);
   const wantsJson = req.is("application/json") || req.get("accept")?.includes("application/json");
 
@@ -975,6 +999,14 @@ app.post("/contact", async (req, res) => {
   }
 
   const result = await saveSupportRequest(request.value);
+  // Record only the delivery outcome, never the sender, body or subject.
+  emitEvent({
+    event: "support.request_submission",
+    scope: "process",
+    capability: "support",
+    outcome: result.ok ? (result.status === "received" ? "ok" : "partial") : "failed",
+    reason: result.status
+  });
   // 503 when nothing was stored and nothing was sent, so a caller reading only the status code cannot take a vanished request for a filed one.
   if (wantsJson) return res.status(result.ok ? 200 : 503).json(result);
   return res.status(result.ok ? 200 : 503).type("html").send(
@@ -1044,7 +1076,7 @@ app.get("/about", (req, res) => {
         brandCard("How we are different", "Three focused workspaces, one identity and one bill. No invented activity or placeholder numbers. Anti-clone and consent safety for creative work. Free to start, with paid depth only when the work earns it."),
         brandCard("Built for real operations", "Restaurants, studios, service businesses, venues, and independent teams use focused tools that match how they actually work — without pretending to be an enterprise.")
       ],
-      actions: [linkAction("/signup", "Start free"), linkAction("/how-it-works", "How it works"), linkAction("/pricing", "See pricing")]
+      actions: [linkAction("/signup", "Start free"), linkAction("/how-it-works", "How it works"), linkAction("/pricing", "See pricing"), linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
     })
   );
 });
@@ -1078,9 +1110,18 @@ app.get("/help", (req, res) => {
       sections: [
         brandCard("Contact support", "Send a message for account, billing, or service questions. Every request returns a reference ID you can follow."),
         brandCard("Getting started", "Use the free planning tools and short tutorials to get a real result before choosing a plan."),
-        brandCard("Account & billing", "Manage your plan and billing from your account, and cancel anytime.")
+        brandCard("Account & billing", "Review current subscription and cancellation options in your account. Refunds follow the published policy."),
+        renderPublicFaq(escapeHtml)
       ],
-      actions: [linkAction("/contact", "Contact"), linkAction("/tutorials", "Tutorials"), linkAction("/free-tools", "Free tools"), linkAction("/free-launch-stack", "Free Launch Stack")]
+      actions: [
+        linkAction("/contact", "Contact"),
+        linkAction("/tutorials", "Tutorials"),
+        linkAction("/free-tools", "Free tools"),
+        linkAction("/account/security", "Account security"),
+        linkAction("/terms", "Terms"),
+        linkAction("/privacy", "Privacy"),
+        linkAction("/refund-policy", "Refund policy")
+      ]
     })
   );
 });
