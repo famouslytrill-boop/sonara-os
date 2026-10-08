@@ -4,6 +4,7 @@
 
 const { createHash, randomUUID } = require("node:crypto");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { settledMapBounded } = require("../lib/sonara-bounded-source-reads.cjs");
 const {
   getGrowthProvider,
   _getGrowthProviderReadiness,
@@ -1157,20 +1158,24 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     // question. A count that cannot be read comes back null rather than 0.
     const scoped = campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "";
     const scopedById = campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : "";
+    // Bounded exact-count reads prevent a nine-request burst per campaign
+    // report. One failed query yields an unknown count, never zero.
+    const countTasks = [
+      () => countRows(config, TABLES.campaigns, context, scopedById),
+      () => countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
+      () => countRows(config, TABLES.leads, context, scoped),
+      () => countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
+      () => countRows(config, TABLES.touchpoints, context, scoped),
+      () => countRows(config, TABLES.conversions, context, scoped),
+      () => countRows(config, TABLES.content, context, scoped),
+      () => countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
+      () => countRows(config, TABLES.experiments, context, scoped)
+    ];
+    const settledCounts = await settledMapBounded(countTasks, (read) => read(), { concurrency: 3 });
     const [
       campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount,
       touchpointCount, conversionCount, contentCount, publishedCount, experimentCount
-    ] = await Promise.all([
-      countRows(config, TABLES.campaigns, context, scopedById),
-      countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
-      countRows(config, TABLES.leads, context, scoped),
-      countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
-      countRows(config, TABLES.touchpoints, context, scoped),
-      countRows(config, TABLES.conversions, context, scoped),
-      countRows(config, TABLES.content, context, scoped),
-      countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
-      countRows(config, TABLES.experiments, context, scoped)
-    ]);
+    ] = settledCounts.map((item) => item.ok ? item.value : { ok: false, count: null });
 
     // A conversion with no value recorded counted as zero and disappeared into
     // the total, which then read as the value of every sale. Number(null) is 0
@@ -1377,8 +1382,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   async function readInBatches(ids, limit, readBatch) {
     const batches = [];
     for (let start = 0; start < ids.length; start += BATCH) batches.push(ids.slice(start, start + BATCH).map(encodeURIComponent).join(","));
-    const results = await Promise.all(batches.map(readBatch));
-    if (!results.every((result) => result.ok)) return { ok: false, rows: [] };
+    // A large campaign can span many 100-id pages. Keep at most three in
+    // flight here, rather than sending a provider one query per page at once.
+    const settled = await settledMapBounded(batches, readBatch, { concurrency: 3 });
+    if (!settled.every((item) => item.ok && item.value?.ok && Array.isArray(item.value.rows))) {
+      return { ok: false, rows: [] };
+    }
+    const results = settled.map((item) => item.value);
     return { ok: true, rows: results.flatMap((result) => result.rows), truncated: results.some((result) => result.rows.length >= limit) };
   }
   async function readWhatCustomersPaid(config, context, campaignId, leads) {
