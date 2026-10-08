@@ -43,3 +43,58 @@ describe("authorization RPC grant hardening", () => {
     assert.match(migration, /if to_regprocedure\(signature\) is not null/);
   });
 });
+
+describe("policy authorization helpers move privileged logic behind a private schema", () => {
+  const migration = fs.readFileSync(
+    path.join(__dirname, "..", "supabase", "migrations", "20261008130000_move_rls_definer_logic_to_private_schema.sql"),
+    "utf8"
+  );
+  const report = fs.readFileSync(
+    path.join(__dirname, "..", "scripts", "report-security-definer-exposure.mjs"),
+    "utf8"
+  );
+
+  const helpers = [
+    "can_manage_entity",
+    "has_entity_role",
+    "has_org_role",
+    "is_entity_member",
+    "is_org_member",
+    "is_org_owner_or_admin",
+    "sonara_is_org_member"
+  ];
+
+  it("puts privileged helper bodies in private and leaves public compatibility wrappers as invokers", () => {
+    assert.match(migration, /create schema if not exists private/i);
+    for (const helper of helpers) {
+      assert.match(migration, new RegExp(`create or replace function private\\.${helper}\\b[\\s\\S]*?security definer`, "i"));
+      assert.match(migration, new RegExp(`create or replace function public\\.${helper}\\b[\\s\\S]*?security invoker`, "i"));
+      assert.match(migration, new RegExp(`private\\.${helper}\\(`, "i"));
+    }
+  });
+
+  it("keeps anonymous callers out while authenticated policy evaluation and server paths can execute", () => {
+    assert.match(migration, /revoke all on schema private from public, anon, authenticated, service_role/i);
+    assert.match(migration, /grant usage on schema private to authenticated, service_role/i);
+    assert.match(migration, /from public, anon/i);
+    assert.match(migration, /to authenticated, service_role/i);
+    assert.match(migration, /has_schema_privilege\('anon', 'private', 'usage'\)/i);
+    assert.match(migration, /has_function_privilege\('anon', private_oid, 'execute'\)/i);
+  });
+
+  it("pins search_path and verifies public/private privilege class instead of trusting migration text", () => {
+    assert.match(migration, /set search_path = ''/i);
+    assert.match(migration, /public_is_definer/i);
+    assert.match(migration, /private_is_definer/i);
+    assert.match(migration, /public authorization helper remains SECURITY DEFINER/i);
+    assert.match(migration, /private authorization helper is not SECURITY DEFINER/i);
+  });
+
+  it("updates the exposure report so a complete private-helper transition is not misreported as parser blindness", () => {
+    assert.match(report, /privateDefinerNames/);
+    assert.match(report, /POLICY_HELPERS/);
+    assert.match(report, /private authorization-helper transition is partial/);
+    assert.match(report, /policy helper\(s\) remain exposed SECURITY DEFINER after private transition/);
+  });
+});
+
