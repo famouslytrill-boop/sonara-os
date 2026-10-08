@@ -511,3 +511,13 @@ behaviour, not settlement, deployment or real customer/device evidence.
   suite (`5,109 passing`, `6 pending`), route smoke, client-secret scan, and
   desktop/mobile browser checks. Hosted CI was green and PR #379 merged into
   `main` as `24a2fdc5`.
+
+## 2026-10-08 - Docker runtime contract packaging repair
+
+- Base commit: `add53bf33a1c7cffa72fb7fc2b3738c25e8dac00`.
+- Files touched: Dockerfile and this handoff; no locks or dependencies changed.
+- Closed the image-startup failure: include android/twa runtime contracts before the build imports routes/sonara-well-known-routes.cjs.
+- Evidence: main Docker job 112981281228 failed on missing /app/android/twa/build-contract.json. A local copy-set startup probe reproduces that failure without android/ and loads the production entry point successfully with it.
+- Verification: frozen install, dependency audit (no known vulnerabilities), typecheck, lint, full Mocha suite (6,832 passing; 6 pending), build and diff checks passed on Node 24.19.0. Local pnpm is 11.25.0; the image retains the repository's pinned 12.7.0.
+- Docker is unavailable locally, so a real image build and exact-head hosted CI remain required. No deployment, migration, provider activation, signing claim or website reactivation occurred.
+- Next slice: validate the branch's hosted Docker smoke check; retain the exact-SHA deployment gate and the owner's temporary-offline instruction.
