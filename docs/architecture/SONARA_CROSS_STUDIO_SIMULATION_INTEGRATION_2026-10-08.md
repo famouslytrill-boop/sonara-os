@@ -103,3 +103,40 @@ Before any merge or production deployment require full exact-head CI, pnpm/Node 
 ### Required release proof still missing
 
 Exact SHA full mandatory GitHub workflow matrix and pnpm Node 24/26, lint, typecheck, test, build, package/audit, route/browser accessibility, observed auth denial on real Express, load/rate limits, migration/security dependencies and controlled deployment authorization. Until those succeed, keep PR #530 draft and do not merge or deploy.
+
+## Hardening review: validated research math and safe form contracts — 2026-10-08
+
+This subsequent engineering pass modified existing owned files in the draft PR; it did **not** introduce a new endpoint, migration, dependency or runtime payment/trading capability.
+
+### Concrete defects corrected
+
+1. **Polygon area validity:** \`polygonSignedArea\` used the shoelace formula but previously did not check the simple-polygon precondition. A self-crossing bow-tie outline could yield a zero or misleading area. It now rejects repeated points, zero-length edges, nonadjacent crossing/touching edges, and zero-area degenerate polygons before returning an area. Concave simple polygons and reversed clockwise winding still work. Pairwise edge checks are O(n²), bounded to 128 vertices. This is a bounded educational geometry check, not licensed survey/CAD or robust geodesic computation.
+2. **Query object integrity:** \`parseSubmission\` previously permitted absent form fields to be resolved via the object's prototype and called \`JSON.stringify(query)\` before validating whether object keys contained getters or \`toJSON\` hooks. It now requires each submitted field to be an **own data property** containing a string, computes its own byte budget from validated primitive strings, and rejects fields that are missing, arrays, accessors or unsafe values. The GET input cannot trigger an arbitrary JavaScript accessor through serialization.
+3. **Explicit operation schemas:** the 15-item \`sonara-simulation-integration.cjs\` registry now defines frozen \`required\` and \`optional\` field lists per studio operation. Any undocumented field fails closed rather than being silently ignored; missing required inputs are rejected. The read-only catalog publishes these contract field names but never runner functions, arbitrary code or privilege grants.
+
+### Focused regression evidence
+
+The latest isolated V8 harness exercise retrieved the nine real test source files and the current repository implementation modules, including the real invention-intelligence dependency. It completed **132 passing / 0 failing** test cases across:
+- Creative simulation kernel: 16
+- Casino odds / virtual paper portfolio: 16
+- Applied geometry/trigonometry/calculus/physics: 19
+- Five-card/game-theory strategy: 17
+- Synthetic backtesting: 10
+- Creative music/narrative theory: 8
+- Cross-studio integration: 19
+- Customer-input research workbench: 18
+- Existing invention-system route: 9
+
+New negative cases cover crossing polygon edges, touching/repeated/degenerate boundaries, inherited query properties, accessor and \`toJSON\` hooks, undocumented cross-studio parameters, and missing required fields. Positive cases include concave area, optional defaults, unchanged routes and zero new mutation APIs.
+
+**Evidence boundary:** the V8 harness substitutes an assertion adapter and route callback harness. It is neither the official Node/Mocha runtime nor exact-head CI and must not be represented as passing the pinned pnpm/Node 24/26 matrix. The local runtime cannot resolve GitHub DNS to clone and run the actual repository. GitHub checks still require independent completion.
+
+### Additional promotion/security requirements
+
+- Document a stable per-operation typed JSON Schema or equivalent strict validator, including nested item constraints and canonical serialization, before exposing new execution endpoints. The current owned required/optional lists are first-layer allowlists, not complete runtime JSON Schemas.
+- Enforce tenant, user and role authorization, queue/concurrency and per-user rate quotas at the real execution boundary; avoid assuming \`customerEnabled\` catalog metadata enforces access control.
+- Add fuzz/property-based experiments against a trusted geometric reference and integer-coordinate segment-intersection inputs. Floating point equality on near-collinear vertices is still a numerical precision limitation.
+- Check real Express authentication denial, content security policy, password/session cookies, URL/history data exposure, accessibility, mobile rendering, security scans and production CI.
+- No merge, migration or deployment while exact-head required GitHub checks are pending or failing.
+
+Research basis: MDN prototype-pollution avoidance recommends explicit own-property checks, safe data schemas and disallowing extra fields: https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/Prototype_pollution ; OWASP API4:2023 recommends bounded inputs, resource consumption and rate limits: https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/ .
