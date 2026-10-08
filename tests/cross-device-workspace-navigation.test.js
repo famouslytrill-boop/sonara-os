@@ -10,6 +10,8 @@ const { createPageFrame } = require("../lib/sonara-page-frame.cjs");
 const root = path.join(__dirname, "..");
 const shellStyles = fs.readFileSync(path.join(root, "public/sonara-application-ui.css"), "utf8");
 const sourceStyles = fs.readFileSync(path.join(root, "ui/sonara/styles/99-zzzzzz-frontend-operations-2026.css"), "utf8");
+const workerSource = fs.readFileSync(path.join(root, "public/sw.js"), "utf8");
+const fontSource = fs.readFileSync(path.join(root, "public/sonara-fonts.css"), "utf8");
 const marker = "/* SONARA cross-device adaptive workspace navigation — 2026-10-08 */";
 const frame = createPageFrame({
   legalPages: () => [],
@@ -96,6 +98,25 @@ describe("cross-device workspace navigation", () => {
     assert.match(shellStyles, /@container \(max-width: 420px\)/);
     assert.match(shellStyles, /\.sonara-ops-panel,[\s\S]*?container-type: inline-size/);
     assert.match(shellStyles, /\.sonara-ops-commandbar \[data-primary-action\][\s\S]*?margin-inline-start: 0;/);
+  });
+
+  it("releases the dock's reserved height while entering text", () => {
+    const editing = /:has\(body :is\(input, textarea, select, \[contenteditable="true"\]\):focus\)/;
+    assert.match(shellStyles, editing);
+    assert.match(shellStyles, /html\[data-sonara-workspace-dock="true"\]:has\([\s\S]*?\)\s*\{\s*scroll-padding-block-end:\s*0;/);
+    assert.match(shellStyles, /body\.sonara-has-workspace-dock:has\([\s\S]*?\)\s*\{\s*padding-block-end:\s*0;/);
+  });
+
+  it("versions the page shell, fonts, and service-worker cache together", () => {
+    const version = "sonara-ui-20261008-v24-cross-device";
+    const html = render({ authenticated: true });
+    const sources = [html, workerSource, fontSource];
+    for (const source of sources) {
+      assert.match(source, /sonara-ui-20261008-v24-cross-device/);
+      assert.doesNotMatch(source, /sonara-ui-20261007-v23-native-navigation/);
+    }
+    assert.match(workerSource, /const VERSION = "sonara-ui-20261008-v24-cross-device";/);
+    assert.match(html, /\/sonara-application-ui\.css\?v=sonara-ui-20261008-v24-cross-device/);
   });
 
   it("cannot trigger a device permission or network call through the dock", () => {
