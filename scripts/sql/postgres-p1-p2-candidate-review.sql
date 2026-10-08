@@ -23,7 +23,10 @@ HAVING count(*)>1
  ORDER BY equivalent_policy_count DESC,table_name,command;
 
 -- Only count overlapping PERMISSIVE policies for actual client roles AND
--- whether the table grants that operation. A warning is not an access leak:
+-- whether the table grants that operation. `includes_service_guard` means
+-- at least one policy predicates on auth.role()='service_role'; this is a
+-- triage signal, NOT permission to delete another tenant-scoped policy.
+-- A warning is not an access leak:
 -- PostgreSQL ORs permissive policies and roles may inherit privileges.
 WITH commands(command,pg_command) AS (
  VALUES ('SELECT'::text,'r'::"char"),('INSERT','a'),('UPDATE','w'),('DELETE','d')
@@ -32,6 +35,8 @@ WITH commands(command,pg_command) AS (
 ), expanded AS (
  SELECT c.oid AS relation_id,n.nspname AS schema_name,c.relname AS table_name,
         role_name,commands.command,p.polname,p.polqual,p.polwithcheck,
+        (concat_ws(' ',visible_policy.qual,visible_policy.with_check)
+          ~* 'auth[.]role[(][)][^=]*=[[:space:]]*''service_role''') AS includes_service_guard,
         has_table_privilege(role_name,c.oid,commands.command) AS table_granted
  FROM pg_policy p
  JOIN pg_class c ON c.oid=p.polrelid
@@ -46,6 +51,7 @@ WITH commands(command,pg_command) AS (
 ), overlapped AS (
  SELECT schema_name,table_name,role_name,command,
         bool_or(table_granted) AS table_granted,
+        bool_or(includes_service_guard) AS includes_service_guard,
         count(DISTINCT polname) AS permissive_policies,
         array_agg(DISTINCT polname ORDER BY polname) AS policy_names
  FROM expanded
