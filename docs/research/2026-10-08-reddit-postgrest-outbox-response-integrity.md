@@ -78,3 +78,25 @@ File: `lib/sonara-event-outbox.cjs`.
 Shared rule: **claim, execute, settle, verify**, with persisted tenant identity, immutable event keys, owner approval for sensitive actions, bounded retries, and audit evidence. Subscriptions and automation costs require reconciled provider costs; unknown values are unknown, not zero.
 
 **Stop condition:** no deployment or runtime activation until mandatory exact-head checks and separately approved staging proofs succeed; preserve the owner's temporary production-offline requirement.
+
+
+## Follow-up engineering: claim-owner fencing token validation (October 8)
+
+### Root cause and trace
+The native `claim_sonara_event_outbox_filtered` migration sets `claimed_by = nullif(btrim(p_consumer), '')` and returns `event.*`. That token is also used by `settle_sonara_event_outbox` to prevent stale workers from recording successful settlement after a new worker reclaims a lease. However the JavaScript PostgREST adapter on the previous PR head validated only `organization_id` and `state = 'claimed'`, so an HTTP 200 claim receipt with another worker's token was accepted by both `claimNext` and `claimNextFiltered`.
+
+An exact source before/after probe supplied a single tenant-correct `claimed` row with `claimed_by = stale-worker` while invoking each claim method with `consumer = current-worker`. The earlier PR #512 source returned `ok:true` for both; the amended branch returns `ok:false, code:'claim_identity_mismatch', row:null` for both.
+
+### Change
+`matchesClaim` now requires `row.claimed_by === claimOwner`. Both claim entry points pass the requesting worker token. A mismatch refuses work before a downstream handler is invoked; no privileged policy or production SQL migration is altered. The existing positive receipt still passes.
+
+**Tests** include mismatched, missing, null and empty `claimed_by`, and a two-worker same-tenant scenario in which one invocation receives another invocation's claim. All were inserted into the existing `tests/event-outbox.test.js` to preserve generated test-file counts.
+
+### Research / remaining limitations
+- [PostgreSQL 18 SELECT documentation](https://www.postgresql.org/docs/current/sql-select.html) confirms `SKIP LOCKED` is useful to avoid contention between queue consumers but provides an inconsistent view and does not guarantee external side effects happen once.
+- [PostgreSQL job queues need leases, August 4 2026](https://ghassan.de/en/articles/postgres-job-queue-leases) explains why durable leases, fencing tokens, crash recovery and idempotent external effects must supplement transient row locks. This is independent practitioner guidance; the code and migration provide SONARA-specific proof.
+- This check validates the *returned receipt*, not continuous ownership through execution. The claim could still expire immediately after the check; reliable provider idempotency, bounded handler times, settlement enforcement in SQL and reconciliation on unknown outcomes remain necessary.
+- Isolated adapter tests do not prove PostgreSQL concurrency safety or live provider integration. Run full Mocha/Node and two-worker Postgres test (lease expiry, stale owner, current owner) in a separately authorized staging project before release.
+
+### Integration boundary
+Draft PR #511 strengthens handler timeouts and safe retries; draft PR #512 strengthens PostgREST receipt identity. Validate them *together* only after the #508 release-repair branch has passing exact-head checks. No production activation is authorized.
