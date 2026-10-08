@@ -56,6 +56,11 @@
       catch (error) { captured.getTracks().forEach((track) => track.stop()); throw error; }
       if (revision !== sequence || document.hidden) { captured.getTracks().forEach((track) => track.stop()); return; }
       stream = captured;
+      // Some browsers expose capture APIs but cannot play the resulting stream.
+      // Refuse an empty/mismatched capture instead of presenting a blank preview.
+      if (kind === "camera" && (!stream.getVideoTracks || stream.getVideoTracks().length === 0)) {
+        throw new Error("Camera preview is unavailable in this browser. You can still open your own files.");
+      }
       stream.getTracks().forEach((track) => track.addEventListener("ended", () => { if (revision === sequence) abort("Capture ended. Nothing is being recorded."); }, { once: true }));
       let checking = false;
       poll = window.setInterval(async () => {
@@ -68,8 +73,24 @@
       timer = window.setTimeout(() => stop.click(), 60000);
       if (kind === "camera") {
         video.srcObject = stream; video.hidden = false;
-        await video.play();
+        // play() may reject or remain pending while the browser decides if a
+        // synthetic/device MediaStream can render. A finite deadline ensures
+        // that capture is stopped and the UI never claims a working camera.
+        let previewDeadline;
+        try {
+          await Promise.race([
+            Promise.resolve(video.play()),
+            new Promise((_, reject) => {
+              previewDeadline = window.setTimeout(() => reject(new Error(
+                "Camera preview is unavailable in this browser. You can still open your own files."
+              )), 4000);
+            })
+          ]);
+        } finally { window.clearTimeout(previewDeadline); }
         if (revision !== sequence) return;
+        if (!video.videoWidth || !video.videoHeight) {
+          throw new Error("Camera preview is unavailable in this browser. You can still open your own files.");
+        }
         photo.hidden = false;
         status.textContent = "Camera preview is on. It stops after 60 seconds. Take a photo or stop when finished.";
       } else {
