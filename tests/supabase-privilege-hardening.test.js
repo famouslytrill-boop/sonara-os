@@ -105,3 +105,72 @@ describe("current service-role RLS policy hardening", () => {
   });
 });
 
+describe("server-only browser grant hardening", () => {
+  const migrationPath = join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20261008110000_revoke_browser_grants_server_only_tables.sql"
+  );
+  const migration = readFileSync(migrationPath, "utf8");
+
+  const targets = [
+    "audit_logs",
+    "billing_events",
+    "db_health_snapshots",
+    "platform_jobs",
+    "prompt_templates",
+    "sonara_control_plane_checks",
+    "sonara_launch_settings",
+    "sonara_realtime_channel_registry",
+    "sonara_storage_bucket_registry",
+    "sonara_ui_capability_registry",
+    "sonara_webhook_verification_registry",
+    "sonara_worker_job_registry",
+    "sonara_write_api_registry"
+  ];
+
+  it("pins the reviewed server-only target set instead of sweeping every no-policy table", () => {
+    for (const table of targets) {
+      assert.match(migration, new RegExp(`['"]${table}['"]`));
+    }
+    assert.match(migration, /expected 13 tables/i);
+    assert.doesNotMatch(migration, /for\s+target\s+in[\s\S]*pg_policies[\s\S]*revoke all privileges/i);
+  });
+
+  it("fails closed unless every target is still RLS-on, policy-free and browser-granted", () => {
+    assert.match(migration, /relrowsecurity/i);
+    assert.match(migration, /policy_count <> 0/i);
+    for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+      assert.match(
+        migration,
+        new RegExp(`has_table_privilege\\(role_name, relation_name, '${privilege}'\\)`, "i")
+      );
+    }
+    assert.match(migration, /browser grant precondition drift/i);
+  });
+
+  it("revokes browser table privileges while preserving backend DML", () => {
+    assert.match(
+      migration,
+      /revoke all privileges on table public\.%I from anon, authenticated/i
+    );
+    for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+      assert.match(
+        migration,
+        new RegExp(`has_table_privilege\\('service_role', relation_name, '${privilege}'\\)`, "i")
+      );
+    }
+    assert.match(migration, /service_role DML privilege was changed/i);
+  });
+
+  it("does not invent customer policies, remove tables or mutate customer rows", () => {
+    assert.doesNotMatch(migration, /create\s+policy/i);
+    assert.doesNotMatch(migration, /drop\s+table/i);
+    assert.doesNotMatch(migration, /delete\s+from\s+public\./i);
+    assert.doesNotMatch(migration, /update\s+public\./i);
+    assert.doesNotMatch(migration, /insert\s+into\s+public\./i);
+    assert.match(migration, /unexpectedly created a policy/i);
+  });
+});
+
