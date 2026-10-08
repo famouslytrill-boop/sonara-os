@@ -11,6 +11,7 @@ const migration = fs.readFileSync(path.join(
 ), "utf8");
 const verifier = fs.readFileSync(path.join(root, "scripts/verify-production-supabase.mjs"), "utf8");
 const projectIdentityVerifier = fs.readFileSync(path.join(root, "scripts/verify-production-project-identity.mjs"), "utf8");
+const securityAdvisorVerifier = fs.readFileSync(path.join(root, "scripts/verify-production-security-advisors.mjs"), "utf8");
 const productionWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy.yml"), "utf8");
 const dryRunWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy-dry-run.yml"), "utf8");
 const ciWorkflow = fs.readFileSync(path.join(root, ".github/workflows/sonara-industries-ci.yml"), "utf8");
@@ -83,6 +84,27 @@ describe("Supabase deep database reconciliation", () => {
     assert.match(verifier, /allowed pending migration is not present in this checkout/);
     assert.match(verifier, /pull-request migration is intentionally pending production apply/);
     assert.doesNotMatch(productionWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
+  });
+
+  it("turns the hosted Supabase security advisor into a post-migration deployment gate", () => {
+    assert.match(securityAdvisorVerifier, /\/advisors\/security/);
+    assert.match(securityAdvisorVerifier, /level === "WARN"/);
+    assert.match(securityAdvisorVerifier, /level === "ERROR"/);
+    assert.match(securityAdvisorVerifier, /auth_leaked_password_protection/);
+    assert.match(securityAdvisorVerifier, /SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION/);
+    assert.match(securityAdvisorVerifier, /level === "INFO"/);
+    assert.match(securityAdvisorVerifier, /an unread security gate is not a passing gate/);
+
+    const databaseVerify = productionWorkflow.indexOf("Verify complete production Supabase state");
+    const advisorVerify = productionWorkflow.indexOf("Require clean production Supabase security advisor");
+    const deploy = productionWorkflow.indexOf("Deploy validated source to Vercel production");
+    assert.ok(databaseVerify >= 0);
+    assert.ok(advisorVerify > databaseVerify);
+    assert.ok(deploy > advisorVerify);
+    assert.match(
+      productionWorkflow,
+      /node --env-file=\.env\.production\.catalog-verification scripts\/verify-production-security-advisors\.mjs/
+    );
   });
 
   it("applies migrations and verifies the complete production database before deploying", () => {
