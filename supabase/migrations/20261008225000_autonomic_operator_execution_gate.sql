@@ -42,7 +42,7 @@ REVOKE ALL ON TABLE sonara_private.autonomic_execution_control,
 CREATE FUNCTION public.sonara_autonomic_execution_permitted(
   p_job_id uuid, p_claim_token uuid, p_fencing_token bigint
 ) RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = ''
 AS $fn$
   SELECT EXISTS (
     SELECT 1
