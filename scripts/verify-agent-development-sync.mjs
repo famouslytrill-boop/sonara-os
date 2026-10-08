@@ -20,9 +20,15 @@ function workflowStep(workflow, name) {
 }
 
 const workflow = read(".github/workflows/controlled-production-deploy.yml");
-const jobEnvStart = workflow.indexOf("    env:\n");
-const stepsStart = workflow.indexOf("\n    steps:");
-assert.ok(jobEnvStart !== -1 && stepsStart > jobEnvStart, "Unable to isolate controlled deployment job env");
+// A credential-free release attestation preflight now runs before deployment.
+// Never inspect the first job's env: that would mistake a safe preflight for
+// evidence that the protected deployment job has an appropriate secret scope.
+const deployJobStart = workflow.indexOf("\n  validate-migrate-deploy:\n");
+assert.notEqual(deployJobStart, -1, "Missing protected deployment job");
+const jobEnvStart = workflow.indexOf("\n    env:\n", deployJobStart);
+const stepsStart = workflow.indexOf("\n    steps:\n", deployJobStart);
+assert.ok(jobEnvStart > deployJobStart && stepsStart > jobEnvStart,
+  "Unable to isolate controlled deployment job env");
 
 const jobEnv = workflow.slice(jobEnvStart, stepsStart);
 assert.doesNotMatch(
