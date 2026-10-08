@@ -51,6 +51,17 @@ function simulateWorkerInstall(overrides = {}) {
     const failure = overrides.failAt && url.pathname === overrides.failAt;
     const privateReply = overrides.privateAt && url.pathname === overrides.privateAt;
     const htmlReply = overrides.htmlAt && url.pathname === overrides.htmlAt;
+    const wrongMime = overrides.mimeAt && url.pathname === overrides.mimeAt;
+    const noPublicPolicy = overrides.noPublicAt && url.pathname === overrides.noPublicAt;
+    const extension = url.pathname.split(".").pop();
+    const expectedMime = url.pathname === "/offline" ? "text/html"
+      : extension === "css" ? "text/css"
+      : extension === "svg" ? "image/svg+xml"
+      : extension === "png" ? "image/png"
+      : extension === "ico" ? "image/x-icon"
+      : extension === "webmanifest" ? "application/manifest+json"
+      : extension === "woff2" ? "font/woff2"
+      : "application/javascript";
     return {
       ok: !failure,
       type: "basic",
@@ -58,9 +69,11 @@ function simulateWorkerInstall(overrides = {}) {
       url: request.url,
       headers: {
         get: (name) => name.toLowerCase() === "cache-control" && privateReply ? "private"
+          : name.toLowerCase() === "cache-control" && noPublicPolicy ? ""
           : name.toLowerCase() === "content-type" && htmlReply ? "text/html"
+          : name.toLowerCase() === "content-type" && wrongMime ? "application/json"
           : name.toLowerCase() === "cache-control" ? "public, max-age=60"
-          : name.toLowerCase() === "content-type" ? "application/javascript"
+          : name.toLowerCase() === "content-type" ? expectedMime
           : null,
         has: () => false
       }
@@ -221,7 +234,7 @@ describe("cross-device service-worker cache boundary", () => {
 
   it("rejects HTML supplied instead of executable JavaScript", async () => {
     const job = simulateWorkerInstall({ htmlAt: "/sonara-one.js" });
-    await assert.rejects(job.installation, /returned an HTML document/);
+    await assert.rejects(job.installation, /unexpected content type/);
     assert.equal(job.deletions.length, 1);
   });
 
@@ -238,7 +251,7 @@ describe("cross-device service-worker cache boundary", () => {
   });
 
   it("does not save private or HTML responses as offline JavaScript", async () => {
-    for (const options of [{ cacheControl: "private" }, { contentType: "text/html" }]) {
+    for (const options of [{ cacheControl: "private" }, { contentType: "text/html" }, { contentType: "application/json" }]) {
       const task = simulateRuntimeFetch(options);
       assert.equal(await task.handled, task.existing);
       await task.lifetime();
@@ -310,6 +323,23 @@ describe("cross-device service-worker cache boundary", () => {
     await completion;
     assert.deepEqual(deleted, ["sonara-public-previous-release"]);
     assert.equal(claimed, 0);
+  });
+
+  it("has no message-triggered forced activation path", () => {
+    assert.equal(handlers.message, undefined);
+    assert.doesNotMatch(source, /self\.skipWaiting\(/);
+  });
+
+  it("rejects JSON pretending to be a core stylesheet", async () => {
+    const job = simulateWorkerInstall({ mimeAt: "/sonara-design-system.css" });
+    await assert.rejects(job.installation, /unexpected content type/);
+    assert.equal(job.deletions.length, 1);
+  });
+
+  it("requires explicit public caching for the anonymous offline HTML", async () => {
+    const job = simulateWorkerInstall({ noPublicAt: "/offline" });
+    await assert.rejects(job.installation, /explicit public cache policy/);
+    assert.equal(job.deletions.length, 1);
   });
 
   it("rejects responses marked private, no-store or set-cookie", () => {

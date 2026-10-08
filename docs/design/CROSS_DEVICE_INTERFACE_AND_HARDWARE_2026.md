@@ -212,7 +212,7 @@ References:
 
 ## Phase 7: exact-cache fallback and baseline CI remediation
 
-**Research and implementation:** MDN documents that CacheStorage.match searches across all stored caches in creation order, while Cache.match restricts a lookup to one chosen cache. The worker's offline navigation fallback is now read strictly from its active SONARA version cache. This prevents an unrelated cache or previous-release cache from supplying the fallback. MDN also notes that Clients.claim causes a worker to take control of otherwise uncontrolled pages; the worker no longer invokes it automatically during activation. The existing explicit SKIP_WAITING message pathway remains, but is not automatically triggered.
+**Research and implementation:** MDN documents that CacheStorage.match searches across all stored caches in creation order, while Cache.match restricts a lookup to one chosen cache. The worker's offline navigation fallback is now read strictly from its active SONARA version cache. This prevents an unrelated cache or previous-release cache from supplying the fallback. MDN also notes that Clients.claim causes a worker to take control of otherwise uncontrolled pages; the worker no longer invokes it automatically during activation. The unused forced-activation message pathway was removed.
 
 **Auth boundary:** The browser-side service worker registration allowlist now excludes /login and /signup, matching the worker's navigation bypass. Public marketing pages continue to register as before.
 
@@ -228,3 +228,12 @@ Official references:
 - https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/match
 - https://developer.mozilla.org/en-US/docs/Web/API/Cache/match
 - https://developer.mozilla.org/en-US/docs/Web/API/Clients/claim
+
+
+## Phase 8: MIME-verified public cache and removal of forced activation
+
+- Public offline resources now require the content type appropriate to their file format. The offline fallback must be text/html with an explicit public Cache-Control directive. A 200 status containing an error document or JSON pretending to be executable CSS/JavaScript must not poison the cache.
+- Both installation and runtime refresh use the same MIME validation. The required installation is rejected if a core asset fails validation; optional assets remain best effort.
+- Removed the unused SKIP_WAITING message receiver because a forced activation can mix old pages with a new worker and retire cache entries still needed by the prior release. Repository search found no caller for that message.
+- Three regression cases added for invalid stylesheet MIME, missing explicit public policy on offline HTML and absence of the force-activation message. Full exact-head CI, real browser lifecycle, and production evidence remain outstanding.
+- Source: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting ; https://web.dev/articles/service-worker-mindset

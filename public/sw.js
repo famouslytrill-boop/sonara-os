@@ -78,6 +78,26 @@ function isCacheableResponse(response) {
   return !/(private|no-store)/i.test(cacheControl) && !response.headers.has("set-cookie");
 }
 
+// Fail closed when a CDN returns a JSON error or an HTML login page with
+// HTTP 200 instead of the actual public asset. Strict MIME matching keeps
+// an incorrect release out of CacheStorage rather than poisoning the PWA.
+function isExpectedPublicMime(relativeUrl, response) {
+  const mime = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  if (relativeUrl === OFFLINE_URL) return mime === "text/html";
+  const pathname = new URL(relativeUrl, self.location.origin).pathname;
+  const ext = pathname.slice(pathname.lastIndexOf(".") + 1).toLowerCase();
+  const accepted = {
+    js: ["text/javascript", "application/javascript"],
+    css: ["text/css"],
+    svg: ["image/svg+xml"],
+    png: ["image/png"],
+    ico: ["image/x-icon", "image/vnd.microsoft.icon"],
+    webmanifest: ["application/manifest+json", "application/json"],
+    woff2: ["font/woff2", "application/font-woff", "application/font-woff2"]
+  };
+  return Boolean(accepted[ext] && accepted[ext].includes(mime));
+}
+
 // Precache deliberately anonymous public resources. A worker installed while
 // someone is signed in must not store a cookie-personalized response, even if a
 // future public route forgets its Cache-Control header.
@@ -96,9 +116,12 @@ async function precachePublicResource(cache, relativeUrl) {
       (response.url && new URL(response.url).origin !== self.location.origin)) {
     throw new Error("Offline resource must be an anonymous public response");
   }
-  if (relativeUrl !== OFFLINE_URL &&
-      (response.headers.get("content-type") || "").toLowerCase().includes("text/html")) {
-    throw new Error("Offline asset returned an HTML document");
+  if (!isExpectedPublicMime(relativeUrl, response)) {
+    throw new Error("Offline resource returned an unexpected content type");
+  }
+  if (relativeUrl === OFFLINE_URL &&
+      !/\bpublic\b/i.test(response.headers.get("cache-control") || "")) {
+    throw new Error("Offline fallback requires explicit public cache policy");
   }
   await cache.put(target.href, response);
 }
@@ -125,8 +148,7 @@ self.addEventListener("install", (event) => {
       throw error;
     }
   })());
-  // Do not call skipWaiting automatically: existing pages may be using the
-  // previous release. The explicit SKIP_WAITING message remains available.
+  // Do not force activation: existing tabs may still require old cache assets.
 });
 
 self.addEventListener("activate", (event) => {
@@ -140,10 +162,6 @@ self.addEventListener("activate", (event) => {
       )
     )
   );
-});
-
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -180,7 +198,7 @@ self.addEventListener("fetch", (event) => {
       const refresh = fetch(anonymousRequest).then(async (response) => {
         if (isCacheableResponse(response) && !response.redirected &&
             (!response.url || new URL(response.url).origin === self.location.origin) &&
-            !(response.headers.get("content-type") || "").toLowerCase().includes("text/html")) {
+            isExpectedPublicMime(url.pathname, response)) {
           await cache.put(event.request, response.clone());
         }
         return response;
