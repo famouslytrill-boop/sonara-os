@@ -103,7 +103,10 @@
   camera.addEventListener("click", () => start("camera"));
   voice.addEventListener("click", () => start("voice"));
   stop.addEventListener("click", () => {
-    if (recorder?.state === "recording") { recorder.stop(); release(); }
+    // Let the recorder flush its final encoded bytes before stopping tracks.
+    // release() in onstop performs cleanup; stopping the stream immediately
+    // here can produce an empty recording in Firefox.
+    if (recorder?.state === "recording") { stop.disabled = true; recorder.stop(); }
     else abort("Camera stopped. Any photo you took is still available to download.", true);
   });
   photo.addEventListener("click", async () => {
