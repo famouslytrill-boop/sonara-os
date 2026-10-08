@@ -6,6 +6,7 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-business-control-plane-routes.cjs");
+const { INDUSTRIES, industryKey, makeOverview } = require("../lib/sonara-customer-business-operations.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
@@ -45,7 +46,7 @@ describe("Business Builder control plane", () => {
     };
   }
 
-  function buildApp({ paid = true } = {}) {
+  function buildApp({ paid = true, userId = USER_ID, ownerOverride = true } = {}) {
     const app = express();
     app.use(express.urlencoded({ extended: false }));
     app.use(express.json());
@@ -57,8 +58,8 @@ describe("Business Builder control plane", () => {
       escapeHtml: (value) => String(value).replace(/[&<>"']/g, ""),
       requirePaidOrOwnerAccess: () => (req, res, next) => {
         if (!paid) return res.status(402).json({ ok: false, code: "upgrade_required" });
-        req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
-        req.sonaraAccess = { ownerOverride: true, roles: ["owner"] };
+        req.sonaraUser = { id: userId, email: "user@example.com" };
+        req.sonaraAccess = { ownerOverride, roles: ownerOverride ? ["owner"] : [] };
         return next();
       },
       getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
@@ -316,4 +317,120 @@ describe("Business Builder control plane", () => {
     assert.match(second, /credential_reference/);
     assert.match(second, /revoke select \(credential_reference\)/);
   });
+
+  it("keeps business operations scoped and refuses cross-organization input before showing analytics", () => {
+    const snapshot = { counts: { customers: 0 }, readable: { customers: false }, truncated: {} };
+    const refusal = makeOverview({
+      business: businessRecord(), userId: USER_ID, organizationId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", snapshot
+    });
+    assert.equal(refusal.ok, false);
+    assert.equal(refusal.code, "business_scope_unverified");
+    const overview = makeOverview({
+      business: businessRecord(), userId: USER_ID, organizationId: ORGANIZATION_ID, snapshot
+    });
+    assert.equal(overview.ok, true);
+    assert.equal(overview.metrics.find((item) => item.key === "customers").count, null);
+    assert.equal(overview.metrics.find((item) => item.key === "customers").state, "unavailable");
+    assert.ok(overview.checks.unavailableSources.includes("customers"));
+    assert.notEqual(overview.checks.status, "sources_readable");
+    assert.equal(overview.permission.isBusinessOwner, true);
+  });
+
+  it("offers 17 strictly allowlisted sector previews without mutating the saved business profile", () => {
+    assert.equal(INDUSTRIES.length, 17);
+    assert.equal(new Set(INDUSTRIES.map((row) => row.key)).size, 17);
+    assert.equal(industryKey("Food Truck"), "food_truck");
+    assert.equal(industryKey("rentals"), "rentals");
+    assert.equal(industryKey("real-estate"), "real_estate");
+    assert.equal(industryKey(["restaurant"]), null);
+    assert.equal(industryKey("restaurant<script>"), null);
+    const plan = makeOverview({
+      business: businessRecord(), organizationId: ORGANIZATION_ID, userId: USER_ID,
+      selectedIndustry: "rentals", snapshot: {}
+    });
+    assert.equal(plan.industry.selected, "rentals");
+    assert.equal(plan.industry.savedToBusinessProfile, false);
+    assert.equal(plan.industryPlans.length, 1);
+    assert.equal(plan.industryPlans[0].approvalRequired, true);
+    assert.equal(plan.industryPlans[0].status, "template_only");
+    assert.equal(plan.industryPlans[0].externalActionsExecuted, false);
+    assert.equal(plan.execution.workflowRunsStarted, 0);
+    const injected = makeOverview({
+      business: businessRecord(), organizationId: ORGANIZATION_ID, userId: USER_ID,
+      selectedIndustry: "rentals<script>", snapshot: {}
+    });
+    assert.equal(injected.industry.selectionValid, false);
+    assert.equal(injected.industryPlans.length, 0);
+  });
+
+  it("returns scoped, sampled, clearly incomplete business-source checks in the existing business API", async () => {
+    const reads = [];
+    global.fetch = async (url) => {
+      const target = String(url);
+      reads.push(target);
+      if (target.includes("/business_workspaces")) return response(200, [businessRecord()]);
+      if (target.includes("/customer_records")) return response(503, { message: "unavailable" });
+      if (target.includes("/business_service_catalog")) return response(200,
+        Array.from({ length: 25 }, (_, i) => ({ id: String(i) })));
+      return response(200, []);
+    };
+    const result = await request(buildApp())
+      .get(`/api/business-builder/businesses/${BUSINESS_ID}?industry=trades`)
+      .set("Accept", "application/json");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.operations.ok, true);
+    assert.equal(result.body.operations.organizationId, ORGANIZATION_ID);
+    assert.equal(result.body.operations.businessId, BUSINESS_ID);
+    assert.equal(result.body.operations.industryPlans[0].industry, "trades");
+    assert.equal(result.body.operations.execution.providerActivityPerformed, false);
+    assert.equal(result.body.operations.metrics.find((x) => x.key === "customers").count, null);
+    assert.equal(result.body.operations.metrics.find((x) => x.key === "services").state, "partial");
+    assert.ok(result.body.operations.checks.partialSources.includes("services"));
+    assert.ok(result.body.operations.checks.unavailableSources.includes("customers"));
+    assert.ok(reads.some((x) => x.includes(`organization_id=eq.${encodeURIComponent(ORGANIZATION_ID)}`)
+      && x.includes(`business_id=eq.${encodeURIComponent(BUSINESS_ID)}`)));
+  });
+
+  it("renders an accessible industry selector with owner-only advanced links but no run button", async () => {
+    global.fetch = async (url) => {
+      if (String(url).includes("/business_workspaces")) return response(200, [businessRecord()]);
+      return response(200, []);
+    };
+    const result = await request(buildApp()).get(`/business-builder/businesses/${BUSINESS_ID}?industry=rentals`);
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Business operating overview/);
+    assert.match(result.text, /label for="sonara-business-industry"/);
+    assert.match(result.text, /Preview workflows/);
+    assert.match(result.text, /Planning only/);
+    assert.match(result.text, /Owner approval required/);
+    assert.match(result.text, /Manage business permissions/);
+    assert.doesNotMatch(result.text, /<button[^>]*>Execute workflow<\/button>/i);
+  });
+
+  it("denies a member without business.read and hides owner controls from a member who has it", async () => {
+    const other = "99999999-9999-4999-8999-999999999999";
+    let grant = false;
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("/business_workspaces")) return response(200, [businessRecord()]);
+      if (target.includes("/business_permission_grants")) return response(200,
+        grant ? [{ permission_key: "business.read", status: "active", expires_at: null }] : []);
+      return response(200, []);
+    };
+    const app = buildApp({ userId: other, ownerOverride: false });
+    const denied = await request(app).get(`/api/business-builder/businesses/${BUSINESS_ID}?industry=retail`);
+    assert.equal(denied.status, 403);
+    assert.equal(denied.body.code, "business_permission_denied");
+    grant = true;
+    const granted = await request(app).get(`/api/business-builder/businesses/${BUSINESS_ID}?industry=retail`);
+    assert.equal(granted.status, 200);
+    assert.equal(granted.body.operations.permission.isBusinessOwner, false);
+    assert.equal(granted.body.operations.permission.canManagePermissions, false);
+    assert.equal(granted.body.operations.destinations.permissions, null);
+    const html = await request(app).get(`/business-builder/businesses/${BUSINESS_ID}?industry=retail`);
+    assert.equal(html.status, 200);
+    assert.match(html.text, /Only the verified business owner/);
+    assert.doesNotMatch(html.text, /Transfer ownership/i, "delegated readers must not see ownership transfer controls");
+  });
+
 });

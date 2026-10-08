@@ -9,6 +9,7 @@ const {
   requiresActivationReview
 } = require("../lib/sonara-integration-activation-policy.cjs");
 const { knownProviderDirectAccess } = require("../lib/sonara-customer-provider-pathways.cjs");
+const { makeOverview } = require("../lib/sonara-customer-business-operations.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -402,7 +403,9 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (businesses.rows.length > 1) return res.status(200).type("html").send(controlCenterPage(businesses.rows));
     const business = businesses.rows[0];
     const snapshot = await dashboardSnapshot(ctx, business.id);
-    return res.status(200).type("html").send(businessDashboardPage(business, snapshot));
+    return res.status(200).type("html").send(businessDashboardPage(business, snapshot, {
+      userId: ctx.userId, organizationId: ctx.organizationId, selectedIndustry: req.query?.industry
+    }));
   }
 
   app.use((req, res, next) => {
@@ -493,7 +496,17 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const unavailable = entries.filter(([, rows]) => rows === null).map(([key]) => key);
     // Listed as well as nulled, so a caller can act on it without inspecting
     // every key to find out which ones came back unknown.
-    return res.status(200).json({ ok: true, business: business.business, resources, unavailable });
+    const sampled = {
+      readable: Object.fromEntries(entries.map(([key, rows]) => [key, Array.isArray(rows)])),
+      counts: Object.fromEntries(entries.map(([key, rows]) => [key, Array.isArray(rows) ? rows.length : null])),
+      // The API samples 25 per source; reaching that cap is a lower bound.
+      truncated: Object.fromEntries(entries.map(([key, rows]) => [key, Boolean(rows && rows.length >= 25)]))
+    };
+    const operations = makeOverview({
+      business: business.business, organizationId: ctx.organizationId,
+      userId: ctx.userId, snapshot: sampled, selectedIndustry: req.query?.industry
+    });
+    return res.status(200).json({ ok: true, business: business.business, resources, unavailable, operations });
   });
 
   app.patch("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => updateBusiness(req, res));
@@ -698,7 +711,9 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const allowed = await permission(req, ctx, loaded.business.id, "business.read");
     if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow this business.", [linkAction("/business-builder/control-center", "All businesses")]));
     const snapshot = await dashboardSnapshot(ctx, loaded.business.id);
-    return res.status(200).type("html").send(businessDashboardPage(loaded.business, snapshot));
+    return res.status(200).type("html").send(businessDashboardPage(loaded.business, snapshot, {
+      userId: ctx.userId, organizationId: ctx.organizationId, selectedIndustry: req.query?.industry
+    }));
   });
 
   function onboardingPage(access) {
@@ -726,8 +741,9 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     });
   }
 
-  function businessDashboardPage(business, snapshot) {
+  function businessDashboardPage(business, snapshot, options = {}) {
     const next = nextBusinessAction(business, snapshot);
+    const operating = makeOverview({ business, snapshot, ...options });
     const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key], (snapshot.truncated || {})[key])).join("");
     return layout({
       title: `${business.public_name || business.name} · Business Builder`,
@@ -737,12 +753,59 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       sections: [
         `<section class="bb-today"><div><span class="sonara-kicker">Next best action</span><h2>${escapeHtml(next.title)}</h2><p>${escapeHtml(next.body)}</p><a class="action" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></div>${businessSnapshot(snapshot)}</section>`,
         `<section class="bb-module-grid">${moduleCards}</section>`,
+        operationsConsoleSection(operating),
         businessProfileEditor(business),
-        ownershipSection(business.id, escapeHtml)
+        ...(operating.ok && operating.permission.isBusinessOwner ? [ownershipSection(business.id, escapeHtml)] : [])
       ],
       actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/control-center", "All businesses"), linkAction("/support", "Support")],
       authenticated: true
     });
+  }
+
+  // These are real tenant-scoped source-read checks and *previews*, not
+  // claimed completed integrations, suite tests or provider transactions.
+  function operationsConsoleSection(overview) {
+    if (!overview?.ok) {
+      return '<section class="card" aria-label="Business operating overview"><h2>Operating overview unavailable</h2><p>Your business data could not be confirmed.</p></section>';
+    }
+    const esc = escapeHtml;
+    const industry = overview.industry;
+    const options = industry.choices.map((choice) =>
+      `<option value="${esc(choice.key)}"${choice.key === industry.selected ? " selected" : ""}>${esc(choice.label)}</option>`).join("");
+    const selection = `<form method="get" action="${esc(overview.destinations.business)}">
+      <label for="sonara-business-industry">Preview an industry workflow</label>
+      <select id="sonara-business-industry" name="industry"><option value="">Choose industry</option>${options}</select>
+      <button type="submit">Preview workflows</button></form>`;
+    const results = overview.metrics.map((metric) => {
+      const count = metric.count === null ? "Unavailable" : `${metric.count}${metric.lowerBound ? "+" : ""}`;
+      return `<li><strong>${esc(metric.label)}</strong>: ${esc(count)}.
+        <span>${esc(metric.note)}</span></li>`;
+    }).join("");
+    const plans = overview.industryPlans.length
+      ? `<ul>${overview.industryPlans.map((plan) => `<li><strong>${esc(plan.name)}</strong>
+          <span>Planning only — not running. ${esc(plan.disclosure)}</span>
+          <span>${plan.approvalRequired ? "Owner approval required before customer contact." : "Internal task plan; not activated."}</span></li>`).join("")}</ul>`
+      : "<p>Choose an industry to view available workflow plans. Nothing runs automatically.</p>";
+    const checks = overview.checks.status === "sources_readable"
+      ? "All seven record sources could be read. This does not confirm external services or automated execution."
+      : `Only ${overview.checks.confirmedSources} of ${overview.checks.totalSources} record sources were fully readable; counts may be unavailable or incomplete.`;
+    const admin = overview.permission.isBusinessOwner
+      ? `<a href="${esc(overview.destinations.settings)}">Business profile and settings</a>
+          <a href="${esc(overview.destinations.permissions)}">Manage business permissions</a>`
+      : "<p>Only the verified business owner can manage this business's settings and permissions.</p>";
+    return `<section class="card bb-operations-overview" aria-labelledby="bb-operating-overview">
+      <h2 id="bb-operating-overview">Business operating overview</h2>
+      <p>These checks only use records belonging to this business. An unreadable source is not counted as zero.</p>
+      <h3>Record and data checks</h3><p role="status">${esc(checks)}</p><ul>${results}</ul>
+      <h3>Industry workflows</h3>${selection}
+      ${!industry.selectionValid ? '<p role="alert">Choose a listed industry to preview its workflows.</p>' : ""}
+      ${industry.selected ? '<p>Preview only. This does not change your saved industry or start a job.</p>' : ""}
+      ${plans}
+      <details><summary>Advanced business controls</summary>
+        <p>Workflow execution, payments and provider connections require separate authorization and verified setup.</p>
+        ${admin}
+      </details>
+    </section>`;
   }
 
   function resourcePage(business, key, definition, rows) {
