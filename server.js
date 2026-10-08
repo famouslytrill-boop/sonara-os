@@ -2295,6 +2295,9 @@ function legalAliasPages() {
 }
 
 function normalizeSupportRequest(body) {
+  // A hidden browser honeypot is supplementary to distributed rate limiting;
+  // automated clients can omit it, so it is never the sole abuse control.
+  if (String(body.website || "").trim()) return { ok: false, message: "Unable to accept this request." };
   const category = String(body.category || "contact").trim();
   const name = String(body.name || "").trim();
   const email = String(body.email || "").trim();
