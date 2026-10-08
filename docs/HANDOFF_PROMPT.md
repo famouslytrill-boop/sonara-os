@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 502 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 503 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,72 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 43 most recent entries of 473 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 43 most recent entries of 474 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-08 - Every form answers a person with a page that says what happened
+
+The Growth forms answering in JSON were found by accident, so the whole product
+was crawled for the same defect. `tests/every-form-answers-a-person.test.js`
+renders every page as a signed-in owner (323 pages, 184 distinct POST forms).
+It posts each form the way a browser does, with the body read off the rendered
+form, twice: once with every write succeeding, and once with every write
+failing.
+- **No JSON:** no answer may be JSON.
+- **The landing page must speak:** a failed write that redirects must land on a
+  page that reads differently from the same page without the query. One that
+  renders identically has said nothing.
+
+It found two defects. Every existing check missed both.
+- **Two more forms answered in JSON.**
+  - **Clocking in** (`/api/business/time-entries/start`). It also answered 200
+    to a failed insert, which told a JSON caller a failed clock-in had worked.
+  - **Saving a voice permission** (`/api/creator/generation/voice-consents`).
+  - Both now redirect back to their page, as clocking out and withdrawing a
+    permission already did.
+- **Forty forms sent a failed save back to a page that never read it.** Each
+  redirected with `?problem=<code>`, and the page rendered exactly as before:
+  - all seventeen Business Builder owner pages with a create form, plus the
+    quote and research-source actions that return to them;
+  - the Creator record pages (artists, music projects, device cues);
+  - the seven Research Lab subsystem pages (32 forms);
+  - sub-apps (three pages);
+  - the scroll site list;
+  - the agent schedule;
+  - the voice permissions page, which read neither the withdrawal's
+    `?revoked=1` nor its `?problem=`.
+
+  `tests/no-save-looks-like-it-worked.test.js` was green throughout. It
+  checks that the redirect carries the problem, not that anything reads it.
+  Its header said "nothing needed fixing" and is corrected.
+
+Each page now puts the code into a sentence written in its own route file.
+`lineOutcome`'s wording became `problemSentence` in `sonara-last9-routes.cjs`,
+shared by line forms and list pages. Text is never taken from the address, and
+own keys only: the scroll editor's `said[problem]` would have printed
+`Object`'s constructor for `?problem=constructor`, and that is fixed too.
+
+Two sentences were checked rather than assumed:
+- **"New voice work that relies on it is refused."** `evaluatePolicy` turns
+  away a voice job whose permission has `revoked_at`, but only when the job is
+  created, so the sentence claims no more than that.
+- **The quote that cannot become an invoice.** Its sentence lists the four
+  rules in `lib/sonara-quote-conversion.cjs`.
+
+Falsified five ways, each failing the new test:
+- the owner list notice removed;
+- clock-in put back on JSON;
+- the sub-app refusals' `?problem=` dropped;
+- the voice permissions notice removed;
+- a copy whose crawl finds no pages, which trips its floors.
+
+Not covered, and stated in the test: forms rendered once per row, because the
+crawl runs in the empty state, and multipart uploads.
+
+
 
 ### 2026-10-08 - A Growth form answers a person with a page
 
@@ -2139,62 +2200,3 @@ literally. Recorded here and fixed in the next change, not this one.
 
 `pnpm test` 5845 passing; `verify:gates` 0; `verify:db`, lint, typecheck, build,
 smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
-
-
-
-
-### 2026-10-02 - My subscription gate could not see the limiter the next merge added
-
-Two things from merging `main` at 090b9904 (#417 and #418), both found because the
-merged tree was measured rather than trusted.
-
-**A count two branches each incremented, merged cleanly into a wrong number.**
-`tests/plain-language.test.js` records how many routes the signed-in crawl skips.
-Both branches started at 110 and both added four, so both wrote `114`. The lines were
-identical, git merged them without a conflict, and the result was wrong for both
-sides. The crawl measured 118. Nothing conflicted because nothing differed -- which is
-the whole hazard: a merge tool sees text, and two correct increments of the same
-number are the same text. Any count that more than one branch can bump is a count a
-clean merge can silently halve; this one now says so where it is recorded.
-
-**The gate I wrote a few hours earlier was blind to a limiter, and reported it whole.**
-#417 added a rate limiter on Creator generation submissions -- one a paying
-subscriber can hit -- built as
-
-    (deps.createRateLimiter || createRateLimiter)({ name: "creator.generation.submit", ... })
-
-`verify-subscription-completeness` matched `createRateLimiter({` and the auth
-factory's form, and this is neither. So on the merged tree it printed *"17 rate
-limiters, every one accounted for"* and exited 0. It did not fail on an unregistered
-limiter; it never saw one. Shape 2 exactly: a scan naming a smaller population than
-the one it claims, and printing the claim. The suite was green and the gate was green
-and the thing the gate exists to watch had just changed.
-
-It was caught by reading what #417 changed rather than by any check -- the commit
-message said it had "hardened generation submission bursts", and a sentence about
-bursts is a sentence about a limiter.
-
-Fixed by replacing two patterns with one that reads every call form, and by making
-the parser prove itself before its count is believed: `PARSER_FIXTURES` holds one of
-each form this repository uses -- direct, through `deps`, the either-or form that got
-through, and the auth factory -- plus a function definition it must not read as a
-limiter. The limiter is registered as a ceiling: 120 a minute, 7200 an hour, well
-over the floor.
-
-**What the gate still does not check, said in its header.** #417 also added a
-generation *allowance* -- a sum included each billing period that answers 429 once
-spent. That is a quota, not a rate limit, and it exists because each generation costs
-money at an upstream provider; its own page says "Provider limits still apply. No
-extra purchase required." That is the owner's stated exception in the owner's terms,
-and whether an included allowance is right is a pricing decision. What would be this
-gate's business is a page offering to sell more, and the copy check would catch that.
-
-| break | result |
-|---|---|
-| parser reverted to the form that missed `(a \|\| b)({...})` | red, *no longer reads the either-or form* |
-| the new limiter's registration removed | red, *does not know why it exists* |
-| generation submissions throttled to 5 a minute | red, *300 per hour ... below the 600/hour* |
-| the either-or fixture deleted from the gate | its test red, *tests its parser on every call form* |
-
-`pnpm test` and `verify:gates` both 0 on the merged tree -- each read from its own
-file.

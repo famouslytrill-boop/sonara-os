@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-10-08 - Claude - Every form answers a person with a page (PR #446)
+
+- `tests/every-form-answers-a-person.test.js` posts every form on every page as
+  a browser, with writes succeeding and then failing. A JSON answer fails it,
+  and so does a failed write landing on a page that renders the same with and
+  without its `?problem=`.
+- If you add a form, its handler redirects with a code and its page reads the
+  code into a sentence written in the route file. Never echo the query.
+- Business Builder list pages use `problemSentence(code)` in
+  `routes/sonara-last9-routes.cjs`. Add a sentence there for any new code they
+  can be sent.
+
 ## 2026-10-08 - Claude - Growth create forms answer with a page (PR #446)
 
 - The nine Growth create routes carry `answeredOnItsPage(key)` before

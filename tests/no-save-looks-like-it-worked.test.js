@@ -7,10 +7,17 @@
 // when their record could not be *written*, which is the failure with the
 // worst consequence -- they close the tab believing it saved.
 //
-// The finding is that this half is already sound: every endpoint that reaches a
-// write reports the failure, by redirecting back with `?problem=` or by
-// answering `ok: false`. Nothing needed fixing. What is worth keeping is the
-// check, because the shape it looks for is one line away at any time.
+// The finding was that every endpoint that reaches a write reports the
+// failure, by redirecting back with `?problem=` or by answering `ok: false`.
+// **That was half the question, corrected 8 October 2026.** A redirect that
+// carries the problem tells a person nothing unless the page it lands on reads
+// it, and thirty-odd did not -- the seventeen Business Builder owner pages,
+// the Creator record pages, the Research Lab subsystem pages, sub-apps, scroll
+// sites and the agent schedule all came back from a refused save looking as
+// if it had worked, while this test was green. And `ok: false` in JSON is
+// honest to a script and unreadable to a person who pressed a button.
+// tests/every-form-answers-a-person.test.js follows the redirect and posts as
+// a browser; this test still holds the half it was written for.
 //
 // **What it does not cover, stated rather than implied.** 74 endpoints are
 // create-shaped; a generic body plus every declared form field gets 40 of them

@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-08 - Every form answers a person with a page that says what happened
+
+The Growth forms answering in JSON were found by accident, so the whole product
+was crawled for the same defect. `tests/every-form-answers-a-person.test.js`
+renders every page as a signed-in owner (323 pages, 184 distinct POST forms).
+It posts each form the way a browser does, with the body read off the rendered
+form, twice: once with every write succeeding, and once with every write
+failing.
+- **No JSON:** no answer may be JSON.
+- **The landing page must speak:** a failed write that redirects must land on a
+  page that reads differently from the same page without the query. One that
+  renders identically has said nothing.
+
+It found two defects. Every existing check missed both.
+- **Two more forms answered in JSON.**
+  - **Clocking in** (`/api/business/time-entries/start`). It also answered 200
+    to a failed insert, which told a JSON caller a failed clock-in had worked.
+  - **Saving a voice permission** (`/api/creator/generation/voice-consents`).
+  - Both now redirect back to their page, as clocking out and withdrawing a
+    permission already did.
+- **Forty forms sent a failed save back to a page that never read it.** Each
+  redirected with `?problem=<code>`, and the page rendered exactly as before:
+  - all seventeen Business Builder owner pages with a create form, plus the
+    quote and research-source actions that return to them;
+  - the Creator record pages (artists, music projects, device cues);
+  - the seven Research Lab subsystem pages (32 forms);
+  - sub-apps (three pages);
+  - the scroll site list;
+  - the agent schedule;
+  - the voice permissions page, which read neither the withdrawal's
+    `?revoked=1` nor its `?problem=`.
+
+  `tests/no-save-looks-like-it-worked.test.js` was green throughout. It
+  checks that the redirect carries the problem, not that anything reads it.
+  Its header said "nothing needed fixing" and is corrected.
+
+Each page now puts the code into a sentence written in its own route file.
+`lineOutcome`'s wording became `problemSentence` in `sonara-last9-routes.cjs`,
+shared by line forms and list pages. Text is never taken from the address, and
+own keys only: the scroll editor's `said[problem]` would have printed
+`Object`'s constructor for `?problem=constructor`, and that is fixed too.
+
+Two sentences were checked rather than assumed:
+- **"New voice work that relies on it is refused."** `evaluatePolicy` turns
+  away a voice job whose permission has `revoked_at`, but only when the job is
+  created, so the sentence claims no more than that.
+- **The quote that cannot become an invoice.** Its sentence lists the four
+  rules in `lib/sonara-quote-conversion.cjs`.
+
+Falsified five ways, each failing the new test:
+- the owner list notice removed;
+- clock-in put back on JSON;
+- the sub-app refusals' `?problem=` dropped;
+- the voice permissions notice removed;
+- a copy whose crawl finds no pages, which trips its floors.
+
+Not covered, and stated in the test: forms rendered once per row, because the
+crawl runs in the empty state, and multipart uploads.
+
 ### 2026-10-08 - A Growth form answers a person with a page
 
 The nine "Add a ..." forms on the Growth record pages post straight to

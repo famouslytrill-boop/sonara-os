@@ -442,15 +442,23 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   });
 
   app.post("/api/creator/generation/voice-consents", access, async (req, res) => {
+    // The form on /creator-studio/voice-permissions posts here, and this
+    // answered a browser with the saved row, or the refusal, as JSON. Sent back
+    // to the page now, as withdrawing one already was.
+    const back = "/creator-studio/voice-permissions";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?saved=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+    };
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(context.status, context);
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
-    if (!truthy(req.body.consent_attested || req.body.consentAttested)) return res.status(400).json({ ok: false, code: "voice_consent_attestation_required" });
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
+    if (!truthy(req.body.consent_attested || req.body.consentAttested)) return respond(400, { ok: false, code: "voice_consent_attestation_required" });
     const subjectType = oneOf(req.body.subject_type || req.body.subjectType, ["self","authorized_person","synthetic_voice","licensed_voice"], null);
     const consentScope = oneOf(req.body.consent_scope || req.body.consentScope, ["text_to_speech","speech_to_speech","voice_clone","singing_voice","all_voice_generation"], null);
     const evidenceType = oneOf(req.body.evidence_type || req.body.evidenceType, ["self_attestation","signed_release","provider_voice_id","license_record","other"], null);
-    if (!subjectType || !consentScope || !evidenceType) return res.status(400).json({ ok: false, code: "voice_consent_fields_required" });
+    if (!subjectType || !consentScope || !evidenceType) return respond(400, { ok: false, code: "voice_consent_fields_required" });
     const created = await insert(config, CONSENT_TABLE, {
       organization_id: context.organizationId,
       user_id: context.userId,
@@ -463,7 +471,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       expires_at: validDate(req.body.expires_at || req.body.expiresAt),
       metadata: parseObject(req.body.metadata, {})
     });
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, consent: created.rows[0], code: created.code });
+    return respond(created.ok ? 201 : 502, { ok: created.ok, consent: created.rows[0], code: created.code });
   });
 
   // Withdrawing a permission.
@@ -570,6 +578,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const sections = unavailable
       ? [ui.card("Not available right now", unavailable)]
       : [voicePermissionsCard(consents, ui.escape), voicePermissionForm(ui.escape)];
+    // What the last save or withdrawal did. Both redirect here, and the page
+    // read neither: a refused permission and a saved one looked the same.
+    const outcome = voicePermissionOutcome(req.query);
+    if (outcome) sections.unshift(ui.card(outcome.heading, outcome.text));
 
     return res.status(200).type("html").send(ui.layout({
       title: "Voice permissions",
@@ -1522,6 +1534,32 @@ function send(req, res, result, redirectTo, ui) {
 }
 
 function acceptsHtml(req) { return String(req.get("accept") || "").includes("text/html") || String(req.get("content-type") || "").includes("application/x-www-form-urlencoded"); }
+
+// What a save or a withdrawal on /creator-studio/voice-permissions did, from its
+// code alone. Text is never taken from the address, which anybody can send.
+// "Refused" is evaluatePolicy below, which turns away a voice job whose
+// permission has revoked_at set; it is checked when the job is created.
+const VOICE_PERMISSION_PROBLEMS = Object.freeze({
+  voice_consent_attestation_required: "Confirm that the person whose voice it is agreed, and it can be saved.",
+  voice_consent_fields_required: "Choose whose voice it is, what it may be used for, and what evidence you hold.",
+  supabase_setup_required: "Your account database is not connected yet, so nothing could be saved.",
+  database_operation_failed: "That could not be saved just now. Nothing was recorded.",
+  not_saved: "That could not be saved just now. Nothing was recorded.",
+  not_revoked: "That could not be withdrawn just now. It is still on file; try again shortly.",
+  consent_not_found: "There was nothing to withdraw: it is already withdrawn, or it is not one of yours.",
+  invalid_consent_id: "There was nothing to withdraw: it is already withdrawn, or it is not one of yours."
+});
+
+function voicePermissionOutcome(query = {}) {
+  if (String(query.saved ?? "") === "1") return { heading: "Saved", text: "The permission is on file." };
+  if (String(query.revoked ?? "") === "1") return { heading: "Withdrawn", text: "The permission is withdrawn. New voice work that relies on it is refused." };
+  const code = String(query.problem ?? "");
+  if (!code) return null;
+  const text = Object.prototype.hasOwnProperty.call(VOICE_PERMISSION_PROBLEMS, code)
+    ? VOICE_PERMISSION_PROBLEMS[code]
+    : "That did not go through. Nothing changed.";
+  return { heading: "Not done", text };
+}
 function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }

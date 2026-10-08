@@ -795,6 +795,17 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
     });
     const response = await fetch(`${scope.config.url}${path}`, { headers: supabaseHeaders(scope.config) }).catch(() => undefined);
     const sections = [];
+    // Adding a schedule redirects back here with ?problem=<code> when it is
+    // refused, and this page read none of them, so a refused schedule looked
+    // like one that had been added. Sentences from codes only.
+    const scheduleProblem = String(req.query?.problem || "");
+    if (scheduleProblem) {
+      const said = {
+        not_schedulable: "Only jobs that read and report can run on their own, so that one was not scheduled.",
+        not_saved: "That schedule could not be saved just now. Nothing has been scheduled."
+      };
+      sections.push(brandCard("Not scheduled", Object.prototype.hasOwnProperty.call(said, scheduleProblem) ? said[scheduleProblem] : "That did not go through. Nothing has been scheduled."));
+    }
 
     if (!response?.ok) {
       // An unreadable list is never an empty one.
