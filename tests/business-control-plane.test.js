@@ -430,6 +430,7 @@ describe("Business Builder control plane", () => {
     const html = await request(app).get(`/business-builder/businesses/${BUSINESS_ID}?industry=retail`);
     assert.equal(html.status, 200);
     assert.match(html.text, /Only the verified business owner/);
+    assert.doesNotMatch(html.text, /Transfer ownership/i, "delegated readers must not see ownership transfer controls");
   });
 
 });
