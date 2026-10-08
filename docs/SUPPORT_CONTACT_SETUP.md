@@ -16,7 +16,7 @@ This runbook covers the same backend used by the SONARA Industries website, Busi
 | `GET /help` | Help and FAQ | No |
 | `GET /tutorials` | Guided product instructions | No |
 
-Both POST endpoints pass through the same rate limiter, validators and `saveSupportRequest()`. A durable Postgres RPC provides the rate decision when configured. If it is unavailable, a bounded per-process fallback emits a degradation event; **that fallback is not a distributed production guarantee**. Rate-limited requests must be rejected before storage or email delivery.
+Both Express POST endpoints pass through the same rate limiter, validators and `saveSupportRequest()`. A durable Postgres RPC provides the distributed rate decision. **Production support/contact submissions fail HTTP 503 rather than send mail or store a record when that durable decision is unavailable**; a bounded per-process fallback remains available for development and other explicitly approved routes. The browser-facing Supabase tables currently have overly broad direct grants and an anonymous INSERT policy that can bypass Express entirely; see `docs/security/PROPOSED_SUPPORT_BROWSER_GRANTS_2026-10-08.sql` for a non-applied staging fix. Do not claim end-to-end protection until database grants are hardened.
 
 A successfully stored row gets a reference ID whether or not an email notification succeeds. If storage fails but the email provider accepts the request, the response says acceptance is **not verified inbox delivery**. If both fail, return HTTP 503 and **no reference ID**; there is no fallback queue.
 
