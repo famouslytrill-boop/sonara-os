@@ -1,0 +1,23 @@
+name: SonaraPilot
+options:
+  bundleIdPrefix: com.sonaraindustries
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  SonaraPilot:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SonaraPilot
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sonaraindustries.pilot
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "SONARA Pilot"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        # No signing identity, distribution profile or provider key is stored
+        # in this repository. The operator must configure these in Xcode.

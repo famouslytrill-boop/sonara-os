@@ -61,3 +61,47 @@ describe("Supabase Data API privilege hardening", () => {
     assert.match(sql, /not has_function_privilege\('service_role', helper, 'execute'\)/i);
   });
 });
+
+describe("current service-role RLS policy hardening", () => {
+  const migrationPath = join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20261008100000_tighten_service_role_rls_policies.sql"
+  );
+  const migration = readFileSync(migrationPath, "utf8");
+
+  it("narrows pure service-role policies instead of deleting them", () => {
+    assert.match(migration, /alter policy %I on %I\.%I to service_role using \(true\) with check \(true\)/i);
+    assert.match(migration, /alter policy %I on %I\.%I to service_role using \(true\)/i);
+    assert.match(migration, /alter policy %I on %I\.%I to service_role with check \(true\)/i);
+    assert.doesNotMatch(migration, /drop\s+policy/i);
+  });
+
+  it("does not rewrite mixed member or administrator authorization predicates", () => {
+    assert.match(migration, /Mixed policies such as "member OR service role" are deliberately excluded/i);
+    assert.match(migration, /complete predicate is the service-role/i);
+  });
+
+  it("converts the four remaining ownership checks to init-plan-safe auth.uid reads", () => {
+    for (const policy of [
+      "business_employee_profiles_select_own",
+      "sonara_platforms_select_own",
+      "user_notifications_select_own",
+      "user_preferences_select_own"
+    ]) {
+      const start = migration.indexOf(`alter policy ${policy}`);
+      assert.notEqual(start, -1, `missing ownership policy hardening for ${policy}`);
+      const fragment = migration.slice(start, start + 220);
+      assert.match(fragment, /using \(\(select auth\.uid\(\)\) = user_id\)/i);
+    }
+  });
+
+  it("fails instead of reporting a vacuous hardening pass", () => {
+    assert.match(migration, /rewritten_count = 0/i);
+    assert.match(migration, /refusing vacuous success/i);
+    assert.match(migration, /remaining <> 0/i);
+    assert.match(migration, /pure service-role RLS policies still evaluate auth\.role/i);
+  });
+});
+

@@ -81,7 +81,8 @@ describe("reservation resources and waitlist destinations", () => {
       await handlers[0](req, res, () => handlers[1](req, res));
       return res;
     }
-    return { fake, call, guardCount: () => guards };
+    return { fake, call, guardCount: () => guards, pageHandlerSource: (route) =>
+      registered.get("get " + route)?.at(-1)?.toString() || "" };
   }
   function mutations(fake) { return fake.queries.filter((q) => ["POST", "PATCH"].includes(q.method)); }
 
@@ -96,6 +97,33 @@ describe("reservation resources and waitlist destinations", () => {
     assert.match(res.html, /name="workspaceId" value="33333333/);
     assert.match(res.html, /owner\/waitlist\?workspaceId=/);
     assert.ok(fake.queries.every((q) => q.filters.some((f) => f.column === "organization_id" && f.value === ORG)));
+  });
+
+  it("shares each organization-scoped reader once between the waiting-list page and its JSON twins", async () => {
+    const { call, fake, pageHandlerSource } = world();
+    // The route registration itself must expose the two actual shared reader
+    // calls that the inventory checker verifies, not an undocumented claim.
+    assert.match(pageHandlerSource(WAITLIST_PAGE), /readWaitlist\s*\(/);
+    assert.match(pageHandlerSource(WAITLIST_PAGE), /readResources\s*\(/);
+    const page = await call("get", WAITLIST_PAGE, { html: true });
+    assert.equal(page.statusCode, 200);
+    const bookingReads = () => fake.queries.filter((query) => query.table === "business_bookings");
+    const assetReads = () => fake.queries.filter((query) => query.table === "business_assets");
+    assert.equal(bookingReads().length, 1, "page must call the shared waitlist reader once");
+    assert.equal(assetReads().length, 1, "page must call the shared resource reader once");
+    assert.ok([...bookingReads(), ...assetReads()].every((query) =>
+      query.filters.some((filter) => filter.column === "organization_id" && filter.value === ORG)));
+
+    const waitlistJson = await call("get", "/api/business/waitlist");
+    const resourceJson = await call("get", "/api/business/reservation-resources");
+    assert.equal(waitlistJson.statusCode, 200);
+    assert.equal(resourceJson.statusCode, 200);
+    assert.equal(bookingReads().length, 2, "JSON waitlist has one separately scoped read");
+    assert.equal(assetReads().length, 2, "JSON resources have one separately scoped read");
+    assert.ok(JSON.stringify(waitlistJson.jsonValue).includes("Waiting customer"));
+    assert.ok(JSON.stringify(resourceJson.jsonValue).includes("Window table"));
+    assert.doesNotMatch(JSON.stringify(waitlistJson.jsonValue), /Foreign private/);
+    assert.doesNotMatch(JSON.stringify(resourceJson.jsonValue), /Foreign private/);
   });
 
   it("renders the actual create and offer forms with a route to the existing booking", async () => {

@@ -2,6 +2,8 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   SOFTWARE_FEES, MERCHANT_FLOWS, NEVER_SUPPORTED,
   externalPaymentLinkReview, lowCustodyDecision, externalReceiptEvidence
@@ -276,3 +278,37 @@ describe("runtime-reviewed low-custody opt-in switch",()=>{
     assert.equal(networkCalls,0);
   });
 });
+
+describe("read-only Stripe Connect canary gate", () => {
+  const verifier = fs.readFileSync(
+    path.join(__dirname, "..", "scripts", "verify-stripe-env.mjs"),
+    "utf8"
+  );
+
+  it("requires the reviewed direct-charge mode and configured Connect verification", () => {
+    assert.match(verifier, /--require-connect-canary/);
+    assert.match(verifier, /SONARA_CUSTOMER_FUNDS_MODE/);
+    assert.match(verifier, /connect_direct_reviewed/);
+    assert.match(verifier, /STRIPE_CONNECT_ENABLED/);
+    assert.match(verifier, /STRIPE_CONNECT_WEBHOOK_SECRET/);
+  });
+
+  it("checks eligible connected accounts and the exact Connect webhook without moving money", () => {
+    assert.match(verifier, /\/v1\/accounts\?limit=100/);
+    assert.match(verifier, /charges_enabled === true/);
+    assert.match(verifier, /payouts_enabled === true/);
+    assert.match(verifier, /details_submitted === true/);
+    assert.match(verifier, /\/v1\/webhook_endpoints\?limit=100/);
+    assert.match(verifier, /\/api\/webhooks\/stripe-connect/);
+    assert.match(verifier, /endpoint\?\.connect === true/);
+    assert.match(verifier, /CONNECT_WEBHOOK_EVENTS/);
+    assert.doesNotMatch(verifier, /fetch\([^\n]*\/v1\/(?:charges|refunds|transfers|payouts|checkout\/sessions)[^\n]*method:\s*["']POST["']/i);
+  });
+
+  it("fails rather than calling missing provider proof ready", () => {
+    assert.match(verifier, /No connected Stripe account is fully submitted with charges and payouts enabled/);
+    assert.match(verifier, /No enabled Connect webhook endpoint exactly matches/);
+    assert.match(verifier, /external Connect prerequisites are not complete/);
+  });
+});
+

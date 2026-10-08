@@ -29,7 +29,7 @@ describe("offline deterministic sync policy",()=>{
     }
   });
   it("blocks sensitive financial/security field names even in an allowed operation",()=>{
-    for(const field of ["bank","routing","payment_status","refund","secret","token"]){
+    for(const field of ["bank","routing","payment_status","payment_status_override","bank_iban","card_number","credential_ref","api_key","refund","secret","token"]){
       assert.ok(prepareOfflineMutation(valid({payloadFields:["title",field]}))
         .blockers.includes("sensitive_fields_not_allowed_offline"));
     }
@@ -68,9 +68,63 @@ describe("offline deterministic sync policy",()=>{
   });
   it("idempotent mutation replay does nothing twice",()=>{
     const out=reconcileOfflineMutation({operation:"append_note",baseVersion:1,serverVersion:5,
-      mutationAlreadyApplied:true});
+      mutationAlreadyApplied:true,idempotencyReceiptVerified:true});
     assert.equal(out.state,"idempotent_already_applied");
     assert.equal(out.applyCandidate,false);
+  });
+  it("does not trust an unverified replay claim from a device",()=>{
+    const out=reconcileOfflineMutation({operation:"draft_task",baseVersion:4,serverVersion:4,
+      mutationAlreadyApplied:true,payloadHashMatchesQueued:true,serverEntityExists:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+    assert.ok(out.issues.includes("idempotency_receipt_unverified"));
+  });
+  it("rejects a purported replay receipt for an invalid operation",()=>{
+    const out=reconcileOfflineMutation({operation:"refund",baseVersion:4,serverVersion:4,
+      mutationAlreadyApplied:true,idempotencyReceiptVerified:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+  });
+  it("does not increment a version beyond JavaScript's safe integer range",()=>{
+    const out=reconcileOfflineMutation({operation:"append_note",baseVersion:4,
+      serverVersion:Number.MAX_SAFE_INTEGER,payloadHashMatchesQueued:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+    assert.ok(out.issues.includes("version_unreadable_or_overflow"));
+  });
+  it("refuses a future device base revision even for append-only notes",()=>{
+    for(const operation of ["append_note","draft_task","inventory_count_observation"]){
+      const out=reconcileOfflineMutation({operation,baseVersion:9,serverVersion:3,
+        payloadHashMatchesQueued:true,serverEntityExists:true});
+      assert.equal(out.state,"client_version_ahead_of_server",operation);
+      assert.equal(out.applyCandidate,false,operation);
+      assert.equal(out.humanConflictReview,true,operation);
+      assert.deepEqual(out.issues,["client_version_ahead"]);
+    }
+  });
+  it("fails closed on malformed or unknown revisions before merge",()=>{
+    for(const versions of [{baseVersion:-1,serverVersion:3},
+      {baseVersion:Infinity,serverVersion:3},
+      {baseVersion:1.5,serverVersion:3},
+      {baseVersion:3,serverVersion:"3"}]){
+      const result=reconcileOfflineMutation({operation:"append_note",...versions,
+        payloadHashMatchesQueued:true,serverEntityExists:true});
+      assert.equal(result.state,"blocked_pending_review");
+      assert.equal(result.applyCandidate,false);
+    }
+  });
+  it("cannot use a truthy replay flag to claim a malformed or prohibited action already happened",()=>{
+    for(const overrides of [
+      {operation:"refund",baseVersion:1,serverVersion:1,mutationAlreadyApplied:true},
+      {operation:"append_note",baseVersion:"1",serverVersion:1,mutationAlreadyApplied:true},
+      {operation:"append_note",baseVersion:1,serverVersion:1,mutationAlreadyApplied:"true"}
+    ]){
+      const out=reconcileOfflineMutation(overrides);
+      assert.equal(out.state,"blocked_pending_review");
+      assert.equal(out.applyCandidate,false);
+      assert.equal(out.humanConflictReview,true);
+      assert.ok(out.issues.length>0);
+    }
   });
   it("unknown operations fail closed",()=>{
     const out=prepareOfflineMutation(valid({operation:"do_anything"}));

@@ -53,6 +53,28 @@ describe("SONARA deterministic formula engine", () => {
     assert.equal(first.evidence.inputHash, second.evidence.inputHash);
   });
 
+  it("calculates activation and retention from bounded cohort counts", function() {
+    assert.equal(evaluateFormula("activation_rate", {
+      activated_users: 12,
+      eligible_new_users: 30
+    }).value, 0.4);
+    assert.equal(evaluateFormula("retention_rate", {
+      retained_customers: 24,
+      starting_customers: 30
+    }).value, 0.8);
+  });
+
+  it("refuses impossible or denominator-free cohort metrics", function() {
+    assert.throws(
+      () => evaluateFormula("activation_rate", { activated_users: 31, eligible_new_users: 30 }),
+      (error) => error instanceof FormulaInputError && error.code === "invalid_cohort_count"
+    );
+    assert.throws(
+      () => evaluateFormula("retention_rate", { retained_customers: 0, starting_customers: 0 }),
+      (error) => error instanceof FormulaInputError && error.code === "non_positive_denominator"
+    );
+  });
+
   it("calculates OEE only from bounded rates", function() {
     const result = evaluateFormula("oee", {
       availability: 0.9,

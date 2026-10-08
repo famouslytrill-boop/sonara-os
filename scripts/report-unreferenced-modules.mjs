@@ -71,6 +71,8 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-mobile-billing-classification.cjs",
+    "Storefront-region-aware purchase classification research, test-only pending trusted server catalog / iOS StoreKit / Google Play program and provider verification. Not a route, checkout, entitlement, or payment activation."],
   ["lib/sonara-community-discovery.cjs",
     "Deterministic public-discovery research policy; explicitly NOT runtime-wired. It waits for reviewed server-owned public projections, authenticated consent/tenant checks, moderation and rights evidence, report/takedown controls, and a one-tenant gated pilot. Never activates social publishing."],
   // Explicitly staged governance work from #442/#443; these remain unconnected.

@@ -21,8 +21,13 @@ concurrency:
 
 jobs:
   playwright:
+    name: Playwright ${{ matrix.browser }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -39,8 +44,8 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium for locked Playwright
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install locked Playwright browser
+        run: pnpm exec playwright install --with-deps "${{ matrix.browser }}"
 
       - name: Build exact head
         run: pnpm run build
@@ -68,7 +73,7 @@ jobs:
         run: |
           set -o pipefail
           pnpm exec playwright test browser-tests/public-experience.spec.js browser-tests/marketplace-reconciliation.spec.js browser-tests/reservation-workflows.spec.js \
-            --browser=chromium \
+            --browser="${{ matrix.browser }}" \
             --reporter=line 2>&1 | tee artifacts/browser/playwright.log
 
       - name: Stop isolated local runtime
@@ -82,7 +87,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: sonara-browser-quality-${{ github.run_id }}
+          name: sonara-browser-quality-${{ matrix.browser }}-${{ github.run_id }}
           path: artifacts/browser
           if-no-files-found: error
           retention-days: 30

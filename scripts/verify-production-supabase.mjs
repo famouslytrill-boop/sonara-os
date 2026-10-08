@@ -19,14 +19,29 @@ const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_S
 const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const failures = [];
 const warnings = [];
+const allowedPendingMigrations = new Set(
+  String(process.env.SONARA_ALLOWED_PENDING_MIGRATIONS || "")
+    .split(",")
+    .map((version) => version.trim())
+    .filter(Boolean)
+);
 const transport = { requests: 0, attempts: 0, recovered: 0 };
 let connectivityTablesChecked = 0;
+
+for (const version of allowedPendingMigrations) {
+  if (!/^\d+$/.test(version)) failures.push(`allowed pending migration is not a numeric version: ${version}`);
+}
 
 if (!supabaseUrl) failures.push("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is not configured");
 if (!serviceRoleKey) failures.push("SUPABASE_SERVICE_ROLE_KEY is not configured");
 if (failures.length) finish();
 
 const migrationState = deriveMigrationState();
+for (const version of allowedPendingMigrations) {
+  if (!migrationState.versions.has(version)) {
+    failures.push(`allowed pending migration is not present in this checkout: ${version}`);
+  }
+}
 const retiredTables = new Set(RETIRED_DATABASE_TABLES);
 const expectedTables = new Set([
   ...[...migrationState.tables].filter((table) => !retiredTables.has(table)),
@@ -57,7 +72,12 @@ for (const tableName of RETIRED_DATABASE_TABLES) {
 }
 
 for (const version of [...migrationState.versions].sort()) {
-  if (!appliedMigrations.has(version)) failures.push(`local migration is not recorded as applied in production: ${version}`);
+  if (appliedMigrations.has(version)) continue;
+  if (allowedPendingMigrations.has(version)) {
+    warnings.push(`pull-request migration is intentionally pending production apply: ${version}`);
+    continue;
+  }
+  failures.push(`local migration is not recorded as applied in production: ${version}`);
 }
 
 for (const signature of [...DATABASE_FUNCTIONS, ...DURABLE_EVENT_FOUNDATION_FUNCTIONS, "public.sonara_database_deep_snapshot()"]) {

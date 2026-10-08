@@ -1,0 +1,215 @@
+-- P0: isolated, disposable PostgreSQL replay fixture.
+-- NEVER execute against a live Supabase project: it inserts synthetic users
+-- and temporarily grants creator_follows SELECT, then rolls back everything.
+-- The native-replay harness executes this against a throwaway local cluster.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout = '2s';
+SET LOCAL statement_timeout = '30s';
+
+INSERT INTO auth.users (id,email) VALUES
+ ('a1111111-1111-4111-8111-111111111111','rls-fixture-a@example.invalid'),
+ ('b2222222-2222-4222-8222-222222222222','rls-fixture-b@example.invalid');
+
+-- Migration 010 owns the original membership FK to public.profiles, not
+-- auth.users. Create matching profile records in the same rollback fixture.
+INSERT INTO public.profiles(id,email) VALUES
+ ('a1111111-1111-4111-8111-111111111111','rls-fixture-a@example.invalid'),
+ ('b2222222-2222-4222-8222-222222222222','rls-fixture-b@example.invalid');
+
+-- Live project has additional legacy organization fields absent in a clean
+-- replay. Use the shared minimum schema to keep this test meaningful in both.
+INSERT INTO public.organizations (id,name,owner_id) VALUES
+ ('a3333333-3333-4333-8333-333333333333','RLS Fixture A','a1111111-1111-4111-8111-111111111111'),
+ ('b4444444-4444-4444-8444-444444444444','RLS Fixture B','b2222222-2222-4222-8222-222222222222');
+
+INSERT INTO public.organization_memberships (organization_id,user_id,role,status) VALUES
+ ('a3333333-3333-4333-8333-333333333333','a1111111-1111-4111-8111-111111111111','owner','active'),
+ ('b4444444-4444-4444-8444-444444444444','b2222222-2222-4222-8222-222222222222','owner','active');
+
+INSERT INTO public.device_permission_grants (user_id,capability,state) VALUES
+ ('a1111111-1111-4111-8111-111111111111','camera','granted'),
+ ('b2222222-2222-4222-8222-222222222222','camera','granted');
+
+INSERT INTO public.user_preferences (user_id,language,unit_system) VALUES
+ ('a1111111-1111-4111-8111-111111111111','en-US','imperial'),
+ ('b2222222-2222-4222-8222-222222222222','en-US','imperial');
+
+-- Exercise all eight membership SECURITY DEFINER helper functions with
+-- positive and negative fixtures, including an entity viewer who is not admin.
+INSERT INTO public.entities(id,slug,name,entity_type,description) VALUES
+ ('a7777777-7777-4777-8777-777777777777','p0-rls-entity-a','RLS Fixture Entity A','business_operations','Temporary RLS test fixture'),
+ ('b8888888-8888-4888-8888-888888888888','p0-rls-entity-b','RLS Fixture Entity B','business_operations','Temporary RLS test fixture');
+INSERT INTO public.entity_memberships(entity_id,user_id,role) VALUES
+ ('a7777777-7777-4777-8777-777777777777','a1111111-1111-4111-8111-111111111111','owner'),
+ ('b8888888-8888-4888-8888-888888888888','b2222222-2222-4222-8222-222222222222','viewer');
+
+INSERT INTO public.creator_artist_profiles (id,artist_name,artist_key,organization_id,user_id) VALUES
+ ('a5555555-5555-4555-8555-555555555555','Test Creator A','p0_rls_fixture_a','a3333333-3333-4333-8333-333333333333','a1111111-1111-4111-8111-111111111111'),
+ ('b6666666-6666-4666-8666-666666666666','Test Creator B','p0_rls_fixture_b','b4444444-4444-4444-8444-444444444444','b2222222-2222-4222-8222-222222222222');
+
+INSERT INTO public.creator_follows (artist_profile_id,follower_user_id) VALUES
+ ('a5555555-5555-4555-8555-555555555555','a1111111-1111-4111-8111-111111111111'),
+ ('b6666666-6666-4666-8666-666666666666','b2222222-2222-4222-8222-222222222222');
+
+-- Production has no authenticated SELECT grant on creator_follows.
+-- Staging-only transactional grant lets us exercise its row predicate,
+-- while the production grant is separately checked for its fail-closed posture.
+DO $proof$
+BEGIN
+  IF has_table_privilege('authenticated','public.creator_follows','SELECT') THEN
+    RAISE EXCEPTION 'creator_follows unexpectedly publicly exposed before fixture';
+  END IF;
+END
+$proof$;
+GRANT SELECT ON public.creator_follows TO authenticated;
+
+-- The live Supabase project grants preferences CRUD at the table layer,
+-- while fresh migration replay currently does not. Preserve that drift as
+-- an explicit deployment blocker. Here we grant rights TEMPORARILY and
+-- rollback them, so RLS ownership-denial tests run independently of GRANTs.
+-- DELETE intentionally gets a GRANT so its denial tests the missing RLS
+-- DELETE policy (not merely a missing table privilege).
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_preferences TO authenticated;
+
+-- Supabase's hosted Auth schema grants client roles USAGE, but the native
+-- PostgreSQL shim only creates the schema/functions. A repository RLS policy
+-- invokes is_admin_or_founder() -> auth.uid() as SECURITY INVOKER, so the
+-- shim must provide that hosted prerequisite. The GRANT is transactional,
+-- restricted to this disposable test cluster, and rolled back below.
+GRANT USAGE ON SCHEMA auth TO authenticated;
+-- is_admin_or_founder() is SECURITY INVOKER and reads public.user_roles;
+-- hosted preview grants authenticated SELECT, while fresh replay does not.
+-- This fixture-only SELECT grant lets the exact helper evaluate its own RLS.
+GRANT SELECT ON public.user_roles TO authenticated;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
+SELECT set_config('request.jwt.claim.role','authenticated',true);
+
+DO $test_a$
+DECLARE denied boolean;
+BEGIN
+  IF (SELECT count(*) FROM public.organizations) <> 1
+     OR (SELECT count(*) FROM public.organization_memberships) <> 1
+     OR (SELECT count(*) FROM public.device_permission_grants) <> 1
+     OR (SELECT count(*) FROM public.user_preferences) <> 1
+     OR (SELECT count(*) FROM public.creator_follows) <> 1
+  THEN RAISE EXCEPTION 'user A cross-tenant read isolation failed'; END IF;
+
+  IF NOT public.is_org_member('a3333333-3333-4333-8333-333333333333')
+     OR public.is_org_member('b4444444-4444-4444-8444-444444444444')
+     OR NOT public.sonara_is_org_member('a3333333-3333-4333-8333-333333333333')
+     OR public.sonara_is_org_member('b4444444-4444-4444-8444-444444444444')
+     OR NOT public.is_org_owner_or_admin('a3333333-3333-4333-8333-333333333333')
+     OR public.is_org_owner_or_admin('b4444444-4444-4444-8444-444444444444')
+  THEN RAISE EXCEPTION 'privileged organization helper did not enforce user A'; END IF;
+
+  IF NOT public.is_entity_member('a7777777-7777-4777-8777-777777777777')
+     OR public.is_entity_member('b8888888-8888-4888-8888-888888888888')
+     OR NOT public.can_manage_entity('a7777777-7777-4777-8777-777777777777')
+     OR public.can_manage_entity('b8888888-8888-4888-8888-888888888888')
+     OR NOT public.has_entity_role('a7777777-7777-4777-8777-777777777777',
+          ARRAY['owner','admin']::public.entity_member_role[])
+     OR public.has_entity_role('b8888888-8888-4888-8888-888888888888',
+          ARRAY['owner','admin']::public.entity_member_role[])
+  THEN RAISE EXCEPTION 'entity owner helpers leaked across users'; END IF;
+
+  denied := false;
+  BEGIN
+    INSERT INTO public.device_permission_grants(user_id,capability,state)
+      VALUES ('b2222222-2222-4222-8222-222222222222','microphone','granted');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'user A could insert device grant belonging to B'; END IF;
+
+  denied := false;
+  BEGIN
+    INSERT INTO public.organizations (name)
+      VALUES ('Forged Organization');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'authenticated user could directly create an organization'; END IF;
+END
+$test_a$;
+
+-- Positive INSERT must genuinely work. A deny-only fixture can otherwise
+-- pass on tables whose grants accidentally block everyone.
+INSERT INTO public.device_permission_grants(user_id,capability,state)
+VALUES ('a1111111-1111-4111-8111-111111111111','microphone','granted');
+INSERT INTO public.user_preferences(user_id,language,unit_system)
+VALUES ('a1111111-1111-4111-8111-111111111111','es','metric')
+ON CONFLICT (user_id) DO UPDATE SET language=excluded.language,unit_system=excluded.unit_system;
+DO $test_a_writes$
+BEGIN
+  IF (SELECT count(*) FROM public.device_permission_grants) <> 2
+    OR (SELECT language FROM public.user_preferences LIMIT 1) <> 'es'
+  THEN RAISE EXCEPTION 'user A ownership-positive writes failed'; END IF;
+  UPDATE public.user_preferences SET language='fr'
+    WHERE user_id='b2222222-2222-4222-8222-222222222222';
+  IF FOUND THEN RAISE EXCEPTION 'user A updated user B preferences'; END IF;
+  DELETE FROM public.user_preferences WHERE user_id='a1111111-1111-4111-8111-111111111111';
+  IF FOUND THEN RAISE EXCEPTION 'user A deleted own preferences without DELETE policy'; END IF;
+  UPDATE public.organizations SET name='Illegal Rename'
+    WHERE id='b4444444-4444-4444-8444-444444444444';
+  IF FOUND THEN RAISE EXCEPTION 'user A updated organization B'; END IF;
+END
+$test_a_writes$;
+
+SELECT set_config('request.jwt.claim.sub','b2222222-2222-4222-8222-222222222222',true);
+DO $test_b$
+BEGIN
+  IF (SELECT count(*) FROM public.organizations) <> 1
+    OR (SELECT count(*) FROM public.organization_memberships) <> 1
+    OR (SELECT count(*) FROM public.creator_follows) <> 1
+    OR (SELECT count(*) FROM public.device_permission_grants) <> 1
+    OR (SELECT count(*) FROM public.user_preferences) <> 1
+  THEN RAISE EXCEPTION 'user B cross-tenant read isolation failed'; END IF;
+  IF NOT public.is_org_member('b4444444-4444-4444-8444-444444444444')
+    OR public.is_org_member('a3333333-3333-4333-8333-333333333333')
+  THEN RAISE EXCEPTION 'privileged organization helper did not enforce user B'; END IF;
+  IF NOT public.is_entity_member('b8888888-8888-4888-8888-888888888888')
+     OR public.is_entity_member('a7777777-7777-4777-8777-777777777777')
+     OR public.can_manage_entity('b8888888-8888-4888-8888-888888888888')
+     OR public.has_entity_role('b8888888-8888-4888-8888-888888888888',
+          ARRAY['owner','admin']::public.entity_member_role[])
+  THEN RAISE EXCEPTION 'entity viewer obtained owner-level privileges'; END IF;
+END
+$test_b$;
+
+RESET ROLE;
+SET LOCAL ROLE anon;
+SELECT set_config('request.jwt.claim.sub','',true);
+SELECT set_config('request.jwt.claim.role','anon',true);
+DO $test_anon$
+DECLARE blocked boolean;
+BEGIN
+  blocked := false;
+  BEGIN PERFORM count(*) FROM public.organizations;
+  EXCEPTION WHEN insufficient_privilege THEN blocked := true; END;
+  IF NOT blocked THEN RAISE EXCEPTION 'anon could read private organizations'; END IF;
+
+  blocked := false;
+  BEGIN
+    INSERT INTO public.device_permission_grants(user_id,capability,state)
+      VALUES ('a1111111-1111-4111-8111-111111111111','location','granted');
+  EXCEPTION WHEN insufficient_privilege THEN blocked := true; END;
+  IF NOT blocked THEN RAISE EXCEPTION 'anon could create user device grant'; END IF;
+END
+$test_anon$;
+RESET ROLE;
+
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role','service_role',true);
+DO $test_service$
+BEGIN
+  IF (SELECT count(*) FROM public.organizations) <> 2
+    OR (SELECT count(*) FROM public.device_permission_grants) <> 3
+    OR (SELECT count(*) FROM public.creator_follows) <> 2
+  THEN RAISE EXCEPTION 'service role lost server-only bypass or fixture counts'; END IF;
+END
+$test_service$;
+RESET ROLE;
+
+SELECT 'p0_auth_rls_matrix_staging_passed';
+ROLLBACK;
