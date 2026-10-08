@@ -94,3 +94,16 @@ For securities, a regulated partnership or independently licensed provider must 
 **Restricted separate decision:** real-money gaming, betting, prediction contracts, trading, token rewards or investment advice: product-by-product jurisdiction/fee/legal analysis and licensed partner approval before code or marketing promises.
 
 **Release rule:** keep draft PR unmerged and no deployment until full exact-head verification and authorized activation.
+
+## Additional 2026 engine research: isolate, do not embed
+
+| Candidate | Source / architecture | Evaluation decision |
+| --- | --- | --- |
+| Google DeepMind OpenSpiel | Apache-2.0; C++ core with Python bindings, n-player imperfect-information games, reinforcement-learning and strategic-search algorithms. https://github.com/google-deepmind/open_spiel | Good scientific benchmark for general-sum, imperfect-information and adversarial games; isolate in offline research worker. No production dependency. |
+| Farama PettingZoo | MIT Python multi-agent reinforcement learning environment standard; includes classic board-game environments. https://github.com/Farama-Foundation/PettingZoo | Use for simulation/agent-behavior benchmarks, not browser server auth or production casino odds. No production dependency. |
+| QuantConnect LEAN | Apache-2.0 C# and Python strategy research/backtesting engine; also supports live brokerage integrations which must be explicitly disabled for SONARA research. https://github.com/QuantConnect/Lean | Potential future isolated **backtest-only** worker after data licenses, precision, look-ahead bias, worker cost and investment-service classification review. **Do not** install or enable provider keys. |
+| Godot 4.5 web export | Official documentation identifies single-threaded WebAssembly/WebGL2 as preferable for broad web compatibility, including macOS/iOS, while noting thread/cross-origin constraints. https://docs.godotengine.org/en/4.5/tutorials/export/exporting_for_web.html | Prefer small accessible 2D/browser sandbox first; separate native/export pipelines after browser/device evidence. |
+
+Licenses describe engine **source** only. Datasets, game assets, prices, brokerage integrations, pre-trained models, sound banks and market feeds carry separate rights and may carry recurring fees. An Apache/MIT license is not regulatory permission to run games of chance, operate an exchange or offer investment services.
+
+**Decision criterion:** only integrate a large engine when a tested prototype closes a measurable accuracy, user-value or labor-cost gap that the existing no-dependency mathematical kernel cannot close. Every deployment needs a cost ceiling, sandbox isolation, cancellation, observability, human approval where required and reproducible evidence.
