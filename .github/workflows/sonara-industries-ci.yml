@@ -155,6 +155,26 @@ jobs:
           SONARA_PYTHON_COVERAGE_COMPLETE: "1"
         run: pnpm run verify:gates
 
+      # Diagnostic only. This never changes or suppresses a failing gate,
+      # and the generated files are not committed from a privileged PR token.
+      # Emit a bounded unified diff to make a stale 20+ MB JSON inventory
+      # actionable without weakening the checked-in artifact requirement.
+      - name: Diagnose stale capability inventory after a failed release gate
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-capability-inventory.cjs --write
+          git --no-pager diff --unified=0 -- data/capability-inventory.json docs/CAPABILITY_MAP.md > capability-inventory-drift.diff
+          if [[ -s capability-inventory-drift.diff ]]; then
+            echo "Generated capability files differ from the PR's exact checkout:"
+            head -c 24000 capability-inventory-drift.diff
+            echo
+            echo "End of bounded drift preview. The original release gate remains failed."
+          else
+            echo "Generated capability files match; inspect the original failing gate above."
+          fi
+
       - name: Verify documentation links
         run: pnpm run test:docs
 
