@@ -231,7 +231,7 @@
       .then(function (outcome) {
         if (!outcome) return;
         if (outcome.answer && (outcome.answer.code === "unreachable" || outcome.answer.code === "authentication_required") && queue && outcome.body.client_event_id) {
-          var kept = queue.keep(config.endpoint, outcome.body, { retryAt: outcome.answer.retryAt });
+          var kept = queue.keep(config.endpoint, outcome.body, { scope: config, retryAt: outcome.answer.retryAt });
           if (kept.kept) {
             say(outcome.answer.code === "authentication_required"
               ? "Your check-in is saved on this device. Sign in to the same account, then send saved check-ins."
