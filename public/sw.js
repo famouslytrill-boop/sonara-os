@@ -165,17 +165,30 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname === "/sw.js" || !isPublicStaticRequest(url)) return;
 
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.match(event.request).then((cached) => {
-        const refresh = fetch(event.request)
-          .then((response) => {
-            if (isCacheableResponse(response)) cache.put(event.request, response.clone());
-            return response;
-          })
-          .catch(() => cached);
-        return cached || refresh;
-      })
-    )
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(event.request);
+      // A signed-in page can request the same shared public JS/CSS. Fetch it
+      // without cookies, and do not persist a redirect or login HTML fallback.
+      const anonymousRequest = new Request(event.request.url, {
+        credentials: "omit",
+        cache: "no-store",
+        redirect: "error"
+      });
+      const refresh = fetch(anonymousRequest).then(async (response) => {
+        if (isCacheableResponse(response) && !response.redirected &&
+            (!response.url || new URL(response.url).origin === self.location.origin) &&
+            !(response.headers.get("content-type") || "").toLowerCase().includes("text/html")) {
+          await cache.put(event.request, response.clone());
+        }
+        return response;
+      });
+      if (cached) {
+        // Keep the worker alive until the revalidation and cache write settle.
+        event.waitUntil(refresh.catch(() => undefined));
+        return cached;
+      }
+      return refresh;
+    })
   );
 });
 
