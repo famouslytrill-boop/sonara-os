@@ -276,6 +276,31 @@ describe("a storefront order is paid on the shop's own account", function storef
       assert.equal(fake.rows("merchant_orders")[0].refunded_cents, 2400, "an older refund event shrank what was refunded");
     });
 
+    // A won dispute means the shop kept the money. Nothing handled
+    // charge.dispute.closed, so the order stayed "disputed" -- outside money
+    // received on the operations page -- for good.
+    it("puts an order back to what it was when the shop wins the dispute, and leaves it when the shop loses", async () => {
+      const { fake } = world();
+      await placeOrder();
+      const [open] = fake.rows("merchant_orders");
+      await deliver(completed(open));
+      const event = (id, type, object = {}) => deliver({ id, type, account: ACCOUNT, data: { object: { payment_intent: "pi_shoppay12345678", ...object } } });
+      await event("evt_shopdispute1", "charge.dispute.created");
+      assert.equal(fake.rows("merchant_orders")[0].payment_state, "disputed");
+      await event("evt_shopdisputelost1", "charge.dispute.closed", { status: "lost" });
+      assert.equal(fake.rows("merchant_orders")[0].payment_state, "disputed", "a lost dispute put the money back");
+      const won = await event("evt_shopdisputewon1", "charge.dispute.closed", { status: "won" });
+      assert.equal(won.status, 200);
+      assert.equal(fake.rows("merchant_orders")[0].payment_state, "paid", "a dispute the shop won left the order disputed");
+      const outcomes = fake.rows("merchant_order_payment_events").map((row) => row.outcome);
+      assert.ok(outcomes.includes("dispute_lost") && outcomes.includes("dispute_won"), outcomes.join(", "));
+
+      // Refunded in full before the dispute: winning it returns the order to refunded.
+      await fetch(`${SUPABASE}/rest/v1/merchant_orders?id=eq.${open.id}&organization_id=eq.${ORG}`, { method: "PATCH", headers: {}, body: JSON.stringify({ payment_state: "disputed", refunded_cents: open.subtotal_cents }) });
+      await event("evt_shopdisputewon2", "charge.dispute.closed", { status: "warning_closed" });
+      assert.equal(fake.rows("merchant_orders")[0].payment_state, "refunded", "an order refunded in full came back as paid");
+    });
+
     it("can pay again after the checkout expires, as a new attempt with its own key", async () => {
       const { fake, stripe } = world();
       await placeOrder();

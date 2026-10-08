@@ -21,19 +21,14 @@
 // honest answer, and a file naming a debug or invented certificate would tell
 // Android to trust whoever holds that key.
 //
-// The package name and relations are read from the build contract rather than
-// written here, so the app that is built and the app this file vouches for
-// cannot drift apart.
+// The package name and relations come from lib/sonara-android-app-association.cjs,
+// which scripts/verify-android-twa.mjs holds equal to the build contract. They
+// are not read from android/ at runtime: that directory is not shipped with the
+// server, and reading it crashed the Docker image build at startup.
 
-const fs = require("node:fs");
-const path = require("node:path");
+const association = require("../lib/sonara-android-app-association.cjs");
 
-const CONTRACT_PATH = path.join(__dirname, "..", "android", "twa", "build-contract.json");
 const FINGERPRINT = /^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$/;
-
-function readContract() {
-  return JSON.parse(fs.readFileSync(CONTRACT_PATH, "utf8"));
-}
 
 // Every value well-formed, or none used. A list with one good fingerprint and
 // one typo is a configuration mistake, and serving the good half would hide it.
@@ -44,19 +39,17 @@ function fingerprintsFrom(raw) {
   return { ok: true, fingerprints: [...new Set(values)] };
 }
 
-function assetLinks(contract, fingerprints) {
+function assetLinks(fingerprints) {
   return [{
-    relation: contract.digitalAssetLinks.relations,
-    target: { namespace: "android_app", package_name: contract.packageName, sha256_cert_fingerprints: fingerprints }
+    relation: [...association.relations],
+    target: { namespace: "android_app", package_name: association.packageName, sha256_cert_fingerprints: fingerprints }
   }];
 }
 
 function registerWellKnownRoutes(app, deps = {}) {
   const getEnv = typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name];
-  const contract = readContract();
-
-  app.get(contract.digitalAssetLinks.path, (req, res) => {
-    const configured = fingerprintsFrom(getEnv(contract.digitalAssetLinks.fingerprintEnvironment));
+  app.get(association.path, (req, res) => {
+    const configured = fingerprintsFrom(getEnv(association.fingerprintEnvironment));
     if (!configured.ok) {
       // Not cached: the next request after the owner sets the value should see it.
       res.set("Cache-Control", "no-store");
@@ -65,7 +58,7 @@ function registerWellKnownRoutes(app, deps = {}) {
         : "No Android app is associated with this site yet.");
     }
     res.set("Cache-Control", "public, max-age=3600");
-    return res.status(200).json(assetLinks(contract, configured.fingerprints));
+    return res.status(200).json(assetLinks(configured.fingerprints));
   });
 }
 

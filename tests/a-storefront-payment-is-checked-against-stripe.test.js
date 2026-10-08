@@ -196,6 +196,17 @@ describe("a storefront payment is checked against Stripe", () => {
       assert.equal(decide(charge("charge.refunded", { refunded: true }), PAID).code, "not_settled");
     });
 
+    it("gives the order back when a dispute ends with the payment standing", () => {
+      const DISPUTED = { ...PAID, payment_state: "disputed" };
+      assert.equal(decide(charge("charge.dispute.closed", { status: "won" }), DISPUTED).restoreState, "paid");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "warning_closed" }), DISPUTED).action, "reinstate");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "won" }), { ...DISPUTED, refunded_cents: DISPUTED.amount_paid_cents ?? DISPUTED.subtotal_cents }).restoreState, "refunded");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "lost" }), DISPUTED).code, "dispute_lost");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "needs_response" }), DISPUTED).code, "dispute_status_unknown");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "won" }), PAID).code, "not_disputed");
+      assert.equal(decide(charge("charge.dispute.closed", { status: "won", payment_intent: "pi_otherpayment1" }), DISPUTED).code, "intent_mismatch");
+    });
+
     it("marks a dispute, and ignores refunds and disputes on another payment", () => {
       assert.equal(decide(charge("charge.dispute.created", {}), PAID).action, "dispute");
       assert.equal(decide(charge("charge.refunded", { amount_refunded: 3000, refunded: true, payment_intent: "pi_otherpayment1" }), PAID).code, "intent_mismatch");

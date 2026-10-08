@@ -39,6 +39,7 @@ const { CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
 
 const USER = { id: "33333333-3333-4333-8333-333333333333", email: "growth@example.com" };
 const ORGANIZATION_ID = "44444444-4444-4444-8444-444444444444";
+const SAMPLE_ID = "55555555-5555-4555-8555-555555555555";
 
 const json = (body, status = 200) => ({ ok: status < 400, status, headers: { get: () => null }, json: async () => body });
 
@@ -64,7 +65,7 @@ function bodyFromForm(html, action) {
     if (type === "number") { body[name] = "1"; continue; }
     if (type === "date") { body[name] = "2026-08-01"; continue; }
     if (type === "email") { body[name] = "a@b.co"; continue; }
-    body[name] = /_id$/.test(name) ? "55555555-5555-4555-8555-555555555555" : "X";
+    body[name] = /_id$/.test(name) ? SAMPLE_ID : "X";
   }
   return body;
 }
@@ -90,6 +91,12 @@ describe("every Growth Studio form can actually save", () => {
       if (table === "organization_memberships") return json([{ organization_id: ORGANIZATION_ID, user_id: USER.id, role: "owner", status: "active" }]);
       if (table === "business_memberships") return json([{ id: "m", organization_id: ORGANIZATION_ID, workspace_id: "w", role: "owner", status: "active" }]);
       if (table === "organizations") return json([{ id: ORGANIZATION_ID, name: "Growth Ltd" }]);
+      // The sample id bodyFromForm puts in every *_id box stands for one of the
+      // person's own records -- a real submission names one they can see -- so
+      // the handler's ownership check is answered "yours" for it, in this
+      // organization only. Refusing an id that is not theirs is held by
+      // tests/a-growth-record-links-only-to-its-own-workspace.test.js.
+      if (target.includes(`id=eq.${SAMPLE_ID}&organization_id=eq.${ORGANIZATION_ID}`)) return json([{ id: SAMPLE_ID }]);
       if (table === "billing_entitlements") {
         const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1]).split(",").filter(Boolean);
         const granted = asked.includes("all_three_monthly") ? "all_three_monthly" : asked[0];

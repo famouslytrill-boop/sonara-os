@@ -1,5 +1,110 @@
 # Handoff Log
 
+## 2026-10-08 - Claude - main (#448, #450) merged into #446
+
+- Codex: your `COPY android ./android` (4d1b74a0) is kept. #446 also moves the
+  Android association into `lib/sonara-android-app-association.cjs`, so the
+  route reads nothing from `android/`. That is what keeps it working on Vercel,
+  whose function bundle (`{public/**,routes/**,lib/**}`) has no `android/`.
+  `tests/the-server-starts-from-what-is-shipped.test.js` holds both.
+- Your commerce amount changes merged cleanly with #446's dispute
+  reinstatement. The commerce, dispute, storefront and marketplace tests pass
+  together (286).
+
+## 2026-10-08 - Claude - Every form answers a person with a page (PR #446)
+
+- `tests/every-form-answers-a-person.test.js` posts every form on every page as
+  a browser, with writes succeeding and then failing. A JSON answer fails it,
+  and so does a failed write landing on a page that renders the same with and
+  without its `?problem=`.
+- If you add a form, its handler redirects with a code and its page reads the
+  code into a sentence written in the route file. Never echo the query.
+- Business Builder list pages use `problemSentence(code)` in
+  `routes/sonara-last9-routes.cjs`. Add a sentence there for any new code they
+  can be sent.
+
+## 2026-10-08 - Claude - Growth create forms answer with a page (PR #446)
+
+- The nine Growth create routes carry `answeredOnItsPage(key)` before
+  `access`. A browser form post (HTML accepted, JSON not) is redirected 303 to
+  the record page with `?saved=1` or `?problem=<code>&form=create`, which
+  `lib/sonara-growth-form-outcomes.cjs` puts into words. JSON callers are
+  unchanged. `form=create` keeps a failed save apart from the campaigns page's
+  existing `?problem=` for a failed send.
+- A new refusal code in one of those handlers needs a sentence in `PROBLEMS`,
+  or `tests/a-growth-form-answers-with-a-page.test.js` fails. A sentence whose
+  code is gone fails it too.
+
+## 2026-10-08 - Claude - Growth create APIs refuse another workspace's ids (PR #446)
+
+- `ownedReferences` checks campaign_id, lead_id, touchpoint_id, content_id,
+  provider_connection_id, audience_segment_id and platform_id against the
+  caller's organization before nine Growth create handlers write. The answers
+  are 400 `_invalid`, 403 `_not_yours` and 502 `_unreadable`, the same codes
+  as `belongsToOrganization` in `routes/sonara-last9-routes.cjs`.
+- Adding a linked id to a Growth handler means adding it to `REFERENCES`, which
+  is exported, and to the call. Its test checks the handlers against its case
+  table in both directions, so an unchecked link fails there.
+- A hand-written fetch mock that posts a linked id must now answer
+  `<table>?select=id&id=eq.<id>&organization_id=eq.<org>`.
+
+## 2026-10-08 - Claude - A campaign's return on what its customers paid (PR #446)
+
+- The campaign page adds "What the customers it brought in have paid":
+  `growth_leads.customer_id` → `customer_invoices` → `customer_invoice_payments`,
+  summarised in `lib/sonara-campaign-payments.cjs`.
+- First campaign wins (first touch; a tie goes to the lower id). Only payments
+  and open invoices from the day the person came in count. Figures stay per
+  currency and signed.
+- It is never added to `growth_conversions`. If you add a path that writes a
+  conversion for an invoice payment, this page will count that sale twice:
+  change one or the other.
+- A cut-short read withholds a return on both bases. It is no longer labelled
+  "at least", because corrections make it no bound in either direction.
+- `nextStep` may now return `collect_unpaid` and `too_many_records`, and its
+  money steps carry `basis: "payments" | "recorded"`.
+
+## 2026-10-07 - Claude - Campaign link attribution (PR #446)
+
+- `?c=<campaign id>` on `/chat/:slug` credits the resulting lead to the
+  campaign. It is checked against the page owner's campaigns at capture, never
+  trusted from the link. `lib/sonara-campaign-links.cjs`.
+- `dispatchCampaign` tags this site's chat links in the email body. If you add
+  an HTML body, tag its hrefs the same way, or HTML campaigns lose attribution.
+- `CHAT_POST_SCHEMA` gained `campaign`; `lead_conversations.metadata` carries
+  `claimed_campaign_id`.
+- `tagCampaignLinks` tags a link only where it stands alone. The start of the
+  message, a space, or an opening bracket or quote must come before it. After
+  it comes the end or a space, perhaps after closing punctuation. Curly quotes
+  and guillemets count, because phone keyboards type them. A link inside
+  another address, or with `.html` or `/extra` after it, is left as written.
+  Test it by comparing the whole message: `.includes()` passes on a link
+  rewritten in the middle of a longer one.
+
+## 2026-10-07 - Claude - Campaign email delivery receipts (PR #446)
+
+- New table `growth_email_delivery_events`, migration
+  `20261007130000_what_happened_to_a_campaign_email.sql`: append-only, service
+  role only, unique on `provider_event_id`. Closed-table replay set is now 58.
+- `POST /api/webhooks/resend` verifies Svix signatures with
+  `RESEND_WEBHOOK_SECRET` (classified optional). Test vector in
+  `tests/a-campaign-email-says-what-happened-to-it.test.js`.
+- `summarizeCampaign` takes an optional `deliveryEvents` read that is NOT part
+  of its readability gate. Keep it that way, or an unmigrated table hides every
+  campaign's return.
+
+## 2026-10-07 - Claude - Won disputes give the sale back; Connect webhook event list (PR #446)
+
+- `charge.dispute.closed` is handled for marketplace orders and shop orders.
+  `won`/`warning_closed` reinstate; `lost` is recorded only.
+- `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs` is the list
+  the Connect endpoint must be subscribed to. A new event type in either sale
+  decision must be added there and to OWNER-STEPS step 7, or
+  `tests/a-dispute-the-seller-wins-gives-the-sale-back.test.js` fails.
+- #444 merged at 17:44 UTC with a route that broke the Docker build;
+  #446 fixes it. Production (sonaraindustries.com) answers 503
+  DEPLOYMENT_PAUSED. That is a Vercel project setting, not code.
+
 ## 2026-10-08 - Codex - commerce amount integrity and engineering/marketing pass
 
 - Exact base: `add53bf33a1c7cffa72fb7fc2b3738c25e8dac00`. Branch:

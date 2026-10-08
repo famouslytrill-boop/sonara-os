@@ -27,6 +27,7 @@ const path = require("node:path");
 const app = require("../server");
 const { GROWTH_CREATE_SPECS, getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
+const { REFERENCES } = require("../routes/growth-studio-control-routes.cjs");
 
 const routeSource = fs.readFileSync(path.join(__dirname, "..", "routes", "growth-studio-control-routes.cjs"), "utf8");
 
@@ -47,7 +48,17 @@ function handlerFields(key) {
   if (start === -1) return null;
   const end = routeSource.indexOf('\n  app.', start + 10);
   const body = routeSource.slice(start, end === -1 ? routeSource.length : end);
-  return new Set([...body.matchAll(/req\.body\.([a-zA-Z_][a-zA-Z0-9_]*)/g)].map((match) => match[1]));
+  const read = new Set([...body.matchAll(/req\.body\.([a-zA-Z_][a-zA-Z0-9_]*)/g)].map((match) => match[1]));
+  // A linked id is read through ownedReferences, which checks it belongs to the
+  // caller's organization. It counts as read only if the handler names it in
+  // that call AND the reference map reads the body under that same name --
+  // listing a column the map does not read would be a field ignored again.
+  for (const call of body.matchAll(/ownedReferences\(config, context, req\.body, \[([^\]]*)\]\)/g)) {
+    for (const [, column] of call[1].matchAll(/"([a-z_]+)"/g)) {
+      if (REFERENCES[column]?.keys.includes(column)) read.add(column);
+    }
+  }
+  return read;
 }
 
 describe("Growth Studio create forms", () => {

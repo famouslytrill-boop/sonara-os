@@ -177,6 +177,24 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/webhooks/resend:
+    post:
+      operationId: receiveEmailDeliveryReceipt
+      tags: [Growth Studio]
+      summary: Receive a verified report from the email provider about a campaign message it accepted.
+      description: >-
+        Signed by Resend with Svix (svix-id, svix-timestamp, svix-signature) and verified against
+        the raw body with RESEND_WEBHOOK_SECRET, within five minutes. The message is matched to
+        the accepted campaign send carrying its provider id, and one delivery event is recorded,
+        keyed on svix-id so a resend is a duplicate. Reports about other emails are acknowledged
+        and not recorded.
+      security: [{ svixSignature: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/stripe/webhook:
     post:
       operationId: receiveStripeWebhookAlias
@@ -1201,6 +1219,22 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-orders/{workOrderId}/repeat:
+    post:
+      operationId: repeatBusinessWorkOrder
+      tags: [Operations]
+      summary: Book a finished work order again as a new draft for the same customer, place and price.
+      description: >-
+        Only a completed, invoiced or closed job repeats. The schedule, recorded costs, quote,
+        booking, crew and materials belong to the visit that happened and are not copied; the
+        new job records the one it repeats in metadata.repeat_of.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes/{quoteId}/invoice:
     post:
       operationId: convertBusinessQuoteToInvoice
@@ -3570,6 +3604,11 @@ components:
       in: header
       name: Stripe-Signature
       description: Stripe webhook signature verified against the configured endpoint secret.
+    svixSignature:
+      type: apiKey
+      in: header
+      name: svix-signature
+      description: Svix webhook signature (HMAC-SHA256 over svix-id, svix-timestamp and the raw body) verified against RESEND_WEBHOOK_SECRET.
   requestBodies:
     JsonBody:
       required: true
