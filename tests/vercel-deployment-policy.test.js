@@ -11,8 +11,16 @@ describe('Vercel deployment policy', () => {
     assert.equal(config.git?.deploymentEnabled, false);
   });
 
-  it('deploys only through the validated main-branch production workflow', () => {
-    assert.match(workflow, /branches:\s*\[main\]/);
+  it('deploys only through an explicitly approved manual production workflow', () => {
+    const trigger = workflow.slice(workflow.indexOf("\non:\n"), workflow.indexOf("\npermissions:\n"));
+    assert.match(trigger, /workflow_dispatch:/, 'controlled production release must remain manually dispatchable');
+    assert.doesNotMatch(trigger, /\n\s*push:/, 'merging or pushing must not automatically release a production deployment');
+    assert.match(trigger, /approve_production_release:[\s\S]*?type: boolean[\s\S]*?required: true[\s\S]*?default: false/,
+      'manual approval input must be explicit and default to false');
+    assert.match(workflow, /github\.event_name == 'workflow_dispatch' && inputs\.approve_production_release == true/,
+      'production job must refuse dispatch without affirmative approval');
+    assert.match(workflow, /environment: production/,
+      'production release must also use the protected GitHub environment');
 
     const releaseGates = [
       // The generators no longer run during the build. Their output is
