@@ -88,6 +88,27 @@ describe("marketplace sales are checked against payment and delivery evidence", 
     assert.ok(codes(twice).includes("duplicate_payment"));
     assert.equal(twice.totals.usd.stripePaid, 5000);
   });
+  it("refuses contradictory copies of the same Stripe checkout while allowing exact pagination repeats", () => {
+    const consistent = run({ sessions: [session(), session()] });
+    assert.equal(consistent.complete, true);
+    assert.equal(consistent.checked, 1);
+    const conflicting = run({ sessions: [session(), session({ amount_total: 2700 })] });
+    assert.ok(codes(conflicting).includes("checkout_evidence_conflict"));
+    assert.equal(conflicting.complete, false);
+    assert.equal(conflicting.attention, 1);
+    // Total is drawn from the first snapshot, never overwritten by the
+    // contradictory provider response. Either way the report is incomplete.
+    assert.equal(conflicting.totals.usd.stripePaid, 2500);
+  });
+  it("flags contradictory checkout snapshots even without a local order", () => {
+    const conflicting = run({
+      orderRows: [], grants: [],
+      sessions: [session(), session({ payment_status: "unpaid" })]
+    });
+    assert.ok(conflicting.rows[0].codes.includes("order_not_in_report"));
+    assert.ok(conflicting.rows[0].codes.includes("checkout_evidence_conflict"));
+    assert.equal(conflicting.complete, false);
+  });
   it("reports missing webhook settlement and missing licence delivery separately", () => {
     assert.ok(codes(run({ orderRows: [order({ state: "pending", payment_intent_id: null })], grants: [] })).includes("payment_not_recorded"));
     assert.ok(codes(run({ grants: [] })).includes("licence_missing"));
