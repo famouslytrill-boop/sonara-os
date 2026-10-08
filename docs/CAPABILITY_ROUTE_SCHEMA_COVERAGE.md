@@ -1639,6 +1639,8 @@ These records describe candidate calculations; an entry here alone does not prov
 | contribution_margin | finance | revenue - variable_cost |
 | ltv_simple | finance | arpa * gross_margin_rate / monthly_logo_churn_rate |
 | cac_payback | finance | cac / (arpa * gross_margin_rate) |
+| activation_rate | growth | activated_users / eligible_new_users |
+| retention_rate | customer_success | retained_customers / starting_customers |
 | break_even_units | finance | fixed_cost / (unit_price - unit_variable_cost) |
 | target_margin_price | pricing | variable_cost / (1 - target_margin_rate) |
 | eoq | inventory | sqrt((2 * annual_demand * order_cost) / annual_holding_cost_per_unit) |
