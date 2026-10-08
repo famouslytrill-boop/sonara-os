@@ -93,6 +93,14 @@ jobs:
             process.exit(3);
           }
 
+          // Exact-head green CI does not prove a protected merge policy. Fail
+          // closed until GitHub reports branch protection or an applicable
+          // repository ruleset on main. The owner must enable it in settings.
+          if (main?.protected !== true) {
+            console.error("Production release blocked: main has no enforced GitHub branch protection or applicable ruleset.");
+            process.exit(3);
+          }
+
           const states = [];
           for (const name of required) {
             const run = runs
