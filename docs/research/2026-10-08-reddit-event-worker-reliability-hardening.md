@@ -105,3 +105,29 @@ Source review found a second independent false-success condition: `createEventCo
 **PR #512:** its outbox response-integrity adapter was updated independently; the generated test-file count was preserved by integrating new regression cases into the existing test file. Review against #511 prior to any integration; source patches are not automatically conflict-free just because draft branches are separate.
 
 **Required next execution:** exact-head generated-artifact refresh and verified native migrations in the CI-fix branch → browser contract triage → full Node/Mocha checks on the updated worker/outbox branches → provider-free two-tenant staging tests → governance and separately approved controlled release. Preserve the owner's existing temporary production-offline instruction.
+
+
+## Fifth engineering pass — uncertain timeout, lease budget, and explicitly safe retries
+
+**Baseline reproduction, October 8 2026:** the source in this draft branch scheduled `retry` with code `handler_timeout` when a synthetic handler ran longer than its timeout but remained in flight. `Promise.race` merely stops waiting; it does not stop an underlying promise or external provider action. A second invocation could therefore execute the same side effect while the original request still ran. This is a safety-critical correctness issue for payments, Creator delivery, CRM lead creation, email and social publishing. This was a local simulated handler test, not an actual duplicate charge or customer action.
+
+**Design from primary and practitioner sources:**
+- [Temporal documentation, Activity Definition](https://github.com/temporalio/documentation/blob/main/docs/encyclopedia/activities/activity-definition.mdx): a durable Activity can be executed multiple times and partially complete on more than one attempt; record exactly-one completion is not synonymous with exactly-one side effect.
+- [Stripe API idempotent requests](https://docs.stripe.com/api/idempotent_requests): a stable request key can prevent duplicate mutation within documented retention conditions, but keys may be removed after 24h and results (including first 500) may be cached. SONARA still needs its own event id and provider reconciliation.
+- [Reddit r/n8n, 2026-10-02](https://www.reddit.com/r/n8n/comments/1wvh8h1/help_preventing_duplicate_leads_when_a_crmapi/): the author asks how to handle a CRM create request that may have succeeded before timing out. A question is not prevalence evidence.
+- [Reddit r/aiagents, 2026-09-08](https://www.reddit.com/r/aiagents/comments/1wb131p/for_people_running_ai_agents_in_production_what/): practitioners discuss tool/API calls with unknown post-timeout side-effect state. It is not production evidence for SONARA.
+- [Reddit r/n8n, 2026-04-21](https://www.reddit.com/r/n8n/comments/1srgrst/the_n8n_skill_that_actually_matters_has_nothing/): explicitly distinguishes transient failure, invalid payload, and repeated triggers as needing different retry behavior. Anecdotal advice; independently verified against code contracts.
+
+**Implementation in `lib/sonara-event-consumer.cjs`:**
+1. Add `LEASE_SETTLEMENT_RESERVE_MS = 10000` and reject configured `handlerTimeoutMs` unless a positive safe integer strictly below the fixed five-minute claim lease less the reserve. This reduces accidental overlapping stale-lease reclamation; it cannot prevent an external handler continuing after timeout, nor compensate for paused processes or a stalled settlement request.
+2. On `handler_timeout`, mark the handler outcome `retryable:false`, settle `dead_lettered`, preserve a structured reason and attempt evidence, and require a human or authorized reconciliation process to check provider state before any replay. Never schedule automatic replay for this uncertainty.
+3. Remove optimistic default `retryable !== false`. For thrown exceptions and returned `{ok:false}` outcomes, retry only with **explicit** `retryable:true`; unclassified failures are dead-lettered. An approved adapter must explicitly distinguish known-safe transient faults from unknown post-side-effect faults. Owner approval remains mandatory for sensitive acts.
+4. Preserve the existing bounded exponential backoff and five-attempt ceiling for explicitly retryable failures. No changes to database migration history, dependencies, RLS, provider keys, payment actions, website status or deployment.
+
+**Tests in the existing `tests/event-consumer-readiness.test.js`:**
+- Prove a slow handler is still running when its timeout fires, but the settlement is `dead_lettered` with no `nextAvailableAt`; then prove the original handler eventually completes independently. No cancellation or provider rollback claim.
+- Test positive 30s configuration and deny invalid, non-integer and claim-lease-overlapping timeout settings.
+- Verify unclassified returned failures and thrown exceptions do **not** retry, while explicit `retryable:true` failures do retry through both code paths.
+- At the final tested branch commit, 23 of 23 runnable repository test bodies passed in an isolated in-memory adapter harness, with one full-runtime capability-gate test skipped. This is not a Node/Mocha full run, PostgreSQL replay, or a production verification.
+
+**Release and follow-on:** first obtain green exact-head CI and PostgreSQL policy audit. The next separately approved development wave should implement a provider-specific reconciliation contract (`eventId`, stable operation key, provider receipt reference, result state `verified|unknown|rejected`) and operator review queue, with independent idempotency checks at each consequential side effect. Never claim autonomous exact-once side effects solely from message-queue settlement.
