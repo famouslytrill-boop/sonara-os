@@ -17,6 +17,7 @@ const registerPayPeriodRoutes = require("./routes/sonara-pay-period-routes.cjs")
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
 const registerSonaraPromptLibraryRoutes = require("./routes/sonara-prompt-library-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
+const { createReceiptWebhookHandler } = require("./routes/sonara-email-receipt-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerCreatorGenerationRoutes = require("./routes/creator-generation-routes.cjs");
 const registerGrowthStudioControlRoutes = require("./routes/growth-studio-control-routes.cjs");
@@ -365,6 +366,20 @@ const connectWebhookLimiter = createRateLimiter({
 });
 app.post("/api/webhooks/stripe-connect", connectWebhookLimiter, express.raw({ type: "application/json" }),
   registerMarketplaceCheckoutRoutes.createConnectWebhookHandler({ getEnv, verifyStripeWebhookSignature, getSupabaseServerConfig, supabaseHeaders }));
+
+// What happened to a campaign email after the provider accepted it: delivered,
+// bounced, marked as spam, opened. Signed by the provider (Svix), so raw and
+// before the body parsers for the same reason as the Stripe webhooks, and rate
+// limited the same way: a 429 is retried by the sender with backoff.
+const emailReceiptLimiter = createRateLimiter({
+  name: "email_receipt_webhook",
+  windowSeconds: 60,
+  maxAttempts: 600,
+  scopes: ["ip"],
+  getSupabaseServerConfig
+});
+app.post("/api/webhooks/resend", emailReceiptLimiter, express.raw({ type: "application/json" }),
+  createReceiptWebhookHandler({ getEnv, getSupabaseServerConfig, supabaseHeaders }));
 
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));

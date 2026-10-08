@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,6 +38,15 @@ assert.equal(contract.digitalAssetLinks.fingerprintEnvironment, "ANDROID_PLAY_SI
 assert.ok(fs.existsSync(path.join(root, contract.digitalAssetLinks.servedBy)), `${contract.digitalAssetLinks.servedBy} does not exist; nothing serves ${contract.digitalAssetLinks.path}`);
 assert.ok(contract.digitalAssetLinks.relations.includes("delegate_permission/common.handle_all_urls"));
 assert.ok(contract.digitalAssetLinks.relations.includes("delegate_permission/common.get_login_creds"));
+// The server serves the association from a lib/ copy, because android/ is not
+// shipped with it. The copy has to say exactly what the build contract says.
+const association = createRequire(import.meta.url)(path.join(root, "lib", "sonara-android-app-association.cjs"));
+assert.equal(association.packageName, contract.packageName, "lib/sonara-android-app-association.cjs names a different package from the build contract");
+assert.equal(association.path, contract.digitalAssetLinks.path, "lib/sonara-android-app-association.cjs serves a different path from the build contract");
+assert.equal(association.fingerprintEnvironment, contract.digitalAssetLinks.fingerprintEnvironment, "lib/sonara-android-app-association.cjs reads a different fingerprint variable from the build contract");
+assert.deepEqual([...association.relations], contract.digitalAssetLinks.relations, "lib/sonara-android-app-association.cjs grants different relations from the build contract");
+const served = fs.readFileSync(path.join(root, contract.digitalAssetLinks.servedBy), "utf8").replace(/^\s*\/\/.*$/gm, "");
+assert.doesNotMatch(served, /(?:require|readFileSync|readFile|join|resolve)\([^)]*["'`]android["'`/]/, `${contract.digitalAssetLinks.servedBy} reads android/ at runtime, which the server is not shipped with`);
 assert.equal(contract.play.packageRegistrationDeadline, "2026-09-30");
 assert.match(contract.play.billingDecision, /required_before/);
 assert.equal(contract.proof.staticContract, "automated");

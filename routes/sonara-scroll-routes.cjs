@@ -183,6 +183,15 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
 
   // ---- the dashboard ---------------------------------------------------
 
+  // What the list says when a new site could not be made. The same wording as
+  // the editor's own refusals below, for the codes a create can come back with.
+  const LIST_REFUSALS = Object.freeze({
+    not_saved: "That did not save. Nothing has been changed.",
+    not_available: "We could not reach your records just now. Nothing has been changed.",
+    no_such_template: "That template is not one of ours.",
+    not_found: "That site could not be found. It may have been removed."
+  });
+
   app.get("/creator-studio/scroll", requireCustomer, async (req, res) => {
     const scope = await scopeFor(req);
     if (!scope.ok) return res.status(200).type("html").send(unavailablePage(scope.why));
@@ -193,6 +202,13 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
     );
 
     const sections = [];
+    // A site that could not be made comes back here, having no page of its own
+    // yet, with ?problem=<code> -- which this page did not read, so a refused
+    // site looked like a click that did nothing.
+    const createProblem = String(req.query?.problem || "");
+    if (createProblem) {
+      sections.push(brandCard("Not done", Object.prototype.hasOwnProperty.call(LIST_REFUSALS, createProblem) ? LIST_REFUSALS[createProblem] : "That did not work. Nothing has been changed."));
+    }
     if (!listed.ok) {
       // Not an empty dashboard. "You have no sites" is a claim about this
       // customer's own work, and a failed read has not established it.
@@ -366,7 +382,9 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
         no_such_template: "That template is not one of ours.",
         unknown_action: "That form did something this page does not know about. Nothing has been changed."
       };
-      sections.push(brandCard("Not done", said[problem] || "That did not work. Nothing has been changed."));
+      // Own keys only: `said[problem]` would read "constructor" off the
+      // prototype and print a function.
+      sections.push(brandCard("Not done", Object.prototype.hasOwnProperty.call(said, problem) ? said[problem] : "That did not work. Nothing has been changed."));
     }
 
     // Problems with the site itself next, because they are the other reason

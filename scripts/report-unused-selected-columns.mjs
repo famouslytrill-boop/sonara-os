@@ -138,13 +138,14 @@ const ACCOUNTED = Object.freeze({
     ].join(" ")
   },
   "routes/sonara-last9-routes.cjs": {
-    columns: ["capabilities", "category", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
+    columns: ["agreed_amount_cents", "capabilities", "category", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
     reason: [
       "capabilities, category and connection_mode: PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to.",
       "category was added to this list on 1 October 2026, and it is the clearest demonstration of what this check used to miss. It was always in the same position as the other two -- forwarded, never read here -- but the query also carries `order=category.asc`, and until the order clause stopped counting as a reading of the value, `category` never surfaced and nobody had to account for it.",
       "customer_email and customer_phone: booking rows are handed whole to buildCalendarInvite and buildCalendarFeed in lib/sonara-calendar-invite.cjs, which writes the email as an RFC 5545 ATTENDEE line and the phone into the DESCRIPTION. The route moves the values and must not render them -- a booking page showing a customer's number is what shareShows on the bookings record page exists to prevent.",
       "email, phone and tags: customer rows are handed whole to buildContactCard and buildContactBook in lib/sonara-contact-card.cjs, which writes EMAIL, TEL and a Tags note into the vCard. Both modules opened to confirm every one of the five.",
-      "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so."
+      "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so.",
+      "agreed_amount_cents: the repeat-job route reads a finished work order and hands the row whole to repeatWorkOrder in lib/sonara-work-order-lifecycle.cjs, which carries the agreed price into the new draft (`finiteNonNegative(source.agreed_amount_cents)`, checked 7 October 2026). The other columns that select names are each read in this file elsewhere."
     ].join(" ")
   },
   "routes/sonara-route-registry-routes.cjs": {
@@ -193,6 +194,24 @@ const ACCOUNTED = Object.freeze({
       "The saved-instruction page reads the instruction's recent runs and hands the rows to runsCard in lib/sonara-prompt-library-pages.cjs,",
       "which reads the timestamp directly (line 119 on 7 October 2026: `run.created_at`) for the When column of the recent-uses table.",
       "Fetched to be used, in the file the rows travel to; the select names only the four columns that table shows."
+    ].join(" ")
+  },
+  "routes/growth-studio-control-routes.cjs": {
+    columns: ["bounce_type", "provider_message_id", "slug", "created_at", "issued_on", "received_on", "total_cents"],
+    reason: [
+      "The campaign page hands its sends and the provider's delivery events to summarizeCampaign in lib/sonara-campaign-results.cjs,",
+      "which passes both to summarizeDelivery in lib/sonara-email-delivery-receipts.cjs. That reads provider_message_id from both",
+      "(counting each email once, and only accepted sends that carry one as reportable) and bounce_type from the events (permanent",
+      "bounces, which set the next step). Checked 7 October 2026. Fetched to be used, two files along.",
+      "slug: the campaign page reads the business's chat page and hands the row to campaignLinkCard in lib/sonara-campaign-results-pages.cjs,",
+      "which builds the tracked link from it (`campaignLink({ origin, slug: page.slug, campaignId })`, checked 7 October 2026).",
+      "created_at, issued_on, received_on and total_cents: readWhatCustomersPaid reads the campaign's leads, its customers' other leads,",
+      "their invoices and the payments against those, and summarizeCampaign hands them to summarizeCampaignPayments in",
+      "lib/sonara-campaign-payments.cjs. Checked 8 October 2026 against that file: a lead's created_at is the day the person came in",
+      "and decides which campaign found them first (lines 115 and 127, `instant(row?.created_at)`); received_on is when a payment",
+      "counts from (line 172, `dayOf(row?.received_on)`); issued_on, falling back to the invoice's created_at, decides whether an open",
+      "invoice was sent after they came in (line 185); and total_cents is the invoice total settle() in lib/sonara-invoice-settlement.cjs",
+      "works the balance from (line 108, `finiteNumber(invoice?.total_cents)`). Fetched to be used, one and two files along."
     ].join(" ")
   },
   "routes/sonara-formula-routes.cjs": {

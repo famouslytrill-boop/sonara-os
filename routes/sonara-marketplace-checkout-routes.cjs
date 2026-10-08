@@ -134,7 +134,7 @@ function createConnectWebhookHandler(deps) {
         return res.status(200).json({ ok: true, ignored: "not_a_sonara_order" });
       }
       found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&id=eq.${enc(orderId)}&stripe_account_id=eq.${enc(eventAccount)}&limit=1`);
-    } else if (event.type === "charge.refunded" || event.type === "charge.dispute.created") {
+    } else if (["charge.refunded", "charge.dispute.created", "charge.dispute.closed"].includes(event.type)) {
       const intent = String(object.payment_intent || "");
       if (!/^pi_[A-Za-z0-9]{8,}$/.test(intent)) return res.status(200).json({ ok: true, ignored: "no_payment_intent" });
       found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&payment_intent_id=eq.${enc(intent)}&stripe_account_id=eq.${enc(eventAccount)}&limit=1`);
@@ -214,6 +214,34 @@ function createConnectWebhookHandler(deps) {
         body: { revoked_at: now, revoked_reason: state }
       });
       if (!revoked.ok) return res.status(503).json({ ok: false, code: "revocation_not_saved" });
+    } else if (decision.action === "reinstate") {
+      // The dispute was won, so the payment stands. The licence comes back
+      // first and the order second: if the second write fails, Stripe retries,
+      // the order is still disputed and this runs again, and the buyer cannot
+      // download in between because delivery checks the order's state. The
+      // other order would leave a paid order with a revoked licence that no
+      // retry reaches, since a paid order no longer matches "disputed".
+      //
+      // Only a revocation made for the dispute is undone. A grant revoked
+      // because the order had been refunded stays revoked, and the order goes
+      // back to refunded rather than paid.
+      const grant = await read(`creator_licence_grants?select=revoked_reason&order_id=eq.${enc(order.id)}&organization_id=eq.${enc(order.organization_id)}&limit=1`);
+      if (!grant.ok) return res.status(503).json({ ok: false, code: "unreadable" });
+      const refundedBefore = grant.rows[0]?.revoked_reason === "refunded";
+      if (!refundedBefore) {
+        const restored = await write(`creator_licence_grants?order_id=eq.${enc(order.id)}&organization_id=eq.${enc(order.organization_id)}&revoked_reason=eq.disputed`, {
+          method: "PATCH",
+          body: { revoked_at: null, revoked_reason: null }
+        });
+        if (!restored.ok) return res.status(503).json({ ok: false, code: "reinstatement_not_saved" });
+      }
+      const state = refundedBefore ? "refunded" : "paid";
+      const changed = await write(`creator_marketplace_orders?${scope}&state=eq.disputed`, {
+        method: "PATCH",
+        body: { state, closed_at: refundedBefore ? now : null, updated_at: now }
+      });
+      if (!changed.ok) return res.status(503).json({ ok: false, code: "not_saved" });
+      outcome = refundedBefore ? "dispute_won_refunded" : "dispute_won";
     }
 
     if (!(await recordEvent(order, event, outcome)).ok) return res.status(503).json({ ok: false, code: "audit_not_saved" });

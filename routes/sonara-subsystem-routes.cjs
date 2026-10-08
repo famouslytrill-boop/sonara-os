@@ -190,6 +190,11 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
     app.get(`/research-lab/subsystems/${subsystem.slug}`, requireSignedIn, async (req, res) => {
       const config = getConfig();
       const sections = [brandCard("Status", subsystem.status)];
+      // What a create form on this page could not do. The write redirects here
+      // with ?problem=<code>&table=<table>, and this page read neither, so a
+      // refused record came back looking exactly as if it had saved.
+      const refused = writeRefusal(req.query, subsystem);
+      if (refused) sections.unshift(brandCard("Not saved", refused));
       // Where a release gate covers only part of a subsystem, say so on the
       // page. A status line implying the whole thing is gated would be a
       // guarantee nobody actually made.
@@ -335,6 +340,24 @@ function esc(value) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
+
+// The sentence for a refused write, from its code alone. The table is named
+// only when it is one of this subsystem's own, so nothing from the address is
+// printed as written.
+function writeRefusal(query = {}, subsystem) {
+  const code = String(query.problem ?? "");
+  if (!code) return null;
+  const table = subsystem.tables.includes(String(query.table ?? "")) ? String(query.table) : null;
+  const where = table ? ` to ${table}` : "";
+  if (code === "missing_required") return `That was not saved${where}: something it needs was left empty.`;
+  if (/^invalid_[a-z_]+$/.test(code)) return `That was not saved${where}: one of the values could not be read. Check it and save again.`;
+  if (code === "setup_required") return `That was not saved${where}: the database is not reachable just now.`;
+  if (code === "no_organization_for_this_account") return `That was not saved${where}: this account is not part of a workspace yet.`;
+  if (code === "records_a_fact_not_an_intention") return `That was not saved${where}: that table records what happened, so the product writes it, not a form.`;
+  if (code === "unknown_table") return "That was not saved: that table is not part of this subsystem.";
+  if (code === "not_saved" || /^insert_failed_[a-z0-9]+$/.test(code)) return `That was not saved${where}. Nothing changed -- try again shortly.`;
+  return "That did not go through. Nothing changed.";
+}
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
 function basicLayout(data) {
   return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p>${(data.sections || []).join("")}<nav>${(data.actions || []).join("")}</nav></main></body></html>`;

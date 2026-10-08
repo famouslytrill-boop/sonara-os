@@ -34,7 +34,7 @@ module.exports = function registerSubAppRoutes(app, deps = {}) {
     if (!scope.ok) return res.status(200).type("html").send(page(ui, "Your own record types", scope.message, [], SUB_APPS_PATH));
 
     const listed = await rest(scope.config, "business_sub_apps", `select=id,name,slug,status,created_at&organization_id=eq.${enc(scope.organizationId)}&order=created_at.desc&limit=200`);
-    const sections = [];
+    const sections = refusalCards(ui, req.query);
     if (!listed.ok) {
       // Not "you have none". A read that failed and an empty list are different
       // facts, and telling somebody they have nothing when the database did not
@@ -70,7 +70,7 @@ module.exports = function registerSubAppRoutes(app, deps = {}) {
 
     const schemas = await rest(scope.config, "business_sub_app_database_schemas", `select=id,schema_key,fields,status,created_at&organization_id=eq.${enc(scope.organizationId)}&sub_app_id=eq.${enc(subAppId)}&order=created_at.asc&limit=100`);
 
-    const sections = [];
+    const sections = refusalCards(ui, req.query);
     if (!schemas.ok) {
       sections.push(ui.card("We could not read the record types", "The database did not answer just now. Nothing has changed."));
     } else if (!schemas.rows.length) {
@@ -106,7 +106,7 @@ module.exports = function registerSubAppRoutes(app, deps = {}) {
     const fields = Array.isArray(schema.fields) ? schema.fields : [];
     const records = await rest(scope.config, "business_sub_app_records", `select=id,data,created_at&organization_id=eq.${enc(scope.organizationId)}&schema_id=eq.${enc(schema.id)}&order=created_at.desc&limit=200`);
 
-    const sections = [];
+    const sections = refusalCards(ui, req.query);
     if (!records.ok) {
       sections.push(ui.card("We could not read your records", "The database did not answer just now. Nothing has changed, and nothing has been lost."));
     } else if (!records.rows.length) {
@@ -338,6 +338,48 @@ function page(ui, heading, body, sections, current, extraActions = []) {
     sections: sections.length ? sections : [ui.card("Not available right now", body)],
     actions: [...extraActions, ui.link("/business-builder/dashboard", "Business Builder"), ui.link(current === SUB_APPS_PATH ? "/dashboard" : SUB_APPS_PATH, current === SUB_APPS_PATH ? "Dashboard" : "Your own record types")]
   });
+}
+
+// What a refused write says on the page it returns to, from its code alone --
+// never from text in the address, which anybody can send. Every write here
+// redirected with ?problem=<code> and none of the three pages read it, so a
+// sub-app, record type or record that did not save came back looking as if it
+// had. tests/every-form-answers-a-person.test.js follows the redirect.
+const REFUSALS = Object.freeze({
+  workspace_unavailable: "We could not confirm your business just now. Try again shortly.",
+  not_saved: "That was not saved. Nothing changed -- try again shortly.",
+  name_required: "Give it a name.",
+  name_unusable: "That name cannot be used. Put some letters or numbers in it.",
+  name_already_used: "You already have one with that name. Choose another.",
+  sub_app_required: "That sub-app could not be found.",
+  record_type_name_required: "Give the record type a name.",
+  record_type_already_exists: "This sub-app already has a record type with that name.",
+  record_type_required: "That record type could not be found in this sub-app.",
+  record_type_not_yours: "That record type could not be found in this sub-app.",
+  record_type_unreadable: "We could not read that record type just now. Nothing changed.",
+  // From lib/sonara-sub-apps.cjs, which checks a record type's fields and a record's values.
+  schema_has_no_fields: "A record type needs at least one field.",
+  no_fields: "A record type needs at least one field.",
+  too_many_fields: "That record type has more fields than one can hold.",
+  field_needs_a_name: "Every field needs a name.",
+  field_name_unusable: "One field's name cannot be used. Put some letters or numbers in it.",
+  duplicate_field: "Two fields have the same name. Give each one its own.",
+  unknown_field_type: "One field's type is not one this product offers.",
+  choice_needs_options: "A choice field needs its options.",
+  too_many_choices: "A choice field has more options than one can hold.",
+  required_field_missing: "A field that must be filled in was left empty.",
+  not_a_number: "A number could not be read.",
+  not_an_amount: "An amount could not be read. Write it like 12.50.",
+  negative_amount: "An amount cannot be negative.",
+  not_a_date: "A date could not be read.",
+  not_an_option: "One of the answers is not one of the options offered."
+});
+
+function refusalCards(ui, query = {}) {
+  const code = String(query.problem ?? "");
+  if (!code) return [];
+  const text = Object.prototype.hasOwnProperty.call(REFUSALS, code) ? REFUSALS[code] : "That did not go through. Nothing changed.";
+  return [ui.card("Not saved", text)];
 }
 
 // A browser gets its page back; a JSON caller gets the answer. The same shape

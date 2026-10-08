@@ -54,6 +54,7 @@ const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
 const { toSvg: qrToSvg } = require("../lib/sonara-qr-png.cjs");
 const { scoreLead } = require("../lib/sonara-lead-scoring.cjs");
 const { routeLead } = require("../lib/sonara-lead-routing.cjs");
+const { CAMPAIGN_PARAM, campaignFromValue } = require("../lib/sonara-campaign-links.cjs");
 const {
   questionsFor, recordAnswer, nextStep, transcriptActivity, scorableAnswers,
   OTHER_VALUE, CONTACT_KEY
@@ -62,6 +63,7 @@ const {
 const PROFILES_TABLE = "lead_icp_profiles";
 const PAGES_TABLE = "lead_capture_pages";
 const CONVERSATIONS_TABLE = "lead_conversations";
+const CAMPAIGNS_TABLE = "growth_campaigns";
 const RULES_TABLE = "lead_routing_rules";
 const LEADS_TABLE = "growth_leads";
 const EMPLOYEES_TABLE = "business_employee_profiles";
@@ -89,7 +91,10 @@ const CHAT_POST_SCHEMA = Object.freeze({
   other: { type: "string", maxLength: 120 },
   name: { type: "string", maxLength: 120 },
   email: { type: "string", maxLength: 320 },
-  phone: { type: "string", maxLength: 40 }
+  phone: { type: "string", maxLength: 40 },
+  // The campaign the visitor's link named (lib/sonara-campaign-links.cjs). A
+  // claim, checked against the page owner's campaigns before it touches a lead.
+  campaign: { type: "string", maxLength: 36 }
 });
 
 const MAX_TRANSCRIPT = 60;
@@ -302,7 +307,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     ].join("");
   }
 
-  function conversationPage({ page, question, token, problem, said = [] }) {
+  function conversationPage({ page, question, token, problem, said = [], campaign = null }) {
     const heading = String(page.headline || "").trim() || "Tell us what you need";
     const greeting = String(page.greeting || "").trim()
       || "A few quick questions, and somebody will pick this up.";
@@ -321,6 +326,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
           <form method="post" action="/chat/${escapeHtml(page.slug)}" class="sonara-booking-form">
             <input type="hidden" name="question" value="${escapeHtml(question.key)}">
             ${token ? `<input type="hidden" name="token" value="${escapeHtml(token)}">` : ""}
+            ${!token && campaign ? `<input type="hidden" name="campaign" value="${escapeHtml(campaign)}">` : ""}
             ${questionField(question)}
             <button type="submit">Next</button>
           </form>`),
@@ -381,7 +387,8 @@ function registerLeadCaptureRoutes(app, deps = {}) {
       page: found.page,
       question: step.question,
       token: null,
-      problem: String(req.query?.problem || "") ? "That did not come through. Try once more." : null
+      problem: String(req.query?.problem || "") ? "That did not come through. Try once more." : null,
+      campaign: campaignFromValue(req.query?.[CAMPAIGN_PARAM])
     }));
   });
 
@@ -401,8 +408,14 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     if (!SLUG_PATTERN.test(slug)) return noSuchPage(res);
 
     const shape = validateRequestBody(req.body, CHAT_POST_SCHEMA, { maxKeys: 7 });
-    if (!shape.ok) return res.redirect(303, `/chat/${slug}?problem=invalid`);
+    if (!shape.ok) {
+      const kept = campaignFromValue(req.body?.campaign);
+      return res.redirect(303, `/chat/${slug}?problem=invalid${kept ? `&${CAMPAIGN_PARAM}=${kept}` : ""}`);
+    }
     const input = shape.value;
+    // Carried only until the conversation exists; after that the claim lives on
+    // the conversation row, where a later form cannot change it.
+    const claimedCampaign = campaignFromValue(input.campaign);
 
     const config = getSupabaseServerConfig();
     if (!config?.ok) return unavailable(res);
@@ -427,7 +440,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
       const existing = await rest(
         config,
         `${CONVERSATIONS_TABLE}?token=eq.${enc(submitted)}&organization_id=eq.${enc(page.organization_id)}`
-          + `&select=id,answers,transcript,status,organization_id&limit=1`
+          + `&select=id,answers,transcript,status,organization_id,metadata&limit=1`
       );
       if (!existing.ok) return unavailable(res);
       conversation = existing.rows[0] || null;
@@ -449,7 +462,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     const asked = step.question;
     if (String(input.question || "") !== asked.key) {
       return res.status(200).type("html").send(conversationPage({
-        page, question: asked, token: submitted || null, said: saidSoFar(profile, answers)
+        page, question: asked, token: submitted || null, said: saidSoFar(profile, answers), campaign: claimedCampaign
       }));
     }
 
@@ -461,7 +474,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     if (!recorded.ok) {
       return res.status(200).type("html").send(conversationPage({
         page, question: asked, token: submitted || null,
-        problem: recorded.message, said: saidSoFar(profile, answers)
+        problem: recorded.message, said: saidSoFar(profile, answers), campaign: claimedCampaign
       }));
     }
 
@@ -488,13 +501,15 @@ function registerLeadCaptureRoutes(app, deps = {}) {
         answers,
         transcript,
         status: finished ? "captured" : "open",
-        last_message_at: new Date().toISOString()
+        last_message_at: new Date().toISOString(),
+        // Kept as a claim. captureLead checks it before any lead carries it.
+        metadata: claimedCampaign ? { claimed_campaign_id: claimedCampaign } : {}
       });
       if (!created.ok) {
         return res.status(200).type("html").send(conversationPage({
           page, question: asked, token: null,
           problem: "We could not save that just now. Nothing was lost -- please answer again.",
-          said: saidSoFar(profile, answers)
+          said: saidSoFar(profile, answers), campaign: claimedCampaign
         }));
       }
       conversation = created.rows[0] || null;
@@ -525,7 +540,11 @@ function registerLeadCaptureRoutes(app, deps = {}) {
       }));
     }
 
-    await captureLead({ config, page, profile, answers, transcript, conversationId: conversation?.id || null });
+    await captureLead({
+      config, page, profile, answers, transcript,
+      conversationId: conversation?.id || null,
+      claimedCampaign: campaignFromValue(conversation?.metadata?.claimed_campaign_id)
+    });
     return res.status(200).type("html").send(donePage(page));
   });
 
@@ -537,7 +556,21 @@ function registerLeadCaptureRoutes(app, deps = {}) {
   // table could not be read tells them something about somebody else's systems
   // and gives them nothing they can act on. The conversation row is already
   // saved either way, so nothing they typed is lost.
-  async function captureLead({ config, page, profile, answers, transcript, conversationId }) {
+  // The campaign a lead is credited to, or null. The claim came from a link
+  // anybody can edit, so it counts only if it names a campaign of the business
+  // that owns this page. A failed read credits nothing rather than guessing: the
+  // lead is still saved, without a campaign, and campaign_id being a foreign key
+  // is why an unchecked id is never written -- it would lose the enquiry.
+  async function creditedCampaign(config, page, claimedCampaign) {
+    if (!claimedCampaign) return null;
+    const found = await rest(
+      config,
+      `${CAMPAIGNS_TABLE}?select=id&id=eq.${enc(claimedCampaign)}&organization_id=eq.${enc(page.organization_id)}&limit=1`
+    );
+    return found.ok && found.rows[0]?.id ? found.rows[0].id : null;
+  }
+
+  async function captureLead({ config, page, profile, answers, transcript, conversationId, claimedCampaign = null }) {
     const contact = answers[CONTACT_KEY] || {};
     const activity = transcriptActivity(profile, transcript, answers);
     // Looked up here, where the address already is, and passed on as a boolean.
@@ -598,8 +631,10 @@ function registerLeadCaptureRoutes(app, deps = {}) {
       });
     }
 
+    const campaignId = await creditedCampaign(config, page, claimedCampaign);
     const row = {
       organization_id: page.organization_id,
+      campaign_id: campaignId,
       name: contact.name || null,
       email: contact.email || null,
       phone: contact.phone || null,
