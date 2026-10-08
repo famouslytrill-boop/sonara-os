@@ -64,6 +64,41 @@ describe("research simulation catalog at the existing invention-systems route", 
     assert.match(res.payload, /12 square units/);
     assert.match(res.payload, /MIDI notes 60, 64, 67/);
     assert.match(res.payload, /mixed-strategy row probability 0.5/);
+    assert.match(res.payload, /Try a bounded research calculation/);
+    assert.match(res.payload, /method="get"/);
+  });
+
+  it("calculates bounded user-supplied geometry on the existing guarded GET page", () => {
+    const f = fixture();
+    const res = f.response();
+    f.routes.get("/market-intelligence/invention-systems")[1]({
+      query: { study: "layout", width: "6.5", height: "2" }
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.match(res.payload, /Illustrative area: 13 square units/);
+    assert.match(res.payload, /No saved results/);
+  });
+
+  it("renders descriptive errors rather than unsafe request content", () => {
+    const f = fixture();
+    const res = f.response();
+    f.routes.get("/market-intelligence/invention-systems")[1]({
+      query: { study: "layout", width: "<svg onload=alert(1)>", height: "2" }
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.match(res.payload, /role="alert"/);
+    assert.ok(!res.payload.includes("<svg"));
+  });
+
+  it("does not turn GET calculations into a mutation API or payments route", () => {
+    const f = fixture();
+    const res = f.response();
+    f.routes.get("/market-intelligence/invention-systems")[1]({
+      query: { study: "payoff", a: "1", b: "-1", c: "-1", d: "1" }
+    }, res);
+    assert.match(res.payload, /Mixed-strategy equilibrium/);
+    assert.equal(f.routes.size, 2);
+    assert.ok([...f.routes.keys()].every(path => !/\/(?:bet|wager|broker|execute|trade)/.test(path)));
   });
 
   it("registers no new mutation, wagering, payment or simulation-run endpoint", () => {
