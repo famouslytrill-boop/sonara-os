@@ -11,9 +11,11 @@ INSERT INTO auth.users (id,email) VALUES
  ('a1111111-1111-4111-8111-111111111111','rls-fixture-a@example.invalid'),
  ('b2222222-2222-4222-8222-222222222222','rls-fixture-b@example.invalid');
 
-INSERT INTO public.organizations (id,name,company_key,created_by,owner_id) VALUES
- ('a3333333-3333-4333-8333-333333333333','RLS Fixture A','parent_admin','a1111111-1111-4111-8111-111111111111','a1111111-1111-4111-8111-111111111111'),
- ('b4444444-4444-4444-8444-444444444444','RLS Fixture B','parent_admin','b2222222-2222-4222-8222-222222222222','b2222222-2222-4222-8222-222222222222');
+-- Live project has additional legacy organization fields absent in a clean
+-- replay. Use the shared minimum schema to keep this test meaningful in both.
+INSERT INTO public.organizations (id,name,owner_id) VALUES
+ ('a3333333-3333-4333-8333-333333333333','RLS Fixture A','a1111111-1111-4111-8111-111111111111'),
+ ('b4444444-4444-4444-8444-444444444444','RLS Fixture B','b2222222-2222-4222-8222-222222222222');
 
 INSERT INTO public.organization_memberships (organization_id,user_id,role,status) VALUES
  ('a3333333-3333-4333-8333-333333333333','a1111111-1111-4111-8111-111111111111','owner','active'),
@@ -98,8 +100,8 @@ BEGIN
 
   denied := false;
   BEGIN
-    INSERT INTO public.organizations (name,company_key)
-      VALUES ('Forged Organization','parent_admin');
+    INSERT INTO public.organizations (name)
+      VALUES ('Forged Organization');
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'authenticated user could directly create an organization'; END IF;
