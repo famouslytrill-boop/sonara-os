@@ -1,6 +1,12 @@
 # Locks
 
 Active:
+- HELD: customer-owned provider OAuth runtime + Search Console read-only canary -- Codex,
+  branch `codex/provider-runtime-gsc-20261008`, taken 2026-10-08.
+  Covers `lib/sonara-provider-oauth-flow.cjs`, `lib/sonara-provider-secret-broker.cjs`,
+  `lib/sonara-google-search-console-read.cjs`, their focused tests and provider-runtime research.
+  No Growth campaign route edits, no payment/commerce mutation, no Supabase production DDL,
+  no live OAuth credential, and no deployment. Release when the provider-runtime PR merges or closes.
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
   PR #445, branch `codex/reservation-workflows-20261007`, taken 2026-10-07.
   Covers the operations expansion controller, reservation renderer, bookings
