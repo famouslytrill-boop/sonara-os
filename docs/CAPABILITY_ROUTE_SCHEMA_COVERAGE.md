@@ -416,11 +416,11 @@ The table count is the union of names found in tracked migration source, includi
 | /business-builder/owner/recipes/:recordId/edit | Business Builder | GET | record_detail_and_edit | Unresolved |
 | /business-builder/owner/recurring | Business Builder | GET | Page registry | Unresolved |
 | /business-builder/owner/recurring-work | Business Builder | GET | Page registry | Unresolved |
-| /business-builder/owner/reservation-resources | Business Builder | GET | Page registry | Unresolved |
 | /business-builder/owner/research-sources | Business Builder | GET | Page registry | Unresolved |
 | /business-builder/owner/research-sources/:recordId | Business Builder | POST | Action route (no GET registry) | Unresolved |
 | /business-builder/owner/research-sources/:recordId/archive | Business Builder | POST | Action route (no GET registry) | Unresolved |
 | /business-builder/owner/research-sources/:recordId/edit | Business Builder | GET | record_detail_and_edit | Unresolved |
+| /business-builder/owner/reservation-resources | Business Builder | GET | Page registry | Unresolved |
 | /business-builder/owner/sales | Business Builder | GET | Page registry | Unresolved |
 | /business-builder/owner/sales/:recordId | Business Builder | GET, POST | record_detail_and_edit | Unresolved |
 | /business-builder/owner/sales/:recordId/archive | Business Builder | POST | Action route (no GET registry) | Unresolved |
@@ -1253,19 +1253,18 @@ A placement is a research destination, **not** permission to execute code. Statu
 
 | Repository | Workspace destination | Intake status | Source |
 | --- | --- | --- | --- |
-| @vanillaes/csv | /business-builder/technology | reference_only | data/open-source-tools.ts |
 | 500 AI Agents Projects (ashishpatel26) | /technology-radar | reference_only | data/open-source-tools.ts |
+| @vanillaes/csv | /business-builder/technology | reference_only | data/open-source-tools.ts |
 | AAABench long-horizon agent harness | /technology-radar | research_only | data/open-source-tools.ts |
-| Academic Research Skills | /technology-radar | blocked | data/open-source-tools.ts |
-| Activepieces | /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| ads-proposals | /business-builder/technology | blocked | data/open-source-tools.ts |
-| Agency Agents / The Agency (msitarzewski) | /technology-radar | reference_only | data/open-source-tools.ts |
-| Agent Room | /technology-radar | reference_only | data/open-source-tools.ts |
-| Agentic AI Starters | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | AI Agents for Beginners (Microsoft) | /technology-radar | reference_only | data/open-source-tools.ts |
 | AI Content Studio (naqashafzal) | /creator-studio/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | AI-SDLC Framework | /technology-radar | reference_only | data/open-source-tools.ts |
-| aiwaves-cn/agents | /technology-radar | research_only | data/open-source-tools.ts |
+| AWS Generative AI Use Cases | /business-builder/technology, /creator-studio/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
+| Academic Research Skills | /technology-radar | blocked | data/open-source-tools.ts |
+| Activepieces | /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
+| Agency Agents / The Agency (msitarzewski) | /technology-radar | reference_only | data/open-source-tools.ts |
+| Agent Room | /technology-radar | reference_only | data/open-source-tools.ts |
+| Agentic AI Starters | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Ajv | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Anthropic Agent Skills (anthropics/skills) | /technology-radar | blocked | data/open-source-tools.ts |
 | Anthropic Cybersecurity Skills (community) | /technology-radar | research_only | data/open-source-tools.ts |
@@ -1274,8 +1273,6 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Archify | /technology-radar | reference_only | data/open-source-tools.ts |
 | Archon | /technology-radar | reference_only | data/open-source-tools.ts |
 | Artifact Server (Plannotator) | /technology-radar | blocked | data/open-source-tools.ts |
-| async-labs/saas | /technology-radar | research_only | data/open-source-tools.ts |
-| authentik | /technology-radar | research_only | data/open-source-tools.ts |
 | AutoHedge automated trading agents | /technology-radar | research_only | data/open-source-tools.ts |
 | Automate for Growth (cporter202) | /technology-radar | blocked | data/open-source-tools.ts |
 | Awesome (sindresorhus) | /technology-radar | reference_only | data/open-source-tools.ts |
@@ -1284,60 +1281,49 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Awesome Free LLM APIs (mnfst) | /technology-radar | reference_only | data/open-source-tools.ts |
 | Awesome LLM Apps | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Awesome SOC (cyb3rxp) | /technology-radar | reference_only | data/open-source-tools.ts |
-| awesome-freellm-apis (open-free-llm-api) | /technology-radar | reference_only | data/open-source-tools.ts |
-| AWS Generative AI Use Cases | /business-builder/technology, /creator-studio/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
+| BYOC (Bring Your Own Cloud) | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Ballast | /technology-radar | reference_only | data/open-source-tools.ts |
 | Best APIs for Lead Gen (cporter202) | /growth-studio/technology, /technology-radar | blocked | data/open-source-tools.ts |
 | Better Auth | /technology-radar | research_only | data/open-source-tools.ts |
 | Bolt Slides | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| book-to-skill | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | BoxyHQ SaaS Starter Kit | /business-builder/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
-| brightbean-studio (self-hosted social scheduling) | /creator-studio/technology, /growth-studio/technology | research_only | data/open-source-tools.ts |
 | BrowserCode (browser-use) | /technology-radar | needs_security_review | data/open-source-tools.ts |
 | BullMQ | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Business Machine Learning (firmai) | /business-builder/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
-| BYOC (Bring Your Own Cloud) | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Cal (calcom/cal.diy, formerly cal.com) | /business-builder/technology | needs_license_review | data/open-source-tools.ts |
-| camofox-browser | /technology-radar | blocked | data/open-source-tools.ts |
 | Camoufox stealth browser | /technology-radar | blocked | data/open-source-tools.ts |
 | Carbon (open ERP, MES and QMS for manufacturing) | /business-builder/technology | needs_license_review | data/open-source-tools.ts |
 | Casdoor | /technology-radar | research_only | data/open-source-tools.ts |
 | Chakra UI | /technology-radar | reference_only | data/open-source-tools.ts |
 | Chatwoot customer support reference | /business-builder/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| Claude ads toolkit | /technology-radar | research_only | data/open-source-tools.ts |
 | Claude Code | /technology-radar | reference_only | data/open-source-tools.ts |
 | Claude Code Apple platform skills | /technology-radar | research_only | data/open-source-tools.ts |
 | Claude SEO | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Claude Skills Collection (alirezarezvani) | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| Claude ads toolkit | /technology-radar | research_only | data/open-source-tools.ts |
 | ClawFlows | /technology-radar | needs_license_review | data/open-source-tools.ts |
 | Clone Wars | /technology-radar | reference_only | data/open-source-tools.ts |
 | CloudEvents JavaScript SDK | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
-| Cloudflare agentic inbox | /technology-radar | research_only | data/open-source-tools.ts |
 | Cloudflare Agents | /technology-radar | reference_only | data/open-source-tools.ts |
 | Cloudflare OS | /business-builder/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| Cloudflare agentic inbox | /technology-radar | research_only | data/open-source-tools.ts |
 | Codegraff | /technology-radar | reference_only | data/open-source-tools.ts |
-| codex-chatgpt-web | /technology-radar | blocked | data/open-source-tools.ts |
 | Commercial AI tool shortlist (Ideogram, Midjourney, Runway, and 30 others) | /technology-radar | blocked | data/open-source-tools.ts |
 | Context Mode | /technology-radar | blocked | data/open-source-tools.ts |
 | Crawl4AI | /business-builder/technology, /growth-studio/technology, /technology-radar | adapter_built | data/open-source-tools.ts |
 | CrewAI | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| DSPy | /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | DeepSeek V3 | /technology-radar | needs_license_review | data/open-source-tools.ts |
-| developer-roadmap (roadmap.sh) | /technology-radar | blocked | data/open-source-tools.ts |
 | Diffusion Studio Editor | /creator-studio/technology | needs_license_review | data/open-source-tools.ts |
 | Dify | /creator-studio/technology, /growth-studio/technology, /technology-radar | adapter_built | data/open-source-tools.ts |
 | Directus | /technology-radar | research_only | data/open-source-tools.ts |
-| disposable-email-domains | /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Donkey Cut | /creator-studio/technology | reference_only | data/open-source-tools.ts |
 | Doop | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| DSPy | /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | DwarfStar (ds4-metal) | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| Ecommerce Intelligence APIs | /technology-radar | blocked | data/open-source-tools.ts |
 | ERPNext | /business-builder/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| erxes | /business-builder/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
+| Ecommerce Intelligence APIs | /technology-radar | blocked | data/open-source-tools.ts |
 | Excalidraw | /business-builder/technology, /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
-| express-rate-limit | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Face Anything | /technology-radar | blocked | data/open-source-tools.ts |
-| fal-3d-anything | /creator-studio/technology, /technology-radar | blocked | data/open-source-tools.ts |
 | Fenix AI Studio | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Figranium | /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Figranium MCP server | /technology-radar | reference_only | data/open-source-tools.ts |
@@ -1347,20 +1333,18 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Flox | /technology-radar | reference_only | data/open-source-tools.ts |
 | Foodya Restaurant | /technology-radar | blocked | data/open-source-tools.ts |
 | Forgejo | /technology-radar | research_only | data/open-source-tools.ts |
-| free-for.dev | /technology-radar | blocked | data/open-source-tools.ts |
 | FreeCut (browser video editor) | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | FreeToken | /technology-radar | research_only | data/open-source-tools.ts |
 | Full Stack FastAPI Template | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| game-reversing | /technology-radar | research_only | data/open-source-tools.ts |
+| GEO SEO Claude | /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Gemini CLI | /technology-radar | reference_only | data/open-source-tools.ts |
 | GenAI Agents (NirDiamant) | /technology-radar | needs_license_review | data/open-source-tools.ts |
-| GEO SEO Claude | /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Ghost | /creator-studio/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | GitDiagram | /technology-radar | reference_only | data/open-source-tools.ts |
-| Gitea | /technology-radar | research_only | data/open-source-tools.ts |
-| Gitingest | /technology-radar | reference_only | data/open-source-tools.ts |
 | GitLab Community Edition mirror | /technology-radar | research_only | data/open-source-tools.ts |
 | GitMCP | /technology-radar | reference_only | data/open-source-tools.ts |
+| Gitea | /technology-radar | research_only | data/open-source-tools.ts |
+| Gitingest | /technology-radar | reference_only | data/open-source-tools.ts |
 | Godot Engine | /creator-studio/technology | reference_only | data/open-source-tools.ts |
 | Gortex | /technology-radar | reference_only | data/open-source-tools.ts |
 | Gridex | /technology-radar | research_only | data/open-source-tools.ts |
@@ -1370,12 +1354,11 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Hi.Events (event management and ticket selling) | /business-builder/technology, /growth-studio/technology | needs_license_review | data/open-source-tools.ts |
 | Hugging Face Transformers | /technology-radar | reference_only | data/open-source-tools.ts |
 | HyperFormula | /business-builder/technology | reference_only | data/open-source-tools.ts |
+| IONOS \\ | /technology-radar | blocked | data/open-source-tools.ts |
 | Image Pipes (mrajaeim) | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Implem.Pleasanter | /business-builder/technology | reference_only | data/open-source-tools.ts |
-| IONOS \\ | /technology-radar | blocked | data/open-source-tools.ts |
 | Job Data APIs and Scrapers | /technology-radar | blocked | data/open-source-tools.ts |
 | Keycloak | /technology-radar | research_only | data/open-source-tools.ts |
-| kimi-k3-in-c | /technology-radar | reference_only | data/open-source-tools.ts |
 | LangChain | /technology-radar | reference_only | data/open-source-tools.ts |
 | Langflow | /business-builder/technology, /technology-radar | adapter_built | data/open-source-tools.ts |
 | LibreChat self-hosted chat interface | /technology-radar | research_only | data/open-source-tools.ts |
@@ -1386,30 +1369,29 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Lovable for Beginners | /technology-radar | blocked | data/open-source-tools.ts |
 | Lunar (headless e-commerce for Laravel) | /business-builder/technology | reference_only | data/open-source-tools.ts |
 | MADDPG reference implementation (philtabor) | /technology-radar | blocked | data/open-source-tools.ts |
+| MERN Social Media (ed-roh) | /technology-radar | blocked | data/open-source-tools.ts |
+| MIT Technology Review Insights \\ | /technology-radar | blocked | data/open-source-tools.ts |
 | Marketing Skills (Corey Haines) | /creator-studio/technology, /growth-studio/technology | adapter_built | data/open-source-tools.ts |
 | MateClaw multi-agent orchestrator | /technology-radar | research_only | data/open-source-tools.ts |
 | Mautic | /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
 | Medusa | /business-builder/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| MERN Social Media (ed-roh) | /technology-radar | blocked | data/open-source-tools.ts |
 | Metabigor | /technology-radar | blocked | data/open-source-tools.ts |
 | Microsoft 365 Agents SDK | /technology-radar | research_only | data/open-source-tools.ts |
 | Miro AI / agent resources | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
-| MIT Technology Review Insights \\ | /technology-radar | blocked | data/open-source-tools.ts |
 | Model Context Protocol TypeScript SDK | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | MoneyPrinterTurbo | /creator-studio/technology | research_only | data/open-source-tools.ts |
-| n8n | /business-builder/technology, /growth-studio/technology | needs_license_review | data/open-source-tools.ts |
-| n8n Self-hosted AI Starter Kit | /business-builder/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
-| n8n-nodes-figranium | /technology-radar | reference_only | data/open-source-tools.ts |
+| NVlabs Eagle / Embodied | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
+| NVlabs LongLive / LongLive 2.0 | /creator-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
 | NautilusTrader | /technology-radar | research_only | data/open-source-tools.ts |
 | Next.js | /technology-radar | research_only | data/open-source-tools.ts |
 | NocoDB | /business-builder/technology, /technology-radar | needs_license_review | data/open-source-tools.ts |
-| node-cron | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | NodeGraphQt | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | NotFair | /growth-studio/technology | reference_only | data/open-source-tools.ts |
 | Nuxt SaaS template | /technology-radar | reference_only | data/open-source-tools.ts |
-| NVlabs Eagle / Embodied | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| NVlabs LongLive / LongLive 2.0 | /creator-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
 | OBLITERATUS | /technology-radar | blocked | data/open-source-tools.ts |
+| OSINT4ALL investigation directory | /technology-radar | blocked | data/open-source-tools.ts |
+| OSIRIS | /technology-radar | blocked | data/open-source-tools.ts |
+| OWASP Noir | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Odoo Community | /business-builder/technology, /technology-radar | research_only | data/open-source-tools.ts |
 | Ollama | /business-builder/technology, /creator-studio/technology, /technology-radar | adapter_built | data/open-source-tools.ts |
 | OmniRoute | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
@@ -1420,14 +1402,12 @@ A placement is a research destination, **not** permission to execute code. Statu
 | Open-LLM-VTuber avatar companion | /technology-radar | research_only | data/open-source-tools.ts |
 | OpenAI Agents SDK (Python) | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenClaw | /business-builder/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
-| openclaw-api-list | /technology-radar | blocked | data/open-source-tools.ts |
-| opencode (anomalyco) | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenCompany | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenContext | /technology-radar | needs_license_review | data/open-source-tools.ts |
 | OpenCut | /creator-studio/technology | research_only | data/open-source-tools.ts |
 | OpenEdit | /technology-radar | research_only | data/open-source-tools.ts |
-| OpenFeature JavaScript SDK | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | OpenFGA | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| OpenFeature JavaScript SDK | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | OpenHuman | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenMontage | /creator-studio/technology | reference_only | data/open-source-tools.ts |
 | OpenNews MCP | /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
@@ -1437,52 +1417,43 @@ A placement is a research destination, **not** permission to execute code. Statu
 | OpenViking | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenVoice | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Ory Kratos | /technology-radar | research_only | data/open-source-tools.ts |
-| OSINT4ALL investigation directory | /technology-radar | blocked | data/open-source-tools.ts |
-| OSIRIS | /technology-radar | blocked | data/open-source-tools.ts |
-| OWASP Noir | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Paperless-ngx | /business-builder/technology | reference_only | data/open-source-tools.ts |
-| pgvector-node | /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Pino | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Plane | /business-builder/technology | reference_only | data/open-source-tools.ts |
 | Playwright | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
-| PostgREST | /technology-radar | reference_only | data/open-source-tools.ts |
 | PostHog | /growth-studio/technology, /technology-radar | needs_license_review | data/open-source-tools.ts |
+| PostgREST | /technology-radar | reference_only | data/open-source-tools.ts |
 | PraisonAI multi-agent framework | /technology-radar | research_only | data/open-source-tools.ts |
-| prompts.chat | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Public APIs | /technology-radar | reference_only | data/open-source-tools.ts |
 | Public Suffix List | /technology-radar | research_only | data/open-source-tools.ts |
+| QR Code generator (Project Nayuki) | /business-builder/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Qdrant JavaScript SDK | /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | QloApps | /business-builder/technology | reference_only | data/open-source-tools.ts |
-| QR Code generator (Project Nayuki) | /business-builder/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | RAGFlow | /business-builder/technology, /technology-radar | adapter_built | data/open-source-tools.ts |
 | React | /technology-radar | research_only | data/open-source-tools.ts |
 | Real Estate Data APIs | /technology-radar | blocked | data/open-source-tools.ts |
 | Remotion / MapLibre-style video and map animation references | /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Resend Node SDK | /business-builder/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | RestaurantProject (BryanTheLai) | /business-builder/technology | reference_only | data/open-source-tools.ts |
-| reverse-skill | /technology-radar | blocked | data/open-source-tools.ts |
 | Roboflow / object detection references | /business-builder/technology, /creator-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
 | Rust programming references | /business-builder/technology, /technology-radar | reference_only | data/open-source-tools.ts |
+| SAM Sovereign Agent Mesh | /technology-radar | needs_security_review | data/open-source-tools.ts |
 | SadServers | /technology-radar | blocked | data/open-source-tools.ts |
 | Saleor | /business-builder/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| SAM Sovereign Agent Mesh | /technology-radar | needs_security_review | data/open-source-tools.ts |
 | Scrapling | /growth-studio/technology, /technology-radar | research_only | data/open-source-tools.ts |
-| seek-tune (Shazam-style audio fingerprinting) | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Self-Driving Car in Video Games | /technology-radar | research_only | data/open-source-tools.ts |
 | Sentry | /technology-radar | needs_license_review | data/open-source-tools.ts |
-| sherpa-onnx (k2-fsa) | /creator-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Skills for Real Engineers (Matt Pocock) | /technology-radar | reference_only | data/open-source-tools.ts |
 | Skylos | /technology-radar | reference_only | data/open-source-tools.ts |
 | Social Media App (adrianhajdin) | /technology-radar | blocked | data/open-source-tools.ts |
 | Social Media Skills (Charlie Hills) | /creator-studio/technology, /growth-studio/technology | adapter_built | data/open-source-tools.ts |
 | SocialMedia-App (CharlyKeleb) | /growth-studio/technology | reference_only | data/open-source-tools.ts |
-| software-income-playbooks | /technology-radar | blocked | data/open-source-tools.ts |
 | Sonora (nolight132) | /creator-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Spleeter | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Stock Market Signal Automation (cporter202) | /technology-radar | reference_only | data/open-source-tools.ts |
 | Stratum | /technology-radar | blocked | data/open-source-tools.ts |
-| Streambert / movie streaming piracy-style references | /technology-radar | blocked | data/open-source-tools.ts |
 | StreamCap (multi-platform live stream recorder) | /technology-radar | blocked | data/open-source-tools.ts |
+| Streambert / movie streaming piracy-style references | /technology-radar | blocked | data/open-source-tools.ts |
 | Stripe Node SDK | /business-builder/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
 | Suno API (unofficial) | /technology-radar | blocked | data/open-source-tools.ts |
 | Supabase JavaScript Client | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
@@ -1494,34 +1465,63 @@ A placement is a research destination, **not** permission to execute code. Statu
 | TidyFactor Styler | /technology-radar | reference_only | data/open-source-tools.ts |
 | ToolJet | /business-builder/technology | blocked | data/open-source-tools.ts |
 | Transformers.js | /business-builder/technology, /creator-studio/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
-| twenty (open Salesforce alternative) | /growth-studio/technology | needs_license_review | data/open-source-tools.ts |
 | UI/UX Pro Max Skill | /business-builder/technology, /creator-studio/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
 | UniFace | /technology-radar | blocked | data/open-source-tools.ts |
 | Unity ML-Agents Toolkit | /technology-radar | needs_license_review | data/open-source-tools.ts |
 | Unsloth | /technology-radar | reference_only | data/open-source-tools.ts |
-| ury (ERPNext restaurant management) | /business-builder/technology | research_only | data/open-source-tools.ts |
 | Valkey | /technology-radar | research_only | data/open-source-tools.ts |
 | Vercel Labs Skills (find-skills) | /technology-radar | needs_license_review | data/open-source-tools.ts |
 | Vibe Coding with Base44 | /business-builder/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | Vibe Trading | /technology-radar | blocked | data/open-source-tools.ts |
 | Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia | /creator-studio/technology, /technology-radar | needs_security_review | data/open-source-tools.ts |
-| Voicebox | /creator-studio/technology | needs_license_review | data/open-source-tools.ts |
 | VoiceStudio | /creator-studio/technology | blocked | data/open-source-tools.ts |
+| Voicebox | /creator-studio/technology | needs_license_review | data/open-source-tools.ts |
 | Vosk | /business-builder/technology, /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | Vulture | /technology-radar | blocked | data/open-source-tools.ts |
-| wacrm (self-hostable WhatsApp CRM template) | /business-builder/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
-| watermarks-remover (remove-ai-marks) | /technology-radar | blocked | data/open-source-tools.ts |
 | WebAV (browser video editing SDK on WebCodecs) | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
 | WebLLM | /creator-studio/technology, /growth-studio/technology | needs_security_review | data/open-source-tools.ts |
-| whisper.cpp | /creator-studio/technology | adapter_built | data/open-source-tools.ts |
 | WhisperX | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
-| wshobson/agents | /technology-radar | reference_only | data/open-source-tools.ts |
-| x-cmd | /technology-radar | reference_only | data/open-source-tools.ts |
 | X/Twitter Recommendation Algorithm | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | reference_only | data/open-source-tools.ts |
 | XenDroid Xbox 360 emulator | /technology-radar | blocked | data/open-source-tools.ts |
 | YT Short Clipper | /creator-studio/technology | reference_only | data/open-source-tools.ts |
 | Zitadel | /technology-radar | research_only | data/open-source-tools.ts |
 | Zod | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| ads-proposals | /business-builder/technology | blocked | data/open-source-tools.ts |
+| aiwaves-cn/agents | /technology-radar | research_only | data/open-source-tools.ts |
+| async-labs/saas | /technology-radar | research_only | data/open-source-tools.ts |
+| authentik | /technology-radar | research_only | data/open-source-tools.ts |
+| awesome-freellm-apis (open-free-llm-api) | /technology-radar | reference_only | data/open-source-tools.ts |
+| book-to-skill | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| brightbean-studio (self-hosted social scheduling) | /creator-studio/technology, /growth-studio/technology | research_only | data/open-source-tools.ts |
+| camofox-browser | /technology-radar | blocked | data/open-source-tools.ts |
+| codex-chatgpt-web | /technology-radar | blocked | data/open-source-tools.ts |
+| developer-roadmap (roadmap.sh) | /technology-radar | blocked | data/open-source-tools.ts |
+| disposable-email-domains | /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
+| erxes | /business-builder/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
+| express-rate-limit | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| fal-3d-anything | /creator-studio/technology, /technology-radar | blocked | data/open-source-tools.ts |
+| free-for.dev | /technology-radar | blocked | data/open-source-tools.ts |
+| game-reversing | /technology-radar | research_only | data/open-source-tools.ts |
+| kimi-k3-in-c | /technology-radar | reference_only | data/open-source-tools.ts |
+| n8n | /business-builder/technology, /growth-studio/technology | needs_license_review | data/open-source-tools.ts |
+| n8n Self-hosted AI Starter Kit | /business-builder/technology, /growth-studio/technology | reference_only | data/open-source-tools.ts |
+| n8n-nodes-figranium | /technology-radar | reference_only | data/open-source-tools.ts |
+| node-cron | /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| openclaw-api-list | /technology-radar | blocked | data/open-source-tools.ts |
+| opencode (anomalyco) | /technology-radar | reference_only | data/open-source-tools.ts |
+| pgvector-node | /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| prompts.chat | /business-builder/technology, /creator-studio/technology, /growth-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| reverse-skill | /technology-radar | blocked | data/open-source-tools.ts |
+| seek-tune (Shazam-style audio fingerprinting) | /creator-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
+| sherpa-onnx (k2-fsa) | /creator-studio/technology, /technology-radar | optional_adapter_after_review | data/open-source-tools.ts |
+| software-income-playbooks | /technology-radar | blocked | data/open-source-tools.ts |
+| twenty (open Salesforce alternative) | /growth-studio/technology | needs_license_review | data/open-source-tools.ts |
+| ury (ERPNext restaurant management) | /business-builder/technology | research_only | data/open-source-tools.ts |
+| wacrm (self-hostable WhatsApp CRM template) | /business-builder/technology, /growth-studio/technology | optional_adapter_after_review | data/open-source-tools.ts |
+| watermarks-remover (remove-ai-marks) | /technology-radar | blocked | data/open-source-tools.ts |
+| whisper.cpp | /creator-studio/technology | adapter_built | data/open-source-tools.ts |
+| wshobson/agents | /technology-radar | reference_only | data/open-source-tools.ts |
+| x-cmd | /technology-radar | reference_only | data/open-source-tools.ts |
 | OpenHands | /research-lab/requested-repositories | developer_only | lib/sonara-requested-repository-registry.cjs |
 | Caveman | /research-lab/requested-repositories | reference_only | lib/sonara-requested-repository-registry.cjs |
 | Agency Agents | /research-lab/requested-repositories | curated_reference | lib/sonara-requested-repository-registry.cjs |
