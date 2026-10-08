@@ -78,6 +78,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_preferences TO authenticated
 -- shim must provide that hosted prerequisite. The GRANT is transactional,
 -- restricted to this disposable test cluster, and rolled back below.
 GRANT USAGE ON SCHEMA auth TO authenticated;
+-- is_admin_or_founder() is SECURITY INVOKER and reads public.user_roles;
+-- hosted preview grants authenticated SELECT, while fresh replay does not.
+-- This fixture-only SELECT grant lets the exact helper evaluate its own RLS.
+GRANT SELECT ON public.user_roles TO authenticated;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
