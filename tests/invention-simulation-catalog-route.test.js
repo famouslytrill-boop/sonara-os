@@ -14,6 +14,8 @@ describe("research simulation catalog at the existing invention-systems route", 
     function response() {
       return {
         statusCode: null, contentType: null, payload: null,
+        headers: {},
+        set(key, value) { this.headers[key] = value; return this; },
         status(code) { this.statusCode = code; return this; },
         type(value) { this.contentType = value; return this; },
         json(value) { this.payload = value; return this; },
@@ -75,6 +77,8 @@ describe("research simulation catalog at the existing invention-systems route", 
       query: { study: "layout", width: "6.5", height: "2" }
     }, res);
     assert.equal(res.statusCode, 200);
+    assert.equal(res.headers["Cache-Control"], "private, no-store");
+    assert.equal(res.headers["Referrer-Policy"], "no-referrer");
     assert.match(res.payload, /Illustrative area: 13 square units/);
     assert.match(res.payload, /No saved results/);
   });
