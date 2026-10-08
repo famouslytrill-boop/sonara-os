@@ -12,14 +12,14 @@ test.beforeEach(async ({ page }) => {
   page.on("requestfailed", (req) => {
     try {
       const u = new URL(req.url());
-      if (u.hostname === "127.0.0.1" && /\\.(?:css|js)$/.test(u.pathname))
+      if (u.hostname === "127.0.0.1" && /\.(?:css|js)$/.test(u.pathname))
         console.error("SONARA_BROWSER_ASSET_FAILURE", u.pathname, String(req.failure()?.errorText || "unknown").slice(0, 180));
     } catch {}
   });
   page.on("response", (res) => {
     try {
       const u = new URL(res.url());
-      if (u.hostname === "127.0.0.1" && /\\.(?:css|js)$/.test(u.pathname) && res.status() >= 400)
+      if (u.hostname === "127.0.0.1" && /\.(?:css|js)$/.test(u.pathname) && res.status() >= 400)
         console.error("SONARA_BROWSER_ASSET_HTTP", u.pathname, res.status());
     } catch {}
   });
