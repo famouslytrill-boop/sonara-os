@@ -17,8 +17,7 @@
     "/contact",
     "/security",
     "/accessibility",
-    "/login",
-    "/signup",
+    // Login/signup remain outside service-worker registration and navigation.
     "/offline",
     "/business-builder",
     "/creator-studio",
