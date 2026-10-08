@@ -326,12 +326,12 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
-    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
+    // P1 rollback-only verification after the service-role hardening migration:
+    // assert 21 true/service-role and four optimized owner policies, plus the
+    // canonical subscription member/admin scope. No production DDL is applied.
+    behaves(psql, "P1 post-hardening RLS and canonical subscription proof",
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
-      ["p1_rls_hygiene_staging_passed"]);
+      ["p1_post_hardening_rls_and_canonical_subscription_passed"]);
 
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
