@@ -13,10 +13,32 @@ describe("SLO multiwindow fault recognition", () => {
     assert.equal(evaluateSloBurn([], { nowMs: NOW }).alert, false);
   });
   it("pages candidates only for verified high burn on both windows", () => {
-    const r = evaluateSloBurn(samples(1000, 5 * 60_000, 100), { nowMs: NOW });
+    const r = evaluateSloBurn(samples(1000, 60 * 60_000, 100), { nowMs: NOW });
     assert.equal(r.status, "page_candidate");
     assert.equal(r.reason, "slo_fast_burn");
     assert.equal(r.permittedAction, "alert_only");
+  });
+  it("does not misreport a five-minute incident burst as one hour of observed burn", () => {
+    const r=evaluateSloBurn(samples(1000,5*60_000,100), {nowMs:NOW});
+    assert.equal(r.alert,false);
+    assert.equal(r.status,"insufficient_evidence");
+    assert.equal(r.reason,"insufficient_long_window_coverage");
+    assert.equal(r.windows[0].countSufficient,true);
+    assert.equal(r.windows[0].coverageSufficient,false);
+  });
+  it("denies two isolated bursts that span the hour but leave a large telemetry gap", () => {
+    const newest=samples(100,60_000,100);
+    const oldest=samples(100,60_000,100).map(x=>({...x,timestampMs:x.timestampMs-3540000}));
+    const r=evaluateSloBurn([...newest,...oldest],{nowMs:NOW});
+    assert.equal(r.alert,false);
+    assert.equal(r.reason,"insufficient_long_window_coverage");
+    assert.equal(r.windows[0].long.coveredBuckets<6,true);
+  });
+  it("fails closed on impossible long-window coverage thresholds",()=>{
+    assert.equal(evaluateSloBurn(samples(100,3600000,100),{
+      nowMs:NOW,minLongCoverageRatio:2}).status,"invalid_evidence");
+    assert.equal(evaluateSloBurn(samples(100,3600000,100),{
+      nowMs:NOW,minLongBuckets:13}).status,"invalid_evidence");
   });
   it("does not page on healthy high-throughput traffic", () => {
     assert.equal(evaluateSloBurn(samples(1000, 60_000, 0), { nowMs: NOW }).alert, false);
