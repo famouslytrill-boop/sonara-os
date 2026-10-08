@@ -40,6 +40,16 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
+-- This is a source-controlled replay, not a copy of the active remote
+-- database. Two manually present subscriptions policies may be entirely
+-- absent from the migration history. Never invent them merely to dedupe.
+CREATE TEMP TABLE subscription_replay_shape (legacy_count integer NOT NULL) ON COMMIT DROP;
+INSERT INTO subscription_replay_shape
+SELECT count(*) FROM pg_policies
+WHERE schemaname='public' AND tablename='subscriptions'
+  AND policyname IN ('Users can view own subscriptions',
+                     'Users can view their own subscription');
+
 DO $drift$
 DECLARE bad int;
 BEGIN
@@ -59,24 +69,36 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscription policies require review; observed=%', (
-       SELECT left(coalesce(jsonb_agg(jsonb_build_object(
-         'policy',policyname,'permissive',permissive,'roles',roles,
-         'command',cmd,'using',qual,'check',with_check
-       ) ORDER BY policyname)::text, 'none'), 1900)
-       FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
+ -- Explicitly separate schema-derived state from remote-only drift:
+ -- 0 named policies: canonical organization-scoped SELECT policy from 011.
+ -- 2 named policies: verify both are *exact* duplicates before draft dedup.
+ -- 1 or any other count: fail closed pending migration review.
+ IF (SELECT legacy_count FROM subscription_replay_shape) = 0 THEN
+   IF (SELECT count(*) FROM pg_policies
+       WHERE schemaname='public' AND tablename='subscriptions'
+         AND policyname='subscriptions_select_member'
+         AND permissive='PERMISSIVE'
+         AND roles=ARRAY['authenticated']::name[] AND cmd='SELECT'
+         AND with_check IS NULL
+         AND regexp_replace(lower(qual), '[[:space:]()"]', '', 'g')
+             IN ('is_org_memberorganization_idoris_admin_or_founder',
+                 'public.is_org_memberorganization_idorpublic.is_admin_or_founder')
+     ) <> 1 THEN
+     RAISE EXCEPTION 'source replay has no duplicate policies and lacks exact organization-scoped subscriptions SELECT';
+   END IF;
+ ELSIF (SELECT legacy_count FROM subscription_replay_shape) = 2 THEN
+   IF (SELECT count(*) FROM pg_policies
+       WHERE schemaname='public' AND tablename='subscriptions'
          AND policyname IN ('Users can view own subscriptions',
                             'Users can view their own subscription')
-     );
+         AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
+         AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+         AND with_check IS NULL) <> 2 THEN
+     RAISE EXCEPTION 'two subscription policies exist but are not identical authenticated owner-only SELECT rules';
+   END IF;
+ ELSE
+   RAISE EXCEPTION 'partial or duplicated subscription policy lineage requires review (% policies)',
+     (SELECT legacy_count FROM subscription_replay_shape);
  END IF;
 END
 $drift$;
@@ -153,7 +175,15 @@ ALTER POLICY "user_notifications_select_own" ON public."user_notifications"
 ALTER POLICY "user_preferences_select_own" ON public."user_preferences"
   USING (((select auth.uid()) = user_id));
 
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+-- Only experiment with deduplication if both exact original policies exist.
+-- No schema mutation occurs in the zero-duplicate, source-controlled case.
+DO $dedup_if_applicable$
+BEGIN
+ IF (SELECT legacy_count FROM subscription_replay_shape) = 2 THEN
+   EXECUTE 'DROP POLICY "Users can view their own subscription" ON public.subscriptions';
+ END IF;
+END
+$dedup_if_applicable$;
 
 DO $postflight$
 DECLARE bad int;
@@ -171,16 +201,23 @@ BEGIN
  IF bad <> 0 THEN
    RAISE EXCEPTION 'P1 postflight failed % policies',bad;
  END IF;
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
- OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription')<>0
- THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
+ IF (SELECT legacy_count FROM subscription_replay_shape) = 2 THEN
+   IF (SELECT count(*) FROM pg_policies
+       WHERE schemaname='public' AND tablename='subscriptions'
+         AND policyname='Users can view own subscriptions'
+         AND roles=ARRAY['authenticated']::name[]
+         AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)') <> 1
+      OR (SELECT count(*) FROM pg_policies
+          WHERE schemaname='public' AND tablename='subscriptions'
+            AND policyname='Users can view their own subscription') <> 0 THEN
+     RAISE EXCEPTION 'P1 subscription staged deduplication failed';
+   END IF;
+ ELSIF (SELECT count(*) FROM pg_policies
+        WHERE schemaname='public' AND tablename='subscriptions'
+          AND policyname IN ('Users can view own subscriptions',
+                             'Users can view their own subscription')) <> 0 THEN
+   RAISE EXCEPTION 'subscription policies appeared unexpectedly in source replay';
+ END IF;
 END
 $postflight$;
 SELECT 'p1_rls_hygiene_staging_passed';
