@@ -345,6 +345,69 @@ describe("event consumer activation readiness", () => {
     assert.deepEqual(owners.sort(), ["same-consumer#claim-a", "same-consumer#claim-b"]);
   });
 
+  it("quarantines a timed-out handler rather than automatically replaying an uncertain side effect", async () => {
+    const settlements = [];
+    const events = [];
+    let handlerFinished = false;
+    const worker = createEventConsumerWorker({
+      repository: {
+        claimNextFiltered: async () => ({ ok: true, row: row() }),
+        settle: async (input) => {
+          settlements.push(input);
+          return { ok: true, row: { ...row(), state: input.outcome } };
+        }
+      },
+      handlers: {
+        [CANARY_KIND]: async () => {
+          // The underlying handler deliberately outlives the timeout.
+          // A timed-out Promise.race does NOT cancel this operation.
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          handlerFinished = true;
+          return { ok: true };
+        }
+      },
+      handlerTimeoutMs: 5,
+      emitEvent: (event) => events.push(event),
+      now: () => new Date("2026-09-17T20:00:02.000Z")
+    });
+
+    const result = await worker.runOnce({
+      enabled: true, organizationId: ORG, consumer: "canary",
+      kinds: [CANARY_KIND], producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+    });
+    assert.equal(handlerFinished, false);
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "dead_lettered");
+    assert.equal(result.code, "handler_timeout");
+    assert.equal(result.nextAvailableAt, null);
+    assert.equal(settlements.length, 1);
+    assert.equal(settlements[0].outcome, "dead_lettered");
+    assert.equal(settlements[0].errorCode, "handler_timeout");
+    assert.equal(settlements[0].nextAvailableAt, null);
+    assert.equal(events[0]?.reason, "handler_timeout");
+
+    // Demonstrate the important limitation: quarantine prevents an automatic
+    // retry; it cannot undo an in-flight provider or handler side effect.
+    await new Promise((resolve) => setTimeout(resolve, 45));
+    assert.equal(handlerFinished, true);
+  });
+
+  it("refuses handler timeouts that would overlap the five-minute claim lease", () => {
+    const repository = {
+      claimNextFiltered: async () => ({ ok: true, row: null }),
+      settle: async () => ({ ok: true, row: {} })
+    };
+    const options = { repository, emitEvent: () => undefined };
+    assert.doesNotThrow(() => createEventConsumerWorker({ ...options, handlerTimeoutMs: 30_000 }));
+    for (const handlerTimeoutMs of [0, -1, "30000", Number.NaN, Infinity, 290_000, 300_000]) {
+      assert.throws(
+        () => createEventConsumerWorker({ ...options, handlerTimeoutMs }),
+        /claim lease safety budget/,
+        `Unexpected timeout accepted: ${String(handlerTimeoutMs)}`
+      );
+    }
+  });
+
   it("backs off exponentially and retries before the delivery-attempt ceiling", async () => {
     const settlements = [];
     const worker = createEventConsumerWorker({
