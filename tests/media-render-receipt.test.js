@@ -102,6 +102,7 @@ describe("isolated media rendering receipt contract", () => {
     assert.throws(() => proof(inspected), /not supported/);
     const receipt = proof(safe);
     assert.throws(() => buildMediaPreviewProofEvent(safe, { ...receipt, published: true }), /does not match/);
+    assert.throws(() => buildMediaPreviewProofEvent(safe, { ...receipt }), /not issued/);
     assert.throws(() => buildMediaPreviewProofEvent(
       createMediaProcessingPlan({ ...base, organizationId: "org-2", sourceStorageKey: "org-2/private/song.wav",
         outputStorageKey: "org-2/previews/song.wav" }), receipt
