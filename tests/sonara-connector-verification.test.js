@@ -212,6 +212,8 @@ describe("SONARA verified connector depth", () => {
     assert.equal(contract.auth.incrementalAuthorization, false);
     assert.equal(contract.auth.exactScopeGrantRequired, true);
     assert.equal(contract.auth.credentialBroker, "contract_implemented_backend_pending");
+    assert.equal(contract.auth.backgroundCredentialResolution, "broker_resolved_contract_implemented");
+    assert.equal(contract.auth.disconnectLifecycle, "provider_revoke_then_local_revoke_contract_implemented");
     assert.equal(contract.auth.authorizationRoute, "not_wired");
     assert.ok(contract.verificationBlockers.includes("one_tenant_production_canary"));
     assert.equal(contract.sync.providerDateZone, PROVIDER_DATE_ZONE);
