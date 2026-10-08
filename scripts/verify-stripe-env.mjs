@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 const { STRIPE_PLANS } = await import("../server.js").then((m) => m.default || m);
 const { offeredPlanKeys } = await import("../lib/sonara-stripe-plans.cjs").then((m) => m.default || m);
+const { CONNECT_WEBHOOK_EVENTS } = await import("../lib/sonara-connected-checkout.cjs").then((m) => m.default || m);
 
 let failed = false;
 const ok = (message) => console.log(`[OK] ${message}`);
@@ -60,6 +61,8 @@ const secret = process.env.STRIPE_SECRET_KEY;
 const isPlaceholder = (value) => !value || /^(?:changeme|placeholder|your[_-]|xxx|todo)/i.test(value) || String(value).includes("...");
 const isStripePriceId = (value) => /^price_[A-Za-z0-9]+$/.test(String(value || "").trim()) && !isPlaceholder(value);
 const requireLive = process.argv.includes("--require-live");
+const requireConnectCanary = process.argv.includes("--require-connect-canary");
+let connectCanaryVerified = false;
 
 function configuredPriceFor(config) {
   const names = [config.env].filter(Boolean);
@@ -196,13 +199,137 @@ if (requireLive && !comparedLivePrices) {
   fail("--require-live was passed and no live price was compared, so this run proves nothing about what Stripe charges");
 }
 
+// ---------------------------------------------------------------------------
+// 3. Read-only Connect canary readiness
+// ---------------------------------------------------------------------------
+//
+// This never creates a connected account, Checkout Session, charge, refund,
+// dispute, transfer or payout. It answers whether the external Stripe side is
+// ready for the existing direct-charge storefront/marketplace implementation to
+// run one separately approved canary.
+if (requireConnectCanary) {
+  if (isPlaceholder(secret) || !/^sk_(?:test|live)_[A-Za-z0-9_]+$/.test(String(secret || ""))) {
+    fail("--require-connect-canary needs a Stripe secret key with read access to Accounts and Webhook Endpoints");
+  } else {
+    const mode = String(process.env.SONARA_CUSTOMER_FUNDS_MODE || "");
+    const enabled = String(process.env.STRIPE_CONNECT_ENABLED || "").toLowerCase();
+    const webhookSecret = String(process.env.STRIPE_CONNECT_WEBHOOK_SECRET || "");
+    const rawOrigin = String(
+      process.env.PUBLIC_SITE_URL ||
+      process.env.APP_URL ||
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      ""
+    ).replace(/\/+$/, "");
+
+    if (mode !== "connect_direct_reviewed") {
+      fail(`Connect canary mode is ${JSON.stringify(mode || "unset")}; expected connect_direct_reviewed`);
+    }
+    if (enabled !== "true") fail("STRIPE_CONNECT_ENABLED is not true");
+    if (!/^whsec_[A-Za-z0-9]{16,}$/.test(webhookSecret)) {
+      fail("STRIPE_CONNECT_WEBHOOK_SECRET is missing or malformed");
+    }
+
+    let expectedWebhookUrl = "";
+    try {
+      const origin = new URL(rawOrigin);
+      if (origin.protocol !== "https:" || origin.origin !== rawOrigin) throw new Error("origin required");
+      expectedWebhookUrl = `${origin.origin}/api/webhooks/stripe-connect`;
+    } catch {
+      fail("A canonical HTTPS site origin is required to verify the Connect webhook endpoint");
+    }
+
+    const stripeRead = async (pathname) => {
+      try {
+        const response = await fetch(`https://api.stripe.com${pathname}`, {
+          headers: { authorization: `Bearer ${secret}` }
+        });
+        if (!response.ok) {
+          let detail = "";
+          try {
+            const body = await response.json();
+            if (body?.error?.message) detail = `: ${body.error.message}`;
+          } catch {}
+          fail(`Stripe read ${pathname} returned HTTP ${response.status}${detail}`);
+          return null;
+        }
+        return await response.json();
+      } catch {
+        fail(`Could not reach Stripe for read-only Connect verification: ${pathname}`);
+        return null;
+      }
+    };
+
+    const accounts = await stripeRead("/v1/accounts?limit=100");
+    const eligibleAccounts = Array.isArray(accounts?.data)
+      ? accounts.data.filter((account) =>
+          account &&
+          account.charges_enabled === true &&
+          account.payouts_enabled === true &&
+          account.details_submitted === true
+        )
+      : [];
+    if (eligibleAccounts.length === 0) {
+      fail("No connected Stripe account is fully submitted with charges and payouts enabled");
+    } else {
+      ok(`Connect has ${eligibleAccounts.length} connected account(s) eligible for a separately approved direct-charge canary`);
+    }
+
+    const endpoints = await stripeRead("/v1/webhook_endpoints?limit=100");
+    const candidate = Array.isArray(endpoints?.data) && expectedWebhookUrl
+      ? endpoints.data.find((endpoint) =>
+          endpoint?.status === "enabled" &&
+          endpoint?.url === expectedWebhookUrl &&
+          endpoint?.connect === true
+        )
+      : null;
+
+    if (!candidate) {
+      fail(`No enabled Connect webhook endpoint exactly matches ${expectedWebhookUrl || "the canonical production URL"}`);
+    } else {
+      const enabledEvents = new Set(Array.isArray(candidate.enabled_events) ? candidate.enabled_events : []);
+      const missingEvents = CONNECT_WEBHOOK_EVENTS.filter((event) =>
+        !enabledEvents.has("*") && !enabledEvents.has(event)
+      );
+      if (missingEvents.length) {
+        fail(`Connect webhook is missing required event(s): ${missingEvents.join(", ")}`);
+      } else {
+        ok("Connect webhook endpoint covers every event the application can settle or reverse");
+      }
+    }
+
+    if (
+      mode === "connect_direct_reviewed" &&
+      enabled === "true" &&
+      /^whsec_[A-Za-z0-9]{16,}$/.test(webhookSecret) &&
+      expectedWebhookUrl &&
+      eligibleAccounts.length > 0 &&
+      candidate &&
+      CONNECT_WEBHOOK_EVENTS.every((event) => {
+        const set = new Set(Array.isArray(candidate.enabled_events) ? candidate.enabled_events : []);
+        return set.has("*") || set.has(event);
+      })
+    ) {
+      connectCanaryVerified = true;
+    }
+  }
+
+  if (!connectCanaryVerified) {
+    fail("--require-connect-canary was passed and the external Connect prerequisites are not complete");
+  }
+}
+
 if (failed) {
   console.error("\nStripe configuration verification failed.");
   process.exit(1);
 }
 
 if (comparedLivePrices) {
-  console.log("\nStripe configuration verified against the deployed server, including live prices.");
+  console.log(
+    connectCanaryVerified
+      ? "\nStripe configuration verified against live prices and read-only Connect canary prerequisites."
+      : "\nStripe configuration verified against the deployed server, including live prices."
+  );
 } else {
   console.log(
     "\nStripe configuration verified offline: every paid plan names a variable, .env.example declares it, " +
