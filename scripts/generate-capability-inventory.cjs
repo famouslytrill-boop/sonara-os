@@ -1925,7 +1925,7 @@ function buildInventory() {
               const kind = entry.evidence.rendererKind;
               const file = subject.source?.file;
               // Prevent claims against an unrelated file, route or rendering mode.
-              if (/^[A-Za-z_$][\\w$]*$/.test(renderer)
+              if (/^[A-Za-z_$][\w$]*$/.test(renderer)
                   && /^[a-z_]+$/.test(String(kind || ""))
                   && typeof file === "string" && file.startsWith("routes/")
                   && file === raw.source?.file) {
@@ -1936,7 +1936,7 @@ function buildInventory() {
                 const found = declaration.exec(sourceText);
                 if (found && callSite.test(handler)) {
                   const rest = sourceText.slice(found.index + found[0].length);
-                  const nextFunction = /\\n  (?:async\\s+)?function\\s+[A-Za-z_$][\\w$]*\\s*\\(/.exec(rest);
+                  const nextFunction = /\n  (?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/.exec(rest);
                   const rendererBody = nextFunction ? rest.slice(0, nextFunction.index) : rest;
                   viaRenderer = call.test(rendererBody);
                 }
