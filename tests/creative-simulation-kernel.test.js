@@ -129,6 +129,46 @@ describe("SONARA creative simulation kernel (non-production)", () => {
     assert.equal(two.turn, 2);
   });
 
+  it("freezes new board states and rejects corrupted or forged revision state", () => {
+    const original = createTurnState(["alice", "bob"]);
+    assert.ok(Object.isFrozen(original));
+    assert.ok(Object.isFrozen(original.players));
+    assert.ok(Object.isFrozen(original.scores));
+    assert.throws(() => createTurnState(["__proto__", "bob"]), TypeError);
+    const first = applyScoreTurn(original, { actor: "alice", points: 1, expectedRevision: 0 });
+    assert.ok(Object.isFrozen(first));
+    assert.ok(Object.isFrozen(first.players));
+    assert.ok(Object.isFrozen(first.scores));
+    assert.throws(() => applyScoreTurn(
+      { ...first, turn: 0 },
+      { actor: "alice", points: 1, expectedRevision: 1 }
+    ), /invalid or exhausted/);
+    assert.throws(() => applyScoreTurn(
+      { ...first, scores: { alice: 1, bob: 0, injected: 7 } },
+      { actor: "bob", points: 1, expectedRevision: 1 }
+    ), /invalid or exhausted/);
+    assert.throws(() => applyScoreTurn(
+      { ...first, scores: { alice: 1 } },
+      { actor: "bob", points: 1, expectedRevision: 1 }
+    ), /invalid or exhausted/);
+    assert.throws(() => applyScoreTurn(
+      { ...first, scores: { alice: 1, bob: NaN } },
+      { actor: "bob", points: 1, expectedRevision: 1 }
+    ), /invalid or exhausted/);
+  });
+
+  it("rejects score overflow at the moment the turn occurs", () => {
+    const start = createTurnState(["alice", "bob"]);
+    assert.throws(() => applyScoreTurn(
+      { ...start, scores: { alice: 100000, bob: 0 } },
+      { actor: "alice", points: 1, expectedRevision: 0 }
+    ), RangeError);
+    assert.throws(() => applyScoreTurn(
+      { ...start, scores: { alice: -100000, bob: 0 } },
+      { actor: "alice", points: -1, expectedRevision: 0 }
+    ), RangeError);
+  });
+
   it("rejects stale revisions, out-of-turn moves, duplicate IDs and excess points", () => {
     const start = createTurnState(["alice", "bob"]);
     assert.throws(() => createTurnState(["alice", "alice"]), RangeError);
