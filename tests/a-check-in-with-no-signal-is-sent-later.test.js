@@ -148,6 +148,46 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(prepared.latitude, 51.5);
     });
 
+    it("partitions queued check-ins by workspace and signed-in user", async () => {
+      const storage = memoryStorage();
+      const firstScope = { organizationId: ORG, userId: USER, employeeId: USER };
+      const secondScope = { organizationId: OTHER_ORG, userId: OTHER_ORG, employeeId: OTHER_ORG };
+      const first = queue.prepare({ event_type: "check_in", capture_organization_id: ORG, capture_user_id: USER, employee_id: USER });
+      const second = queue.prepare({ event_type: "check_in", capture_organization_id: OTHER_ORG, capture_user_id: OTHER_ORG, employee_id: OTHER_ORG });
+      assert.equal(queue.keep(ENDPOINT, first, { storage, scope: firstScope }).kept, true);
+      assert.equal(queue.keep(ENDPOINT, second, { storage, scope: secondScope }).kept, true);
+      assert.equal(queue.pending({ storage, scope: firstScope }), 1);
+      assert.equal(queue.pending({ storage, scope: secondScope }), 1);
+      assert.equal(queue.pending({ storage }), 0, "account-scoped entries leaked into the legacy queue");
+      const sent = [];
+      await Promise.all([
+        queue.flush({ storage, scope: firstScope, fetch: async (_url, init) => { sent.push(JSON.parse(init.body).capture_user_id); return answer(200, { ok: true }); } }),
+        queue.flush({ storage, scope: secondScope, fetch: async (_url, init) => { sent.push(JSON.parse(init.body).capture_user_id); return answer(200, { ok: true }); } })
+      ]);
+      assert.deepEqual(sent.sort(), [USER, OTHER_ORG].sort());
+    });
+
+    it("shows legacy and scope-blocked entries for explicit review, without replaying them", async () => {
+      const storage = memoryStorage();
+      const scope = { organizationId: ORG, userId: USER, employeeId: USER };
+      const legacy = queue.prepare({ event_type: "check_in" });
+      const blocked = queue.prepare({ event_type: "check_in", capture_organization_id: OTHER_ORG, capture_user_id: OTHER_ORG, employee_id: OTHER_ORG });
+      queue.keep(ENDPOINT, legacy, { storage });
+      queue.keep(ENDPOINT, blocked, { storage, scope });
+      let requests = 0;
+      const result = await queue.flush({ storage, scope, fetch: async () => { requests += 1; return answer(200, { ok: true }); } });
+      assert.equal(requests, 0);
+      assert.equal(result.authenticationRequired, true);
+      const entries = queue.review({ storage, scope }).entries;
+      assert.deepEqual(entries.map((entry) => entry.source).sort(), ["account", "legacy"]);
+      assert.ok(entries.every((entry) => entry.id), "every review item needs an explicit discard token");
+      const legacyEntry = entries.find((entry) => entry.source === "legacy");
+      const blockedEntry = entries.find((entry) => entry.source === "account");
+      assert.equal(queue.discard(legacyEntry.id, { storage, scope, source: "legacy" }).discarded, true);
+      assert.equal(queue.discard(blockedEntry.id, { storage, scope, source: "account" }).discarded, true);
+      assert.equal(queue.review({ storage, scope }).entries.length, 0);
+    });
+
     it("keeps an entry while there is no connection, and sends it with the same id when there is", async () => {
       const storage = memoryStorage();
       const body = queue.prepare({ event_type: "check_in" });
@@ -185,18 +225,20 @@ describe("a check-in with no signal is sent later", () => {
 
     it("does not replay another employee's saved check-in", async () => {
       const storage = memoryStorage();
-      queue.keep(ENDPOINT, queue.prepare({ employee_id: USER, capture_user_id: USER, capture_organization_id: ORG }), { storage });
+      const correctScope = { employeeId: USER, userId: USER, organizationId: ORG };
+      queue.keep(ENDPOINT, queue.prepare({ employee_id: USER, capture_user_id: USER, capture_organization_id: ORG }), { storage, scope: correctScope });
       let requests = 0;
       const fetch = async () => { requests += 1; return answer(200, { ok: true }); };
-      for (const scope of [{ employeeId: OTHER_ORG, userId: USER, organizationId: ORG },
-        { employeeId: USER, userId: OTHER_ORG, organizationId: ORG },
-        { employeeId: USER, userId: USER, organizationId: OTHER_ORG }]) {
-        const result = await queue.flush({ storage, scope, fetch });
-        assert.equal(result.authenticationRequired, true);
-        assert.equal(result.waiting, 1);
-      }
+      const wrongEmployee = await queue.flush({ storage, scope: { employeeId: OTHER_ORG, userId: USER, organizationId: ORG }, fetch });
+      assert.equal(wrongEmployee.authenticationRequired, true);
+      assert.equal(wrongEmployee.waiting, 1);
+      const otherUser = await queue.flush({ storage, scope: { employeeId: USER, userId: OTHER_ORG, organizationId: ORG }, fetch });
+      assert.equal(otherUser.authenticationRequired, false);
+      assert.equal(otherUser.waiting, 0, "another user's queue should not be visible");
+      const otherWorkspace = await queue.flush({ storage, scope: { employeeId: USER, userId: USER, organizationId: OTHER_ORG }, fetch });
+      assert.equal(otherWorkspace.waiting, 0, "another workspace's queue should not be visible");
       assert.equal(requests, 0);
-      const done = await queue.flush({ storage, scope: { employeeId: USER, userId: USER, organizationId: ORG }, fetch });
+      const done = await queue.flush({ storage, scope: correctScope, fetch });
       assert.equal(done.sent, 1);
     });
 

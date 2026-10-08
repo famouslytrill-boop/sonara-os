@@ -113,8 +113,37 @@
     });
   }
 
+  function renderReview() {
+    var panel = form.querySelector("[data-sonara-check-in-review]");
+    var list = form.querySelector("[data-sonara-check-in-review-list]");
+    var reviewStatus = form.querySelector("[data-sonara-check-in-review-status]");
+    if (!queue || !panel || !list) return;
+    var result = queue.review({ scope: config });
+    list.textContent = "";
+    if (!result.entries.length) {
+      panel.hidden = true;
+      if (reviewStatus) reviewStatus.textContent = "";
+      return;
+    }
+    panel.hidden = false;
+    if (reviewStatus) reviewStatus.textContent = "These saved check-ins are not sent automatically. Review each one before removing it from this device.";
+    result.entries.forEach(function (entry) {
+      var item = document.createElement("li");
+      var when = entry.capturedAt ? new Date(entry.capturedAt).toLocaleString() : "time unavailable";
+      item.appendChild(document.createTextNode((entry.source === "legacy" ? "Earlier account or browser session" : "Account scope needs review") + " — " + when + ". "));
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "action";
+      button.textContent = "Discard saved check-in";
+      button.dataset.sonaraDiscardEntry = entry.id || "";
+      button.dataset.sonaraDiscardSource = entry.source;
+      item.appendChild(button);
+      list.appendChild(item);
+    });
+  }
+
   function sendKept() {
-    if (!queue || !queue.pending()) { say("No saved check-ins are waiting on this device."); return; }
+    if (!queue || !queue.pending({ scope: config })) { say("No saved check-ins are waiting on this account."); renderReview(); return; }
     queue.flush({ scope: config }).then(function (result) {
       var delivered = result.sent + result.duplicates;
       if (delivered && !result.waiting) say(delivered === 1 ? "Your check-in from earlier has now been recorded, at the time you made it." : delivered + " check-ins from earlier have now been recorded, at the times you made them.");
@@ -123,12 +152,25 @@
       if (result.storageFailed) say("This browser could not update its saved check-ins. They may be sent again; their original references prevent duplicate records.");
       if (result.refused) say("A check-in kept on this device was refused when it was sent, so it was not recorded.");
       if (result.expired) say("A check-in kept on this device was more than a week old and was not sent.");
+      renderReview();
     });
   }
   var retryButton = form.querySelector("[data-sonara-check-in-retry]");
   if (retryButton) retryButton.addEventListener("click", sendKept);
+  var reviewButton = form.querySelector("[data-sonara-check-in-review-toggle]");
+  if (reviewButton) reviewButton.addEventListener("click", renderReview);
+  var reviewPanel = form.querySelector("[data-sonara-check-in-review]");
+  if (reviewPanel) reviewPanel.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target || !target.dataset || !target.dataset.sonaraDiscardEntry) return;
+    var discarded = queue.discard(target.dataset.sonaraDiscardEntry, { scope: config, source: target.dataset.sonaraDiscardSource });
+    if (discarded.discarded) say("The saved check-in was discarded from this device.");
+    else say("That saved check-in could not be discarded. Try again.");
+    renderReview();
+  });
   window.addEventListener("online", sendKept);
   sendKept();
+  renderReview();
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();

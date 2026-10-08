@@ -2456,7 +2456,9 @@ function checkInCard(employeeId, ui, org) {
     options,
     '<button class="action" type="submit" data-sonara-check-in-submit>Check in</button>',
     '<button class="action" type="button" data-sonara-check-in-retry>Send saved check-ins</button>',
+    '<button class="action" type="button" data-sonara-check-in-review-toggle>Review saved check-ins</button>',
     '<p class="fine" role="status" aria-live="polite" data-sonara-check-in-status></p>',
+    '<section class="card" data-sonara-check-in-review hidden><h3>Saved check-ins needing review</h3><p role="status" aria-live="polite" data-sonara-check-in-review-status></p><ul data-sonara-check-in-review-list></ul></section>',
     "</form>",
     "</div>"
   ].join("");

@@ -565,3 +565,12 @@ behaviour, not settlement, deployment or real customer/device evidence.
 - Provider/production proof unavailable: no live GPS, real authentication session, production database, provider payment or deployment checks. Preserve temporary-offline direction. Local SQL replay remains explicitly skipped without PostgreSQL binaries.
 - Next smallest slice: account-specific queues with transactional cross-tab updates and an explicit review/discard interface for legacy or blocked entries; then physical-device and assistive-technology verification. localStorage remains unencrypted; no closed-browser retry or cleanup claim.
 - Final local application checks: **6877 passing / 6 pending**; frozen install; moderate audit (no known vulnerabilities); typecheck; lint; build; client-secret scan; route smoke all passed. Local Node 24.19.0 / pnpm 11.25.0 versus repository pnpm 12.7.0 pin; lockfile unchanged. The rendered-route crawler now includes the authenticated staff page instead of misclassifying its queue as an orphan.
+
+## 2026-10-08 — Account-scoped offline queue and explicit review
+
+- Exact base: `207372e40e56716199286d6ca95984eed2882b49`; current published parent is PR #452 commit `a10ec9a78563581759d630b1ef87ad856bda3c23` before this update.
+- Files/locks: scoped queue and check-in client; last9 staff markup; browser contract and check-in tests; generated capability inventory/map; `docs/research/SONARA_ACCOUNT_SCOPED_QUEUE_PASS_2026-10-08.md`; this handoff. No dependency lock, migration, provider or deployment configuration change.
+- Workflow state closed: v2 queue keys use validated workspace/user UUIDs; v1 legacy records and scope-mismatched records never replay automatically; review summaries and explicit discard tokens are available; per-key flushes can run independently; malformed legacy rows remain removable.
+- Validation so far: focused check-in suite **44 passing**; focused route crawler **49 passing**; offline policy **10 passing**; full suite and release gates are running after the final generated inventory update.
+- Provider/production proof unavailable: no production storage/auth/GPS access, no deployment or reactivation. Hosted browser proof is required for the new review/discard interaction. Local storage remains unencrypted and cross-tab writes are not transactional.
+- Next smallest slice: design a transactional account-local store or cross-tab coordination protocol, then verify on physical devices and with assistive technology.

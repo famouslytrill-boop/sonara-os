@@ -35,7 +35,12 @@
 (function (root) {
   "use strict";
 
+  // v1 remains readable only as a legacy queue. New captures are partitioned
+  // by the authenticated workspace and user, so one browser cannot replay an
+  // old account's check-in under a new account.
   var STORAGE_KEY = "sonara.offline-queue.v1";
+  var SCOPED_STORAGE_PREFIX = "sonara.offline-queue.v2";
+  var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var MAX_ITEMS = 50;
   var MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
   var activeFlushes = new WeakMap();
@@ -45,20 +50,31 @@
     try { return root.localStorage || null; } catch { return null; }
   }
 
-  function read(storage) {
+  function scopeKey(scope) {
+    var organizationId = scope && String(scope.organizationId || "").toLowerCase();
+    var userId = scope && String(scope.userId || "").toLowerCase();
+    if (!UUID.test(organizationId) || !UUID.test(userId)) return null;
+    return SCOPED_STORAGE_PREFIX + "." + organizationId + "." + userId;
+  }
+
+  function keyFor(options) {
+    return scopeKey(options && options.scope) || STORAGE_KEY;
+  }
+
+  function read(storage, key) {
     if (!storage) return [];
     try {
-      var parsed = JSON.parse(storage.getItem(STORAGE_KEY) || "[]");
+      var parsed = JSON.parse(storage.getItem(key || STORAGE_KEY) || "[]");
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   }
 
-  function write(storage, items) {
+  function write(storage, items, key) {
     if (!storage) return false;
     try {
-      storage.setItem(STORAGE_KEY, JSON.stringify(items));
+      storage.setItem(key || STORAGE_KEY, JSON.stringify(items));
       return true;
     } catch {
       return false;
@@ -91,19 +107,79 @@
       return { kept: false, reason: "invalid_entry" };
     }
     var storage = storageOf(options);
+    var key = keyFor(options);
     if (!storage) return { kept: false, reason: "no_storage" };
-    var items = read(storage);
+    var items = read(storage, key);
     if (items.some(function (item) { return item && item.body && item.body.client_event_id === body.client_event_id; })) {
       return { kept: true, pending: items.length };
     }
     if (items.length >= MAX_ITEMS) return { kept: false, reason: "full", pending: items.length };
     items.push({ endpoint: endpoint, body: body, retryAt: options && options.retryAt || 0, keptAt: new Date((options && options.now) || Date.now()).toISOString() });
-    if (!write(storage, items)) return { kept: false, reason: "no_storage" };
-    return { kept: true, pending: items.length };
+    if (!write(storage, items, key)) return { kept: false, reason: "no_storage" };
+    return { kept: true, pending: items.length, key };
   }
 
   function pending(options) {
-    return read(storageOf(options)).length;
+    return read(storageOf(options), keyFor(options)).length;
+  }
+
+  function summary(item, source, reason, index) {
+    var body = item && item.body || {};
+    var id = typeof body.client_event_id === "string" && UUID.test(body.client_event_id)
+      ? body.client_event_id : source + ":" + index;
+    return Object.freeze({
+      id, source, reason,
+      capturedAt: typeof body.captured_at === "string" ? body.captured_at : null,
+      eventType: typeof body.event_type === "string" ? body.event_type : "check_in"
+    });
+  }
+
+  // Legacy and scope-blocked records are inspectable but never silently moved
+  // into a new account queue. The page can show this safe summary and ask the
+  // person to discard a record explicitly.
+  function review(options) {
+    var storage = storageOf(options);
+    if (!storage) return { entries: [], storageFailed: false };
+    var scope = options && options.scope;
+    var key = scopeKey(scope);
+    var entries = [];
+    if (key) {
+      read(storage, key).forEach(function (item, index) {
+        var body = item && item.body || {};
+        var matches = String(body.capture_organization_id || "").toLowerCase() === String(scope.organizationId || "").toLowerCase()
+          && String(body.capture_user_id || "").toLowerCase() === String(scope.userId || "").toLowerCase();
+        if (!matches) entries.push(summary(item, "account", "scope_metadata_mismatch", index));
+      });
+    }
+    read(storage, STORAGE_KEY).forEach(function (item, index) {
+      entries.push(summary(item, "legacy", "legacy_entry_requires_review", index));
+    });
+    return { entries: entries, storageFailed: false };
+  }
+
+  function discard(id, options) {
+    var identifier = String(id || "");
+    var storage = storageOf(options);
+    if (!storage) return { discarded: false, reason: "no_storage" };
+    var source = options && options.source;
+    var key = source === "legacy" ? STORAGE_KEY : scopeKey(options && options.scope);
+    if (!key || !["legacy", "account"].includes(source)) return { discarded: false, reason: "scope_required" };
+    var current = read(storage, key);
+    var indexMatch = identifier.match(new RegExp("^" + source + ":([0-9]+)$"));
+    var remaining;
+    if (indexMatch) {
+      var index = Number(indexMatch[1]);
+      if (!Number.isSafeInteger(index) || !current[index]) return { discarded: false, reason: "not_found" };
+      remaining = current.filter(function (_item, itemIndex) { return itemIndex !== index; });
+    } else {
+      if (!UUID.test(identifier)) return { discarded: false, reason: "invalid_entry" };
+      remaining = current.filter(function (item) {
+        return !item || !item.body || item.body.client_event_id !== identifier;
+      });
+    }
+    if (remaining.length === current.length) return { discarded: false, reason: "not_found" };
+    if (!write(storage, remaining, key)) return { discarded: false, reason: "no_storage" };
+    return { discarded: true, source, pending: remaining.length };
   }
 
   // HTTP success alone is not a receipt: redirects can lead to login HTML,
@@ -133,44 +209,47 @@
   // This serializes one JavaScript context, not separate tabs.
   function flush(options) {
     var storage = storageOf(options);
+    var key = keyFor(options);
     var send = (options && options.fetch) || root.fetch;
     var now = options && options.now !== undefined ? options.now : Date.now();
     var result = { sent: 0, duplicates: 0, refused: 0, expired: 0, waiting: 0, authenticationRequired: false, storageFailed: false };
     if (!storage || typeof send !== "function") return Promise.resolve(result);
-    if (activeFlushes.has(storage)) return activeFlushes.get(storage);
+    var runs = activeFlushes.get(storage);
+    if (!runs) { runs = new Map(); activeFlushes.set(storage, runs); }
+    if (runs.has(key)) return runs.get(key);
 
-    var items = read(storage);
+    var items = read(storage, key);
     var fresh = items.filter(function (item) {
       var at = Date.parse(item && item.body && item.body.captured_at);
       var ok = Number.isFinite(at) && now - at < MAX_AGE_MS;
       if (!ok) result.expired += 1;
       return ok;
     });
-    if (fresh.length !== items.length && !write(storage, fresh)) {
+    if (fresh.length !== items.length && !write(storage, fresh, key)) {
       result.storageFailed = true;
       result.waiting = items.length;
       return Promise.resolve(result);
     }
 
     function next(queue) {
-      if (!queue.length) { result.waiting = read(storage).length; return Promise.resolve(result); }
+      if (!queue.length) { result.waiting = read(storage, key).length; return Promise.resolve(result); }
       var item = queue[0];
       var scope = options && options.scope;
       // Legacy entries with an employee id can be retried only from that
       // employee's page. Newly captured entries also bind user and workspace.
-      if (scope && (item.body.employee_id !== scope.employeeId
-          || (item.body.capture_user_id && item.body.capture_user_id !== scope.userId)
-          || (item.body.capture_organization_id && item.body.capture_organization_id !== scope.organizationId))) {
+      if (scope && ((item.body.employee_id && item.body.employee_id !== scope.employeeId)
+          || (item.body.capture_user_id && String(item.body.capture_user_id).toLowerCase() !== String(scope.userId).toLowerCase())
+          || (item.body.capture_organization_id && String(item.body.capture_organization_id).toLowerCase() !== String(scope.organizationId).toLowerCase()))) {
         result.authenticationRequired = true;
-        result.waiting = read(storage).length;
+        result.waiting = read(storage, key).length;
         return Promise.resolve(result);
       }
       if (Number.isFinite(item.retryAt) && item.retryAt > now) {
-        result.waiting = read(storage).length;
+        result.waiting = read(storage, key).length;
         return Promise.resolve(result);
       }
       var body = {};
-      for (var key in item.body) if (Object.prototype.hasOwnProperty.call(item.body, key)) body[key] = item.body[key];
+      for (var field in item.body) if (Object.prototype.hasOwnProperty.call(item.body, field)) body[field] = item.body[field];
       body.sent_later = true;
       return Promise.resolve().then(function () {
         if (item.endpoint !== "/api/location/events" || !/^[0-9a-f-]{36}$/i.test(body.client_event_id || "")) {
@@ -183,14 +262,14 @@
         });
       }).then(function (response) { return deliveryResult(response, now); }, function () { return { outcome: "wait" }; })
         .then(function (decision) {
-          var current = read(storage);
+          var current = read(storage, key);
           if (decision.outcome === "wait" || decision.outcome === "auth") {
             result.authenticationRequired = decision.outcome === "auth";
             if (decision.retryAt) {
               current.forEach(function (entry) {
                 if (entry && entry.body && entry.body.client_event_id === item.body.client_event_id) entry.retryAt = decision.retryAt;
               });
-              if (!write(storage, current)) result.storageFailed = true;
+              if (!write(storage, current, key)) result.storageFailed = true;
             }
             result.waiting = current.length;
             return result;
@@ -201,7 +280,7 @@
           var remaining = current.filter(function (entry) {
             return !entry || !entry.body || entry.body.client_event_id !== item.body.client_event_id;
           });
-          if (!write(storage, remaining)) {
+          if (!write(storage, remaining, key)) {
             result.storageFailed = true;
             result.waiting = current.length;
             return result;
@@ -210,14 +289,14 @@
         });
     }
     var running = next(fresh).catch(function () {
-      result.waiting = read(storage).length;
+      result.waiting = read(storage, key).length;
       return result;
-    }).then(function (finished) { activeFlushes.delete(storage); return finished; });
-    activeFlushes.set(storage, running);
+    }).then(function (finished) { runs.delete(key); return finished; });
+    runs.set(key, running);
     return running;
   }
 
-  var api = { STORAGE_KEY: STORAGE_KEY, MAX_ITEMS: MAX_ITEMS, MAX_AGE_MS: MAX_AGE_MS, deliveryResult: deliveryResult, prepare: prepare, keep: keep, pending: pending, flush: flush };
+  var api = { STORAGE_KEY: STORAGE_KEY, SCOPED_STORAGE_PREFIX: SCOPED_STORAGE_PREFIX, MAX_ITEMS: MAX_ITEMS, MAX_AGE_MS: MAX_AGE_MS, deliveryResult: deliveryResult, prepare: prepare, keep: keep, pending: pending, review: review, discard: discard, flush: flush };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.SonaraOfflineQueue = api;
 })(typeof window !== "undefined" ? window : globalThis);
