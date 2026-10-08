@@ -43,7 +43,9 @@ describe("required CI can attest merge-queue SHA without losing main evidence", 
     "node-runtime-compatibility.yml",
     "docker-image.yml",
     "engineering-intelligence-security.yml",
-    "dependency-scan.yml"
+    "dependency-scan.yml",
+    "sonara-validation.yml",
+    "open-source-security-scans.yml"
   ];
   for (const file of required) {
     it(file + " triggers in a merge queue and cancels only superseded PR runs", () => {
