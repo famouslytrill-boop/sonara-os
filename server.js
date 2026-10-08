@@ -815,6 +815,18 @@ const contactSubmitLimiter = createRateLimiter({
   scopes: ["ip", "subject"],
   subjectFrom: (req) => req.body?.email,
   getSupabaseServerConfig,
+  // In production a process-local fallback can reset on every new instance.
+  // Never send externally-triggered support mail without a durable global cap.
+  // Development and isolated tests retain the bounded in-memory counter.
+  requireDurable: () => isProductionEnvironment(),
+  renderUnavailable({ req, res }) {
+    if (!acceptsHtml(req)) return false;
+    return res.status(503).type("html").send(responsePage(
+      "Support temporarily unavailable",
+      "We cannot safely accept a support message right now. No request was stored or sent. Please try again shortly.",
+      [linkAction("/help", "Help center"), linkAction("/support", "Support")]
+    ));
+  },
   renderDenied({ req, res, retryAfterSeconds }) {
     if (!acceptsHtml(req)) return false;
     return res.status(429).type("html").send(responsePage(
