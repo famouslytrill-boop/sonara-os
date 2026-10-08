@@ -1,0 +1,174 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
+"use strict";
+
+// A successful GitHub workflow is not sufficient release evidence when one of
+// its security/database jobs was skipped, neutral, duplicated or not returned.
+// The production workflow calls this BEFORE installing dependencies, reading
+// protected provider credentials, running migrations, or deploying.
+const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const SHA = /^[a-f0-9]{40}$/i;
+const NODES = [22, 24, 26];
+const POSTGRES = [16, 17, 18];
+
+const REQUIRED_JOBS = Object.freeze({
+  "SONARA Industries CI": Object.freeze(["sonara-industries", "supabase-preview"]),
+  "Docker Image CI": Object.freeze(["build"]),
+  "Node Runtime Compatibility": Object.freeze([
+    "Node 24 blocking compatibility", "Node 26 blocking compatibility"
+  ]),
+  "Native migration replay": Object.freeze(
+    NODES.flatMap(node => POSTGRES.map(pg => "Node " + node + " / PostgreSQL " + pg + " replay"))
+  ),
+  "Engineering Intelligence and Security Evidence": Object.freeze([
+    "Architecture, SAST, tenant isolation, and release evidence"
+  ]),
+  "dependency-scan": Object.freeze([
+    "frontend-dependencies", "backend-dependencies", "agentkit"
+  ])
+});
+const OPTIONAL_SKIPPED = Object.freeze({
+  "Node Runtime Compatibility": Object.freeze([
+    "Node 27 forward compatibility (manual, non-blocking)"
+  ])
+});
+const REQUIRED_WORKFLOW_NAMES = Object.freeze(Object.keys(REQUIRED_JOBS));
+
+function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId } = {}) {
+  const failures = [];
+  if (!SHA.test(String(exactSha || ""))) failures.push("invalid_release_sha");
+  if (branch?.name !== "main" || branch?.protected !== true) {
+    failures.push("main_branch_not_protected");
+  }
+  if (branch?.commit?.sha !== exactSha) failures.push("release_sha_not_current_main");
+  if (!Array.isArray(workflowRuns)) failures.push("workflow_runs_missing");
+  if (!jobsByRunId || typeof jobsByRunId !== "object") failures.push("job_evidence_missing");
+  if (failures.length) return { ok: false, failures };
+
+  for (const name of REQUIRED_WORKFLOW_NAMES) {
+    const runs = workflowRuns
+      .filter(run => run?.name === name && run?.head_sha === exactSha && run?.event === "push")
+      .sort((a, b) => {
+        const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
+        return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
+      });
+    const run = runs[0];
+    if (!run || !Number.isSafeInteger(run.id) || run.id <= 0) {
+      failures.push(name + ":workflow_missing");
+      continue;
+    }
+    if (run.status !== "completed" || run.conclusion !== "success") {
+      failures.push(name + ":workflow_not_successful");
+      continue;
+    }
+    const batch = jobsByRunId[run.id];
+    if (!batch || !Array.isArray(batch.jobs) || !Number.isInteger(batch.total_count) ||
+        batch.total_count !== batch.jobs.length || batch.jobs.length === 0) {
+      failures.push(name + ":job_evidence_incomplete");
+      continue;
+    }
+    const counts = new Map();
+    for (const job of batch.jobs) {
+      if (!job || typeof job.name !== "string" || job.run_id !== run.id) {
+        failures.push(name + ":job_identity_mismatch");
+        continue;
+      }
+      counts.set(job.name, (counts.get(job.name) || 0) + 1);
+      if (job.status !== "completed" ||
+          (job.conclusion !== "success" && !(
+            job.conclusion === "skipped" && (OPTIONAL_SKIPPED[name] || []).includes(job.name)
+          ))) {
+        failures.push(name + ":job_not_successful:" + job.name);
+      }
+    }
+    for (const required of REQUIRED_JOBS[name]) {
+      if (counts.get(required) !== 1) failures.push(name + ":required_job_missing_or_duplicated:" + required);
+    }
+    for (const [jobName, count] of counts) {
+      if (count !== 1) failures.push(name + ":duplicate_job:" + jobName);
+    }
+  }
+  return { ok: failures.length === 0, failures };
+}
+
+async function verifyExactShaJobMatrix({
+  repo = process.env.GITHUB_REPOSITORY,
+  exactSha = process.env.GITHUB_SHA,
+  token = process.env.GITHUB_TOKEN,
+  get = globalThis.fetch
+} = {}) {
+  if (!REPO.test(String(repo || "")) || !SHA.test(String(exactSha || "")) ||
+      !token || typeof get !== "function") {
+    return { ok: false, failures: ["release_context_missing"] };
+  }
+  async function read(endpoint) {
+    const response = await get("https://api.github.com/repos/" + repo + endpoint, {
+      method: "GET",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: "Bearer " + token,
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response?.ok) throw new Error("github_api_not_readable");
+    return response.json();
+  }
+  try {
+    const branch = await read("/branches/main");
+    if (branch?.protected !== true || branch?.commit?.sha !== exactSha) {
+      return assessExactShaJobMatrix({ exactSha, branch, workflowRuns: [], jobsByRunId: {} });
+    }
+    const listing = await read("/actions/runs?head_sha=" + exactSha + "&event=push&per_page=100");
+    if (!Array.isArray(listing.workflow_runs) ||
+        !Number.isInteger(listing.total_count) ||
+        listing.total_count > listing.workflow_runs.length) {
+      return { ok: false, failures: ["workflow_evidence_incomplete"] };
+    }
+    const selected = [];
+    for (const name of REQUIRED_WORKFLOW_NAMES) {
+      const runs = listing.workflow_runs
+        .filter(run => run?.name === name && run?.head_sha === exactSha && run?.event === "push")
+        .sort((a, b) => {
+          const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
+          return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
+        });
+      if (runs[0]) selected.push(runs[0]);
+    }
+    // Fetch only selected runs, not unrelated workflow jobs. A truncated
+    // response or non-2xx cannot be reinterpreted as "no failed jobs".
+    const jobsByRunId = {};
+    for (const run of selected) {
+      if (!Number.isSafeInteger(run.id) || run.id <= 0) continue;
+      jobsByRunId[run.id] = await read("/actions/runs/" + run.id + "/jobs?per_page=100&filter=latest");
+    }
+    return assessExactShaJobMatrix({
+      exactSha, branch, workflowRuns: listing.workflow_runs, jobsByRunId
+    });
+  } catch {
+    return { ok: false, failures: ["github_job_evidence_unavailable"] };
+  }
+}
+
+if (require.main === module) {
+  verifyExactShaJobMatrix().then(result => {
+    if (!result.ok) {
+      console.error("Production release blocked by exact-SHA job attestation: " +
+        result.failures.join("; "));
+      process.exitCode = 1;
+    } else {
+      console.log("All mandatory jobs executed successfully at current protected main SHA.");
+    }
+  }).catch(() => {
+    console.error("Production release blocked: exact-SHA job attestation error.");
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  REQUIRED_JOBS,
+  OPTIONAL_SKIPPED,
+  REQUIRED_WORKFLOW_NAMES,
+  assessExactShaJobMatrix,
+  verifyExactShaJobMatrix
+};
