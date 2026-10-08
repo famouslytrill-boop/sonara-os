@@ -10,6 +10,7 @@ const migration = fs.readFileSync(path.join(
   "supabase/migrations/20260726232000_deep_database_reconciliation.sql"
 ), "utf8");
 const verifier = fs.readFileSync(path.join(root, "scripts/verify-production-supabase.mjs"), "utf8");
+const projectIdentityVerifier = fs.readFileSync(path.join(root, "scripts/verify-production-project-identity.mjs"), "utf8");
 const productionWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy.yml"), "utf8");
 const dryRunWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy-dry-run.yml"), "utf8");
 const ciWorkflow = fs.readFileSync(path.join(root, ".github/workflows/sonara-industries-ci.yml"), "utf8");
@@ -50,6 +51,21 @@ describe("Supabase deep database reconciliation", () => {
     assert.match(verifier, /fs\.appendFileSync\(diagnosticLogPath/);
     assert.match(verifier, /FAILURE: \$\{failure\}/);
     assert.doesNotMatch(verifier, /appendFileSync\([^\n]*(?:serviceRoleKey|SUPABASE_SERVICE_ROLE_KEY)/);
+  });
+
+  it("proves the hosted Data API does not expose the private authorization schema before migration", () => {
+    assert.match(projectIdentityVerifier, /\/postgrest/);
+    assert.match(projectIdentityVerifier, /db_schema/);
+    assert.match(projectIdentityVerifier, /exposedSchemas\.includes\("private"\)/);
+    assert.match(projectIdentityVerifier, /refusing to migrate while exposed schemas are unverified/);
+    assert.match(projectIdentityVerifier, /private is not exposed/);
+
+    const identityPosition = productionWorkflow.indexOf("Verify production project identity");
+    const migrationPreviewPosition = productionWorkflow.indexOf("Link and preview production database migrations");
+    const migrationApplyPosition = productionWorkflow.indexOf("Apply production database migrations");
+    assert.ok(identityPosition >= 0);
+    assert.ok(migrationPreviewPosition > identityPosition);
+    assert.ok(migrationApplyPosition > identityPosition);
   });
 
   it("previews linked migrations in pull-request CI", () => {
