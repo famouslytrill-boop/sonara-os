@@ -81,7 +81,8 @@ describe("reservation resources and waitlist destinations", () => {
       await handlers[0](req, res, () => handlers[1](req, res));
       return res;
     }
-    return { fake, call, guardCount: () => guards, pageHandlerSource: (route) =>\n      registered.get("get " + route)?.at(-1)?.toString() || "" };
+    return { fake, call, guardCount: () => guards, pageHandlerSource: (route) =>
+      registered.get("get " + route)?.at(-1)?.toString() || "" };
   }
   function mutations(fake) { return fake.queries.filter((q) => ["POST", "PATCH"].includes(q.method)); }
 
