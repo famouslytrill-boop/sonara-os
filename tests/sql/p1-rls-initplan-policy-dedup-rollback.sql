@@ -40,8 +40,22 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
+-- A fresh canonical replay does not define either historical subscription
+-- policy: the active preview catalog inherited both from earlier deployments.
+-- Record the baseline before simulating the pair. A single policy or any
+-- changed predicate must fail; never silently hide a production difference.
+CREATE TEMP TABLE subscription_pair_baseline (named_count integer NOT NULL)
+  ON COMMIT DROP;
+INSERT INTO subscription_pair_baseline(named_count)
+SELECT count(*) FROM pg_policies
+WHERE schemaname='public' AND tablename='subscriptions'
+  AND policyname IN ('Users can view own subscriptions',
+                     'Users can view their own subscription');
+
 DO $drift$
 DECLARE bad int;
+        named_count integer;
+        matching_count integer;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -59,16 +73,29 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+ -- Source migrations do not create this inherited pair. Fresh-replay absence
+ -- is expected; a partial pair or a different policy definition is not.
+ SELECT named_count INTO named_count FROM subscription_pair_baseline;
+ IF named_count NOT IN (0, 2) THEN
+   RAISE EXCEPTION 'subscriptions policy pair is partial (%); abort', named_count;
+ END IF;
+ IF named_count = 0 THEN
+   -- Transaction-scoped positive test of the intended identical policy
+   -- semantics; never persisted. No existing policy is replaced.
+   CREATE POLICY "Users can view own subscriptions" ON public.subscriptions
+     FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
+   CREATE POLICY "Users can view their own subscription" ON public.subscriptions
+     FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
+ END IF;
+ SELECT count(*) INTO matching_count FROM pg_policies
+ WHERE schemaname='public' AND tablename='subscriptions'
+   AND policyname IN ('Users can view own subscriptions',
+                      'Users can view their own subscription')
+   AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
+   AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+   AND with_check IS NULL;
+ IF matching_count <> 2 THEN
+   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted (% of 2); abort', matching_count;
  END IF;
 END
 $drift$;
@@ -175,5 +202,7 @@ BEGIN
  THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
 END
 $postflight$;
+-- Exercise the dedup only inside the transaction. On a fresh replay both
+-- policies above were created just for this test and all changes roll back.
 SELECT 'p1_rls_hygiene_staging_passed';
 ROLLBACK;
