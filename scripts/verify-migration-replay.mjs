@@ -284,7 +284,24 @@ function main() {
     }
 
     let statements = 0;
+    let p1LegacyProbeRuns = 0;
     for (const name of files) {
+      // The legacy P1 optimization fixture guards the original 25 policy
+      // definitions. The October 8 forward migration intentionally replaced
+      // those definitions, so run the rollback-only experiment immediately
+      // BEFORE that migration rather than misreading successful hardening as
+      // unexpected schema drift. The ROLLBACK leaves the real replay unchanged.
+      if (name === "20261008100000_tighten_service_role_rls_policies.sql") {
+        const prior = psql(fs.readFileSync(
+          path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"
+        ));
+        if (prior.status !== 0 ||
+            !String(prior.stdout || "").includes("p1_rls_hygiene_staging_passed")) {
+          stop("historical P1 rollback experiment failed before service-role hardening:\n" +
+            (prior.stderr || prior.stdout || "missing expected P1 marker"));
+        }
+        p1LegacyProbeRuns += 1;
+      }
       const applied = psql(null, { file: path.join(migrationsDir, name) });
       if (applied.status !== 0) {
         const detail = (applied.stderr || applied.stdout || "").trim().split("\n").slice(0, 12).join("\n");
@@ -298,6 +315,9 @@ function main() {
         process.exit(1);
       }
       statements += 1;
+    }
+    if (p1LegacyProbeRuns !== 1) {
+      stop("historical P1 rollback experiment did not run exactly once before the hardening migration");
     }
 
     // Run SQL against the replayed database and require every expected marker
@@ -326,12 +346,12 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
-    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
-      fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
-      ["p1_rls_hygiene_staging_passed"]);
+    // The historical P1 experiment ran before migration 20261008100000.
+    // Now prove that the migrated schema has the intended hardened roles
+    // and predicates. Both probes have their own BEGIN/ROLLBACK.
+    behaves(psql, "P1 service-role hardening post-migration proof",
+      fs.readFileSync(path.join(root, "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8"),
+      ["p1_service_role_postmigration_passed"]);
 
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
