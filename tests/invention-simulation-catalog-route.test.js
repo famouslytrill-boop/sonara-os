@@ -25,6 +25,24 @@ describe("research simulation catalog at the existing invention-systems route", 
     return { routes, guard, response };
   }
 
+  it("fails closed when customer authorization middleware is missing", () => {
+    const routes = new Map();
+    register({ get(path, ...handlers) { routes.set(path, handlers); } }, {});
+    assert.equal(routes.size, 2);
+    for (const handlers of routes.values()) {
+      let advanced = false;
+      const res = {
+        statusCode: null, payload: null,
+        status(value) { this.statusCode = value; return this; },
+        json(value) { this.payload = value; return this; }
+      };
+      handlers[0]({}, res, () => { advanced = true; });
+      assert.equal(advanced, false);
+      assert.equal(res.statusCode, 503);
+      assert.deepEqual(res.payload, { ok: false, code: "customer_guard_unavailable" });
+    }
+  });
+
   it("retains the existing authenticated invention catalog path", () => {
     const f = fixture();
     assert.ok(f.routes.has("/api/invention-systems/catalog"));
