@@ -417,6 +417,12 @@ function main() {
       from sonara_private.autonomic_retry_jobs
       where organization_id = ${retryRaceQuote(retryRaceOrg)}::uuid and state = \u0027started\u0027;
     `, ["race_retry_started_1"]);
+    // Operator gates are off by default. Native PostgreSQL must prove that
+    // role denial, global pause, fencing, dual approval and expiry work.
+    behaves(psql, "autonomic operator gate default-deny and fenced tenant proof",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-operator-gate-role-matrix.sql"), "utf8"),
+      ["sonara_autonomic_operator_gate_native_passed"]);
+
     // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
     // remove one rigorously identical subscriptions policy in a single
     // rolled-back transaction. No production DDL is performed by replay.
