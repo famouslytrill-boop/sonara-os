@@ -194,6 +194,62 @@ describe("event consumer activation readiness", () => {
     assert.equal(logs[0].outcome, "ok");
   });
 
+  it("never settles ambiguous handler responses as delivered", async () => {
+    for (const returned of [undefined, null, false, 1, "ok", [], {}, { ok: 1 }, { ok: "true" }]) {
+      const settlements = [];
+      const logs = [];
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: row() }),
+          settle: async (input) => {
+            settlements.push(input);
+            return { ok: true, row: { ...row(), state: input.outcome } };
+          }
+        },
+        handlers: { [CANARY_KIND]: async () => returned },
+        emitEvent: (event) => logs.push(event),
+        now: () => new Date("2026-09-17T20:00:02.000Z")
+      });
+
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG, consumer: "canary",
+        kinds: [CANARY_KIND], producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.status, "dead_lettered", String(returned));
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "handler_result_invalid");
+      assert.equal(settlements.length, 1);
+      assert.equal(settlements[0].outcome, "dead_lettered");
+      assert.equal(settlements[0].errorCode, "handler_result_invalid");
+      assert.equal(settlements[0].nextAvailableAt, null);
+      assert.equal(logs[0]?.reason, "handler_result_invalid");
+    }
+  });
+
+  it("preserves explicit handler success and retryable rejection contracts", async () => {
+    for (const output of [{ ok: true }, { ok: false, code: "upstream_timeout", retryable: true }]) {
+      const settlements = [];
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: row() }),
+          settle: async (input) => {
+            settlements.push(input);
+            return { ok: true, row: { ...row(), state: input.outcome } };
+          }
+        },
+        handlers: { [CANARY_KIND]: async () => output },
+        emitEvent: () => undefined,
+        now: () => new Date("2026-09-17T20:00:02.000Z")
+      });
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG, consumer: "canary",
+        kinds: [CANARY_KIND], producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.status, output.ok ? "delivered" : "retry");
+      assert.equal(settlements[0].outcome, output.ok ? "delivered" : "retry");
+    }
+  });
+
   it("uses a different claim owner for concurrent invocations of the same logical consumer", async () => {
     const owners = [];
     let claimIndex = 0;
