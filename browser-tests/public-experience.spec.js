@@ -536,6 +536,31 @@ test.describe("device media and bounded image processing", () => {
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
     expect(await page.evaluate(() => window.captureCalls)).toBe(0);
   });
+  test("a pending camera playback request fails closed and releases its device track", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      window.cameraPlayCalls = 0;
+      const original = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function (...args) {
+        if (this.tagName === "VIDEO") {
+          window.cameraPlayCalls++;
+          // Emulate a browser permission/playback promise that never settles.
+          // Merely exposing captureStream must not keep the device active.
+          return new Promise(() => {});
+        }
+        return original.apply(this, args);
+      };
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText(
+      "Camera capture is unavailable in this browser.", { timeout: 9000 }
+    );
+    await verifyCameraUnavailable(page);
+    if (await page.evaluate(() => window.cameraPlayCalls > 0)) {
+      expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    }
+    await expect(page.getByRole("button", { name: "Start camera", exact: true })).toBeEnabled();
+  });
   test("a camera photo enters the image editor without selecting or uploading a file", async ({ page }) => {
     const errors = []; page.on("pageerror", (error) => errors.push(error.message));
     await mountMedia(page);
@@ -633,10 +658,24 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden(); await expect(page.locator("[data-capture-download]")).toBeHidden();
   });
   test("the camera timeout is enforced when recording is supported; unsupported capture is denied", async ({ page }) => {
-    await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await mountMedia(page);
+    // Verify that the actual 60-second timeout is scheduled, then trigger its
+    // registered callback. Installing a fake clock before video.play() can
+    // freeze a legitimate preview startup on WebKit and misdiagnose support.
+    await page.evaluate(() => {
+      const schedule = window.setTimeout.bind(window);
+      window.setTimeout = (callback, delay, ...args) => {
+        if (delay === 60000) window.captureLeaseExpiry = callback;
+        return schedule(callback, delay, ...args);
+      };
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
     if (!(await cameraReadyOrUnavailable(page))) { await verifyCameraUnavailable(page); return; }
-    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
-    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => typeof window.captureLeaseExpiry)).toBe("function");
+    await page.evaluate(() => window.captureLeaseExpiry());
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
 });
 
