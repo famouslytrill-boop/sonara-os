@@ -16,7 +16,7 @@ const BASE = Object.freeze({
 });
 const plan = (overrides = {}) => planRemediation({ ...BASE, ...overrides }, { nowMs: NOW });
 const GOOD_CLAIM = Object.freeze({ claimed: true, claimToken: "11111111-1111-4111-8111-111111111111", fencingToken: 1 });
-const run = (overrides, adapters = {}) => executeRemediation({ ...BASE, ...overrides }, { nowMs: NOW, ...adapters });
+const run = (overrides, adapters = {}) => executeRemediation({ ...BASE, signal: "provider.optional_unavailable", optionalDependency: true, ...overrides }, { nowMs: NOW, ...adapters });
 
 describe("SONARA bounded self-healing supervisor", () => {
   it("classifies known transient operations deterministically without changing anything", () => {
@@ -104,7 +104,7 @@ describe("SONARA bounded self-healing supervisor", () => {
         return GOOD_CLAIM;
       } },
       audit: async ({ state }) => { order.push("audit:" + state); return true; },
-      handlers: { retry_idempotent: async () => { order.push("repair"); } },
+      handlers: { open_optional_circuit: async () => { order.push("repair"); } },
       verify: async () => { order.push("verify"); return { healthy: true, scopeVerified: true }; }
     };
     assert.equal((await run({}, adapters)).status, "recovered");
@@ -118,7 +118,7 @@ describe("SONARA bounded self-healing supervisor", () => {
     const result = await run({}, {
       enabled: true, ledger: { claim: async () => GOOD_CLAIM },
       audit: async () => false,
-      handlers: { retry_idempotent: async () => { executions++; } },
+      handlers: { open_optional_circuit: async () => { executions++; } },
       verify: async () => ({ healthy: true, scopeVerified: true })
     });
     assert.equal(result.reason, "pre_action_audit_failed");
@@ -129,11 +129,11 @@ describe("SONARA bounded self-healing supervisor", () => {
     const base = {
       enabled: true, ledger: { claim: async () => GOOD_CLAIM },
       audit: async () => true,
-      handlers: { retry_idempotent: async () => undefined }
+      handlers: { open_optional_circuit: async () => undefined }
     };
     assert.equal((await run({}, { ...base, verify: async () => ({ healthy: true }) })).reason, "recovery_not_verified");
     assert.equal((await run({}, { ...base, verify: async () => { throw Error("secret"); } })).reason, "execution_or_verification_failed");
-    assert.equal((await run({}, { ...base, handlers: { retry_idempotent: async () => { throw Error("token=private"); } }, verify: async () => ({ healthy: true, scopeVerified: true }) })).reason, "execution_or_verification_failed");
+    assert.equal((await run({}, { ...base, handlers: { open_optional_circuit: async () => { throw Error("token=private"); } }, verify: async () => ({ healthy: true, scopeVerified: true }) })).reason, "execution_or_verification_failed");
   });
 });
 
