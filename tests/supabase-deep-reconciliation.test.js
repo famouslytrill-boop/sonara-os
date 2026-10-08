@@ -90,17 +90,25 @@ describe("Supabase deep database reconciliation", () => {
     assert.match(securityAdvisorVerifier, /\/advisors\/security/);
     assert.match(securityAdvisorVerifier, /level === "WARN"/);
     assert.match(securityAdvisorVerifier, /level === "ERROR"/);
-    assert.match(securityAdvisorVerifier, /auth_leaked_password_protection/);
-    assert.match(securityAdvisorVerifier, /SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION/);
+    assert.match(securityAdvisorVerifier, /--pre-migration/);
+    assert.match(securityAdvisorVerifier, /extension_in_public/);
+    assert.match(securityAdvisorVerifier, /authenticated_security_definer_function_executable/);
     assert.match(securityAdvisorVerifier, /level === "INFO"/);
     assert.match(securityAdvisorVerifier, /an unread security gate is not a passing gate/);
 
+    const identity = productionWorkflow.indexOf("Verify production project identity");
+    const preAdvisor = productionWorkflow.indexOf("Block non-migration security warnings before production DDL");
+    const migrationApply = productionWorkflow.indexOf("Apply production database migrations");
     const databaseVerify = productionWorkflow.indexOf("Verify complete production Supabase state");
     const advisorVerify = productionWorkflow.indexOf("Require clean production Supabase security advisor");
     const deploy = productionWorkflow.indexOf("Deploy validated source to Vercel production");
-    assert.ok(databaseVerify >= 0);
+    assert.ok(identity >= 0);
+    assert.ok(preAdvisor > identity);
+    assert.ok(migrationApply > preAdvisor);
+    assert.ok(databaseVerify > migrationApply);
     assert.ok(advisorVerify > databaseVerify);
     assert.ok(deploy > advisorVerify);
+    assert.match(productionWorkflow, /scripts\/verify-production-security-advisors\.mjs --pre-migration/);
     assert.match(
       productionWorkflow,
       /node --env-file=\.env\.production\.catalog-verification scripts\/verify-production-security-advisors\.mjs/
