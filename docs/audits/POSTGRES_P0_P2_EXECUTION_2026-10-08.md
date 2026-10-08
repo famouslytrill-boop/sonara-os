@@ -51,26 +51,43 @@ not verified production.** No production project was altered in this audit.
   161 instead of 162 migration files; this PR refreshes the derived number.
   Re-run generator `--check` and full exact-head CI.
 
-## 2. P1 — 25 remaining RLS initplan warnings
+## 2. P1 — RLS InitPlan/service-role hardening
 
-Read the Supabase advisor and `pg_policies` together; 25 actual affected
-policies on 25 tables, divided into:
+The advisor snapshot originally identified 25 scalar-auth policy warnings:
+21 service-role predicates plus four `auth.uid()` ownership predicates.
+Repository state has now advanced beyond that proposal.
 
-- **21** `auth.role()` predicates, mostly service-role only. These may be
-  expensive when evaluated row-by-row, but semantics are important:
-  `(select auth.role())` should be tested as a scalar InitPlan, **not**
-  changed into a blanket `USING(true)` grant.
-- **4** `auth.uid()` ownership predicates in
-  `business_employee_profiles`, `sonara_platforms`,
-  `user_notifications`, and `user_preferences`. Keep comparison
-  against the row's `user_id`.
-- `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` is a **guarded
-  staging-only proposal**, not an applied migration. It verifies exact
-  old predicate text, policy role scope and command, tests 25 scalar
-  rewrites inside a disposable transaction and rolls back.
-- Before production: review output of exact-head PG 17 replay; verify
-  A/B write/deny and role grants on populated test tables; then create
-  a forward migration with the Supabase CLI. Do not edit historic migration.
+- `20261008100000_tighten_service_role_rls_policies.sql` is present on
+  current `main` through the 8 October integration merge. It is a forward
+  migration, not a staging-only SQL experiment.
+- The migration deliberately handles the full class of **pure** service-role
+  predicates it finds at apply time, not only the original 21 advisor rows:
+  a policy whose complete authorization condition is
+  `auth.role() = 'service_role'` is narrowed to `TO service_role` and the
+  redundant row predicate becomes constant `true`. Mixed member/admin OR
+  service-role policies are excluded.
+- The four ownership policies in `business_employee_profiles`,
+  `sonara_platforms`, `user_notifications`, and `user_preferences`
+  remain `TO authenticated`, keep comparison against `user_id`, and wrap
+  `auth.uid()` in `SELECT` so PostgreSQL can use an InitPlan.
+- `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` now verifies the
+  **post-migration** invariants during native replay. It no longer expects the
+  old predicates or simulates a change that already belongs to the migration
+  history. The only DDL it still stages is removal of one exactly duplicated
+  `subscriptions` SELECT policy, and that operation remains inside a
+  transaction that ends in `ROLLBACK`.
+- The active Supabase project was still applied only through
+  `20261008090000_consolidate_postgres_index_rls_hygiene` at the latest
+  read. Therefore the forward hardening must **not** be applied until current
+  `main` is green at its exact SHA. After apply, rerun security/performance
+  advisors and tenant allow/deny checks before accepting the change.
+
+This follows Supabase's current RLS guidance: scope policies with explicit
+roles and wrap fixed JWT/helper calls in `SELECT` when the result is not
+row-dependent. Narrowing a pure service-role policy to `TO service_role`
+preserves the intended caller while avoiding needless evaluation by browser
+roles; it is not equivalent to changing a mixed authorization policy to
+`USING(true)`.
 
 ## 3. P1 — 1,292 overlapping permissive-policy warnings
 
