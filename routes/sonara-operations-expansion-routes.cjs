@@ -263,7 +263,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!scope.ok) return res.status(scope.status).json(scope);
     const resources = await readResources(scope);
     if (!resources.ok) return res.status(503).json({ ok: false, code: resources.code });
-    return res.status(200).json({ ok: true, resources: resources.rows });
+    return res.status(200).json({ ok: true, resources: resources.rows, partial: resources.partial });
   });
 
   app.post("/api/business/reservation-resources", requireBusinessManager, async (req, res) => {
@@ -273,8 +273,10 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!name) return sendReservation(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
     const requestedType = clean(req.body?.resource_type || req.body?.resourceType || req.body?.asset_type, 40) || "equipment";
     const assetType = BUSINESS_ASSET_TYPES.has(requestedType) ? requestedType : "other";
-    const capacity = Number(req.body?.capacity ?? 1);
-    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 1000) {
+    const rawCapacity = req.body?.capacity ?? 1;
+    const capacity = typeof rawCapacity === "number" || typeof rawCapacity === "string"
+      ? Number(rawCapacity) : NaN;
+    if (String(rawCapacity).trim() === "" || !Number.isSafeInteger(capacity) || capacity < 1 || capacity > 1000) {
       return sendReservation(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
     }
     const locationId = req.body?.location_id || req.body?.locationId || null;
@@ -284,7 +286,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
         "id", `&id=eq.${enc(locationId)}`, 1);
       if (!owned.ok) return sendReservation(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
       if (!owned.rows.some((row) => row.id === locationId)) {
-        return sendReservation(req, res, 403, { ok: false, code: "location_not_yours" }, "resource");
+        return sendReservation(req, res, 404, { ok: false, code: "location_not_yours" }, "resource");
       }
     }
     const created = await request(scope.config, TABLES.assets, "", {
@@ -315,7 +317,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!scope.ok) return res.status(scope.status).json(scope);
     const waitlist = await readWaitlist(scope);
     if (!waitlist.ok) return res.status(503).json({ ok: false, code: waitlist.code });
-    return res.status(200).json({ ok: true, waitlist: waitlist.rows });
+    return res.status(200).json({ ok: true, waitlist: waitlist.rows, partial: waitlist.partial });
   });
 
   app.post("/api/business/waitlist", requireBusinessManager, async (req, res) => {
