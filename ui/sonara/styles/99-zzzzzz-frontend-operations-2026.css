@@ -828,7 +828,8 @@ body.sonara-frontops nav a {
     outline: 3px solid var(--nx-focus);
     outline-offset: -3px;
   }
-  .sonara-workspace-dock a[aria-current="page"] {
+  .sonara-workspace-dock a[aria-current="page"],
+  .sonara-workspace-dock a[aria-current="location"] {
     background: var(--nx-surface-2);
     color: var(--nx-ink);
   }
