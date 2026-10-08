@@ -183,3 +183,30 @@ Research context:
 - https://developer.chrome.com/docs/workbox/service-worker-lifecycle
 - https://www.w3.org/WAI/WCAG22/Techniques/css/C43
 
+## Phase 6: atomic anonymous precache and safe worker takeover
+
+**Root cause discovered in repository:** The server-wide HTML GET middleware applies Cache-Control: no-store to /offline. Phase 5's stricter response check therefore would have rejected the essential offline fallback during installation. Separately, the worker previously called skipWaiting() automatically during installation, potentially switching an older page to a newer service worker. The public update notice only recommended refreshing.
+
+**Correction committed in this draft:**
+1. /offline is now the sole explicitly allowed cacheable HTML exception. server.js sets Cache-Control: public, max-age=60 for this anonymous, generic fallback only. All other rendered HTML retains the no-store default. The PWA HTTP-response regression test checks both behaviors.
+2. Essential offline resources are fetched with Request credentials: omit, cache: no-store, and redirect: error. Private, no-store, set-cookie, opaque, redirected and cross-origin responses are rejected. Scripts and stylesheets returning HTML are not cached.
+3. Offline fallback, application CSS, design-system CSS and the main browser script form the essential shell. A failure rejects the install and deletes the incomplete new-version cache. Optional fonts and icons are best-effort subject to the same response policy.
+4. The worker no longer calls skipWaiting() automatically on install. The existing explicit message handler remains. The public update message accurately asks people to close and reopen all SONARA tabs when convenient.
+5. Runtime stale-while-revalidate also refetches static assets without credentials, rejects private or HTML responses, and uses event.waitUntil for the refresh when serving a cached asset.
+6. The service-worker boundary suite now has 12 regression cases, including anonymous precache, install rollback, wrong-MIME fallback, safe takeover, anonymous background refresh and network failure. The cross-device suite has 13 separate cases.
+
+**Verified by isolated execution:** All 12 service-worker and 13 cross-device tests passed in isolated execution harnesses. Source syntax, CSS canonical/served alignment, the HTML cache-policy source, and cache version alignment were inspected. These do NOT replace exact-head Node 24 CI, browser execution or deployed device verification.
+
+**Remaining acceptance and rollback:**
+- Run real Mocha and the entire exact-head CI matrix; run Playwright on Chromium, Firefox and WebKit.
+- Confirm /offline is publicly cacheable while /pricing and customer HTML remain no-store.
+- Install the previous PWA version in an isolated browser profile, update to this exact SHA, and verify tabs do not switch worker versions unexpectedly.
+- Verify the offline shell works without internet and public CacheStorage never includes tenant, payment, media or account records.
+- Require deployment verification and separate owner release approval.
+
+References:
+- https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
+- https://web.dev/learn/pwa/update
+- https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching
+- https://web.dev/articles/http-cache-security
+
