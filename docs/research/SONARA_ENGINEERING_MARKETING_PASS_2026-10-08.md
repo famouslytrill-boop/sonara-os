@@ -10,7 +10,7 @@ Prepared for SONARA Industries, SONARA One, Business Builder, Creator Studio and
 
 SONARA already has substantial application architecture. The highest-value advancement is to make its existing workflows authoritative, recoverable, understandable and demonstrably useful to customers. More registered engines, tables or adapters will not establish that customers can reliably complete their work.
 
-This pass inspected the current source and hosted build evidence, refreshed primary-source research, reproduced defects, implemented two independent changes, and validated the commerce change locally. The Docker repair is published as draft PR [449](https://github.com/famouslytrill-boop/sonara-os/pull/449), with hosted image and migration checks passing. The commerce branch, `codex/commerce-amount-integrity-20261008`, fixes inconsistent currency displays, permissive amount coercion and database-range overflow. Its publication and final hosted results belong in the pull request record.
+This pass inspected the current source and hosted build evidence, refreshed primary-source research, reproduced defects, implemented two independent changes, and validated the commerce change locally. The Docker repair is published as draft PR [449](https://github.com/famouslytrill-boop/sonara-os/pull/449), with hosted image and migration checks passing. The commerce change is published as draft PR [450](https://github.com/famouslytrill-boop/sonara-os/pull/450) on `codex/commerce-amount-integrity-20261008`; it fixes inconsistent currency displays, permissive amount coercion and database-range overflow. Final hosted results belong in the pull request record.
 
 The existing temporary-offline direction is preserved. No production deployment, provider activation, campaign, refund, payout, schema migration or security-setting change was performed. A successful source change does not establish current production availability.
 
@@ -53,7 +53,7 @@ The previous company research of September 30 and screenshot intake of October 5
 | Order two units priced at 2,147,483,647 each | A total larger than PostgreSQL integer storage was accepted by the price calculation | Whole order is refused before order/line writes or inventory holds |
 | Reconcile MGA, ISK or UGX | ISO display defaults and charge compatibility rules could disagree | Charge denomination explicitly controls scaling and displayed precision |
 | Format a large aggregate amount | Floating-point division could lose a final minor unit | Decimal-string splitting preserves exact safe-integer values, including signed balances |
-| Render an unreadable amount in selected order/payment views | `Number(value) || 0` could show zero | Selected views preserve the value and show `Amount unavailable` when it is unreadable |
+| Render an unreadable amount in selected order/payment views | `Number(value) \|\| 0` could show zero | Selected views preserve the value and show `Amount unavailable` when it is unreadable |
 
 The new shared module is `lib/sonara-commerce-amounts.cjs`. Storefront, creator listing, checkout, payment and reconciliation consumers reuse it. USD/GBP/EUR symbols remain available; other currency displays retain a code. ISK/UGX compatibility and HUF/TWD charge-versus-payout distinctions follow Stripe's current documentation [S1]. Formatting is not FX conversion, country eligibility, provider minimum/maximum validation, or payout execution.
 
