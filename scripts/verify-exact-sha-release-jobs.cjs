@@ -50,6 +50,21 @@ const REQUIRED_STEPS = Object.freeze({
   })
 });
 const REQUIRED_WORKFLOW_NAMES = Object.freeze(Object.keys(REQUIRED_JOBS));
+// GitHub workflow display names are not unique security identities. Bind
+// release evidence to the reviewed source workflow file as well.
+const REQUIRED_WORKFLOW_FILES = Object.freeze({
+  "SONARA Industries CI": ".github/workflows/sonara-industries-ci.yml",
+  "Docker Image CI": ".github/workflows/docker-image.yml",
+  "Node Runtime Compatibility": ".github/workflows/node-runtime-compatibility.yml",
+  "Native migration replay": ".github/workflows/native-migration-replay.yml",
+  "Engineering Intelligence and Security Evidence": ".github/workflows/engineering-intelligence-security.yml",
+  "dependency-scan": ".github/workflows/dependency-scan.yml"
+});
+function expectedWorkflowSource(run, name) {
+  const file = REQUIRED_WORKFLOW_FILES[name];
+  return Boolean(file) && (run?.path === file || run?.path === file + "@main");
+}
+
 
 function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId } = {}) {
   const failures = [];
@@ -65,7 +80,8 @@ function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId }
   for (const name of REQUIRED_WORKFLOW_NAMES) {
     const runs = workflowRuns
       .filter(run => run?.name === name && run?.head_sha === exactSha &&
-        run?.head_branch === "main" && run?.event === "push")
+        run?.head_branch === "main" && run?.event === "push" &&
+        expectedWorkflowSource(run, name))
       .sort((a, b) => {
         const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
         return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
@@ -160,7 +176,8 @@ async function verifyExactShaJobMatrix({
     for (const name of REQUIRED_WORKFLOW_NAMES) {
       const runs = listing.workflow_runs
         .filter(run => run?.name === name && run?.head_sha === exactSha &&
-        run?.head_branch === "main" && run?.event === "push")
+        run?.head_branch === "main" && run?.event === "push" &&
+        expectedWorkflowSource(run, name))
         .sort((a, b) => {
           const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
           return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
@@ -202,6 +219,7 @@ module.exports = {
   OPTIONAL_SKIPPED,
   REQUIRED_STEPS,
   REQUIRED_WORKFLOW_NAMES,
+  REQUIRED_WORKFLOW_FILES,
   assessExactShaJobMatrix,
   verifyExactShaJobMatrix
 };
