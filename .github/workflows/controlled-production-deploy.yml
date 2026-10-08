@@ -158,6 +158,15 @@ jobs:
             sleep 30
           done
 
+      # An environment name is not a human review gate by itself. Verify
+      # required reviewers, self-review prohibition, branch scope and bypass
+      # protection through the read-only GitHub API before installing packages
+      # or running any production credential / migration / deployment step.
+      - name: Require approved production environment governance
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-production-environment-governance.cjs
+
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           run_install: false
