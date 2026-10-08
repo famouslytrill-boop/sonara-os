@@ -493,18 +493,6 @@ function wantsHtml(req) {
   return accept.includes("text/html") && !accept.startsWith("application/json");
 }
 
-function backFrom(req) {
-  const back = String(req.body?.back || "");
-  return /^\/[a-z0-9/-]*$/.test(back) && back.length <= 200 ? back : WAITLIST_PAGE;
-}
-
-function respond(req, res, status, body, doneKey) {
-  if (!wantsHtml(req)) return res.status(status).json(body);
-  const back = backFrom(req);
-  if (status < 300 && body?.ok !== false) return res.redirect(303, `${back}?done=${doneKey}`);
-  return res.redirect(303, `${back}?problem=${encodeURIComponent(String(body?.code || "database_request_failed"))}`);
-}
-
 function listOf(value) {
   if (Array.isArray(value)) return value;
   return value === undefined || value === null || value === "" ? [] : [value];
