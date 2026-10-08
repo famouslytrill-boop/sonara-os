@@ -255,6 +255,59 @@ describe("immutable release SHA requires complete job-level evidence", () => {
       assert.ok(deployment.includes(value), "release dependency or secret declaration missing: " + value);
   });
 
+  it("never provides provider credentials to the whole protected deployment job", () => {
+    const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
+      "controlled-production-deploy.yml"), "utf8");
+    const start = workflow.indexOf("\n  validate-migrate-deploy:\n");
+    assert.ok(start >= 0, "protected deployment job must exist");
+    const firstSteps = workflow.indexOf("\n    steps:\n", start);
+    assert.ok(firstSteps > start, "protected deployment steps must exist");
+    const header = workflow.slice(start, firstSteps);
+    assert.match(header, /\n    env:\n/, "public routing identifiers remain in job scope");
+    assert.doesNotMatch(header, /secrets\.[a-z_]+/i,
+      "a job-wide provider secret would leak into checkout, build, tests and dependency tools");
+  });
+
+  it("gives each production credential to exactly its required steps", () => {
+    const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
+      "controlled-production-deploy.yml"), "utf8");
+    const allow = {
+      VERCEL_TOKEN: ["Require protected production credentials",
+        "Pull production environment for configuration verification",
+        "Synchronize verified Stripe runtime secret to Vercel production",
+        "Deploy validated source to Vercel production"],
+      SUPABASE_ACCESS_TOKEN: ["Require protected production credentials",
+        "Verify production project identity",
+        "Link and preview production database migrations",
+        "Record pre-migration rollback checkpoint",
+        "Apply production database migrations"],
+      SUPABASE_PROJECT_ID: ["Require protected production credentials",
+        "Verify production project identity",
+        "Link and preview production database migrations",
+        "Record pre-migration rollback checkpoint",
+        "Apply production database migrations"],
+      SUPABASE_DB_PASSWORD: ["Require protected production credentials",
+        "Link and preview production database migrations",
+        "Record pre-migration rollback checkpoint",
+        "Apply production database migrations"]
+    };
+    const steps = workflow.split(/\n(?=      - name: )/)
+      .filter(block => block.startsWith("      - name: "));
+    for (const [credential, approved] of Object.entries(allow)) {
+      const seen = steps.filter(block => {
+        const stepEnv = block.match(/\n        env:\n((?:          [^\n]*\n)+)/);
+        return Boolean(stepEnv && stepEnv[1].includes(credential + ":"));
+      }).map(block => block.split("\n")[0].slice("      - name: ".length));
+      assert.deepEqual(seen.sort(), approved.slice().sort(),
+        credential + " may be used only by the reviewed steps, with no omissions");
+      for (const step of steps.filter(block => approved.some(name =>
+        block.startsWith("      - name: " + name + "\n")))) {
+        assert.ok(step.includes(credential + ": ${{ secrets." + credential + " }}"),
+          "Credential must come from GitHub secrets: " + credential);
+      }
+    }
+  });
+
   it("is ordered after the exact-SHA run gate but before environment and secrets", () => {
     const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
       "controlled-production-deploy.yml"), "utf8");
