@@ -40,7 +40,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-attestation-preflight:
+    # No production environment and no provider secrets: this entire job
+    # executes with read-only repository permissions before review/credentials.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.approve_production_release == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prove exact protected-main release evidence before granting credentials
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-exact-sha-release-jobs.cjs
+
   validate-migrate-deploy:
+    needs: release-attestation-preflight
     # Skipping is intentional; neither a merge nor an unchecked manual run
     # may touch provider credentials, production migrations, or deployment.
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.approve_production_release == true }}
