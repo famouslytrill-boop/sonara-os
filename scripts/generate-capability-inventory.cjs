@@ -3035,7 +3035,15 @@ function markdownFor(map) {
 function validateMap(map) {
   const errors = [];
   for (const [key, value] of Object.entries(map.validation)) {
-    if (Array.isArray(value) && value.length) errors.push(`${key}: ${value.length}`);
+    if (Array.isArray(value) && value.length) {
+      // This is diagnostic only; release validation still fails as before.
+      // The destination-review strings contain source paths and contract
+      // evidence, never customer data. Show the actual failed contracts so
+      // a CI run identifies the root cause instead of just reporting "2".
+      const details = key === "routeDestinationReviewsNotHeld"
+        ? "\\n  " + value.slice(0, 20).join("\\n  ") : "";
+      errors.push(`${key}: ${value.length}${details}`);
+    }
   }
   if (!map.routeOperations.length) errors.push("no live route registrations were discovered");
   if (map.routeOperations.some((route) => !route.source.file || !route.workspace)) errors.push("one or more routes lack source or workspace ownership");
