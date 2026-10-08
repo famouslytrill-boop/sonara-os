@@ -36,7 +36,7 @@
   3. A 503 from the first of multiple batches prevented the later batch, preserving not-attempted records.
   4. Definitive 422 single-recipient rejection remained a known failure.
   5. Provider keys were repeatable for the same operation and different for another approved attempt.
-- Added tests to *existing* `tests/a-campaign-sends-only-to-who-was-authorised.test.js` and `tests/a-remainder-send-refuses-what-it-cannot-know.test.js`, keeping the Mocha test file count stable. Mock-only success is not a full Node/Mocha, provider, or database staging test.
+- Added tests to *existing* `tests/a-campaign-sends-only-to-who-was-authorised.test.js` and `tests/a-remainder-send-refuses-what-it-cannot-know.test.js`, keeping the Mocha test file count stable. At the latest verified commit, **9 of 9 focused source-backed regression bodies passed in an isolated JavaScript harness**, and the pure remainder selector refused recorded provider uncertainty. This is not full Node/Mocha, CI, provider, or database staging verification.
 - All HTTP/provider actions in these tests are mocked. No live email sent or billed.
 
 ## Cross-suite application contract: review before applying each adapter
@@ -57,3 +57,10 @@ No universal autonomous retry rule can safely be applied to payments, emails, re
 3. Qualify a **durable provider reconciliation pathway**: event ID, tenant, send-attempt ID, request hash, verified provider message IDs, bounded retention, user-approved manual replay and auditable closure. The existing reason field is an interim safety fence, not a full ticketing workflow. Preserve unknown entries until verified.
 4. Test the receipt reader and the “send to remainder” owner UI end-to-end against staging PostgREST and isolated Resend mocks. Confirm no second email and no additional usage charge on an unknown response.
 5. Do not merge or deploy this candidate until exact-head gates succeed, tenant security and payment source checks pass, and the owner authorizes a controlled rollout. The production website remains offline as directed.
+
+## Additional review: response integrity and adapter exceptions
+
+- Validation was tightened again after the first implementation: an apparently complete batch response containing **repeated provider message IDs** cannot establish that distinct recipients were individually accepted. Such an answer is now `delivery_unconfirmed`, rather than a false success.
+- Both synchronous throws and rejected promises from the injected provider adapter are contained and classified as unknown completion, with no raw provider error or credential string in the response.
+- Existing production code for Business Builder and Creator checkout already uses a provider operation key and signed webhook decisions, but these code paths were not changed or proven by this Growth-specific fix. The intended common architecture is not equal to end-to-end integration or launch evidence.
+- Provider idempotency hash depends on the exact serialized email request and approved attempt; current unsubscribe tokens are deterministic over organization and recipient rather than a timestamp, a prerequisite for stable retry keys. Any future signed-email format adding per-send timestamps must have its idempotency contract retested.
