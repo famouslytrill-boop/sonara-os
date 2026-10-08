@@ -30,9 +30,21 @@
 
 The controlled production workflow originally declared Vercel and Supabase secrets at the same job level as its read-only release checks. This could request protected-environment approval and provision the credential-bearing job before those checks executed.
 
-The integration now defines `release-attestation-preflight` without an `environment` or provider secrets, using only the read-only GitHub token. The production job explicitly `needs: release-attestation-preflight` and retains its separate protected-environment review, exact-SHA checks and credentials. A failed preflight skips the dependent deployment job. GitHub documents both [job dependency behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs) and [environment-secret access after approval](https://docs.github.com/en/actions/concepts/workflows-and-actions/deployment-environments).
+The integration now defines `release-attestation-preflight` without an `environment` or provider secrets, using only the read-only GitHub token. The production job explicitly `needs: release-attestation-preflight` and retains its separate protected-environment review, exact-SHA checks, and step-scoped credentials. A failed preflight skips the dependent deployment job. GitHub documents both [job dependency behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs) and [environment-secret access after approval](https://docs.github.com/en/actions/concepts/workflows-and-actions/deployment-environments).
 
 Administrators must ensure the actual production credentials are stored as `production` **environment secrets**, not only as unprotected repository-wide secrets. No source-code branch can verify that settings change without authorized access.
+
+## Least-privilege production credential binding
+
+An additional review identified four secrets incorrectly bound to the entire deployment job: `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID` and `SUPABASE_DB_PASSWORD`. Before the repair, all dependency installers, third-party tooling, build, lint and test steps inherited those values.
+
+All four bindings now exist only on **eight named consuming/credential-preflight steps**, with exactly 18 step-variable bindings. The shared job environment carries only public deployment identifiers and URLs. The release attestation preflight is separately credential-free.
+
+The existing Mocha attestation test file contains two adversarial invariants: no provider secrets at deployment job scope and an exact allowlist of per-step credential bindings (no unapproved consumers and no missing required consumer). The agent-development sync verifier now selects `validate-migrate-deploy` explicitly, rather than silently inspecting the first job's environment after a new preflight is introduced.
+
+**Security limitation:** Steps in the same GitHub-hosted job share a runner and mutable workspace. A compromised dependency/build step could tamper with scripts, persist state, or potentially intercept a later credentialed step. Per-step `env` scoping is risk reduction, **not an isolation boundary**. A stronger follow-up is a separate unprivileged build/test runner and a credentialed deployment runner that consumes a verified immutable artifact; this requires its own acceptance and rollback plan, not an unreviewed refactor.
+
+Static review of the committed workflow passed and five injected regressions (job-secret leak, build-secret leak, missing migration credential, missing preflight, preflight-secret leak) were rejected by a deliberately limited contract-check harness. This is **not** hosted CI, true process isolation or live-provider validation. No production release is authorized.
 
 ## Required follow-through
 
