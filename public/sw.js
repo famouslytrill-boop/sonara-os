@@ -48,6 +48,12 @@ const PUBLIC_STAGE = [
   "/fonts/geist-latin.woff2?v=sonara-ui-20261008-v24-cross-device",
   "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261008-v24-cross-device"
 ];
+const ESSENTIAL_PUBLIC_STAGE = [
+  OFFLINE_URL,
+  `/sonara-application-ui.css?v=${VERSION}`,
+  `/sonara-design-system.css?v=${VERSION}`,
+  `/sonara-one.js?v=${VERSION}`
+];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
 // Offline caching is limited to files served from the known public asset
 // namespace. A private API or user-file URL must never become cacheable just
@@ -72,18 +78,55 @@ function isCacheableResponse(response) {
   return !/(private|no-store)/i.test(cacheControl) && !response.headers.has("set-cookie");
 }
 
+// Precache deliberately anonymous public resources. A worker installed while
+// someone is signed in must not store a cookie-personalized response, even if a
+// future public route forgets its Cache-Control header.
+async function precachePublicResource(cache, relativeUrl) {
+  const target = new URL(relativeUrl, self.location.origin);
+  if (relativeUrl !== OFFLINE_URL && !isPublicStaticRequest(target)) {
+    throw new Error("Unsafe asset configured for offline precache");
+  }
+  const request = new Request(target.href, {
+    credentials: "omit",
+    cache: "no-store",
+    redirect: "error"
+  });
+  const response = await fetch(request);
+  if (!isCacheableResponse(response) || response.redirected ||
+      (response.url && new URL(response.url).origin !== self.location.origin)) {
+    throw new Error("Offline resource must be an anonymous public response");
+  }
+  if (relativeUrl !== OFFLINE_URL &&
+      (response.headers.get("content-type") || "").toLowerCase().includes("text/html")) {
+    throw new Error("Offline asset returned an HTML document");
+  }
+  await cache.put(target.href, response);
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.add(OFFLINE_URL);
-      const assets = PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL);
-      if (!assets.every((url) => isPublicStaticRequest(new URL(url, self.location.origin)))) {
-        throw new Error("Unsafe asset configured for offline precache");
+  event.waitUntil((async () => {
+    // Validate the entire manifest before any network request or cache write.
+    if (ESSENTIAL_PUBLIC_STAGE.some((url) => !PUBLIC_STAGE.includes(url)) ||
+        PUBLIC_STAGE.some((url) => url !== OFFLINE_URL &&
+          !isPublicStaticRequest(new URL(url, self.location.origin)))) {
+      throw new Error("Unsafe asset configured for offline precache");
+    }
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      // A broken core installation must not replace a working offline shell.
+      for (const url of ESSENTIAL_PUBLIC_STAGE) {
+        await precachePublicResource(cache, url);
       }
-      await Promise.allSettled(assets.map((url) => cache.add(url)));
-    })
-  );
-  self.skipWaiting();
+      await Promise.allSettled(PUBLIC_STAGE
+        .filter((url) => !ESSENTIAL_PUBLIC_STAGE.includes(url))
+        .map((url) => precachePublicResource(cache, url)));
+    } catch (error) {
+      await caches.delete(CACHE_NAME);
+      throw error;
+    }
+  })());
+  // Do not call skipWaiting automatically: existing pages may be using the
+  // previous release. The explicit SKIP_WAITING message remains available.
 });
 
 self.addEventListener("activate", (event) => {
