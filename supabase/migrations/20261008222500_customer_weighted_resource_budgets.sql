@@ -136,7 +136,10 @@ begin
       retry_after_seconds := 0;
     else
       v_missing := p_cost_units - v_available;
-      retry_after_seconds := greatest(1, ceil(v_missing * 60.0 / p_refill_units_per_minute)::integer);
+      retry_after_seconds := greatest(
+        1,
+        least(2147483647::numeric, ceil(v_missing * 60.0 / p_refill_units_per_minute))::integer
+      );
     end if;
   else
     allowed := true;
