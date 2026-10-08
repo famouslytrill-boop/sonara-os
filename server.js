@@ -1622,6 +1622,10 @@ registerWellKnownRoutes(app, { getEnv });
 // public/sw.js precaches, so they are the ones that genuinely still open with
 // no connection. Anything else would be a link to another copy of this page.
 app.get("/offline", (req, res) => {
+  // This page is a fixed, anonymous PWA fallback: it contains no account
+  // state or customer data. It is the sole public HTML cache exception so
+  // service-worker installation can reject all other no-store HTML safely.
+  res.set("Cache-Control", "public, max-age=60");
   return res.status(200).type("html").send(
     layout({
       surface: "marketing",
