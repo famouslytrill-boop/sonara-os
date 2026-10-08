@@ -161,5 +161,6 @@
   "20261008100000_tighten_service_role_rls_policies.sql": "9297520c1a2e605fd3144ac3709d3e247384ee32fea8c64cf8949baf4ae04551",
   "20261008150000_autonomic_repair_fenced_claims.sql": "2d14742d09114d41999ea40dcb5aca8d0126c134dbeae0aefb9b788c24f5fe23",
   "20261008160000_autonomic_delayed_retry_due_claims.sql": "4b57eb88391bb5b36fbe777f52ba694dcab1a7d4c3d1ac962fef4c38223504ed",
-  "20261008214500_autonomic_signed_sensor_nonces.sql": "da1feffd17da0bf31a4aec517920f53cd1546a5260019115cfd98d3f058bd66e"
+  "20261008214500_autonomic_signed_sensor_nonces.sql": "da1feffd17da0bf31a4aec517920f53cd1546a5260019115cfd98d3f058bd66e",
+  "20261008225000_autonomic_operator_execution_gate.sql": "3fe1654dbd01f8885951a39c477b4072ed5c5980e9eb0526a1fb71a6b35ffee0"
 }
