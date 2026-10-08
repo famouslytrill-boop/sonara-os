@@ -43,23 +43,15 @@ const { createSendRecorder, createSendRecordReader, remainderFrom } = require(".
 // batching. The number is derived from the same budget as before and the working
 // is here so it can be rechecked rather than trusted.
 //
-// Vercel's duration limits, read from
-// vercel.com/docs/functions/configuring-functions/duration on 10 September
-// 2026: with fluid compute (enabled by default) the DEFAULT is 300 seconds on
-// Hobby, Pro and Enterprise alike, and `vercel.json` sets no `maxDuration`, so
-// 300 seconds is what this actually gets. Costs are figured at a deliberately
-// pessimistic 500ms per call -- not the ~150ms a healthy call takes, because a
-// cap has to hold on a bad day:
+// This 1,000-recipient ceiling is deliberately retained until a durable
+// cross-invocation campaign queue is qualified. A healthy batch of 100 needs
+// at most ten provider requests, plus bounded suppression reads. An ambiguous
+// batch response now HALTS further requests and is reconciled independently:
+// no retry-as-individual fallback, no 200-call amplification, and no claim
+// that the client knows whether those messages were accepted.
 //
-//   * 1,000 recipients in batches of 100 is **10 calls, 5 seconds**.
-//   * The suppression read is at most 30 pages, **15 seconds**.
-//   * The worst case is the fallback: a batch that does not return one id per
-//     email is resent one recipient at a time, and `MAX_FALLBACK_BATCHES`
-//     bounds that at two batches -- **200 calls, 100 seconds**.
-//
-// 5 + 15 + 100 is 120 seconds against 300, so the cap holds even when the two
-// permitted fallbacks both fire. It is the fallback rather than the batching
-// that sets this ceiling, which is why raising MAX_FALLBACK_BATCHES is not free.
+// The cap is not a throughput guarantee; runtime, provider rate limits and
+// suppression latency still require performance and failure testing.
 //
 // **Above the cap the campaign is refused, never truncated.** Sending to the
 // first 1,000 of 3,000 and reporting "1,000 sent" is true and useless: the owner
