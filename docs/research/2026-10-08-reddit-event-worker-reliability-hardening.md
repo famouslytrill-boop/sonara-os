@@ -52,3 +52,25 @@ This is a local pure-function reproduction, **not** a claim that a real customer
 **P2:** collect meaningful baseline task-completion rates from consented small-business pilots, then measure workflow completion, 7-/30-day retention, delivered notification accuracy, incident rate and contribution margin. Do not infer ROI from Reddit voting or feature counts.
 
 No social scraping, unauthorized Reddit Data API integration, cold DMs, customer data import from discussions, or claims of production capability are authorized by this research.
+
+
+## Third research/engineering pass — explicit handler-result contract
+
+Source review found a second independent false-success condition: `createEventConsumerWorker` treated any handler result **except** `{ok:false}` as delivered, including `undefined`, `null`, `false`, `[]` and `{ok:"true"}`. A provider adapter may perform an external side effect and accidentally return nothing; treating that as confirmed completion destroys the durable queue's ability to surface uncertainty.
+
+**External evidence and limits:**
+- [Reddit r/n8n, 2026-08-27](https://www.reddit.com/r/n8n/comments/1vztr0i/how_do_you_make_n8n_webhooks_safe_under/): developers discuss the exact gap between reserving an idempotency key and successfully finishing a downstream action. The conversation is an engineering lead, not a reliable prevalence estimate.
+- [Reddit r/SaaS, 2026-06-19](https://www.reddit.com/r/SaaS/comments/1u9ydx8/how_are_you_guys_handling_failed_webhooks_and/): a founder reports difficult-to-detect background failures. Anecdotal, potentially promotional.
+- [Temporal: at-least-once execution semantics](https://docs.temporal.io/nexus/operations): a handler may execute more than once after timeouts; idempotency and durable status are needed.
+- [Stripe: request idempotency](https://docs.stripe.com/api/idempotent_requests): a repeated request with a stable idempotency key can return the prior status; this is **not** a substitute for a trustworthy application-side completion receipt and provider reconciliation.
+
+**Source change:** require a handler to return an actual non-array object with boolean `ok`. Only `{ok:true}` becomes `delivered`; explicit `{ok:false,code,...}` retains existing retry/dead-letter behavior. Anything else becomes `{ok:false,code:"handler_result_invalid",retryable:false}` and is dead-lettered for **manual reconciliation**, not automatically retried or counted as success. This is a conservative safety decision: ambiguous completion may follow an irreversible provider action. No customer-facing provider handler is activated by this patch; the current synthetic canary returns `{ok:true}` explicitly.
+
+**Regression:** two new test cases in the existing `tests/event-consumer-readiness.test.js` cover nine invalid output shapes, explicit successful completion, and retryable provider rejection. They run in isolated JavaScript against the proposed branch, not in place of the full Node/Mocha workflow.
+
+**Release diagnostics confirmed from actual PR run logs:**
+- PR #508 `SONARA Industries CI` failed the release chain at `data/capability-inventory.json` stale, despite its native migration replay passing. It also has Firefox/WebKit browser failures (missing UI elements and unexpected 429/503 responses); investigate the test environment and route contracts rather than reducing thresholds.
+- PR #509 main/test workflows include `docs/HANDOFF_PROMPT.md` test-file drift (committed 513, runner counted 516); native replay reports `P1 policy definition drift on 25 policies; abort`. Do **not** rewrite guarded policy digests just to make that database gate pass. Reconcile policy history and staging evidence.
+- PR #511's exact-head CI was red before this patch even while its dedicated Event Consumer Activation Readiness job was green. A green single lane never overrides the red release matrix.
+
+**Next stage gate:** freeze exact PR head → real Node 24 `pnpm exec mocha tests/event-consumer-readiness.test.js` → full CI and native PostgreSQL replay → single authorized test-tenant canary with fresh enqueue IDs and result receipts → controlled owner release. Never enable payments, autoposting, messaging, production workers or the temporarily offline site based on these isolated tests.
