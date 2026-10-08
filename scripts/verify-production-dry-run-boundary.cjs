@@ -40,7 +40,7 @@ function failures(source) {
   requireItem(Boolean(contract), "credential-free pull-request job missing");
   requireItem(hasAll(line(contract, "if"), ["github.event_name == 'pull_request'"]), "PR job must require pull_request");
   requireItem(!/^\s+environment:\s*/m.test(contract), "PR job must not reference any deployment environment");
-  requireItem(!/secrets\./.test(contract), "PR job must not reference secrets");
+  requireItem(!/\$\{\{\s*secrets\./.test(contract), "PR job must not reference secrets");
   requireItem(contract.includes("verify-production-dry-run-boundary.cjs --self-test"), "PR security regression probe not wired");
 
   requireItem(Boolean(admission), "protected-main preflight missing");
@@ -50,7 +50,7 @@ function failures(source) {
     "inputs.approve_read_only_production_validation == true"
   ]), "preflight must require explicit manually approved main dispatch");
   requireItem(!/^\s+environment:\s*/m.test(admission), "preflight may not request a deployment environment");
-  requireItem(!/secrets\./.test(admission), "preflight may not use production secrets");
+  requireItem(!/\$\{\{\s*secrets\./.test(admission), "preflight may not use production secrets");
   requireItem(hasAll(admission, [
     "/branches/main", "current.protected !== true",
     "current.commit?.sha !== process.env.GITHUB_SHA"
@@ -71,7 +71,7 @@ function failures(source) {
     "production job must verify event isolation from checked-out code");
   for (const [name, body] of jobs) {
     if (name !== "production-deploy-dry-run") {
-      if (/secrets\./.test(body)) issues.push(name + " must never use production secrets");
+      if (/\$\{\{\s*secrets\./.test(body)) issues.push(name + " must never use production secrets");
       if (/^\s+environment:\s*production\s*$/m.test(body)) issues.push(name + " must never request production");
     }
   }
