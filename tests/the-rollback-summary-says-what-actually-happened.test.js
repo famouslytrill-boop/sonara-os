@@ -108,6 +108,16 @@ describe("the rollback summary says what actually happened", () => {
     );
   });
 
+  it("does not label a schema-only checkpoint as PITR or customer-data recovery", () => {
+    assert.doesNotMatch(
+      WORKFLOW,
+      /PITR restore target \(UTC\)/,
+      "the current Free-plan deployment must not advertise a PITR target it cannot use"
+    );
+    assert.match(WORKFLOW, /Pre-migration incident timestamp \(UTC\)/);
+    assert.match(WORKFLOW, /Data-backup status:.*not_proven_by_this_artifact/);
+  });
+
   it("keeps the evidence, so the claim can be checked after the run", () => {
     assert.match(
       WORKFLOW,
