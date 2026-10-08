@@ -36,11 +36,13 @@ WITH commands(command,pg_command) AS (
  FROM pg_policy p
  JOIN pg_class c ON c.oid=p.polrelid
  JOIN pg_namespace n ON n.oid=c.relnamespace
+ JOIN pg_policies visible_policy ON visible_policy.schemaname=n.nspname
+   AND visible_policy.tablename=c.relname AND visible_policy.policyname=p.polname
  CROSS JOIN commands CROSS JOIN client_roles
  WHERE n.nspname='public' AND p.polpermissive
    AND (p.polcmd='*' OR p.polcmd=commands.pg_command)
-   AND ('public'=ANY(p.polroles::regrole[]::text[])
-        OR role_name=ANY(p.polroles::regrole[]::text[]))
+   AND ('public'=ANY(visible_policy.roles::text[])
+        OR role_name=ANY(visible_policy.roles::text[]))
 ), overlapped AS (
  SELECT schema_name,table_name,role_name,command,
         bool_or(table_granted) AS table_granted,
