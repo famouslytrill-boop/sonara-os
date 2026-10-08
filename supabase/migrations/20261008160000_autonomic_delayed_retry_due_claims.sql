@@ -86,9 +86,13 @@ BEGIN
     RETURN QUERY SELECT false, false, NULL::timestamptz;
     RETURN;
   END;
+  -- Check types separately: jsonb_array_length raises on a scalar.
   IF jsonb_typeof(v_resource) IS DISTINCT FROM 'array' OR
-     jsonb_typeof(v_dedupe) IS DISTINCT FROM 'array' OR
-     jsonb_array_length(v_resource) <> 4 OR jsonb_array_length(v_dedupe) <> 3 OR
+     jsonb_typeof(v_dedupe) IS DISTINCT FROM 'array' THEN
+    RETURN QUERY SELECT false, false, NULL::timestamptz;
+    RETURN;
+  END IF;
+  IF jsonb_array_length(v_resource) <> 4 OR jsonb_array_length(v_dedupe) <> 3 OR
      v_resource->>0 IS DISTINCT FROM 'organization' OR
      v_resource->>1 IS DISTINCT FROM p_organization_id::text OR
      v_resource->>2 IS DISTINCT FROM 'retry_idempotent' OR
