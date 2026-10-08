@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-08 - A Growth record links only to its own workspace's records
+
+Nine Growth create endpoints took the ids a record links to from the request
+body: the campaign a lead came from, the lead a conversion belongs to, and the
+platform, segment, connection or content item. They checked only that each
+looked like a UUID. Every one of those seven tables is organization-scoped, and
+the foreign key behind each accepts a row from any organization.
+- **What that allowed:** a record could point across the tenant boundary. The
+  other workspace's deletes would then reach into this one through
+  `ON DELETE SET NULL`.
+- **What it didn't allow:** a read leak. Every read is organization-scoped, so
+  the pointed-at row was never shown.
+- **Found how:** the campaign-payments work above reasons about which campaign
+  found a lead, which raised the question of who could set that link.
+
+`ownedReferences` in `routes/growth-studio-control-routes.cjs` now checks every
+linked id against the caller's organization before the write. It uses the same
+three answers and codes as `belongsToOrganization` in
+`routes/sonara-last9-routes.cjs`:
+- not an id at all: 400, `<column>_invalid`;
+- not theirs: 403, `<column>_not_yours`;
+- could not check: 502, `<column>_unreadable`.
+
+Two behaviour changes. A value that isn't an id was dropped before, and the
+record saved without the link, which told the caller it had been saved as
+asked; it is now refused. An empty field still means "no link", because every
+form sends one.
+
+Each reference's read names its table at the call.
+`report-tenant-scoped-queries.mjs` refused the first version, whose shared
+read kept the table in a variable and grew its unresolved count from 40 to 41.
+
+Three tests changed to say what they mean rather than to pass:
+- **`every-growth-form-can-actually-save`:** its mock now answers the
+  ownership read "yours" for the sample id it puts in every `_id` box, in its
+  own organization only.
+- **`growth-studio-platform`:** two provider-job mocks answer it for their
+  campaign.
+- **`growth-create-forms`:** the static field check counts a column read
+  through `ownedReferences`, but only when the reference map reads the body
+  under that same name. Falsified: dropping `campaign_id` from the conversions
+  check fails it by name.
+
+`tests/a-growth-record-links-only-to-its-own-workspace.test.js` posts to the
+real routes against two workspaces. Its case table is checked against the
+handlers' `ownedReferences` calls in both directions: 17 links in nine
+handlers. Falsified seven ways, each failing it:
+- any id trusted;
+- the conversions handler unchecked;
+- a failed check read as yes;
+- a non-id silently dropped;
+- an empty field treated as supplied;
+- `lead_id` looked up in the wrong table;
+- the read without its organization filter.
+
 ### 2026-10-08 - A campaign is judged on what its customers paid
 
 The Growth chain's attribution → ROI link rested on typed-in numbers. A

@@ -1,5 +1,18 @@
 # Handoff Log
 
+## 2026-10-08 - Claude - Growth create APIs refuse another workspace's ids (PR #446)
+
+- `ownedReferences` checks campaign_id, lead_id, touchpoint_id, content_id,
+  provider_connection_id, audience_segment_id and platform_id against the
+  caller's organization before nine Growth create handlers write. The answers
+  are 400 `_invalid`, 403 `_not_yours` and 502 `_unreadable`, the same codes
+  as `belongsToOrganization` in `routes/sonara-last9-routes.cjs`.
+- Adding a linked id to a Growth handler means adding it to `REFERENCES`, which
+  is exported, and to the call. Its test checks the handlers against its case
+  table in both directions, so an unchecked link fails there.
+- A hand-written fetch mock that posts a linked id must now answer
+  `<table>?select=id&id=eq.<id>&organization_id=eq.<org>`.
+
 ## 2026-10-08 - Claude - A campaign's return on what its customers paid (PR #446)
 
 - The campaign page adds "What the customers it brought in have paid":

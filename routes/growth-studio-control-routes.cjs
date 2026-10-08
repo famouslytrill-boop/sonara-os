@@ -185,10 +185,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const name = clean(req.body.name, 240);
     if (!name) return res.status(400).json({ ok: false, code: "campaign_name_required" });
+    const refs = await ownedReferences(config, context, req.body, ["platform_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.campaigns, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      platform_id: validUuid(req.body.platform_id || req.body.platformId) ? String(req.body.platform_id || req.body.platformId) : null,
+      platform_id: refs.ids.platform_id,
       name,
       goal: nullable(req.body.goal, 1000),
       channel: nullable(req.body.channel, 120),
@@ -736,11 +738,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const phone = clean(req.body.phone, 80) || null;
     const name = clean(req.body.name, 240) || null;
     if (!email && !phone && !name) return res.status(400).json({ ok: false, code: "lead_identity_required" });
+    const refs = await ownedReferences(config, context, req.body, ["platform_id", "campaign_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.leads, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      platform_id: validUuid(req.body.platform_id || req.body.platformId) ? String(req.body.platform_id || req.body.platformId) : null,
-      campaign_id: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
+      platform_id: refs.ids.platform_id,
+      campaign_id: refs.ids.campaign_id,
       name,
       email,
       phone,
@@ -818,10 +822,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const purpose = clean(req.body.purpose, 300);
     const source = clean(req.body.source, 300);
     if (!channel || !status || !purpose || !source) return res.status(400).json({ ok: false, code: "consent_fields_required" });
+    const refs = await ownedReferences(config, context, req.body, ["lead_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.consents, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      lead_id: validUuid(req.body.lead_id || req.body.leadId) ? String(req.body.lead_id || req.body.leadId) : null,
+      lead_id: refs.ids.lead_id,
       channel,
       purpose,
       consent_status: status,
@@ -853,11 +859,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const eventName = clean(req.body.event_name || req.body.eventName, 200);
     if (!eventName) return res.status(400).json({ ok: false, code: "event_name_required" });
     const deduplicationKey = clean(req.body.deduplication_key || req.body.deduplicationKey, 300) || randomUUID();
+    const refs = await ownedReferences(config, context, req.body, ["campaign_id", "lead_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.touchpoints, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      campaign_id: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
-      lead_id: validUuid(req.body.lead_id || req.body.leadId) ? String(req.body.lead_id || req.body.leadId) : null,
+      campaign_id: refs.ids.campaign_id,
+      lead_id: refs.ids.lead_id,
       provider_key: nullable(req.body.provider_key || req.body.providerKey, 100),
       event_name: eventName,
       channel: nullable(req.body.channel, 100),
@@ -900,12 +908,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!conversionType) return res.status(400).json({ ok: false, code: "conversion_type_required" });
     const model = oneOf(req.body.attribution_model || req.body.attributionModel, ["unattributed", "first_touch", "last_touch", "linear", "position_based", "data_driven", "provider_reported", "custom"], "unattributed");
     const confidence = oneOf(req.body.attribution_confidence || req.body.attributionConfidence, ["unknown", "low", "medium", "high", "provider_reported"], "unknown");
+    const refs = await ownedReferences(config, context, req.body, ["campaign_id", "lead_id", "touchpoint_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.conversions, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      campaign_id: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
-      lead_id: validUuid(req.body.lead_id || req.body.leadId) ? String(req.body.lead_id || req.body.leadId) : null,
-      touchpoint_id: validUuid(req.body.touchpoint_id || req.body.touchpointId) ? String(req.body.touchpoint_id || req.body.touchpointId) : null,
+      campaign_id: refs.ids.campaign_id,
+      lead_id: refs.ids.lead_id,
+      touchpoint_id: refs.ids.touchpoint_id,
       conversion_type: conversionType,
       external_conversion_id: nullable(req.body.external_conversion_id || req.body.externalConversionId, 300),
       value: numberOrNull(req.body.value),
@@ -941,17 +951,19 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!channel || !contentType) return res.status(400).json({ ok: false, code: "content_channel_and_type_required" });
     if (OUTBOUND_CHANNELS.has(channel) && !truthy(req.body.consent_basis_attested || req.body.consentBasisAttested)) return res.status(400).json({ ok: false, code: "audience_consent_basis_required" });
     const config = getConfig(deps);
+    const refs = await ownedReferences(config, context, req.body, ["campaign_id", "provider_connection_id", "audience_segment_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.content, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      campaign_id: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
-      provider_connection_id: validUuid(req.body.provider_connection_id || req.body.providerConnectionId) ? String(req.body.provider_connection_id || req.body.providerConnectionId) : null,
+      campaign_id: refs.ids.campaign_id,
+      provider_connection_id: refs.ids.provider_connection_id,
       channel,
       content_type: contentType,
       title: nullable(req.body.title, 300),
       body: nullable(req.body.body, 20000),
       media_references: parseArray(req.body.media_references || req.body.mediaReferences, []),
-      audience_segment_id: validUuid(req.body.audience_segment_id || req.body.audienceSegmentId) ? String(req.body.audience_segment_id || req.body.audienceSegmentId) : null,
+      audience_segment_id: refs.ids.audience_segment_id,
       scheduled_for: validDate(req.body.scheduled_for || req.body.scheduledFor),
       approval_status: "draft",
       publish_status: "not_scheduled",
@@ -1019,11 +1031,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!name || !hypothesis || variants.length < 2) return res.status(400).json({ ok: false, code: "experiment_name_hypothesis_and_two_variants_required" });
     const totalWeight = variants.reduce((sum, variant) => sum + Number(variant.allocation_weight ?? variant.allocationWeight ?? 0), 0);
     if (Math.abs(totalWeight - 1) > 0.0001) return res.status(400).json({ ok: false, code: "variant_weights_must_equal_one" });
+    const refs = await ownedReferences(config, context, req.body, ["platform_id", "campaign_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.experiments, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      platform_id: validUuid(req.body.platform_id || req.body.platformId) ? String(req.body.platform_id || req.body.platformId) : null,
-      campaign_id: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
+      platform_id: refs.ids.platform_id,
+      campaign_id: refs.ids.campaign_id,
       name,
       hypothesis,
       result: null,
@@ -1060,10 +1074,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const configData = parseObject(req.body.config, {});
     if (containsUnsafeExpression(configData)) return res.status(400).json({ ok: false, code: "arbitrary_automation_code_prohibited" });
     const config = getConfig(deps);
+    const refs = await ownedReferences(config, context, req.body, ["platform_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const created = await insert(config, TABLES.automations, {
       organization_id: context.organizationId,
       user_id: context.userId,
-      platform_id: validUuid(req.body.platform_id || req.body.platformId) ? String(req.body.platform_id || req.body.platformId) : null,
+      platform_id: refs.ids.platform_id,
       name: clean(req.body.name, 240) || `${trigger} → ${action}`,
       trigger_key: trigger,
       action_key: action,
@@ -1078,12 +1094,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
+    const refs = await ownedReferences(config, context, req.body, ["campaign_id", "content_id"]);
+    if (!refs.ok) return res.status(refs.status).json({ ok: false, code: refs.code, reason: refs.reason });
     const result = await createProviderJob(config, context, {
       providerKey: clean(req.body.provider_key || req.body.providerKey, 100),
       capability: clean(req.body.capability, 100),
       operation: clean(req.body.operation, 100),
-      campaignId: validUuid(req.body.campaign_id || req.body.campaignId) ? String(req.body.campaign_id || req.body.campaignId) : null,
-      contentId: validUuid(req.body.content_id || req.body.contentId) ? String(req.body.content_id || req.body.contentId) : null,
+      campaignId: refs.ids.campaign_id,
+      contentId: refs.ids.content_id,
       requestPayload: parseObject(req.body.request_payload || req.body.requestPayload, {}),
       idempotencyKey: clean(req.body.idempotency_key || req.body.idempotencyKey, 300) || randomUUID(),
       approved: truthy(req.body.approved || req.body.approval_attested || req.body.approvalAttested)
@@ -2092,6 +2110,57 @@ async function rest(config, table, query = "", options = {}) {
 }
 
 function insert(config, table, body) { return rest(config, table, "", { method: "POST", prefer: "return=representation", body }); }
+
+// The ids a Growth record may point at: the body fields each is read from, and
+// the read that finds it in the caller's own organization. Every one of these
+// tables is organization-scoped, and the foreign key behind each accepts a row
+// from any organization: the database checks that the row exists, not whose it
+// is. Each read names its table at the call, so
+// scripts/report-tenant-scoped-queries.mjs can see the organization filter on
+// every one -- a shared read with the table in a variable was invisible to it.
+const REFERENCES = Object.freeze({
+  campaign_id: { keys: ["campaign_id", "campaignId"], find: (config, id, organizationId) => rest(config, TABLES.campaigns, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  lead_id: { keys: ["lead_id", "leadId"], find: (config, id, organizationId) => rest(config, TABLES.leads, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  touchpoint_id: { keys: ["touchpoint_id", "touchpointId"], find: (config, id, organizationId) => rest(config, TABLES.touchpoints, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  content_id: { keys: ["content_id", "contentId"], find: (config, id, organizationId) => rest(config, TABLES.content, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  provider_connection_id: { keys: ["provider_connection_id", "providerConnectionId"], find: (config, id, organizationId) => rest(config, TABLES.connections, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  audience_segment_id: { keys: ["audience_segment_id", "audienceSegmentId"], find: (config, id, organizationId) => rest(config, TABLES.segments, `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) },
+  platform_id: { keys: ["platform_id", "platformId"], find: (config, id, organizationId) => rest(config, "sonara_platforms", `select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`) }
+});
+
+// Every id a request names is checked against the caller's organization before
+// it is written. The service key bypasses row level security, so an id from the
+// body is either checked or trusted. A trusted id from another workspace leaves
+// a row pointing across the tenant boundary, and that workspace's deletes then
+// reach into this one through ON DELETE SET NULL.
+//
+// Three answers, as belongsToOrganization in routes/sonara-last9-routes.cjs
+// gives them and with the same codes: not an id at all (400), could not check
+// (502), not theirs (403). A value that is not an id used to be dropped and the
+// record saved without the link, which told the caller it had been saved as
+// asked. An empty field is "not supplied", because the forms send one for
+// every optional link.
+async function ownedReferences(config, context, body, columns) {
+  const ids = {};
+  const checks = [];
+  for (const column of columns) {
+    const reference = REFERENCES[column];
+    const supplied = reference.keys.map((key) => body?.[key]).find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+    if (supplied === undefined) {
+      ids[column] = null;
+      continue;
+    }
+    const id = String(supplied).trim();
+    if (!validUuid(id)) return { ok: false, status: 400, code: `${column}_invalid`, reason: "That linked record is not one of yours." };
+    checks.push(reference.find(config, id, context.organizationId).then((found) => ({ column, found })));
+  }
+  for (const { column, found } of await Promise.all(checks)) {
+    if (!found.ok) return { ok: false, status: 502, code: `${column}_unreadable`, reason: "We could not check that linked record just now. Nothing has been saved." };
+    if (!found.rows[0]?.id) return { ok: false, status: 403, code: `${column}_not_yours`, reason: "That linked record is not in your workspace." };
+    ids[column] = found.rows[0].id;
+  }
+  return { ok: true, ids };
+}
 function list(config, table, context, limit = 100, extra = "") { return rest(config, table, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}${extra}&order=created_at.desc&limit=${limit}`); }
 function patchRows(config, table, context, id, body) { return rest(config, table, `id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}`, { method: "PATCH", prefer: "return=representation", body }); }
 function updateJob(config, context, jobId, body) { return patchRows(config, TABLES.jobs, context, jobId, body); }
@@ -2401,3 +2470,6 @@ function acceptsHtml(req) {
 // documented duration rather than re-typing the number and agreeing with itself.
 module.exports.MAX_RECIPIENTS_PER_SEND = MAX_RECIPIENTS_PER_SEND;
 module.exports.CONSENT_ROW_LIMIT = CONSENT_ROW_LIMIT;
+// Which body fields a create handler checks against the caller's organization,
+// and under which names it reads them (tests/growth-create-forms.test.js).
+module.exports.REFERENCES = REFERENCES;

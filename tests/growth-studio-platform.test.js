@@ -78,6 +78,8 @@ function createProviderFetch({ initialJob, providerUrl, providerResponse, provid
       return jsonResponse(200, [job]);
     }
     if (stringUrl.includes("/rest/v1/growth_control_events")) return jsonResponse(201, []);
+    // The provider-job handler checks the campaign it names is this organization's.
+    if (stringUrl.includes(`/rest/v1/growth_campaigns?select=id&id=eq.${CAMPAIGN_ID}&organization_id=eq.${ORGANIZATION_ID}`)) return jsonResponse(200, [{ id: CAMPAIGN_ID }]);
     if (stringUrl === providerUrl) {
       if (onProvider) onProvider(options);
       return providerStatus === 202 || providerStatus === 204 ? emptyResponse(providerStatus) : jsonResponse(providerStatus, providerResponse || {});
@@ -355,6 +357,8 @@ describe("Growth Studio operating system", () => {
         return jsonResponse(200, [job]);
       }
       if (stringUrl.includes("/rest/v1/growth_control_events")) return jsonResponse(201, []);
+      // The provider-job handler checks the campaign it names is this organization's.
+      if (stringUrl.includes(`/rest/v1/growth_campaigns?select=id&id=eq.${CAMPAIGN_ID}&organization_id=eq.${ORGANIZATION_ID}`)) return jsonResponse(200, [{ id: CAMPAIGN_ID }]);
       if (stringUrl.includes("/rest/v1/growth_metric_snapshots") && method === "POST") return jsonResponse(201, [{ id: SNAPSHOT_ID, ...JSON.parse(options.body) }]);
       if (stringUrl === "https://analyticsdata.googleapis.com/v1beta/properties/123456:runReport") return jsonResponse(200, { metricHeaders: [{ name: "activeUsers" }], rows: [{ metricValues: [{ value: "42" }] }], rowCount: 1, metadata: { subjectToThresholding: true, currencyCode: "USD" } });
       return jsonResponse(200, []);
