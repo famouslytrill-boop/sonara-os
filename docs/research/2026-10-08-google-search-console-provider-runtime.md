@@ -42,6 +42,9 @@ The branch implements three layers:
    - authorization-code exchange is attempted once, not blindly retried;
    - ephemeral access token is used for property discovery and never returned;
    - refresh token must become an opaque credential reference before the connection becomes review-ready;
+   - background sync can resolve that reference only inside the credential broker, refresh an ephemeral access token, and perform one daily read without returning either token;
+   - disconnect is ordered provider-revoke first, local credential revoke second, with partial-failure evidence if local cleanup fails;
+   - provider-returned refresh-token rotation is never silently discarded and remains blocked until rotation persistence is implemented;
    - property list retains provider permission level;
    - finalized Search Analytics data is requested explicitly;
    - Search Console dates are recorded as provider-time-zone dates in `America/Los_Angeles`;
@@ -248,9 +251,9 @@ P0 — next provider-dependent unit:
 P1:
 - durable `integration_sync_cursors` persistence;
 - durable connector runs and sanitized provider receipts;
-- daily checkpoint/backfill worker;
-- refresh rotation/reauthorization;
-- disconnect + Google revoke + Vault deletion evidence;
+- daily checkpoint/backfill worker using the broker-resolved sync contract already implemented here;
+- refresh-token rotation persistence and reauthorization workflow;
+- wire the implemented Google-revoke -> local-revoke disconnect contract to the future Vault adapter;
 - OpenTelemetry metrics/traces with no token values.
 
 P1 acceptance:
@@ -269,7 +272,8 @@ This branch does not prove:
 - Google consent verification is complete;
 - a refresh token has been stored in Vault;
 - a customer Search Console account has been connected;
-- a durable sync worker exists;
+- a durable sync worker exists (the broker-resolved execution function is synchronous adapter code, not a queue/worker);
+- a Vault-backed disconnect has actually executed;
 - a migration has been applied;
 - a canary has run;
 - production has been deployed;
