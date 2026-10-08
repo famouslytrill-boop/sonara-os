@@ -42,6 +42,15 @@ describe("free login-based SONARA platform surface policy", () => {
     assert.equal(approved.sideEffectExecuted, false);
     assert.equal(surfacePolicy({ ...x, action: "comment", moderationApproved: false }).ok, false);
   });
+  it("requires an independent server-derived moderator grant", () => {
+    const scope = { product: "sonara_industries", service: "social", action: "moderate",
+      userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true };
+    assert.equal(surfacePolicy(scope).code, "moderator_permission_required");
+    assert.equal(surfacePolicy({ ...scope, actorCanModerate: "true" }).ok, false);
+    const allowed = surfacePolicy({ ...scope, actorCanModerate: true });
+    assert.equal(allowed.ok, true);
+    assert.equal(allowed.sideEffectExecuted, false);
+  });
   it("refuses malformed user UUIDs, tenant UUIDs and scope spoofing on every free write", () => {
     const base = { product: "sonara_industries", service: "social", action: "create",
       userId: U, organizationId: A, serverOrganizationId: A,
@@ -101,6 +110,19 @@ describe("free login-based SONARA platform surface policy", () => {
       assert.equal(selectCommunityCandidates([base()], { limit: 100, now: TIME }).code, "limit_out_of_range");
     });
 
+    it("fails closed instead of discarding an oversized privacy block or mute list", () => {
+      const tooMany = Array.from({ length: 201 }, (_, i) => `publisher_${i}`);
+      for (const options of [
+        { blockedPublishers: tooMany }, { mutedTopics: tooMany },
+        { followedPublishers: tooMany }, { topics: tooMany },
+        { blockedPublishers: null }
+      ]) {
+        const result = selectCommunityCandidates([base()], { now: TIME, ...options });
+        assert.equal(result.ok, false);
+        assert.equal(result.code, "viewer_filter_unreadable_or_excessive");
+        assert.deepEqual(result.items, []);
+      }
+    });
     it("accepts canonical UUIDs but rejects short four-segment identifiers", () => {
       const valid = base();
       const short = "aaaaaaaa-aaaa-4aaa-aaaaaaaaaaaa";
