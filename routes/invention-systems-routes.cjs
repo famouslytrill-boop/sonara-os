@@ -26,6 +26,11 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
 
 
   app.get("/market-intelligence/invention-systems", requireCustomer, (req, res) => {
+    // User-supplied study parameters live in GET URLs; never cache or refer them to a third party.
+    if (typeof res.set === "function") {
+      res.set("Cache-Control", "private, no-store");
+      res.set("Referrer-Policy", "no-referrer");
+    }
     const catalog = getInventionSystemsIntelligence();
     // Fixed, public-domain mathematical inputs only. No req-derived inputs,
     // account data, storage, payment, trade, user-run job, or external action.
