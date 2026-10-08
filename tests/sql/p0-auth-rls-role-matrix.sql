@@ -64,6 +64,14 @@ END
 $proof$;
 GRANT SELECT ON public.creator_follows TO authenticated;
 
+-- The live Supabase project grants preferences CRUD at the table layer,
+-- while fresh migration replay currently does not. Preserve that drift as
+-- an explicit deployment blocker. Here we grant rights TEMPORARILY and
+-- rollback them, so RLS ownership-denial tests run independently of GRANTs.
+-- DELETE intentionally gets a GRANT so its denial tests the missing RLS
+-- DELETE policy (not merely a missing table privilege).
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_preferences TO authenticated;
+
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
 SELECT set_config('request.jwt.claim.role','authenticated',true);
