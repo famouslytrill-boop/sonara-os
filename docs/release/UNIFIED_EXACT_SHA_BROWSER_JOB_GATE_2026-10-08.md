@@ -26,6 +26,14 @@
 - #522 is stacked on #520; #510's durable retry migrations need independent RLS/role-matrix replay and safety approval.
 - Do not auto-merge the 15 open PRs or consider a test run on a different branch as production readiness.
 
+## Credential-free preflight
+
+The controlled production workflow originally declared Vercel and Supabase secrets at the same job level as its read-only release checks. This could request protected-environment approval and provision the credential-bearing job before those checks executed.
+
+The integration now defines `release-attestation-preflight` without an `environment` or provider secrets, using only the read-only GitHub token. The production job explicitly `needs: release-attestation-preflight` and retains its separate protected-environment review, exact-SHA checks and credentials. A failed preflight skips the dependent deployment job. GitHub documents both [job dependency behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs) and [environment-secret access after approval](https://docs.github.com/en/actions/concepts/workflows-and-actions/deployment-environments).
+
+Administrators must ensure the actual production credentials are stored as `production` **environment secrets**, not only as unprotected repository-wide secrets. No source-code branch can verify that settings change without authorized access.
+
 ## Required follow-through
 
 - Verify test count and generated artifact parity at the final combined head.
