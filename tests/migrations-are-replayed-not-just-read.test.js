@@ -87,6 +87,22 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(current, /ROLLBACK;\s*$/);
     });
 
+    it("proves subscription dedup without inventing pre-existing migration policies", () => {
+      const legacy = fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
+      const post = fs.readFileSync(path.join(root, "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8");
+      // Active preview has this pair, fresh schema history does not.
+      // A lone inherited policy is drift, never an excuse to drop something.
+      assert.match(legacy, /subscription_pair_baseline/);
+      assert.match(legacy, /prior_count NOT IN \\(0, 2\\)/);
+      assert.match(legacy, /prior_count = 0 THEN[\\s\\S]+CREATE POLICY "Users can view own subscriptions"/);
+      assert.match(legacy, /CREATE POLICY "Users can view their own subscription"/);
+      assert.match(legacy, /matching_count <> 2/);
+      assert.match(legacy, /subscriptions policy pair is partial/);
+      assert.match(legacy, /ROLLBACK;\\s*$/);
+      assert.match(post, /unexpected inherited subscription policies in fresh replay/);
+      assert.match(post, /ROLLBACK;\\s*$/);
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);
