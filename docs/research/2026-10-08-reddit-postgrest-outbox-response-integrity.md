@@ -47,7 +47,7 @@ File: `lib/sonara-event-outbox.cjs`.
 - After settlement, verify original outbox record ID, organization and expected persisted state (`delivered`, `ready` for retry, or `dead_lettered`). An empty settlement result still means `claim_lost`.
 - Return small error codes only, with `row:null` when uncertain. No secrets or raw provider errors enter logs or customer-visible records.
 
-**Test files:** `tests/event-outbox.test.js` updates the positive receipt fixture to include idempotency identity. New `tests/event-outbox-response-integrity.test.js` includes 20 individual positive and adversarial test cases; all 20 executed successfully with the checked-out code text in an isolated JavaScript test harness. This is **not** a full Node/Mocha run, nor a real PostgREST integration test.
+**Test files:** `tests/event-outbox.test.js` updates the positive receipt fixture to include idempotency identity. The same existing `tests/event-outbox.test.js` now includes 20 additional positive and adversarial test cases (no extra test-file count); all 20 executed successfully with the checked-out code text in an isolated JavaScript test harness. This is **not** a full Node/Mocha run, nor a real PostgREST integration test.
 
 ## Follow-on failure and recovery policy
 
@@ -61,7 +61,7 @@ File: `lib/sonara-event-outbox.cjs`.
 
 ## Staging and release proof required
 
-1. `pnpm exec mocha tests/event-outbox.test.js tests/event-outbox-response-integrity.test.js tests/event-consumer-readiness.test.js`
+1. `pnpm exec mocha tests/event-outbox.test.js tests/event-consumer-readiness.test.js`
 2. `pnpm install --frozen-lockfile`, lint, typecheck, build, full required tests, security scans, native SQL migration replay and CI on exact final commit.
 3. Reproduce a failure with a real staging PostgREST role and a mock injected wrong-tenant return; prove no handler gets invoked; inspect DB row after ambiguous enqueue/settlement response.
 4. Independently verify `claim_sonara_event_outbox_filtered` and `settle_sonara_event_outbox` production/staging signatures, grants, `search_path`, tenant equality predicates, and return state.
