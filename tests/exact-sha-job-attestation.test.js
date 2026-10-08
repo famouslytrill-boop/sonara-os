@@ -246,13 +246,13 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     assert.ok(preStart > 0 && deployStart > preStart, "preflight must precede deployment");
     const preflight = workflow.slice(preStart, deployStart);
     const deployment = workflow.slice(deployStart);
-    assert.match(preflight, /node scripts\\/verify-exact-sha-release-jobs\\.cjs/);
-    assert.match(preflight, /GITHUB_TOKEN:/);
-    assert.doesNotMatch(preflight, /secrets\\.|environment: production|VERCEL_TOKEN|SUPABASE_/);
-    assert.match(deployment, /needs: release-attestation-preflight/);
-    assert.match(deployment, /environment: production/);
-    assert.match(deployment, /secrets\\.VERCEL_TOKEN/);
-    assert.match(deployment, /secrets\\.SUPABASE_ACCESS_TOKEN/);
+    assert.ok(preflight.includes("node scripts/verify-exact-sha-release-jobs.cjs"));
+    assert.ok(preflight.includes("GITHUB_TOKEN:"));
+    for (const value of ["secrets.", "environment: production", "VERCEL_TOKEN", "SUPABASE_"])
+      assert.ok(!preflight.includes(value), "secret or environment leaked into preflight: " + value);
+    for (const value of ["needs: release-attestation-preflight", "environment: production",
+                         "secrets.VERCEL_TOKEN", "secrets.SUPABASE_ACCESS_TOKEN"])
+      assert.ok(deployment.includes(value), "release dependency or secret declaration missing: " + value);
   });
 
   it("is ordered after the exact-SHA run gate but before environment and secrets", () => {
