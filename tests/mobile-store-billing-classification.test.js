@@ -133,6 +133,35 @@ describe("mobile platform purchase classification is safe by default", () => {
       "google_us_alternative", googleUS, "GB").code, "google_us_alternative_region_unapproved");
   });
 
+  it("treats missing, inherited and accessor evidence as unverified without throwing", () => {
+    const input = (evidence) => classify({
+      platform: "google_play", productKind: "digital_subscription",
+      storefrontCountry: "US", method: "google_us_external_link", evidence
+    });
+    assert.equal(input(null).code, "server_sku_and_classification_unverified");
+    assert.equal(input([]).code, "server_sku_and_classification_unverified");
+    const inherited = Object.create({ ...common,
+      googleExternalLinksProgramEnrolled: true });
+    assert.equal(input(inherited).code, "server_sku_and_classification_unverified");
+    const getter = {};
+    Object.defineProperty(getter, "serverCatalogVerified", {
+      get() { throw new Error("must not invoke a getter for a permission"); }
+    });
+    assert.equal(input(getter).code, "server_sku_and_classification_unverified");
+    const inheritedEnrollment = Object.create({
+      googleExternalLinksProgramEnrolled: true
+    });
+    Object.assign(inheritedEnrollment, common, {
+      googleExternalLinksApiReady: true,
+      googleExternalDestinationApproved: true,
+      googleExternalPrelinkDisclosureReady: true,
+      googleExternalTransactionReportingReady: true,
+      googleExternalFeesAccepted: true,
+      googleExternalCustomerSupportAndRefundsReady: true
+    });
+    assert.equal(input(inheritedEnrollment).code, "google_external_links_program_not_ready");
+  });
+
   it("keeps Google US external content links separate from alternative in-app billing", () => {
     const linkProof = { ...common,
       googleExternalLinksProgramEnrolled: true,
