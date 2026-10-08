@@ -54,7 +54,7 @@ WHERE schemaname='public' AND tablename='subscriptions'
 
 DO $drift$
 DECLARE bad int;
-        named_count integer;
+        prior_count integer;
         matching_count integer;
 BEGIN
  SELECT count(*) INTO bad
@@ -75,11 +75,11 @@ BEGIN
 
  -- Source migrations do not create this inherited pair. Fresh-replay absence
  -- is expected; a partial pair or a different policy definition is not.
- SELECT named_count INTO named_count FROM subscription_pair_baseline;
- IF named_count NOT IN (0, 2) THEN
-   RAISE EXCEPTION 'subscriptions policy pair is partial (%); abort', named_count;
+ SELECT b.named_count INTO prior_count FROM subscription_pair_baseline b;
+ IF prior_count NOT IN (0, 2) THEN
+   RAISE EXCEPTION 'subscriptions policy pair is partial (%); abort', prior_count;
  END IF;
- IF named_count = 0 THEN
+ IF prior_count = 0 THEN
    -- Transaction-scoped positive test of the intended identical policy
    -- semantics; never persisted. No existing policy is replaced.
    CREATE POLICY "Users can view own subscriptions" ON public.subscriptions
