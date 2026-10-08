@@ -38,3 +38,7 @@ Base main SHA: `08bea0602644f907932a4040da9b5954144eb414`
 - Protected `main` and independently reviewed protected production environment. No merge of this draft while controls are missing.
 - Actual provider and device tests are separate release gates; documentation or passing unit tests alone are not production proof.
 - Source PRs remain open for traceability until their intent has been reviewed against the integration diff. Closing them, applying migrations and deploying require separate review.
+
+## Post-consolidation generated-evidence repair
+
+On PR #508, both `data/capability-inventory.json` and `docs/CAPABILITY_MAP.md` were rebuilt from the actual merged source through a one-time isolated GitHub Actions job. That job deleted its own temporary workflow file in the generated commit. The final validation must use the exact new PR head, not prior runs or bot-authored `action_required` checks. The PR is not production-approved merely because generated artifacts match.
