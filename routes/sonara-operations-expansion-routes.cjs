@@ -7,6 +7,7 @@ const { buildMapSnapshot } = require("../lib/sonara-location-map.cjs");
 const { templates: workflowTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
 const pages = require("../lib/sonara-waitlist-pages.cjs");
 const { createReservationPages, RESOURCE_PAGE } = require("../lib/sonara-reservation-pages.cjs");
+const { looksLikeEmail } = require("../lib/sonara-email-shape.cjs");
 
 const TABLES = Object.freeze({
   bookings: "business_bookings",
@@ -69,9 +70,12 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
     }).catch(() => null);
     if (!response) return { ok: false, status: 502, code: "database_unreachable", rows: [] };
-    const payload = await response.json().catch(() => []);
-    if (!response.ok) return { ok: false, status: 502, code: "database_request_failed", rows: [] };
-    return { ok: true, status: response.status, rows: Array.isArray(payload) ? payload : [] };
+    const payload = response.status === 204 ? [] : await response.json().catch(() => null);
+    if (!response.ok) return { ok: false, status: 503, code: "database_request_failed", rows: [] };
+    // PostgREST representation must be an array. A 200 with malformed JSON
+    // is a failed read, not evidence that the tenant has zero records.
+    if (!Array.isArray(payload)) return { ok: false, status: 503, code: "database_response_invalid", rows: [] };
+    return { ok: true, status: response.status, rows: payload };
   }
 
   async function list(config, table, organizationId, select, extra = "", limit = 1000) {
@@ -81,71 +85,83 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
   // The two reads the waitlist page and its JSON twins share, so the page and
   // the API cannot disagree about what is bookable or who is waiting.
-  async function readResources(scope) {
+  async function readResources(scope, limit = 1000) {
     const rows = await list(scope.config, TABLES.assets, scope.organizationId,
-      "id,location_id,name,asset_type,status,metadata,created_at,updated_at", "&status=eq.active", 1000);
-    if (!rows.ok) return { ok: false, code: rows.code, rows: [] };
-    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.bookable === true) };
+      "id,location_id,name,asset_type,status,metadata,created_at,updated_at", "&status=eq.active", limit);
+    if (!rows.ok) return { ok: false, code: rows.code, rows: [], partial: false };
+    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.bookable === true), partial: rows.rows.length >= limit };
   }
 
   async function readWaitlist(scope) {
     const rows = await list(scope.config, TABLES.bookings, scope.organizationId,
       "id,location_id,service_id,assigned_employee_id,customer_id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,notes,metadata,created_at,updated_at",
       "&status=eq.requested&order=created_at.asc", 1000);
-    if (!rows.ok) return { ok: false, code: rows.code, rows: [] };
-    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.waitlist === true && row?.metadata?.waitlist_state !== "booked" && row?.metadata?.waitlist_state !== "cancelled") };
+    if (!rows.ok) return { ok: false, code: rows.code, rows: [], partial: false };
+    return { ok: true, rows: rows.rows.filter((row) =>
+      row?.metadata?.waitlist === true && row?.metadata?.waitlist_state !== "booked"
+      && row?.metadata?.waitlist_state !== "cancelled"), partial: rows.rows.length >= 1000 };
   }
 
-  app.get(WAITLIST_PAGE, requireBusinessManager, async (req, res) => {
-    const page = (sections, status = 200) => res.status(status).type("html").send(layout({
-      title: "Waiting list", eyebrow: "Business Builder", heading: "Waiting list",
-      body: "Who is waiting for a place, and the rooms, tables and equipment they can book.",
-      sections,
-      actions: [linkAction("/business-builder/owner/bookings", "Bookings"), linkAction("/business-builder/dashboard", "Back to your workspace")]
-    }));
-    const scope = await context(req);
-    if (!scope.ok) {
-      return page([`<article class="card" role="alert"><h2>Your workspace could not be read</h2><p>${escapeHtml(pages.PROBLEMS[scope.code] || "This page cannot say who is waiting.")} It is not saying nobody is.</p></article>`], scope.status);
-    }
-    const [waitlist, resources] = await Promise.all([readWaitlist(scope), readResources(scope)]);
-    const options = { back: WAITLIST_PAGE, escape: escapeHtml };
-    return page([
-      pages.notice(req.query, escapeHtml),
-      pages.waitlistCard(waitlist, resources, options),
-      pages.addToWaitlistForm(resources, options),
-      pages.resourcesCard(resources, options)
-    ].filter(Boolean));
-  });
 
-  // A dedicated, accessible resource page complements the existing waitlist page.
-  // Keep the newer shared read model and analytics path rather than replacing them
-  // with the older reservation branch's operations handlers.
-  app.get(RESOURCE_PAGE, requireBusinessManager, async (req, res) => {
+  // The HTML and JSON views share the same organization-scoped readers.
+  async function renderReservationPage(req, res, kind, status = null, input = {}, problem = "") {
     res.set("Cache-Control", "private, no-store");
     const scope = await context(req);
-    const [resources, locations] = scope.ok ? await Promise.all([
-      readResources(scope),
-      list(scope.config, "business_locations", scope.organizationId, "id,name", "&status=eq.active&order=name.asc,id.asc", 201)
-    ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }];
-    const unreadable = !scope.ok || !resources.ok || !locations.ok;
-    const failures = {
-      resource_name_required: "Enter a resource name and try again.",
+    const workspaceId = req.sonaraBusinessMembership?.workspace_id || "";
+    const success = String(req.query?.saved || req.query?.done || "");
+    const issue = problem || String(req.query?.problem || "");
+    const errors = {
       invalid_capacity: "Capacity must be a whole number between 1 and 1000.",
       invalid_location_id: "Choose a valid location for this business.",
       location_not_yours: "The selected location is not part of this business.",
-      database_request_failed: "The resource could not be saved. Check the list before retrying."
+      resource_not_available: "The selected resource is not available.",
+      invalid_party_size: "Party size must be a whole number between 1 and 1000.",
+      database_request_failed: "The save could not be confirmed. Check the list before trying to add it again.",
+      database_response_invalid: "Records could not be read. Please check again.",
+      waitlist_contact_required: "Add a name, email or phone number.",
+      invalid_contact: "Check the customer email address.",
+      invalid_time_window: "Enter real UTC times in chronological order."
     };
-    const problem = String(req.query?.problem || "");
-    const error = Boolean(problem);
-    const message = error ? (failures[problem] || "The request could not be completed.")
-      : req.query?.done === "resource" ? "Your resource has been saved." : "";
-    return res.status(unreadable ? (scope.status || 503) : 200).type("html").send(resourcePages.resources({
-      rows: resources.rows || [], locations: (locations.rows || []).slice(0, 200),
-      workspaceId: req.sonaraBusinessMembership?.workspace_id || "",
-      unreadable, truncated: (resources.rows || []).length >= 1000 || (locations.rows || []).length >= 201,
-      error, message, createAction: "/api/business/reservation-resources"
+    const [resources, locations, waitlist] = scope.ok ? await Promise.all([
+      readResources(scope, 201),
+      kind === "resources" ? list(scope.config, "business_locations", scope.organizationId,
+        "id,name", "&status=eq.active&order=name.asc,id.asc", 201) : Promise.resolve({ ok: true, rows: [] }),
+      kind === "waitlist" ? readWaitlist(scope) : Promise.resolve({ ok: true, rows: [] })
+    ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }, { ok: false, rows: [] }];
+    const unreadable = !scope.ok || !resources.ok || (kind === "resources" ? !locations.ok : !waitlist.ok);
+    const error = Boolean(issue || !scope.ok);
+    const message = error ? (errors[issue] || (scope.ok ? "Your changes were not saved." : "Your workspace could not be read."))
+      : success ? "Saved. Your records were updated." : "";
+    if (kind === "resources") {
+      return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(resourcePages.resources({
+        rows: (resources.rows || []).slice(0, 200), locations: (locations.rows || []).slice(0, 200),
+        workspaceId, input, unreadable, truncated: resources.partial || (locations.rows || []).length >= 201,
+        error, message, createAction: "/api/business/reservation-resources"
+      }));
+    }
+    return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(resourcePages.waitlist({
+      rows: waitlist.rows || [], resources: resources.rows || [], workspaceId, input,
+      unreadable, truncated: Boolean(resources.partial || waitlist.partial),
+      error, message, createAction: "/api/business/waitlist",
+      offerAction: "/api/business/waitlist/:bookingId/offer"
     }));
-  });
+  }
+
+
+  function sendReservation(req, res, status, body, doneKey) {
+    if (!wantsHtml(req)) return res.status(status).json(body);
+    const destination = doneKey === "resource" ? RESOURCE_PAGE : WAITLIST_PAGE;
+    const workspaceId = req.sonaraBusinessMembership?.workspace_id;
+    if (status < 300 && body?.ok !== false) {
+      const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}&saved=${doneKey}` : `?saved=${doneKey}`;
+      return res.redirect(303, destination + query);
+    }
+    return renderReservationPage(req, res, doneKey === "resource" ? "resources" : "waitlist",
+      status, req.body || {}, body?.code || "database_request_failed");
+  }
+
+  app.get(WAITLIST_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "waitlist"));
+  app.get(RESOURCE_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "resources"));
 
   // One reader for the page and the JSON, so they cannot disagree. A source
   // that could not be read is named rather than counted as zero, and a source
@@ -247,28 +263,30 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!scope.ok) return res.status(scope.status).json(scope);
     const resources = await readResources(scope);
     if (!resources.ok) return res.status(503).json({ ok: false, code: resources.code });
-    return res.status(200).json({ ok: true, resources: resources.rows });
+    return res.status(200).json({ ok: true, resources: resources.rows, partial: resources.partial });
   });
 
   app.post("/api/business/reservation-resources", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "resource");
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "resource");
     const name = clean(req.body?.name, 160);
-    if (!name) return respond(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
+    if (!name) return sendReservation(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
     const requestedType = clean(req.body?.resource_type || req.body?.resourceType || req.body?.asset_type, 40) || "equipment";
     const assetType = BUSINESS_ASSET_TYPES.has(requestedType) ? requestedType : "other";
-    const capacity = Number(req.body?.capacity ?? 1);
-    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 1000) {
-      return respond(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
+    const rawCapacity = req.body?.capacity ?? 1;
+    const capacity = typeof rawCapacity === "number" || typeof rawCapacity === "string"
+      ? Number(rawCapacity) : NaN;
+    if (String(rawCapacity).trim() === "" || !Number.isSafeInteger(capacity) || capacity < 1 || capacity > 1000) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
     }
     const locationId = req.body?.location_id || req.body?.locationId || null;
     if (locationId) {
-      if (!validUuid(locationId)) return respond(req, res, 400, { ok: false, code: "invalid_location_id" }, "resource");
+      if (!validUuid(locationId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_location_id" }, "resource");
       const owned = await list(scope.config, "business_locations", scope.organizationId,
         "id", `&id=eq.${enc(locationId)}`, 1);
-      if (!owned.ok) return respond(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
+      if (!owned.ok) return sendReservation(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
       if (!owned.rows.some((row) => row.id === locationId)) {
-        return respond(req, res, 403, { ok: false, code: "location_not_yours" }, "resource");
+        return sendReservation(req, res, 404, { ok: false, code: "location_not_yours" }, "resource");
       }
     }
     const created = await request(scope.config, TABLES.assets, "", {
@@ -288,7 +306,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       }
     });
     const confirmed = created.ok && Boolean(created.rows[0]?.id);
-    return respond(req, res, confirmed ? 201 : 502, {
+    return sendReservation(req, res, confirmed ? 201 : 502, {
       ok: confirmed, resource: created.rows[0] || null,
       code: confirmed ? null : created.code || "database_request_failed"
     }, "resource");
@@ -299,60 +317,148 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!scope.ok) return res.status(scope.status).json(scope);
     const waitlist = await readWaitlist(scope);
     if (!waitlist.ok) return res.status(503).json({ ok: false, code: waitlist.code });
-    return res.status(200).json({ ok: true, waitlist: waitlist.rows });
+    return res.status(200).json({ ok: true, waitlist: waitlist.rows, partial: waitlist.partial });
   });
+
+
+  async function ownedReference(scope, table, id, options = "") {
+    const found = await list(scope.config, table, scope.organizationId, "id", `&id=eq.${enc(id)}${options}`, 1);
+    return !found.ok ? { ok: false, status: 503, code: "database_request_failed" }
+      : found.rows.some((row) => row.id === id) ? { ok: true }
+        : { ok: false, status: 404, code: table === TABLES.assets ? "resource_not_available" : "reference_not_found" };
+  }
+
+  function utcFormTime(value) {
+    if (value === undefined || value === null || value === "") return { ok: true, iso: null };
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return { ok: false };
+    const iso = value + ":00.000Z";
+    const date = new Date(iso);
+    return Number.isFinite(date.getTime()) && date.toISOString() === iso
+      ? { ok: true, iso } : { ok: false };
+  }
 
   app.post("/api/business/waitlist", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "waitlist");
-    const customerName = clean(req.body?.customer_name || req.body?.customerName, 200);
-    const customerEmail = clean(req.body?.customer_email || req.body?.customerEmail, 320);
-    const customerPhone = clean(req.body?.customer_phone || req.body?.customerPhone, 80);
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "waitlist");
+    const body = req.body || {};
+    const customerName = clean(body.customer_name || body.customerName, 200);
+    const customerEmail = clean(body.customer_email || body.customerEmail, 320);
+    const customerPhone = clean(body.customer_phone || body.customerPhone, 80);
     if (!customerName && !customerEmail && !customerPhone) {
-      return respond(req, res, 400, { ok: false, code: "waitlist_contact_required" }, "waitlist");
+      return sendReservation(req, res, 400, { ok: false, code: "waitlist_contact_required" }, "waitlist");
+    }
+    if (customerEmail && !looksLikeEmail(customerEmail)) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_contact" }, "waitlist");
+    }
+    const partyValue = body.party_size ?? body.partySize ?? 1;
+    const partySize = typeof partyValue === "number" || typeof partyValue === "string" ? Number(partyValue) : NaN;
+    if (String(partyValue).trim() === "" || !Number.isSafeInteger(partySize) || partySize < 1 || partySize > 1000) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_party_size" }, "waitlist");
+    }
+    const start = utcFormTime(body.preferred_start ?? body.preferredStart);
+    const end = utcFormTime(body.preferred_end ?? body.preferredEnd);
+    if (!start.ok || !end.ok || (start.iso && end.iso && end.iso <= start.iso)) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_time_window" }, "waitlist");
+    }
+    const rawResourceIds = body.resource_ids ?? body.resourceIds;
+    if (rawResourceIds !== undefined && rawResourceIds !== null && !Array.isArray(rawResourceIds)
+      && typeof rawResourceIds !== "string") {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_resource_ids" }, "waitlist");
+    }
+    const resourceIds = listOf(rawResourceIds);
+    if (resourceIds.length > 50 || resourceIds.some((id) => !validUuid(id)) || new Set(resourceIds).size !== resourceIds.length) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_resource_ids" }, "waitlist");
+    }
+    for (const id of resourceIds) {
+      const owned = await ownedReference(scope, TABLES.assets, id, "&status=eq.active");
+      if (!owned.ok) return sendReservation(req, res, owned.status, { ok: false, code: owned.code }, "waitlist");
+      const read = await list(scope.config, TABLES.assets, scope.organizationId, "id,metadata",
+        `&id=eq.${enc(id)}&status=eq.active`, 1);
+      if (!read.ok) return sendReservation(req, res, 503, { ok: false, code: read.code }, "waitlist");
+      if (read.rows[0]?.metadata?.bookable !== true) {
+        return sendReservation(req, res, 404, { ok: false, code: "resource_not_available" }, "waitlist");
+      }
+    }
+    const refs = [
+      ["location_id", "business_locations"],
+      ["service_id", "business_service_catalog"],
+      ["assigned_employee_id", "business_employee_profiles"],
+      ["customer_id", "customers"]
+    ];
+    const linked = {};
+    for (const [column, table] of refs) {
+      const camel = column.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      const supplied = body[column] ?? body[camel] ?? null;
+      if (supplied === "" || supplied === null) { linked[column] = null; continue; }
+      if (!validUuid(supplied)) return sendReservation(req, res, 400, { ok: false, code: "invalid_" + column }, "waitlist");
+      const owned = await ownedReference(scope, table, supplied);
+      if (!owned.ok) return sendReservation(req, res, owned.status, { ok: false, code: owned.code }, "waitlist");
+      linked[column] = supplied;
     }
     const created = await request(scope.config, TABLES.bookings, "", {
       method: "POST",
       body: {
         organization_id: scope.organizationId,
-        location_id: validUuid(req.body?.location_id || req.body?.locationId) ? (req.body.location_id || req.body.locationId) : null,
-        service_id: validUuid(req.body?.service_id || req.body?.serviceId) ? (req.body.service_id || req.body.serviceId) : null,
-        assigned_employee_id: validUuid(req.body?.assigned_employee_id || req.body?.assignedEmployeeId) ? (req.body.assigned_employee_id || req.body.assignedEmployeeId) : null,
-        customer_id: validUuid(req.body?.customer_id || req.body?.customerId) ? (req.body.customer_id || req.body.customerId) : null,
+        ...linked,
         customer_name: customerName || null,
         customer_email: customerEmail || null,
         customer_phone: customerPhone || null,
         status: "requested",
-        notes: clean(req.body?.notes, 2000) || null,
+        notes: clean(body.notes, 2000) || null,
         metadata: {
-          waitlist: true,
-          waitlist_state: "waiting",
-          preferred_start: clean(req.body?.preferred_start || req.body?.preferredStart, 80) || null,
-          preferred_end: clean(req.body?.preferred_end || req.body?.preferredEnd, 80) || null,
-          party_size: Math.min(1000, Math.max(1, Number(req.body?.party_size || req.body?.partySize) || 1)),
-          // A form posts one ticked box as a string and several as an array.
-          resource_ids: listOf(req.body?.resource_ids ?? req.body?.resourceIds).filter(validUuid).slice(0, 50)
+          waitlist: true, waitlist_state: "waiting",
+          preferred_start: start.iso, preferred_end: end.iso,
+          party_size: partySize, resource_ids: resourceIds
         }
       }
     });
-    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, entry: created.rows[0] || null, code: created.code }, "waitlist");
+    const confirmed = created.ok && Boolean(created.rows[0]?.id);
+    return sendReservation(req, res, confirmed ? 201 : 502, {
+      ok: confirmed, entry: created.rows[0] || null,
+      code: confirmed ? null : created.code || "database_request_failed"
+    }, "waitlist");
   });
+
 
   app.post("/api/business/waitlist/:bookingId/offer", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
-    if (!scope.ok) return respond(req, res, scope.status, scope, "offer");
-    if (!validUuid(req.params.bookingId)) return respond(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
+    if (!scope.ok) return sendReservation(req, res, scope.status, scope, "offer");
+    const bookingId = req.params.bookingId;
+    if (!validUuid(bookingId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
     const found = await request(scope.config, TABLES.bookings,
-      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}&select=id,metadata,status&limit=1`);
+      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(bookingId)}&select=id,metadata,status&limit=1`);
+    if (!found.ok) return sendReservation(req, res, 503, { ok: false, code: found.code }, "offer");
     const booking = found.rows[0];
-    if (!found.ok) return respond(req, res, 502, { ok: false, code: "database_request_failed" }, "offer");
-    if (!booking || booking?.metadata?.waitlist !== true) return respond(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
-    const metadata = { ...(booking.metadata || {}), waitlist_state: "offered", offered_at: new Date().toISOString() };
+    if (!booking || booking.metadata?.waitlist !== true) {
+      return sendReservation(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
+    }
+    if (booking.status !== "requested") {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_closed" }, "offer");
+    }
+    if (booking.metadata?.waitlist_state === "offered") {
+      return sendReservation(req, res, 200, { ok: true, entry: booking, alreadyOffered: true,
+        customerNotified: false }, "offer");
+    }
+    if (booking.metadata?.waitlist_state !== "waiting") {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_closed" }, "offer");
+    }
+    // Compare-and-swap using BOTH source status and complete original metadata.
+    // This rejects a concurrent booking confirmation/cancellation or a change
+    // to the customer's party/resources rather than overwriting it with stale data.
+    const nextMetadata = { ...booking.metadata,
+      waitlist_state: "offered", offered_at: new Date().toISOString(), offered_by: scope.userId };
+    const original = JSON.stringify(booking.metadata);
     const updated = await request(scope.config, TABLES.bookings,
-      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}`, {
-        method: "PATCH", body: { metadata, updated_at: new Date().toISOString() }
+      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(bookingId)}&status=eq.requested&metadata=eq.${enc(original)}`, {
+        method: "PATCH",
+        body: { metadata: nextMetadata, updated_at: new Date().toISOString() }
       });
-    return respond(req, res, updated.ok ? 200 : 502, { ok: updated.ok, entry: updated.rows[0] || null, code: updated.code, customerNotified: false }, "offer");
+    if (!updated.ok) return sendReservation(req, res, 503, { ok: false, code: updated.code }, "offer");
+    if (updated.rows.length !== 1) {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_changed" }, "offer");
+    }
+    return sendReservation(req, res, 200, { ok: true, entry: updated.rows[0],
+      customerNotified: false, alreadyOffered: false }, "offer");
   });
 
   app.get("/api/business/map/snapshot", requireBusinessManager, async (req, res) => {
@@ -383,20 +489,8 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 // named notice; an API client gets the JSON it always got. Only an address on
 // this site is a place to send somebody back to.
 function wantsHtml(req) {
-  const accept = String(req.headers?.accept || "");
-  return accept.includes("text/html") && !/^application\/json/.test(accept);
-}
-
-function backFrom(req) {
-  const back = String(req.body?.back || "");
-  return /^\/[a-z0-9/-]*$/.test(back) && back.length <= 200 ? back : WAITLIST_PAGE;
-}
-
-function respond(req, res, status, body, doneKey) {
-  if (!wantsHtml(req)) return res.status(status).json(body);
-  const back = backFrom(req);
-  if (status < 300 && body?.ok !== false) return res.redirect(303, `${back}?done=${doneKey}`);
-  return res.redirect(303, `${back}?problem=${encodeURIComponent(String(body?.code || "database_request_failed"))}`);
+  const accept = String(req.get?.("accept") || req.headers?.accept || "").toLowerCase();
+  return accept.includes("text/html") && !accept.startsWith("application/json");
 }
 
 function listOf(value) {
