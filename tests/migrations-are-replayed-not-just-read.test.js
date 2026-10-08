@@ -102,7 +102,7 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(oldSql, /legacy_count FROM subscription_replay_shape\) = 0/);
       assert.match(oldSql, /legacy_count FROM subscription_replay_shape\) = 2/);
       assert.match(oldSql, /DO \$dedup_if_applicable\$/);
-      assert.doesNotMatch(oldSql, /(?m)^DROP POLICY "Users can view their own subscription"/,
+      assert.doesNotMatch(oldSql, /^DROP POLICY "Users can view their own subscription"/m,
         "a source replay without these two optional policies must not drop one");
       assert.match(newSql, /postmigration subscription policy lineage differs from reviewed exact state/);
     });
