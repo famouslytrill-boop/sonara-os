@@ -12,6 +12,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const from = (name) => require(path.join(root, name));
 const files = (dir) => fs.readdirSync(path.join(root, dir)).sort();
+// Stable code-point sort: localeCompare changes between Node/ICU environments.
+const compareCanonical = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const output = path.join(root, "docs", "CAPABILITY_ROUTE_SCHEMA_COVERAGE.md");
 
 // Configure a local inspection server. These placeholders cannot authenticate.
@@ -58,7 +60,7 @@ for (const layer of app._router.stack) {
   }
 }
 const registered = new Map(ROUTE_REGISTRY.map((item) => [item.route, item]));
-const sortedRoutes = [...routeMethods].sort(([a], [b]) => a.localeCompare(b));
+const sortedRoutes = [...routeMethods].sort(([a], [b]) => compareCanonical(a, b));
 const tableEvidence = (table) => {
   const names = tableMigrations.get(table) || [];
   return names.length ? `${table} (${names[0]})` : `${table} (migration unresolved)`;
@@ -106,11 +108,11 @@ for (const [key, spec] of Object.entries(RESOURCES)) lines.push(`| ${cell(key)} 
 for (const [route, spec] of Object.entries(RESOURCE_MAP)) lines.push(`| ${cell(route)} | ${cell(tableEvidence(spec.table))} | ${cell((spec.required || []).join(", "))} |`);
 
 lines.push("", "## Database schema creation index", "", "CREATE TABLE evidence only; later ALTER, policies, grants and remote applied state must be checked separately. No migrations are applied by this report.", "", "| Table | Creating migration(s) |", "| --- | --- |");
-for (const [table, names] of [...tableMigrations].sort(([a], [b]) => a.localeCompare(b))) lines.push(`| ${table} | ${names.map(cell).join(", ")} |`);
+for (const [table, names] of [...tableMigrations].sort(([a], [b]) => compareCanonical(a, b))) lines.push(`| ${table} | ${names.map(cell).join(", ")} |`);
 
 lines.push("", "## External repository placement", "", "A placement is a research destination, **not** permission to execute code. Status is taken from the curated register; verify upstream licence and current security before promotion.", "", "| Repository | Workspace destination | Intake status | Source |", "| --- | --- | --- | --- |");
 const { surfacesFor } = from("lib/sonara-repository-product-routing.cjs");
-for (const record of readOpenSourceTools().sort((a, b) => a.name.localeCompare(b.name))) {
+for (const record of readOpenSourceTools().sort((a, b) => compareCanonical(a.name, b.name))) {
   lines.push(`| ${cell(record.name)} | ${cell(surfacesFor(record).map((s) => s.route).join(", "))} | ${cell(record.integrationStatus)} | data/open-source-tools.ts |`);
 }
 for (const record of REQUESTED_REPOSITORIES) {
