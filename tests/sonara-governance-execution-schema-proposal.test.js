@@ -15,6 +15,11 @@ describe("governed execution SQL proposal",()=>{
     assert.match(sql,/UNIQUE \(organization_id,idempotency_key\)/);
     assert.match(sql,/claim_expires_at > claimed_at/);
   });
+  it("binds the claim to the canonical organization approval queue",()=>{
+    assert.match(sql,/pending_action_id uuid NOT NULL/);
+    assert.match(sql,/public\.agent_pending_actions/);
+    assert.match(sql,/must not become a second organization approval truth/);
+  });
   it("records attempts separately from the claim",()=>{
     assert.match(sql,/sonara_governed_execution\.attempts/);
     assert.match(sql,/attempt_no integer/);
@@ -30,10 +35,10 @@ describe("governed execution SQL proposal",()=>{
     assert.match(sql,/'concurrency'/);
     assert.match(sql,/consumed_units integer NOT NULL/);
   });
-  it("uses an idempotent transactional outbox shape",()=>{
-    assert.match(sql,/sonara_governed_execution\.outbox/);
-    assert.match(sql,/UNIQUE \(organization_id,claim_id,event_key\)/);
-    assert.match(sql,/dead_letter/);
+  it("reuses the existing durable event outbox instead of creating a second one",()=>{
+    assert.match(sql,/REUSES public\.event_outbox and public\.event_delivery_attempts/);
+    assert.doesNotMatch(sql,/CREATE TABLE IF NOT EXISTS sonara_governed_execution\.outbox/);
+    assert.match(sql,/existing organization-scoped idempotency\/event contract/);
   });
   it("keeps browser roles revoked and RLS enabled",()=>{
     assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
