@@ -8,6 +8,7 @@ on:
       - codex/convergence-execution-contract-20261007
       - codex/business-management-scope-20261007
       - codex/reservation-workflows-20261007
+      - codex/provider-runtime-gsc-20261008
 
 permissions:
   contents: write
