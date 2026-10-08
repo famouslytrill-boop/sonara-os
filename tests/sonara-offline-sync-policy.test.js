@@ -93,6 +93,19 @@ describe("offline deterministic sync policy",()=>{
     assert.equal(out.state,"idempotent_already_applied");
     assert.equal(out.applyCandidate,false);
   });
+  it("cannot use a truthy replay flag to claim a malformed or prohibited action already happened",()=>{
+    for(const overrides of [
+      {operation:"refund",baseVersion:1,serverVersion:1,mutationAlreadyApplied:true},
+      {operation:"append_note",baseVersion:"1",serverVersion:1,mutationAlreadyApplied:true},
+      {operation:"append_note",baseVersion:1,serverVersion:1,mutationAlreadyApplied:"true"}
+    ]){
+      const out=reconcileOfflineMutation(overrides);
+      assert.equal(out.state,"blocked_pending_review");
+      assert.equal(out.applyCandidate,false);
+      assert.equal(out.humanConflictReview,true);
+      assert.ok(out.issues.length>0);
+    }
+  });
   it("unknown operations fail closed",()=>{
     const out=prepareOfflineMutation(valid({operation:"do_anything"}));
     assert.ok(out.blockers.includes("unknown_offline_operation"));
