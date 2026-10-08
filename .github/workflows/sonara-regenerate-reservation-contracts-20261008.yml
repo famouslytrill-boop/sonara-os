@@ -1,0 +1,39 @@
+name: SONARA Regenerate Reservation Contracts 20261008
+on:
+  push:
+    branches: [codex/repair-reservation-destination-contracts-20261008]
+permissions:
+  contents: write
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+          ref: codex/repair-reservation-destination-contracts-20261008
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+        with:
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build the exact capability inventory from registered routes
+        run: node scripts/generate-capability-inventory.cjs --write
+      - name: Save generated outputs; never change gate rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/sonara-regenerate-reservation-contracts-20261008.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/capability-inventory.json docs/CAPABILITY_MAP.md .github/workflows/sonara-regenerate-reservation-contracts-20261008.yml
+          if git diff --cached --quiet; then
+            echo 'No generated changes'
+            exit 0
+          fi
+          git commit -m 'Regenerate capability inventory with validated reservation pages'
+          git push origin HEAD:codex/repair-reservation-destination-contracts-20261008
