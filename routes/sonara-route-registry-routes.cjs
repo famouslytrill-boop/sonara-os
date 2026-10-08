@@ -22,22 +22,22 @@ const TUTORIALS = {
   "/tutorials/getting-started": {
     title: "Getting started",
     body: "Create an account, choose the product that matches the work in front of you, create a workspace, and run one free tool before considering a paid plan.",
-    steps: ["Create or sign in to your account.", "Create your organization and workspace.", "Choose Business Builder, Creator Studio, or Growth Studio.", "Run a free tool and review the generated output.", "Upgrade only when you need saved history, advanced workflows, or operator delivery."]
+    steps: ["Create or sign in to your account.", "Review your account security settings, and do not share passwords or recovery codes.", "Create your organization and workspace; give other people only the permissions they need.", "Choose Business Builder, Creator Studio, or Growth Studio.", "Run a clearly labeled free tool and review the generated output.", "Upgrade only when you need saved history or advanced workflows; confirm access before proceeding.", "Use Help and Contact if an action is blocked or does not save."]
   },
   "/tutorials/business-builder": {
     title: "Business Builder tutorial",
     body: "Move from an offer idea to an operating business without filling an empty dashboard first.",
-    steps: ["Describe the customer problem and first offer.", "Use the pricing and setup tools to test the offer.", "Create the workspace records you actually need.", "Track requests, customers, and operational follow-up.", "Use paid records only after billing access is verified."]
+    steps: ["Describe the customer problem and first offer.", "Use the pricing and setup tools to test the offer.", "Create only the workspace records you actually need, and restrict employee and customer access.", "Track requests, customers, and operational follow-up.", "Verify payment-provider readiness and permissions before accepting money.", "Use paid records only after billing access is verified; use Help when an action is unavailable."]
   },
   "/tutorials/creator-studio": {
     title: "Creator Studio tutorial",
     body: "Organize a creative system from the story and asset plan through release and delivery.",
-    steps: ["Create a creator profile outline.", "Build an asset and release checklist.", "Turn the core idea into a content brief.", "Track rights, releases, and deliverables in the creator workspace.", "Request operator review when the project needs hands-on delivery."]
+    steps: ["Create a creator profile outline.", "Build an asset and release checklist.", "Turn the core idea into a content brief.", "Confirm ownership, usage rights, consent and sharing permissions before uploading or publishing media.", "Track rights, releases, and deliverables in the creator workspace.", "Review all outbound/publication actions before approval and contact support when a delivery is blocked."]
   },
   "/tutorials/growth-studio": {
     title: "Growth Studio tutorial",
     body: "Run focused, consent-aware growth work with clear goals and review dates.",
-    steps: ["Choose one measurable campaign outcome.", "Create a campaign outline and offer angle.", "Prepare a consent-safe follow-up script.", "Track leads and the next responsible action.", "Review the signal before expanding the campaign."]
+    steps: ["Choose one measurable campaign outcome.", "Create a campaign outline and offer angle.", "Check each recipient’s consent and the sender’s verified email configuration before outreach.", "Prepare a follow-up message and review it before sending; honor opt-outs and suppressions.", "Track only the lead records your role and organization can access.", "Review delivery, bounce and campaign signals before expanding; contact support if delivery is uncertain."]
   }
 };
 
@@ -209,7 +209,7 @@ function registerRouteRegistryRoutes(app, deps) {
         ...tutorial.steps.map((step, index) => brandCard(`Step ${index + 1}`, step)),
         ...getGuide(route).map(([heading, detail]) => brandCard(heading, detail))
       ],
-      actions: [linkAction("/tutorials", "All tutorials"), linkAction("/start", "Start"), linkAction("/help", "Get help")]
+      actions: [linkAction("/tutorials", "All tutorials"), linkAction("/start", "Start"), linkAction("/help", "Get help and FAQs"), linkAction("/account/security", "Account security"), linkAction("/privacy", "Privacy"), linkAction("/contact", "Contact support")]
     }));
   }
 
