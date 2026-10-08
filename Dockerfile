@@ -19,6 +19,7 @@ COPY routes ./routes
 COPY lib ./lib
 COPY config ./config
 COPY data ./data
+COPY android ./android
 COPY openapi ./openapi
 COPY scripts ./scripts
 COPY ui ./ui

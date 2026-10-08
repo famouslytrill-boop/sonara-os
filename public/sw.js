@@ -138,6 +138,25 @@ self.addEventListener("fetch", (event) => {
 // delivered. So a malformed payload has to degrade to a plain notification
 // rather than throw.
 
+// Validate both receipt and click paths. WHATWG URL parsing treats backslashes
+// after a leading slash as authority separators, so `startsWith("/")` alone
+// does not guarantee a same-origin notification click.
+function safeNotificationPath(value) {
+  if (typeof value !== "string" || value.length > 2048 ||
+      !value.startsWith("/") || value.startsWith("//") ||
+      [...value].some((character) => character === "\\" ||
+        character.charCodeAt(0) <= 0x20 || character.charCodeAt(0) === 0x7f)) {
+    return "/dashboard";
+  }
+  try {
+    const parsed = new URL(value, self.location.origin);
+    if (parsed.origin !== self.location.origin) return "/dashboard";
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return "/dashboard";
+  }
+}
+
 function readPush(event) {
   // Three states, not two. No data at all is a legitimate push (some services
   // send a wake-up with no body); unparseable data is a different thing and
@@ -155,9 +174,7 @@ function readPush(event) {
       // Only a same-origin path is kept. An absolute URL here would let a push
       // payload decide where a click lands, which is an open redirect with a
       // notification in front of it.
-      path: typeof parsed.path === "string" && parsed.path.startsWith("/") && !parsed.path.startsWith("//")
-        ? parsed.path
-        : "/dashboard",
+      path: safeNotificationPath(parsed.path),
       // Collapses repeats of the same subject rather than stacking them.
       tag: typeof parsed.tag === "string" ? parsed.tag.slice(0, 40) : undefined
     };
@@ -186,14 +203,21 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const path = (event.notification.data && event.notification.data.path) || "/dashboard";
+  const path = safeNotificationPath(event.notification.data && event.notification.data.path);
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
       // Focus a tab that is already open rather than opening a second one. A
       // person with the app open who taps a notification expects to be taken
       // to it, not given a duplicate.
       for (const client of windows) {
-        if (client.url.includes(path) && "focus" in client) return client.focus();
+        try {
+          const open = new URL(client.url);
+          if (open.origin === self.location.origin &&
+              open.pathname + open.search + open.hash === path &&
+              "focus" in client) return client.focus();
+        } catch {
+          // Ignore stale or malformed client URLs; still open the safe path.
+        }
       }
       if (windows.length && "focus" in windows[0]) {
         return windows[0].focus().then(() => self.clients.openWindow(path));

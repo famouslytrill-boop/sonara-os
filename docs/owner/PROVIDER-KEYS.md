@@ -376,7 +376,7 @@ The adapter is written, but this provider issues credentials through an app revi
 
 The adapter is written, but this provider issues credentials through an app review or partner process, so the account work comes first.
 
-**Where to get it:** <https://learn.microsoft.com/linkedin/marketing/>
+**Where to get it:** <https://learn.microsoft.com/linkedin/marketing/community-management/shares/posts-api>
 
 **Studio:** Growth Studio. **Registry key:** `linkedin_marketing`.
 
@@ -390,9 +390,9 @@ The adapter is written, but this provider issues credentials through an app revi
 
 **Before you turn it on:**
 
-- Partner access and approved scopes are required.
-- Public posts require explicit user approval.
-- Provider access state is exposed without credential values.
+- Organization posting uses the versioned Posts API after explicit owner-authorized approval.
+- The runtime sends Linkedin-Version 202609 and X-Restli-Protocol-Version 2.0.0.
+- The provider-issued post id is retained as execution evidence; credentials are never returned to browsers.
 
 ### Mailchimp
 

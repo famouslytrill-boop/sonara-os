@@ -1,5 +1,132 @@
 # Handoff Log
 
+## 2026-10-08 - Codex - commerce amount integrity and engineering/marketing pass
+
+- Exact base: `add53bf33a1c7cffa72fb7fc2b3738c25e8dac00`. Branch:
+  `codex/commerce-amount-integrity-20261008`. Separate Docker repair: draft
+  [PR #449](https://github.com/famouslytrill-boop/sonara-os/pull/449), with
+  hosted image, native migration replay and validation checks passing.
+  Implementation parent: `4d1b74a08db7ad734e8a35775c790f18f029b3d5`.
+  Include the repair as an ancestor for container proof. Target main to run
+  base-filtered checks; merge the repair first so the commerce diff narrows.
+- Added `lib/sonara-commerce-amounts.cjs`; reused it in storefront, creator
+  marketplace, merchant-payment policy and five commerce route modules.
+  Charge displays now preserve Stripe minor units, including JPY/MGA and
+  ISK/UGX compatibility. Strict stored-amount parsing rejects coercion and
+  int32 overflow; oversized orders fail before writes or inventory holds.
+- Workflow slice: offered price -> bounded immutable order amounts -> accurate
+  receipt/report display. No second stock/payment transition was introduced.
+  Payment/currency eligibility and FX remain provider contracts.
+- Added negative, boundary and currency regressions, including route refusal
+  without side effects. Refreshed generated inventory/handoff; updated the
+  proprietary-source equality count for the new module. Locks/migrations unchanged.
+- Added dated `docs/research/SONARA_ENGINEERING_MARKETING_PASS_2026-10-08.md`;
+  removed the unsupported universal-lowest-price claim from plan-source commentary.
+- Verification: frozen install, moderate audit, typecheck, lint and build pass;
+  201 focused commerce checks and 6,869 full-suite tests pass, six pending.
+  Governance gates, route smoke and client-secret scan pass. Local Node
+  24.19.0/pnpm 11.25.0 differ from pinned pnpm 12.7.0; no lock changes.
+- Live Stripe prices skipped without credentials. Local SQL replay skipped:
+  migration files read, no SQL executed. No provider transaction, production
+  schema/device/customer proof or deployment. Keep the site temporarily offline.
+- Next unblocked slice: audit remaining financial aggregates for unknown values.
+  Next provider-dependent slice: authorized creator purchase through versioned
+  private delivery, refund/dispute and seller reconciliation.
+
+## 2026-10-07 - Codex - latest main commerce evidence and #444 follow-up
+
+- Base: `b8684abd`, Claude #444 merged. Branch: `codex/commerce-evidence-hardening-20261007`.
+- Addressed Claude's named unreferenced-module blocker by recording individual
+  staging reasons for all 29 test-only governance modules from #442/#443.
+  These remain unconnected; accounting is not runtime integration.
+- Reconciliation now verifies charge intent/capture/refund consistency and
+  balance transaction source/arithmetic. No money-moving operations changed.
+- Generated inventory at this base: zero route/data review gaps, 15 remaining
+  workspace fallbacks. Use generated inventory over older handoff counts.
+- Validation: frozen install, moderate audit, typecheck, lint, build, client-secret
+  scan, route smoke and database contracts passed. Full suite: 6,832 passing,
+  6 pending. Local SQL replay skipped: no PostgreSQL binaries, no SQL executed.
+- Keep the public website's temporary-offline instruction in force. No live
+  charge, refund, payout, migration, production activation or deployment here.
+- Production database application, provider credentials/execution, current-plan
+  customer purchase/retention and physical-device proof remain unverified here.
+
+## 2026-10-07 - Claude - main merged into #444; three base-branch failures fixed, one left for Codex
+
+- Main at `e0379b97` fails `pnpm test` (5) and `verify:gates`. Fixed in #444:
+  - seller reconciliation no longer asks `checkoutReadiness`: historical reads
+    must survive `SONARA_CUSTOMER_FUNDS_MODE` being off, as the comment on that
+    gate says;
+  - `business_integration_connections` gets a `to authenticated` member policy
+    via the generator, now writing `20261007120000`; `20260923070000` is marked
+    applied;
+  - `PROVIDER-KEYS.md` regenerated.
+- **For Codex:** `verify:unreferenced-modules` fails on 29 lib modules from
+  #442/#443 required only by tests. Wire each, delete it, or add it to
+  `TEST_ONLY` in `scripts/report-unreferenced-modules.mjs` with what it waits
+  for. Not done here, because the reasons are yours to know. Until then the gate
+  chain stops there in CI. Every later gate passes locally on the merged tree.
+
+## 2026-10-07 - Claude - Formula calculators, and sixteen formulas that could not be saved (PR #444)
+
+- `/formulas/:formulaKey` (public calculator) and `/formulas/:formulaKey/results`
+  (workspace-gated). The page module is `lib/sonara-formula-pages.cjs`; a new
+  input that is not a single number needs its kind added there, or
+  `tests/every-formula-can-be-saved.test.js` fails.
+- Migration `20261007110000_every_formula_can_be_saved.sql` seeds sixteen
+  definitions. Owner step: apply to production. A formula added to
+  `lib/sonara-formula-library.cjs` now needs a seed row in a migration, or the
+  same test fails.
+- `evaluateFormula` returns, and `/api/formulas/results` stores, only declared
+  inputs. A foreign-key refusal is `409 formula_not_in_database`.
+
+## 2026-10-07 - Claude - Offline check-ins, generation retry (PR #444)
+
+- `public/sonara-offline-queue.js` is a generic device queue (prepare, keep,
+  flush, pending). It is safe only for endpoints that dedupe on
+  `client_event_id`; `/api/location/events` does now (migration
+  `20261007100000`, owner step: apply to production). Do not point it at an
+  endpoint that does not, or a lost answer becomes a second row.
+- `POST /api/creator/generation/jobs/:jobId/retry` goes through the shared
+  `submitGeneration` in routes/creator-generation-routes.cjs. Cancel is now a
+  conditional write; `updateJob(..., { onlyIfUnfinished: true })`.
+
+## 2026-10-07 - Claude - What a campaign cost, and whether it paid for itself (PR #444)
+
+- New table `growth_campaign_spend`, migration `20261007090000_what_a_campaign_cost.sql`:
+  append-only, RLS on with no policy, select and insert for service_role only.
+  Owner step: apply it to production (project `yqncsonkxgwhcxedgevk`) so #444's
+  Supabase Preview passes, as was done for `20261006040000` on #439.
+- `GROWTH_TABLES` gains `sends` and `spend`. A growth record page may now declare
+  `detailPath` (a link column to `${path}/:id`) and `children` (tables the data
+  export carries with it).
+- The closed-table set in `scripts/verify-migration-replay.mjs` is 57. If #441 or
+  #442 add a server-only table, measure the set on the merged tree.
+
+## 2026-10-07 - Claude - Follow-up to #439: work screens, destination register, test harness
+
+- New draft PR on `claude/sonara-engineering-handoff-b6ui1t` (the branch was
+  merged as #439; this is fresh work on top of `a8890755`). LOCKS.md is left to
+  #441, which already records both #439 locks as released.
+- Screens built: lifecycle stage gates from the initiative page, the market
+  intelligence work screen with an opportunity page, and the prompt library's
+  own-instruction saving (`lib/sonara-prompt-library-pages.cjs`). Workspace
+  fallbacks 52 -> 33.
+- `lib/sonara-route-destination-reviews.cjs` records routes that have no page by
+  design (monitors, a scheduler, JSON twins of pages, a method refusal). Each
+  entry's evidence is checked by `routeDestinationReviewsNotHeld`; an entry that
+  is not needed fails too. Your #441 table "Destination workflows still open"
+  reads `routeDestinationReviewGaps`, which this does not rename.
+- **Harness change for both of us:** `tests/helpers/fake-supabase.cjs` now
+  parses `or=(…,and(…))`. Before, it threw, and a route that catches a failed
+  read showed an empty list, so a visibility test could pass by listing nothing.
+  If a test stubs `supabaseHeaders`, pass `options.prefer` through as `Prefer`,
+  or an upsert with `on_conflict` becomes a plain insert.
+- `scripts/report-unused-selected-columns.mjs`: my ACCOUNTED entries now sit at
+  the end of the object, so #441's entry at the top merges without a conflict.
+- Generator: the backtick-template regexes now use disjoint alternations
+  (CodeQL polynomial-ReDoS). The inventory output is byte-identical.
+
 ## 2026-10-07 — Codex: seller payment/licence evidence (PR #441, implementation)
 
 - Built `/creator-studio/owner/marketplace/reconciliation`, linked from the seller marketplace. It reads authenticated seller orders, grants and the connected Stripe account; all provider operations are GETs. Financial evidence requires a verified owner/admin/manager membership in the same organization; unknown roles and staff are refused before sales/provider reads. The organization resolver runs with automatic workspace creation disabled.
@@ -10,7 +137,6 @@
 - Desktop/mobile Chromium checks render the actual route and real document/card shell with fixture provider records, exercise period refresh, and distinguish missing grants/provider failure. Screenshots and logs are uploaded by Browser Quality; this is fixture UI proof, not a live sale. Findings use escaped card markup rather than the shared plain-text card helper.
 - The existing branch regeneration workflow now includes this convergence branch and regenerates capability evidence from a complete CI checkout before a fresh validation commit. The capability map includes a compact generated list of open destination workflows with endpoint, workspace, current fallback and exact source location; these remain open until real screens exist. Derived inventory is never edited by hand.
 - Coordination: #439 is merged; its locks are released. #440 LinkedIn execution and #442 leasing/legal work are untouched. Remaining production proof requires configured accounts and actual customer/provider transactions; no live charges, refunds, payouts or deployment were performed.
-
 
 ## 2026-10-07 - Claude - Record detail pages for every door; declared doors in the inventory
 
@@ -210,55 +336,252 @@ behaviour, not settlement, deployment or real customer/device evidence.
   fulfillment blocking, rate limiting, and a service-only atomic audited RPC in
   append-only migration `20260913190000_purchase_order_approval_controls.sql`.
 - Updated OpenAPI and shared contracts. Focused tests, the 300-operation API
+  contract, and the 118-migration/146-table repository database contract pass.
+- Remaining proof: complete launch gate, pull-request checks, protected
+  production migration application, authenticated tenant/role smoke tests,
+  configured media worker/provider execution, and controlled deployment.
 
-## Booking workflow convergence — PR #445 — 2026-10-07
+## 2026-09-10 UTC - Homepage visual reconciliation
 
-- Creator PR #441 merged on main at `538fa5cd84e7725f8e99fa39ce105ec143f8a9f0`.
-  This workflow branch includes that update and the latest scope PR #443 head
-  `0dea677c377eab0b161cdaa16ba90e112ef21d39`.
-- Adds resource and waitlist screens linked from bookings, native form saves,
-  workspace-preserving redirects, and conditional offer writes that cannot
-  revive or overwrite changed bookings. A recorded offer is not a message,
-  time reservation or confirmed booking.
-- Local verification: 24 focused tests pass. Six actual server cases and four
-  desktop/mobile browser cases are included; full exact-head CI is pending.
-- The intended destination closure is five endpoints. Check generated evidence
-  before claiming a measured fallback reduction.
-- Merge #443 first. #444 independently owns market/prompt screens, destination
-  review evidence, and nested fake Supabase logical filters. Preserve those edits.
-- No production deployment, migration, customer message or live transaction.
+- Audited the current Express-rendered frame against the shared design and frontend contracts. The homepage had the two-column hero grid available in CSS but rendered only the copy column, so its production presentation was flatter than the intended SONARA One interface.
+- Added a real homepage workspace preview in `lib/sonara-page-frame.cjs` with honest readiness language and a direct readiness link. It does not claim provider, billing, or database success.
+- Added responsive styling in `public/sonara-application-ui.css`; the preview remains visible on mobile, fits within the viewport, keeps status text readable, and preserves the existing reduced-motion and touch-target rules.
+- Verification: `pnpm run build`, focused brand-route/motion tests (6 passing), `git diff --check`, and `pnpm run lint` passed. Full suite remains the previously verified 4,377 passing / 6 pending at the reconciled main baseline; no provider secrets were read.
 
-### PR #445 workflow proof at `6bb6a49aedf19ca2698df644c412f672283e0c9f`
+## 2026-09-09 - Usage-bounded reconciliation and photo intake
 
-- Full server suite: 6,394 tests pass, including six real-server native form,
-  workspace, foreign-reference and concurrent-booking regressions.
-- Chromium: all 38 cases pass, including four new desktop/mobile native HTTP
-  workflows. Screenshots of both resource and offered-waitlist pages have been
-  inspected: readable cards and forms, no mobile horizontal overflow.
-- Generated inventory: 939 HTTP operations, 303 declared pages, zero route
-  data-contract review gaps and 56 workspace destination fallbacks (five closed).
-- CodeQL identified a case-sensitive script-tag assertion in the new unit test.
-  The assertion now checks mixed-case opening tags, including tags with attributes;
-  mixed-case malicious input is explicitly tested. Final exact-head checks rerun
-  after this correction. The runtime renderer already escaped those values.
-- Native HTTP browser evidence uses the real controller/renderer and runtime
-  assets with offline database and manager fixtures; real authorization runs in
-  the server regressions. No physical-device or live-customer proof is claimed.
+- Synchronized reconciliation branch with main ddac658e and Claude's registry/dependency repairs; original dirty checkout untouched.
+- Added original customer-flow diagnostic skill and corrected GPL versus AGPL network-use guidance.
+- Added docs/audits/PHOTO_REPOSITORY_INTAKE_20260908.md and USAGE_BOUNDED_COMPLETION_PATH.md; unresolved photo names are not installed runtimes.
+- Frozen pnpm install, moderate dependency audit, git diff --check and full verify:launch passed. PostgreSQL replay skipped (binaries absent), live Stripe prices unverified (key absent), and 21 Python files unmeasured due to missing optional packages. Do not infer production readiness from this entry.
+- Usage snapshot: 73% five-hour and 64% weekly remaining, zero reset credits. Cannot guarantee open-ended scope completion within account limits.
+- Claude: follow the ordered evidence gates in the completion pathway and preserve the superseded database-repair stash without reapplying duplicate migrations.
 
-### Native document transition fallback — 2026-10-07
+## 2026-09-05 UTC - Production member-policy compatibility repair
 
-The native HTTP workflow exposed Chrome's expected ready-promise rejection when
-a cross-document animation is skipped. The original same-document-wrapper
-hypothesis was insufficient; the builder script is not delivered by the current
-frame, so its change is reverted. The actual parser-blocking prepaint script now
-handles AbortError/InvalidStateError/TimeoutError from native pageswap/pagereveal
-ready promises. Unrelated errors still propagate; no global page-error filter or
-motion disabling is added. The frame cache-busts the updated prepaint script.
+- PR #216 merged to `main` as `7aa68a06235bfe44a1c9d5950caf34f5f0f0289c` after all exact-head checks passed.
+- Controlled deployment run 33973274001 validated credentials, dependencies, tests, client-secret boundaries, routes, database contracts, project identity, migration preview, and rollback checkpoint creation.
+- Production migration application then failed transactionally because hosted table `public.customers` exists without the canonical `organization_id` column. Vercel deployment and post-deploy verification did not run.
+- Updated the still-generator-owned migration to test its required scope column before enabling RLS or creating a policy. Tables with an incompatible legacy shape remain unchanged and emit an explicit skip notice; canonical tables keep the intended member policy.
+- Focused generator, policy, frozen-migration, and 145-table contract checks pass. The complete local release gate also passes with 3,802 tests and 6 explicitly pending. Follow-up PR, merge, and controlled deployment retry remain.
 
-Three executable startup tests cover both events, expected cancellations,
-unrelated exceptions and absent transitions. A fifth browser case creates a
-rejected native-transition promise and requires navigation with zero page errors.
-Local focused tests: 27 pass. Final expected full suite: 6,397 tests; Chromium: 39.
-Verify current CI before claiming those full counts have passed.
+## 2026-09-05 UTC - Latest-branch release reconciliation
 
-Primary reference: https://developer.chrome.com/docs/web-platform/view-transitions/cross-document
+- Rebased the routing work onto `fc2b151b`, preserving all 14 newer registry records and adding 32 non-duplicate reviewed records for a 217-record, 213-unique-GitHub-target register.
+- Regenerated the product integration map and handoff prompt from the reconciled registry instead of hand-merging derived output.
+- Passed the complete local release gate with 3,801 tests passing and 6 explicitly pending, followed by build, lint, client-secret, route, database, policy, catalog, registry, JavaScript coverage, Python coverage, and documentation checks.
+- Removed Windows-only gate failures without weakening checks: portable paths and line endings, cross-platform Python discovery, and fingerprint-bound reuse of V8 coverage from the successful release test run.
+- Pull-request checks, merge, and controlled production deployment are the remaining steps in this session.
+
+## 2026-09-03 UTC - Latest registry routing and Windows gate hardening
+
+- Continued from the newest available remote development baseline, commit `8ce041a9`, in `codex/latest-content-hardening-20260902`.
+- Added 32 non-duplicate governed records to the then-current register. That intermediate result was 203 records and 199 unique GitHub targets; the 2026-09-05 reconciliation above supersedes those totals.
+- Preserved a 50-source social evidence manifest: 35 repository identities verified, 31 new register entries, 4 existing entries, and 17 unresolved or service-only sources left unguessed.
+- Added `/technology-radar` as a public read-only governance page and protected technology-reference modules under Business Builder, Creator Studio, and Growth Studio.
+- Kept blocked or restricted records unavailable and presented every repository as a reference, research item, or unavailable record rather than a connected integration.
+- Fixed Windows-only false failures without weakening checks: system ZIP validation falls back from `unzip` to `tar`, path assertions normalize separators, saved dates use UTC, and migration checks normalize CRLF while `.gitattributes` pins `.cjs` and `.sql` to LF.
+- Verification passed: 3,492 tests, lint, typecheck, build, route smoke, client-secret scan, 108-migration/145-table database contract, and all local governance gates.
+- Local migration replay was not executed because PostgreSQL binaries were unavailable. CI remains fail-closed through `SONARA_MIGRATION_REPLAY_REQUIRED=1`.
+- No external repository was installed or copied. No provider was enabled. No secret, deployment, merge, or production data change was made.
+
+## 2026-07-26 UTC - Claude development reconciliation and deployment boundary
+
+- Searched every accessible SONARA GitHub repository; only `famouslytrill-boop/sonara-os` is connected.
+- Searched live branches, open and historical pull requests, recent commits, current workflow code, shared agent records, and Vercel production deployment metadata.
+- No open Claude-generated pull request or live `claude/*` branch remains.
+- The requested branch `claude/fix-deploy-service-role-secret` was confirmed as merged PR #101. Claude head `375a2ef1b3809be76ccd4f3a00a107d8d9f788a9` is an ancestor of current `main`.
+- Current audited `main` is `fa9402a8671bae7934925c5c64f147a221bf4e16`, 45 commits ahead of the Claude service-role fix.
+- Confirmed the production workflow still scopes `SUPABASE_SERVICE_ROLE_KEY` only to the credential guard and catalog database verifier. It is not exposed to dependency installation, build/test, Supabase migration, or Vercel CLI steps.
+- Confirmed PR #100's recommended-product-catalog idempotency guard remains present.
+- Confirmed the Claude-authored `brace-expansion` security override remains pinned to `5.0.8`.
+- Confirmed later PRs #102–#104 build on the Claude baseline rather than removing its security behavior.
+- Latest READY Vercel production deployment found reports commit `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`; no READY deployment matching current `main` was found.
+- Protected secret values were not read or copied. A successful exact-SHA controlled-production run is still required to prove secret presence and deployment completion.
+- Added `.ai/shared/CLAUDE_SYNC_2026-07-26.md` and an automated agent-development verification script so future Claude/Codex sessions detect regressions in the secret scope, catalog idempotency, dependency override, and shared-state baseline.
+
+## 2026-07-19 - Production connectivity hardening released
+
+- User requested assurance that the software and its provider connections work correctly.
+- Audited the live production deployment, route registry, CI workflow, PWA contract, database contract, readiness responses, protected-route behavior, and Vercel runtime logs.
+- The pre-change production system was healthy, but CI did not run the complete route, database/storage, configuration, OpenAPI, documentation, and public-bundle verification suite; the live smoke checked only basic GET statuses.
+- PR #36 expanded main CI and added `SONARA Production Connectivity`, which runs on relevant pull requests, after successful `main` CI, every six hours, and on demand.
+- The production smoke now verifies exact deployment SHA, health/readiness/support semantics, public pages, redirects, customer/admin fail-closed boundaries, PWA/install assets, cohesive assets, secret leakage, and safe validation failures.
+- Exact-head SONARA Industries CI, dependency scan, Docker Image CI, Vercel Preview, and Production Connectivity passed for head `a7d7609ec67c7238d504724ecef57fbcfd4ddc57`.
+- PR #36 merged with the exact-head guard to `aebee84129f3488d91bc51ea81aa0f8c423fc8e7`.
+- Vercel Production deployment `dpl_7RzByXjMYwGp7C78CuNVC6AuiV8Q` reached READY on the exact merge SHA and serves the production domains.
+- Live health reports Express, `main`, production, and the exact merge SHA.
+- Live readiness reports Supabase/account database, Stripe, signed payment updates, Resend/email, founder/admin protection, checkout, and all approved plans configured or enabled.
+- Live support status reports a database-backed queue and enabled email delivery without secret exposure.
+- Unauthenticated customer and admin requests fail closed, and no Vercel runtime errors were found after deployment.
+- The release changed no migration, RLS policy, provider credential, billing authorization, customer record, or legal content.
+- Owner-authenticated proof is still required for organization creation, a complete billing lifecycle, one real email delivery, tenant/private-storage isolation, and physical-device PWA behavior.
+
+## 2026-07-19 - Cohesive 2027 frontend released to Production
+
+- Preserved the accepted root Express runtime and `layout()` contract; no SPA migration was introduced.
+- Added the canonical runtime registry for SONARA Industries, SONARA One, Business Builder, Creator Studio, Growth Studio, real routes/logo assets, and owner-approved `$0 / $7 / $19 / $39` plan prices.
+- Added a server-rendered homepage that consumes the live non-secret readiness object.
+- Added scoped cohesive styles, progressive product/milestone interaction, and the cohesive symbolic logo family.
+- PR #34 merged to `988afc643b4c4633c1843e4d854b899782a8669a`; Production deployment `dpl_Gaa2kkogk3mPkFkUE6QcaM7TH1sG` reached READY.
+- Supabase Postgres remains authoritative. No migration, RLS policy, secret, billing authorization, customer record, or legal content was changed.
+
+## 2026-07-19 - Organization setup schema compatibility
+
+- User evidence showed `Organization setup required` while readiness reported `accountDatabase=configured`.
+- Repository migration evidence identified legacy required organization fields not supplied by the prior application insert.
+- The merged compatibility patch uses a deterministic slug, writes the hosted-compatible shape, keeps canonical memberships, retries safely, and logs sanitized status/code evidence.
+- No production schema migration or data mutation was included.
+- An authenticated deployed organization-creation smoke test remains mandatory before the write path is called production-proven.
+
+## Outstanding launch gates
+
+## 2026-09-11 - Competitor-informed homepage pathways merged; Stripe provider gate remains
+
+- Reconciled the public homepage against the internal competitor/reference research set (Jobber, Housecall Pro, ServiceTitan, Podia, Kajabi, Gumroad, Teachable, SamCart, Higgsfield, Brevo, Klaviyo, HubSpot, Stripe, Spotify/media-library patterns, GOV.UK plain language, and the governed external-repository registry).
+- Added an honest homepage workspace preview and a visible quickstart pathway for Business Builder intake, Creator Studio assets, Growth Studio campaigns, and shared setup review. Added responsive styling with mobile-safe two-column and single-column breakpoints, focus states, and real routes.
+- PR #233 merged into `main` at `498e4e92fca481c0de68d968e012e6c9285ceb51`; public-language correction PR #234 merged at `985b8341c75ba344187c9a42c487bb80143d8905`.
+- Local build, lint, diff check, and focused customer-language/conversion/pricing tests pass. Controlled release run `34558599155` passed install, audit, build, release tests, secret scan, lint, route/config contracts, OpenAPI, open-source controls, production identity, and migration preview.
+- Production promotion stopped at the live Stripe verification gate. The configured restricted key lacks `Prices:read` and `Products:read`, and several Vercel price variables are marked sensitive/redacted even though the verifier must read their non-secret `price_...` IDs. No secrets were printed, changed, or added, and the deployment was not bypassed.
+- Owner action: use a Stripe key with the minimum read permissions required by the verifier (Prices:read and Products:read, plus existing checkout/webhook permissions), ensure each production `STRIPE_PRICE_*` variable contains its real `price_...` ID and is not stored as an unreadable/redacted secret, then rerun the controlled release. Recheck live checkout and webhook events after promotion.
+
+- Confirm the protected production service-role secret exists without exposing it.
+- Deploy current `main` through the controlled workflow and verify exact-SHA production aliases.
+- Verify the two catalog migrations and exactly 34 production software-product records.
+- Verify real positive and negative paid-plan entitlements.
+- Authenticated deployed organization-creation smoke test.
+- Isolated Preview backend configuration and verification.
+- One real production email delivery with persistence evidence.
+- Authenticated billing lifecycle and access relock.
+- Authenticated tenant-isolation and private-storage denial checks.
+- Google sign-in configuration when an approved redirect URI is available.
+- Qualified legal review.
+- PWA/browser and physical-device evidence.
+
+## 2026-09-11 - Free-first integration substitution pathways documented
+
+- Added `docs/INTEGRATION_SUBSTITUTION_PATHWAYS.md` with free/open-source
+  candidates, adapter boundaries, license and operating-cost caveats, product
+  pathways, rollout order, and integration acceptance criteria.
+- Preserved the existing Supabase/Postgres, pgvector, Meilisearch, Stripe, and
+  Resend contracts. No external repository was installed or copied.
+- Open-Meteo, maps, worker media tooling, and self-hosted email remain gated by
+  commercial terms, security, deliverability, consent, or operational review.
+- This is documentation and architecture guidance only; it does not claim any
+  provider is configured or customer-facing.
+
+## 2026-09-14 - Direct workspace entry replaces intake in the primary path
+
+- Updated the public homepage, shared dashboard, quickstart card, Business
+  Builder landing actions, workspace actions, and workspace index so customers
+  sign up, enter a workspace, use free tools, and compare real plans without
+  being funnelled into an intake form.
+- Kept `POST /api/business-builder/intake` and its database-backed behavior for
+  compatibility with existing integrations. The authenticated GET path remains
+  reachable but redirects to the Business Builder launch checklist.
+- Added regression coverage for the direct `Start working` CTA, hidden intake
+  navigation, and the authenticated compatibility redirect.
+- Verification: build, lint, client-secret scan, route smoke, and the full test
+  suite pass (`4438 passing, 6 pending`). The integrated launch verifier reached
+  its expected protected Supabase proof boundary and stopped because this
+  checkout has no `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `SONARA_VERIFY_USER_JWT`; no deployment or
+  migration was bypassed.
+
+## 2026-09-14 - Admin agent control-plane visibility
+
+- Added protected `/admin/agent-activity` read-only operations view and linked it
+  from the admin command center and generated admin navigation.
+- The page reports only non-secret counts for recorded agent runs, waiting
+  approvals, and schedules. It does not execute work, expose prompts or
+  payloads, or widen the existing organization, approval, or audit boundaries.
+- Missing Supabase access or agent tables renders setup-required instead of a
+  false healthy state. The existing customer-facing `/owner/agent-activity`
+  queue and approval flow remain unchanged.
+- Verification: focused admin and route tests pass (18 passing); build, lint,
+  route registry, agent sync, customer-ready checks, and the prior full suite
+  remain green. No secrets, migrations, providers, or deployment settings were
+  changed.
+
+## 2026-09-14 - Public readiness preview uses the shared contract
+
+- Updated the public SONARA One interface preview to derive database, checkout,
+  support, and operator states from the existing readiness contract.
+- The preview defaults to setup-required language when readiness is unavailable
+  and never presents a static "Available" claim. It remains environment-only,
+  exposes no credentials, and keeps the public route synchronous and safe.
+- Added a page-frame regression test for configured and missing service states.
+- Focused verification passed: build, lint, and 58 route/frame/auth tests.
+
+## 2026-09-14 - Visual palette recalibration
+
+- Rebalanced the working palette around evergreen operations, cobalt navigation,
+  coral creative cues, and amber growth signals while retaining the existing
+  SONARA logo gradients.
+- Updated light, dark, and no-JavaScript fallback token blocks together,
+  including Business Builder, Creator Studio, Growth Studio, and admin accents.
+- Shifted ambient gradients, startup visuals, and Business Builder fallback
+  colors without adding third-party assets, runtime dependencies, or route
+  behavior changes.
+- Bumped the shared immutable asset token to `sonara-ui-20260914-v12-palette`
+  across the page frame, fonts, server-worker precache, and server cache note so
+  existing browsers cannot pin the previous visual bundle.
+- Verification: contrast, theme agreement, customer-ready checks, build, and
+  lint pass. The palette remains reversible and no provider, secret, migration,
+  or payment wiring changed.
+
+## 2026-09-27 - Visible homepage design integration
+
+- Reconciled the homepage frame and public asset cache token with the latest
+  `origin/main` implementation so the production Express route serves the
+  visible design system and application UI assets consistently.
+- Tightened the live homepage first viewport: left-aligned product message,
+  readable responsive heading, visible primary actions, and the interface
+  preview all render without horizontal overflow on desktop or mobile.
+- Kept the change additive and reversible. No provider credentials, schema
+  migrations, payment wiring, or production deployment state changed.
+- Verification completed: frozen install, audit, build, typecheck, lint, full
+  suite (`5,109 passing`, `6 pending`), route smoke, client-secret scan, and
+  desktop/mobile browser checks. Hosted CI was green and PR #379 merged into
+  `main` as `24a2fdc5`.
+
+## 2026-10-08 - Docker runtime contract packaging repair
+
+- Base commit: `add53bf33a1c7cffa72fb7fc2b3738c25e8dac00`.
+- Files touched: Dockerfile and this handoff; no locks or dependencies changed.
+- Closed the image-startup failure: include android/twa runtime contracts before the build imports routes/sonara-well-known-routes.cjs.
+- Evidence: main Docker job 112981281228 failed on missing /app/android/twa/build-contract.json. A local copy-set startup probe reproduces that failure without android/ and loads the production entry point successfully with it.
+- Verification: frozen install, dependency audit (no known vulnerabilities), typecheck, lint, full Mocha suite (6,832 passing; 6 pending), build and diff checks passed on Node 24.19.0. Local pnpm is 11.25.0; the image retains the repository's pinned 12.7.0.
+- Docker is unavailable locally, so a real image build and exact-head hosted CI remain required. No deployment, migration, provider activation, signing claim or website reactivation occurred.
+- Next slice: validate the branch's hosted Docker smoke check; retain the exact-SHA deployment gate and the owner's temporary-offline instruction.
+
+## 2026-10-08 — Preserve unknown financial evidence in seller reporting
+
+- Exact base: `207372e40e56716199286d6ca95984eed2882b49` (main after #448/#450).
+- Files/locks: commerce amount helper; merchant payment reconciliation; merchant and creator report routes; four existing commerce/route test files; generated capability inventory offsets; research addendum `docs/research/SONARA_RECONCILIATION_EVIDENCE_PASS_2026-10-08.md`; this handoff. No dependency lock, schema, migration, deployment or provider configuration changes.
+- Workflow state closed: missing/invalid amounts remain unknown through aggregation; incomplete payment/refund evidence and currency disagreement cannot be reported as reconciled or offered as a missing-payment repair; differing settlement currency is not relabeled as payment currency. Buyer/local amount display uses the record's own currency.
+- Validation: frozen pnpm install; moderate dependency audit (no known vulnerabilities); typecheck; lint; build; full suite **6876 passing, 6 pending**; focused amount/merchant/creator route suite **115 passing**; client-secret scan and route smoke passed. Full governance chain result is recorded below when complete.
+- Research: checked Stripe charge refund and balance transaction currency/fee/net contracts on 2026-10-08; examined zero refunds, legitimate FX settlement, signed net values and aggregate-vs-row bounds as counterexamples. No live financial records accessed.
+- Provider/production proof unavailable: no live Stripe or Supabase checks; no deployment or reactivation. Local PostgreSQL replay explicitly skipped because binaries are absent; no SQL execution claimed. Preserve the owner's temporary-offline instruction.
+- Next smallest unblocked slice: validate charge/capture/source and balance arithmetic provenance, then add separate settlement-currency totals and review bounded-read completeness before claiming a complete financial ledger.
+- Local toolchain: Node 24.19.0 / pnpm 11.25.0; repository pins pnpm 12.7.0. Frozen install retained the lockfile. Hosted checks must supply the pinned-toolchain evidence.
+- Final governance result: `pnpm run verify:gates` passed, including coverage floors; migration replay remained an explicit local skip. Documentation path validation and staged whitespace checks passed.
+## 2026-10-08 — Offline check-in recovery and receipt integrity
+
+- Exact base: `207372e40e56716199286d6ca95984eed2882b49`; PR #451 remains separate. All eleven hosted workflows for #451's `fc7078a8957c4313868f71942e7f08dca8ae6a60` passed when checked at the start of this pass.
+- Files/locks: public check-in client and queue; existing last9 route; existing check-in and rendered-route crawler tests; existing public browser suite; generated capability inventory/map; `docs/research/SONARA_OFFLINE_RECOVERY_ENGINEERING_PASS_2026-10-08.md`; this handoff. No migration, dependency lock or deployment configuration changes.
+- Workflow closed: uncertain first delivery/replay stays pending until explicit acceptance; rate-limit deadlines persist; original event ids survive retries; one-page overlapping flushes coalesce and newly appended entries survive; malformed database receipts cannot become duplicate confirmations. New captures bind live user/workspace scope; current staff page checks employee identity. Destination is allowlisted. Retry control and polite status region explain recovery.
+- Focused validation: 42 tests pass for check-in client/server behavior; real staff fixture renders; Playwright discovers the new desktop/mobile cases; browser test source lint passes. Full command results follow below.
+- Browser environment: Browser plugin unavailable, regular Playwright selected. Local Chromium download returned an invalid/truncated archive; no local browser screenshot or rendered pass claimed. Hosted Browser Quality runs both new cases and stores screenshots under its browser evidence artifact.
+- Provider/production proof unavailable: no live GPS, real authentication session, production database, provider payment or deployment checks. Preserve temporary-offline direction. Local SQL replay remains explicitly skipped without PostgreSQL binaries.
+- Next smallest slice: account-specific queues with transactional cross-tab updates and an explicit review/discard interface for legacy or blocked entries; then physical-device and assistive-technology verification. localStorage remains unencrypted; no closed-browser retry or cleanup claim.
+- Final local application checks: **6877 passing / 6 pending**; frozen install; moderate audit (no known vulnerabilities); typecheck; lint; build; client-secret scan; route smoke all passed. Local Node 24.19.0 / pnpm 11.25.0 versus repository pnpm 12.7.0 pin; lockfile unchanged. The rendered-route crawler now includes the authenticated staff page instead of misclassifying its queue as an orphan.
+
+## 2026-10-08 — Account-scoped offline queue and explicit review
+
+- Exact base: `207372e40e56716199286d6ca95984eed2882b49`; current published parent is PR #452 commit `a10ec9a78563581759d630b1ef87ad856bda3c23` before this update.
+- Files/locks: scoped queue and check-in client; last9 staff markup; browser contract and check-in tests; generated capability inventory/map; `docs/research/SONARA_ACCOUNT_SCOPED_QUEUE_PASS_2026-10-08.md`; this handoff. No dependency lock, migration, provider or deployment configuration change.
+- Workflow state closed: v2 queue keys use validated workspace/user UUIDs; v1 legacy records and scope-mismatched records never replay automatically; review summaries and explicit discard tokens are available; per-key flushes can run independently; malformed legacy rows remain removable.
+- Validation so far: focused check-in suite **44 passing**; focused route crawler **49 passing**; offline policy **10 passing**; full suite and release gates are running after the final generated inventory update.
+- Provider/production proof unavailable: no production storage/auth/GPS access, no deployment or reactivation. Hosted browser proof is required for the new review/discard interaction. Local storage remains unencrypted and cross-tab writes are not transactional.
+- Next smallest slice: design a transactional account-local store or cross-tab coordination protocol, then verify on physical devices and with assistive technology.

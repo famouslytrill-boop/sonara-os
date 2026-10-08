@@ -31,8 +31,8 @@ const session = (changes = {}) => ({ id: SESSION, client_reference_id: ORDER,
   metadata: { sonara_kind: "creator_marketplace", sonara_order_id: ORDER },
   amount_total: 2500, currency: "usd", payment_status: "paid", status: "complete",
   payment_intent: { id: INTENT, client_secret: "must-never-be-rendered",
-    latest_charge: { id: "ch_sale123", amount: 2500, currency: "usd", amount_refunded: 0,
-      refunded: false, disputed: false, balance_transaction: { currency: "usd", fee: 100, net: 2400 } } }, ...changes });
+    latest_charge: { id: "ch_sale123", payment_intent: INTENT, paid: true, captured: true, status: "succeeded", amount: 2500, currency: "usd", amount_refunded: 0,
+      refunded: false, disputed: false, balance_transaction: { source: "ch_sale123", amount: 2500, currency: "usd", fee: 100, net: 2400 } } }, ...changes });
 const run = (changes = {}) => reconcile({ organizationId: ORG, accountId: ACCOUNT,
   orderRows: [order()], grants: [grant()], sessions: [session()], ...changes });
 const codes = (result) => result.rows[0].codes;
@@ -52,6 +52,31 @@ describe("marketplace sales are checked against payment and delivery evidence", 
   it("projects only safe fields from expanded provider objects", () => {
     assert.doesNotMatch(JSON.stringify(run()), /client_secret|must-never-be-rendered|latest_charge/);
     assert.equal(projectSession(session()).intentId, INTENT);
+  });
+  it("requires the charge's own intent, successful capture and coherent refund evidence", () => {
+    for (const change of [
+      { payment_intent: "pi_other123" }, { payment_intent: null },
+      { paid: false }, { captured: false }, { status: "failed" },
+      { amount_refunded: 2501 }, { refunded: true, amount_refunded: 0 },
+      { refunded: false, amount_refunded: 2500 }
+    ]) {
+      const value = session();
+      Object.assign(value.payment_intent.latest_charge, change);
+      const result = run({ sessions: [value] });
+      assert.ok(codes(result).includes("charge_unverified"), JSON.stringify(change));
+      assert.equal(result.unknownRefunds, 1);
+      assert.deepEqual(result.balances, {});
+    }
+  });
+  it("requires balance evidence to name the charge and satisfy net = amount - fee", () => {
+    for (const change of [{ source: "ch_other123" }, { source: null },
+      { amount: null }, { net: 2401 }, { fee: -1 }]) {
+      const value = session();
+      Object.assign(value.payment_intent.latest_charge.balance_transaction, change);
+      const result = run({ sessions: [value] });
+      assert.equal(result.unknownBalances, 1, JSON.stringify(change));
+      assert.deepEqual(result.balances, {});
+    }
   });
   it("does not count merchant or unrelated checkouts", () => {
     assert.equal(run({ sessions: [session({ metadata: { sonara_kind: "merchant_storefront", sonara_order_id: ORDER } })] }).totals.usd.stripePaid, 0);
@@ -119,7 +144,7 @@ describe("marketplace sales are checked against payment and delivery evidence", 
   });
   it("does not mix original charge balance currency with sale currency", () => {
     const value = session();
-    value.payment_intent.latest_charge.balance_transaction = { currency: "eur", fee: 95, net: 2100 };
+    value.payment_intent.latest_charge.balance_transaction = { source: "ch_sale123", amount: 2195, currency: "eur", fee: 95, net: 2100 };
     const result = run({ sessions: [value] });
     assert.equal(result.totals.usd.stripePaid, 2500);
     assert.deepEqual(result.balances.eur, { fee: 95, net: 2100, charges: 1 });
@@ -169,7 +194,7 @@ function harness(options = {}) {
   const calls = [];
   const html = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const deps = {
-    getEnv, getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
+    getEnv: options.getEnv || getEnv, getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
     supabaseHeaders: () => ({ Authorization: "Bearer service-test-fixture" }),
     getCustomerPrimaryOrganization: options.resolveOrganization || (async (_user, scopeOptions) => {
       assert.equal(scopeOptions.autoBootstrap, false, "A sales check must not create a workspace");
@@ -232,6 +257,36 @@ describe("the seller can open a scoped reconciliation screen", () => {
     assert.match(res.body, /Records checked|original charge balance|Check again/);
     assert.doesNotMatch(res.body, /must-never-be-rendered|client_secret|Bearer/);
     assert.ok(calls.every((call) => !call.init.method || call.init.method === "GET"));
+  });
+  for (const [currency, gross, net] of [
+    ["jpy", "¥2,500", "¥2,400"], ["mga", "MGA 2,500", "MGA 2,400"],
+    ["isk", "ISK 25.00", "ISK 24.00"], ["ugx", "UGX 25.00", "UGX 24.00"]
+  ]) it("renders sale and balance amounts using Stripe charge units for " + currency, async () => {
+    const payment = session({ currency });
+    payment.payment_intent.latest_charge.currency = currency;
+    payment.payment_intent.latest_charge.balance_transaction.currency = currency;
+    const { res } = await request({ orders: [order({ currency })], sessions: [payment] });
+    assert.equal(res.statusCode, 200);
+    assert.ok(res.body.replace(/\u00a0/g, " ").includes("Recorded paid orders: " + gross), res.body);
+    assert.ok(res.body.replace(/\u00a0/g, " ").includes("Original charge net: " + net), res.body);
+  });
+  // SONARA_CUSTOMER_FUNDS_MODE closes NEW merchant checkout unless the owner
+  // approves it, and the fixture environment leaves it unset. Sales a business
+  // already has still have to be checkable, which is why historical Stripe
+  // reads stay open on a key alone; this screen used to ask checkoutReadiness
+  // first and so refused whenever new checkout was off.
+  it("checks existing sales while new checkout is closed", async () => {
+    assert.equal(checkout.checkoutReadiness({ getEnv }).ok, false, "the fixture no longer represents checkout being closed");
+    const { res, calls } = await request();
+    assert.equal(res.statusCode, 200);
+    assert.ok(calls.some((call) => call.url.host === "api.stripe.com"), "Stripe was not read");
+  });
+  it("says the payment connection is unavailable when there is no key to read with", async () => {
+    const noKey = (name) => (name === "STRIPE_SECRET_KEY" ? "" : getEnv(name));
+    const { res, calls } = await request({ getEnv: noKey });
+    assert.equal(res.statusCode, 503);
+    assert.match(res.body, /payment connection is unavailable/);
+    assert.ok(!calls.some((call) => call.url.host === "api.stripe.com"), "Stripe was called without a key");
   });
   it("reads nothing when the authenticated workspace cannot be resolved", async () => {
     const { res, calls } = await request({ organization: { ok: false } });

@@ -135,6 +135,28 @@ describe("Business Builder control plane", () => {
     assert.equal(refused.body.code, "integration_governance_required");
     assert.equal(calls.some((call) => call.url.includes("business_integration_connections") && call.method === "POST"), false);
 
+    const oauthRefused = await request(buildApp())
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
+      .set("Accept", "application/json")
+      .send({
+        provider_key: "calendar",
+        connection_mode: "oauth",
+        connection_status: "connected",
+        settings: {
+          governance: {
+            organizationScoped: true,
+            secrets: "server_only",
+            commercial: { status: "approved", termsUrl: "https://provider.example/terms", reviewedAt: "2026-09-13T12:00:00Z" },
+            rateLimit: { mode: "provider_headers", honorsRetryAfter: true },
+            operator: { mode: "human_approval", externalActionsAllowed: false },
+            ai: { mode: "disabled", required: false }
+          }
+        }
+      });
+    assert.equal(oauthRefused.status, 409);
+    assert.ok(oauthRefused.body.reasons.includes("provider_server_verification_required"));
+    assert.ok(oauthRefused.body.reasons.includes("oauth_grant_verification_required"));
+
     const accepted = await request(buildApp())
       .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
       .set("Accept", "application/json")
@@ -158,6 +180,60 @@ describe("Business Builder control plane", () => {
     assert.equal(inserted.body.organization_id, ORGANIZATION_ID);
     assert.equal(inserted.body.connection_status, "connected");
     assert.equal(inserted.body.settings.governance.secrets, "server_only");
+  });
+
+  it("opens only curated provider destinations after tenant and business re-checks", async () => {
+    const CONNECTION_ID = "44444444-4444-4444-8444-444444444444";
+    const calls = [];
+    global.fetch = async (url, options = {}) => {
+      const call = { url: String(url), method: options.method || "GET", body: options.body ? JSON.parse(options.body) : undefined };
+      calls.push(call);
+      if (call.url.includes("/rest/v1/business_workspaces") && call.method === "GET") return response(200, [businessRecord()]);
+      if (call.url.includes("/rest/v1/business_integration_connections") && call.method === "GET") {
+        assert.ok(call.url.includes(`organization_id=eq.${encodeURIComponent(ORGANIZATION_ID)}`));
+        assert.ok(call.url.includes(`business_id=eq.${encodeURIComponent(BUSINESS_ID)}`));
+        assert.ok(call.url.includes(`id=eq.${encodeURIComponent(CONNECTION_ID)}`));
+        return response(200, [{ id: CONNECTION_ID, provider_key: "stripe", connection_mode: "manual", connection_status: "connected" }]);
+      }
+      if (call.url.includes("/rest/v1/business_control_audit_events")) return response(201, []);
+      return response(200, []);
+    };
+
+    const result = await request(buildApp())
+      .get(`/business-builder/businesses/${BUSINESS_ID}/integrations/${CONNECTION_ID}/open-provider`);
+
+    assert.equal(result.status, 303);
+    assert.equal(result.headers.location, "https://dashboard.stripe.com/");
+    assert.equal(result.headers["referrer-policy"], "no-referrer");
+    assert.equal(result.headers["cache-control"], "no-store");
+    assert.ok(!result.headers.location.includes("token"));
+    assert.ok(calls.some((call) => call.url.includes("business_control_audit_events")));
+  });
+
+  it("refuses a browser-supplied or unknown provider destination", async () => {
+    const CONNECTION_ID = "44444444-4444-4444-8444-444444444444";
+    global.fetch = async (url, options = {}) => {
+      const target = String(url);
+      if (target.includes("/rest/v1/business_workspaces") && (options.method || "GET") === "GET") return response(200, [businessRecord()]);
+      if (target.includes("/rest/v1/business_integration_connections") && (options.method || "GET") === "GET") {
+        return response(200, [{
+          id: CONNECTION_ID,
+          provider_key: "customer_supplied_evil",
+          connection_mode: "oauth",
+          connection_status: "connected",
+          settings: { dashboard_url: "https://attacker.example/?access_token=secret" }
+        }]);
+      }
+      if (target.includes("/rest/v1/business_control_audit_events")) return response(201, []);
+      return response(200, []);
+    };
+
+    const result = await request(buildApp())
+      .get(`/business-builder/businesses/${BUSINESS_ID}/integrations/${CONNECTION_ID}/open-provider`);
+
+    assert.equal(result.status, 409);
+    assert.match(result.text, /needs verification/i);
+    assert.ok(!String(result.headers.location || "").includes("attacker.example"));
   });
 
   it("uses resource-specific lifecycle transitions for integrations and permissions", async () => {

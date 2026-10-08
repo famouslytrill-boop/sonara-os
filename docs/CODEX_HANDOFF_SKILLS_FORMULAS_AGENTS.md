@@ -320,6 +320,15 @@ read data through a helper the tracer cannot follow. Three routes looked like
 "reads nothing" and turned out to write -- fix the tracer for those, and pin the
 fix in `tests/the-inventory-traces-what-a-route-calls.test.js`.
 
+### Routes with no page (added 7 October 2026)
+
+A route whose consumer is not a person on a page -- a deploy check, a scheduled
+workflow, a JSON twin of a page -- is recorded in
+`lib/sonara-route-destination-reviews.cjs` with evidence the generator checks:
+the consumer file calls it, or the route and its page read the same table or
+call the same function. Do not add an entry to make a fallback disappear; add one
+only when the evidence holds, and build the screen otherwise.
+
 ### Declared doors (added 7 October 2026)
 
 A form's destination is the page that renders it. When one handler serves many

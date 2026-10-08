@@ -513,7 +513,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       );
     }
 
-    const csv = buildRecordCsv(rows.rows, source.columns);
+    const csv = buildRecordCsv(rows.rows, source.columns, { profile: "spreadsheet_human" });
     if (!csv.ok) return res.status(503).type("text").send(csv.message);
 
     const period = `${record.period_start || "start"}-to-${record.period_end || "now"}`.replace(/[^a-zA-Z0-9-]/g, "");
@@ -523,7 +523,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     res.setHeader("X-Sonara-Export-Rows", String(csv.rowCount));
     // Said out loud. A value that would otherwise be executed as a formula by a
     // spreadsheet is prefixed with an apostrophe, and that changes it, so the
-    // customer is told how many rather than left to find out.
+    // customer is told how many rather than left to find out. Human-view CSV
+    // uses a quoted tab prefix for formula-like text; ordinary numeric values
+    // remain numeric.
+    res.setHeader("X-Sonara-CSV-Formula-Guard", csv.formulaGuard);
     if (csv.neutralised) res.setHeader("X-Sonara-Export-Values-Altered", String(csv.neutralised));
     return res.send(csv.body);
   });
@@ -1576,7 +1579,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     ...ALL_OWNER_PAGES.map((page) => ({ table: page.table, label: page.title })),
     ...ALL_OWNER_PAGES.flatMap((page) => childrenOf(page).map((spec) => ({ table: spec.table, label: spec.title || spec.table }))),
     ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title })),
-    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey }))
+    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey })),
+    ...GROWTH_RECORD_PAGES.flatMap((page) => (page.children || []).map((child) => ({ table: GROWTH_TABLES[child.tableKey], label: child.title })))
   ]
     .filter((entry) => entry.table)
     .filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);
@@ -2043,6 +2047,12 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // A replay may arrive after a session or workspace switch. Capture scope is
+    // a consistency check, never an authorization source; use the live session.
+    if ((req.body.capture_user_id && req.body.capture_user_id !== org.userId)
+      || (req.body.capture_organization_id && req.body.capture_organization_id !== org.organizationId)) {
+      return res.status(403).json({ ok: false, code: "check_in_scope_changed" });
+    }
     // An employee and an area supplied by the caller both become part of this
     // row, and the staff portal lists check-ins by employee_id -- so an
     // unchecked one writes a location record onto a colleague's page, or
@@ -2102,11 +2112,33 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       req.body.privacy_mode
     );
 
+    // A check-in the device kept while it had no signal arrives later, possibly
+    // more than once. The device names it (client_event_id) and says when it
+    // happened (captured_at); the database ignores a repeat of the name. The
+    // time is accepted only within a window: a week back covers a long shift
+    // out of signal, and a few minutes forward covers a phone clock that runs
+    // fast. Anything outside it is refused rather than stored as a time the
+    // owner would read as true.
+    const clientEventId = String(req.body.client_event_id || "");
+    if (clientEventId && !isUuid(clientEventId)) return res.status(400).json({ ok: false, code: "client_event_id_invalid" });
+    let capturedAt = null;
+    if (req.body.captured_at) {
+      const when = Date.parse(String(req.body.captured_at));
+      const now = Date.now();
+      if (!Number.isFinite(when) || when < now - CHECK_IN_LATEST_DELAY_MS || when > now + CHECK_IN_CLOCK_SKEW_MS) {
+        return res.status(400).json({ ok: false, code: "captured_at_out_of_range" });
+      }
+      capturedAt = new Date(when).toISOString();
+    }
+    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
+
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
       employee_id: req.body.employee_id || null,
       location_zone_id: req.body.location_zone_id || null,
+      client_event_id: clientEventId || null,
+      ...(capturedAt ? { captured_at: capturedAt } : {}),
       event_type: eventType,
       latitude: reduced.latitude,
       longitude: reduced.longitude,
@@ -2117,9 +2149,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       speed_mps: reduced.mode === "precise" ? toNumberOrNull(req.body.speed_mps ?? req.body.speed) : null,
       heading_degrees: reduced.mode === "precise" ? toNumberOrNull(req.body.heading_degrees ?? req.body.heading) : null,
       privacy_mode: reduced.mode,
-      metadata: sanitizeObject(req.body.metadata)
+      metadata: { ...sanitizeObject(req.body.metadata), ...(sentLater ? { sent_later: true } : {}) }
     };
-    const saved = await supabaseInsert(config, "location_events", payload);
+    const saved = clientEventId
+      ? await supabaseInsertOnce(config, "location_events", payload, "organization_id,client_event_id")
+      : await supabaseInsert(config, "location_events", payload);
     // A browser that submitted the form itself gets the page back, not JSON.
     //
     // The form carries a real method and action so it works with no JavaScript
@@ -2366,7 +2400,7 @@ async function staffSections(config, org, me, path, ui) {
         "What is recorded, and what is not",
         "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
       ),
-      checkInCard(me.profile.id, ui),
+      checkInCard(me.profile.id, ui, org),
       ...(listed.rows.length
         ? listed.rows.map((row) => ui.card(
           String(row.event_type || "check-in").replaceAll("_", " "),
@@ -2397,7 +2431,7 @@ async function staffSections(config, org, me, path, ui) {
 // The rounding runs in the browser before anything is sent -- see
 // public/sonara-location-precision.js. Rounding here would describe the storage
 // and not the disclosure.
-function checkInCard(employeeId, ui) {
+function checkInCard(employeeId, ui, org) {
   const options = LOCATION_PRIVACY_MODES.map((mode) => {
     const checked = mode.value === LOCATION_PRECISION_DEFAULT ? " checked" : "";
     return `<label class="choice"><input type="radio" name="privacy_mode" value="${ui.escape(mode.value)}"${checked}> <strong>${ui.escape(mode.label)}</strong><span class="fine"> ${ui.escape(mode.note)}</span></label>`;
@@ -2411,7 +2445,7 @@ function checkInCard(employeeId, ui) {
   // decoded -- escaping the quotes would hand JSON.parse a string full of
   // `&quot;`. What actually needs neutralising is a literal `</script>` in the
   // data, and \u003c does that while staying valid JSON.
-  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId }).replaceAll("<", "\\u003c");
+  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId, userId: org.userId, organizationId: org.organizationId }).replaceAll("<", "\\u003c");
 
   return [
     '<div class="card">',
@@ -2421,7 +2455,10 @@ function checkInCard(employeeId, ui) {
     '<form id="sonara-check-in-form" method="post" action="/api/location/events">',
     options,
     '<button class="action" type="submit" data-sonara-check-in-submit>Check in</button>',
-    '<p class="fine" data-sonara-check-in-status></p>',
+    '<button class="action" type="button" data-sonara-check-in-retry>Send saved check-ins</button>',
+    '<button class="action" type="button" data-sonara-check-in-review-toggle>Review saved check-ins</button>',
+    '<p class="fine" role="status" aria-live="polite" data-sonara-check-in-status></p>',
+    '<section class="card" data-sonara-check-in-review hidden><h3>Saved check-ins needing review</h3><p role="status" aria-live="polite" data-sonara-check-in-review-status></p><ul data-sonara-check-in-review-list></ul></section>',
     "</form>",
     "</div>"
   ].join("");
@@ -2433,7 +2470,7 @@ function checkInCard(employeeId, ui) {
 function withCheckInScripts(html) {
   return html.replace(
     "</body>",
-    '<script src="/sonara-location-precision.js"></script><script src="/sonara-check-in.js"></script></body>'
+    '<script src="/sonara-location-precision.js"></script><script src="/sonara-offline-queue.js"></script><script src="/sonara-check-in.js"></script></body>'
   );
 }
 
@@ -3539,6 +3576,26 @@ async function supabaseCount(config, table, organizationId, filterClause = "") {
   return { ok: true, count: match ? Number(match[1]) : 0 };
 }
 
+// A check-in kept on a device for up to a week, and a phone clock up to five
+// minutes fast. See POST /api/location/events.
+const CHECK_IN_LATEST_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
+const CHECK_IN_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+// An insert the database ignores when the row's key is already there. An
+// ignored repeat comes back as no rows, which is reported as `duplicate`, not
+// as a failure: the check-in it repeats was recorded.
+async function supabaseInsertOnce(config, table, payload, conflictColumns) {
+  const response = await fetch(`${config.url}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumns)}`, {
+    method: "POST",
+    headers: headers(config, { Prefer: "return=representation,resolution=ignore-duplicates" }),
+    body: JSON.stringify(payload)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
+  const rows = await response.json().catch(() => null);
+  if (!Array.isArray(rows)) return { ok: false, code: "insert_receipt_unreadable", table };
+  return { ok: true, table, rows, duplicate: rows.length === 0 };
+}
+
 async function supabaseInsert(config, table, payload) {
   const response = await fetch(`${config.url}/rest/v1/${table}`, { method: "POST", headers: headers(config, { Prefer: "return=representation" }), body: JSON.stringify(payload) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
@@ -3579,14 +3636,17 @@ function sanitizeChoice(value, fallback) {
   return clean || fallback;
 }
 
+// Built from entries rather than by assigning keys a caller chose, and without
+// the three keys that address an object's prototype rather than a property of
+// it: `__proto__` assigned on a plain object replaces its prototype instead of
+// storing a value.
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 function sanitizeObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const output = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (["password", "secret", "token", "service_role", "api_key"].some((part) => key.toLowerCase().includes(part))) continue;
-    output[key] = typeof item === "string" ? sanitizeText(item) : item;
-  }
-  return output;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !PROTOTYPE_KEYS.has(key))
+    .filter(([key]) => !["password", "secret", "token", "service_role", "api_key"].some((part) => key.toLowerCase().includes(part)))
+    .map(([key, item]) => [key, typeof item === "string" ? sanitizeText(item) : item]));
 }
 
 function toNumberOrNull(value) {

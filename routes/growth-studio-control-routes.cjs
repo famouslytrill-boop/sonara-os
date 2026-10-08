@@ -16,6 +16,8 @@ const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 const { getGoogleSearchConsoleReadContract } = require("../lib/sonara-google-search-console-read.cjs");
 
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
+const campaignResults = require("../lib/sonara-campaign-results.cjs");
+const campaignResultsPages = require("../lib/sonara-campaign-results-pages.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
 const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
@@ -1312,6 +1314,89 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       }));
     });
   }
+
+  // One campaign: what it cost, what came of it, whether it paid for itself and
+  // what to do next. The arithmetic is lib/sonara-campaign-results.cjs.
+  const CAMPAIGN_PAGE = "/growth-studio/your-campaigns";
+  const campaignPage = (res, status, sections, heading = "Campaign") => res.status(status).type("html").send(ui.layout({
+    title: heading, eyebrow: "Growth Studio", heading, body: "What this campaign cost, what came of it, and whether it paid for itself.", sections,
+    actions: [ui.link(CAMPAIGN_PAGE, "Your campaigns"), ui.link("/growth-studio/enquiries", "Enquiries"), ui.link("/growth-studio/conversions", "Conversions")]
+  }));
+
+  // Read first, scoped by organization as well as id: the service key bypasses
+  // row level security, so without the filter a guessed id from another
+  // workspace would open.
+  async function campaignFor(config, context, campaignId) {
+    if (!validUuid(campaignId)) return { ok: true, campaign: null };
+    const found = await rest(config, TABLES.campaigns, `select=id,name,goal,channel,status&id=eq.${encodeURIComponent(campaignId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`);
+    return found.ok ? { ok: true, campaign: found.rows[0] || null } : { ok: false };
+  }
+
+  app.get(`${CAMPAIGN_PAGE}/:campaignId`, access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return campaignPage(res, 503, [ui.card("Not available right now", "Your workspace could not be read, so this campaign cannot be shown.")]);
+    const found = await campaignFor(config, context, req.params.campaignId);
+    if (!found.ok) return campaignPage(res, 502, [ui.card("Not available right now", "We could not read this campaign just now. Nothing has changed.")]);
+    if (!found.campaign) return campaignPage(res, 404, [ui.card("Not found", "That campaign is not in this workspace.")]);
+    const capped = (result, limit) => (result.ok ? { ...result, truncated: result.rows.length >= limit } : result);
+    const [spend, conversions, leads, sends] = await Promise.all([
+      rest(config, TABLES.spend, `select=id,kind,amount_cents,currency,spent_on,description,reference&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=spent_on.desc&limit=500`).then((result) => capped(result, 500)),
+      rest(config, TABLES.conversions, `select=id,value,currency,attribution_confidence,occurred_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=occurred_at.desc&limit=1000`).then((result) => capped(result, 1000)),
+      rest(config, TABLES.leads, `select=id,status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=2000`).then((result) => capped(result, 2000)),
+      rest(config, TABLES.sends, `select=status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=5000`).then((result) => capped(result, 5000))
+    ]);
+    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends });
+    const today = new Date().toISOString().slice(0, 10);
+    const defaultCurrency = (spend.ok && spend.rows[0]?.currency) || (conversions.ok && conversions.rows.find((row) => row.currency)?.currency) || "usd";
+    const sections = [
+      campaignResultsPages.notice(req.query, ui.escape),
+      campaignResultsPages.campaignCard(found.campaign, ui.escape),
+      summary.ok ? campaignResultsPages.returnCard(summary, ui.escape) : campaignResultsPages.unreadableCard(summary, ui.escape),
+      campaignResultsPages.nextStepCard(summary, ui.escape),
+      summary.ok ? campaignResultsPages.activityCard(summary) : "",
+      campaignResultsPages.spendCard(spend, { action: `${CAMPAIGN_PAGE}/${encodeURIComponent(found.campaign.id)}/spend`, defaultCurrency, today, escape: ui.escape })
+    ].filter(Boolean);
+    return campaignPage(res, 200, sections, found.campaign.name || "Campaign");
+  });
+
+  // Recording what a campaign cost. Append-only: a mistake is answered by a
+  // correction row, never an edit, so what was claimed and when stays readable.
+  app.post(`${CAMPAIGN_PAGE}/:campaignId/spend`, access, async (req, res) => {
+    const back = (key, value) => res.redirect(303, `${CAMPAIGN_PAGE}/${encodeURIComponent(req.params.campaignId)}?${key}=${value}`);
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return back("problem", "not_saved");
+    const found = await campaignFor(config, context, req.params.campaignId);
+    if (!found.ok) return back("problem", "not_saved");
+    if (!found.campaign) return res.redirect(303, `${CAMPAIGN_PAGE}?problem=not_found`);
+    const kind = oneOf(req.body?.kind, ["spend", "correction"], "spend");
+    const amountCents = campaignResults.parseAmountCents(req.body?.amount, { allowNegative: kind === "correction" });
+    if (amountCents === null || amountCents === 0) return back("problem", "amount_invalid");
+    // Read whole, then checked: trimming to three characters first would turn
+    // "dollars" into "dol" and accept it.
+    const currency = clean(req.body?.currency, 20).toLowerCase();
+    if (!/^[a-z]{3}$/.test(currency)) return back("problem", "currency_invalid");
+    const spentOn = normalizeDateOnly(req.body?.spent_on);
+    if (!spentOn || spentOn > new Date().toISOString().slice(0, 10)) return back("problem", "date_invalid");
+    const description = clean(req.body?.description, 300);
+    if (!description) return back("problem", "description_required");
+    const created = await insert(config, TABLES.spend, {
+      organization_id: context.organizationId,
+      campaign_id: found.campaign.id,
+      kind,
+      amount_cents: amountCents,
+      currency,
+      spent_on: spentOn,
+      description,
+      reference: nullable(req.body?.reference, 200),
+      source: "owner",
+      recorded_by: context.userId
+    });
+    if (!created.ok) return back("problem", "not_saved");
+    await controlEvent(config, context, "campaign.spend_recorded", "success", { kind, amount_cents: amountCents, currency }, found.campaign.id);
+    return back("done", "spend");
+  });
 };
 
 // The totals, counted by the database rather than by whatever fitted on a page.
@@ -1401,11 +1486,13 @@ function recordTableCard(page, rows, escape, context = null) {
   // that will refuse.
   const action = page.rowAction || null;
   const heads = [...page.columns.map((column) => `<th>${escape(column.label)}</th>`)];
+  if (page.detailPath) heads.push(`<th>${escape(page.detailLabel || "Details")}</th>`);
   if (action) heads.push(`<th>${escape(action.columnLabel || "Action")}</th>`);
   const width = heads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`);
+      if (page.detailPath) cells.push(`<td><a href="${escape(`${page.path}/${encodeURIComponent(String(row.id || ""))}`)}">Open</a></td>`);
       if (action) cells.push(`<td>${actionCell(action, row, escape, context)}</td>`);
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
@@ -1445,10 +1532,21 @@ async function createProviderJob(config, context, input) {
   if (!selected.ok) return { ok: false, status: 400, code: selected.code };
   const provider = selected.provider;
   const requiresApproval = provider.adapterMode === "approval_gated" || APPROVAL_OPERATIONS.has(input.operation);
+  if (requiresApproval && input.approved) {
+    const authority = mayApproveOwnerAction(context.role);
+    if (!authority.allowed) {
+      return {
+        ok: false,
+        status: authority.code === "role_unknown" ? 503 : 403,
+        code: authority.code,
+        reason: authority.reason
+      };
+    }
+  }
   let status = "queued";
   if (requiresApproval && !input.approved) status = "approval_required";
-  else if (provider.adapterMode === "approval_gated") status = "manual_required";
   else if (!selected.readiness.configured) status = "setup_required";
+  else if (provider.adapterMode === "approval_gated" && !provider.directExecutionAfterApproval) status = "manual_required";
   const created = await insert(config, TABLES.jobs, {
     organization_id: context.organizationId,
     user_id: context.userId,
@@ -1484,6 +1582,7 @@ async function dispatchProviderJob(config, context, job, provider) {
     if (provider.key === "klaviyo") return dispatchKlaviyo(config, context, job, provider);
     if (provider.key === "posthog") return dispatchPostHog(config, context, job, provider);
     if (provider.key === "google_analytics") return dispatchGoogleAnalytics(config, context, job, provider);
+    if (provider.key === "linkedin_marketing") return dispatchLinkedIn(config, context, job, provider);
     const manual = await updateJob(config, context, job.id, { status: "manual_required", provider_response: { provider_key: provider.key, adapter_mode: provider.adapterMode }, updated_at: new Date().toISOString() });
     return { ok: true, job: manual.rows[0] };
   } catch (error) {
@@ -1599,8 +1698,126 @@ async function dispatchGoogleAnalytics(config, context, job, provider) {
   return { ok: true, job: completed.rows[0], snapshot: snapshot.rows[0] };
 }
 
+async function dispatchLinkedIn(config, context, job, provider) {
+  if (job.operation !== "organization_posts") {
+    return failProviderJob(config, context, job, "linkedin_operation_not_implemented", "Only organization_posts is enabled for direct LinkedIn execution.", 400);
+  }
+
+  const payload = job.request_payload || {};
+  const commentary = clean(payload.commentary || payload.text || payload.content?.body, 3000);
+  if (!commentary) {
+    return failProviderJob(config, context, job, "linkedin_commentary_required", "A LinkedIn organization post needs text to publish.", 400);
+  }
+
+  const organizationValue = clean(process.env.LINKEDIN_ORGANIZATION_ID, 300);
+  const organizationId = organizationValue.startsWith("urn:li:organization:")
+    ? organizationValue.slice("urn:li:organization:".length)
+    : organizationValue;
+  if (!/^\d+$/.test(organizationId)) {
+    return failProviderJob(config, context, job, "linkedin_organization_id_invalid", "LINKEDIN_ORGANIZATION_ID must be a LinkedIn organization numeric id or organization URN.", 503);
+  }
+
+  const revision = String(provider.defaultRevision || "202609");
+  const base = String(provider.defaultBaseUrl || "https://api.linkedin.com").replace(/\/$/, "");
+  const response = await fetch(`${base}/rest/posts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "Linkedin-Version": revision,
+      "X-Restli-Protocol-Version": "2.0.0"
+    },
+    body: JSON.stringify({
+      author: `urn:li:organization:${organizationId}`,
+      commentary,
+      visibility: "PUBLIC",
+      distribution: {
+        feedDistribution: "MAIN_FEED",
+        targetEntities: [],
+        thirdPartyDistributionChannels: []
+      },
+      lifecycleState: "PUBLISHED",
+      isReshareDisabledByAuthor: Boolean(payload.is_reshare_disabled_by_author || payload.isReshareDisabledByAuthor)
+    })
+  });
+
+  if (!response.ok) return failProviderResponse(config, context, job, response, "linkedin_post_failed");
+
+  // LinkedIn returns the new post identifier in x-restli-id for a successful
+  // create. The action may already have happened even if an intermediary strips
+  // that header, so a 201 without it is still completed rather than retried and
+  // potentially posted twice.
+  const providerPostId = clean(response.headers?.get?.("x-restli-id"), 500) || null;
+  const completedAt = new Date().toISOString();
+  const completed = await updateJob(config, context, job.id, {
+    status: "completed",
+    progress_percent: 100,
+    provider_job_id: providerPostId,
+    provider_response: {
+      accepted: true,
+      provider_post_id: providerPostId,
+      linkedin_version: revision,
+      evidence: providerPostId ? "linkedin_http_201_with_post_id" : "linkedin_http_201_without_post_id"
+    },
+    completed_at: completedAt,
+    updated_at: completedAt
+  });
+  const completedJob = completed.rows[0] || { ...job, status: "completed", provider_job_id: providerPostId, completed_at: completedAt };
+  const evidence = await recordProviderPublicationTouchpoint(config, context, completedJob, {
+    providerPostId,
+    revision
+  });
+  await controlEvent(config, context, "provider_job.completed", "success", {
+    provider_key: provider.key,
+    operation: job.operation,
+    provider_job_id: providerPostId,
+    publication_evidence_recorded: evidence.ok
+  }, job.campaign_id, job.id);
+  return { ok: true, job: completedJob, publicationEvidenceRecorded: evidence.ok };
+}
+
+async function recordProviderPublicationTouchpoint(config, context, job, { providerPostId = null, revision = null } = {}) {
+  const result = await insert(config, TABLES.touchpoints, {
+    organization_id: context.organizationId,
+    user_id: context.userId,
+    campaign_id: validUuid(job.campaign_id) ? job.campaign_id : null,
+    lead_id: null,
+    provider_key: "linkedin_marketing",
+    event_name: "provider.published",
+    channel: "linkedin",
+    source: "linkedin",
+    medium: "organic_social",
+    campaign_key: validUuid(job.campaign_id) ? job.campaign_id : null,
+    content_key: validUuid(job.content_id) ? job.content_id : null,
+    anonymous_id: null,
+    external_event_id: providerPostId,
+    deduplication_key: `provider-job:${job.id}:published`,
+    value: null,
+    currency: null,
+    occurred_at: validDate(job.completed_at) || new Date().toISOString(),
+    hand_entered: false,
+    metadata: {
+      job_id: job.id,
+      operation: job.operation,
+      evidence: "linkedin_posts_api",
+      linkedin_version: revision || job.provider_response?.linkedin_version || null
+    }
+  });
+  // A deterministic deduplication key makes refresh/recovery idempotent. If the
+  // evidence already exists, a 409 is success: the proof is already durable.
+  return { ok: result.ok || result.status === 409, duplicate: result.status === 409 };
+}
+
 async function refreshProviderJob(config, context, job, provider) {
   if (!provider) return { ok: false, status: 409, code: "provider_not_found" };
+  if (job.status === "completed" && provider.key === "linkedin_marketing" && job.operation === "organization_posts") {
+    const evidence = await recordProviderPublicationTouchpoint(config, context, job, {
+      providerPostId: clean(job.provider_job_id || job.provider_response?.provider_post_id, 500) || null,
+      revision: clean(job.provider_response?.linkedin_version, 20) || provider.defaultRevision || "202609"
+    });
+    return { ok: true, job, unchanged: true, publicationEvidenceRecorded: evidence.ok, evidenceAlreadyPresent: evidence.duplicate };
+  }
   if (["completed", "failed", "cancelled", "approval_required", "manual_required", "setup_required"].includes(job.status)) return { ok: true, job, unchanged: true };
   return { ok: true, job, unchanged: true, note: "Configured Growth Studio adapters in this release are synchronous; external asynchronous connectors remain manual or approval-gated." };
 }

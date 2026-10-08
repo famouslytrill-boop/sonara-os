@@ -301,7 +301,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         `Orders (${orders.rows.length})`,
         orders.rows.map((order) => [
           `<p>${escapeHtml(order.buyer_name)} (${escapeHtml(order.buyer_email)}) — ${escapeHtml(order.status)}, `
-          + `${escapeHtml(storefront.money(Number(order.subtotal_cents) || 0, order.currency))}`
+          + `${escapeHtml(storefront.money(order.subtotal_cents, order.currency))}`
           // The date, because an owner looking at an order needs to know when it
           // came in. It was selected and shown nowhere until
           // report-unused-selected-columns.mjs said so.

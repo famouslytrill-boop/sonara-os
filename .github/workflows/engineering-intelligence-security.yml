@@ -315,4 +315,8 @@ jobs:
       # inspectable and cannot be converted into unexplained red lights.
       - name: Enforce release evidence gate
         if: always()
-        run: node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json
+        shell: bash
+        run: |
+          node scripts/verify-release-evidence-integrity.mjs --self-test
+          node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json
+          node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "${GITHUB_SHA}"

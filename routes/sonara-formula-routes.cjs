@@ -12,6 +12,9 @@ const {
 const {
   getFinancialIntelligenceFormulaCatalog
 } = require("../lib/sonara-financial-intelligence-formulas.cjs");
+const pages = require("../lib/sonara-formula-pages.cjs");
+
+const SAVED_RESULTS_SHOWN = 50;
 
 
 const FORMULA_GROUP_LABELS = {
@@ -34,6 +37,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const getCustomerPrimaryOrganization = typeof deps.getCustomerPrimaryOrganization === "function" ? deps.getCustomerPrimaryOrganization : undefined;
   const supabaseHeaders = typeof deps.supabaseHeaders === "function" ? deps.supabaseHeaders : undefined;
   const insertActivityEvent = typeof deps.insertActivityEvent === "function" ? deps.insertActivityEvent : async () => ({ ok: false });
+  const escapeHtml = typeof deps.escapeHtml === "function" ? deps.escapeHtml : esc;
 
   app.get("/formulas", (req, res) => {
     const groups = groupDefinitions(listFormulaDefinitions());
@@ -45,7 +49,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
       body: "Business, creator, growth, device, and operating-twin formulas that produce real saved results when database setup is complete.",
       sections: [
         brandCard("Financial intelligence", `${financialIntelligence.count} deterministic decision-support formulas are available as a supplemental catalog; they cannot move money, post accounting entries, trade, or approve credit.`),
-        ...Object.entries(groups).map(([group, definitions]) => brandCard(formatLabel(group), definitions.map((definition) => definition.publicLabel).join(" / ")))
+        ...Object.entries(groups).map(([group, definitions]) => `<article class="card"><h2>${escapeHtml(formatLabel(group))}</h2><ul>${definitions.map((definition) => `<li><a href="/formulas/${escapeHtml(definition.formulaKey)}">${escapeHtml(definition.publicLabel)}</a></li>`).join("")}</ul></article>`)
       ],
       actions: [
         linkAction("/api/formulas/readiness", "Readiness JSON"),
@@ -70,16 +74,57 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
     });
   });
 
+  // One formula, worked out on the page. Public, like /formulas and the
+  // evaluate endpoint it posts to: nothing here reads or writes a business's
+  // records until the person chooses to save.
+  app.get("/formulas/:formulaKey", (req, res) => {
+    const definition = pages.definitionFor(req.params.formulaKey);
+    if (!definition) return res.status(404).type("html").send(unknownFormulaPage());
+    return res.status(200).type("html").send(calculatorPage(definition, {}, null));
+  });
+
+  // The saved results for one formula, for the signed-in person's business.
+  // Gated on the workspace the formula belongs to, as saving one is.
+  app.get("/formulas/:formulaKey/results", (req, res, next) => {
+    const definition = pages.definitionFor(req.params.formulaKey);
+    if (!definition) return res.status(404).type("html").send(unknownFormulaPage());
+    return requireWorkspaceAccess(productAreaToWorkspace(definition.productArea))(req, res, next);
+  }, async (req, res) => {
+    const definition = pages.definitionFor(req.params.formulaKey);
+    const outcome = await readSavedResults(definition, req);
+    const saved = req.query?.saved === "1" ? brandCard("Saved", "The answer and the figures it came from are kept with your business.") : "";
+    return res.status(200).type("html").send(layout({
+      title: `${definition.publicLabel} results`,
+      eyebrow: "Formula Library",
+      heading: `${definition.publicLabel}: saved results`,
+      body: `Each row is an answer worked out from the figures beside it, as ${definition.expressionText}.`,
+      sections: [saved, pages.savedResultsCard(definition, outcome, escapeHtml)].filter(Boolean),
+      actions: [linkAction(`/formulas/${definition.formulaKey}`, "Work out another"), linkAction("/formulas", "All formulas")]
+    }));
+  });
+
   app.post("/api/formulas/evaluate", (req, res) => {
-    const result = evaluateFormula(req.body?.formulaKey || req.body?.formula_key, req.body?.inputValues || req.body?.input_values || req.body || {});
+    const formulaKey = req.body?.formulaKey || req.body?.formula_key;
+    if (wantsHtml(req)) {
+      const definition = pages.definitionFor(formulaKey);
+      if (!definition) return res.status(404).type("html").send(unknownFormulaPage());
+      const values = pages.valuesFromForm(definition, req.body);
+      const result = evaluateFormula(definition.formulaKey, values);
+      return res.status(result.ok ? 200 : 400).type("html").send(calculatorPage(definition, values, result));
+    }
+    const result = evaluateFormula(formulaKey, req.body?.inputValues || req.body?.input_values || req.body || {});
     return res.status(result.ok ? 200 : 400).json(result);
   });
 
   app.post("/api/formulas/results", selectFormulaWorkspace(requireWorkspaceAccess), async (req, res) => {
     const formulaKey = req.body?.formulaKey || req.body?.formula_key;
-    const inputValues = req.body?.inputValues || req.body?.input_values || {};
+    const definition = pages.definitionFor(formulaKey);
+    const html = wantsHtml(req) && definition;
+    const inputValues = html ? pages.valuesFromForm(definition, req.body) : (req.body?.inputValues || req.body?.input_values || {});
     const evaluated = evaluateFormula(formulaKey, inputValues);
-    if (!evaluated.ok) return res.status(400).json(evaluated);
+    if (!evaluated.ok) {
+      return html ? res.status(400).type("html").send(calculatorPage(definition, inputValues, evaluated)) : res.status(400).json(evaluated);
+    }
     const saved = await saveFormulaResult({
       evaluated,
       req,
@@ -88,9 +133,71 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
       supabaseHeaders,
       insertActivityEvent
     });
-    return res.status(saved.ok ? 200 : 503).json(saved);
+    if (html) {
+      if (saved.ok) return res.redirect(303, `/formulas/${definition.formulaKey}/results?saved=1`);
+      return res.status(saved.status || 503).type("html").send(layout({
+        title: "Not saved",
+        eyebrow: "Formula Library",
+        heading: "Not saved",
+        body: SAVE_REFUSALS[saved.code] || SAVE_REFUSALS.database_unavailable,
+        sections: [pages.resultCard(definition, evaluated, escapeHtml)],
+        actions: [linkAction(`/formulas/${definition.formulaKey}`, "Back")]
+      }));
+    }
+    return res.status(saved.status || (saved.ok ? 200 : 503)).json(saved);
   });
+
+  function calculatorPage(definition, values, result) {
+    const sections = [];
+    if (result?.ok) sections.push(pages.resultCard(definition, result, escapeHtml));
+    else if (result) sections.push(pages.refusalCard(result, escapeHtml));
+    sections.push(pages.calculatorCard(definition, values, escapeHtml));
+    return layout({
+      title: definition.publicLabel,
+      eyebrow: `Formula Library / ${formatLabel(definition.groupKey)}`,
+      heading: definition.publicLabel,
+      body: `Worked out as ${definition.expressionText}. Nothing is saved unless you choose to save it.`,
+      sections,
+      actions: [linkAction(`/formulas/${definition.formulaKey}/results`, "Saved results"), linkAction("/formulas", "All formulas")]
+    });
+  }
+
+  function unknownFormulaPage() {
+    return layout({
+      title: "Formula not found",
+      eyebrow: "Formula Library",
+      heading: "Formula not found",
+      body: "There is no formula by that name.",
+      sections: [],
+      actions: [linkAction("/formulas", "All formulas")]
+    });
+  }
+
+  async function readSavedResults(definition, req) {
+    if (!getSupabaseServerConfig || !supabaseHeaders || !getCustomerPrimaryOrganization) return { ok: false, rows: [] };
+    const config = getSupabaseServerConfig();
+    if (!config.ok) return { ok: false, rows: [] };
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) return { ok: false, rows: [] };
+    const url = `${config.url}/rest/v1/sonara_formula_results?select=created_at,input_values,result_value,result_unit&organization_id=eq.${encodeURIComponent(organization.organizationId)}&formula_key=eq.${encodeURIComponent(definition.formulaKey)}&order=created_at.desc&limit=${SAVED_RESULTS_SHOWN + 1}`;
+    const response = await fetch(url, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!response?.ok) return { ok: false, rows: [] };
+    const rows = await response.json().catch(() => null);
+    if (!Array.isArray(rows)) return { ok: false, rows: [] };
+    return { ok: true, rows: rows.slice(0, SAVED_RESULTS_SHOWN), truncated: rows.length > SAVED_RESULTS_SHOWN };
+  }
 };
+
+const SAVE_REFUSALS = {
+  setup_required: "Saving is not set up for this site yet, so nothing was kept.",
+  formula_not_in_database: "This formula is not yet recorded in the database, so a result for it cannot be kept. Nothing was saved.",
+  database_unavailable: "The records could not be reached, so nothing was kept. Try again shortly."
+};
+
+function wantsHtml(req) {
+  const accept = String(req.headers?.accept || "");
+  return accept.includes("text/html") && !/^application\/json/.test(accept);
+}
 
 function selectFormulaWorkspace(requireWorkspaceAccess) {
   return (req, res, next) => {
@@ -136,10 +243,21 @@ async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getC
     headers: supabaseHeaders(config, { prefer: "return=representation" }),
     body: JSON.stringify(record)
   }).catch(() => undefined);
-  if (!response?.ok) return { ok: false, code: "setup_required", service: "sonara_formula_results", status: response?.status || "unavailable" };
+  if (!response?.ok) return { ok: false, ...saveFailure(response, await response?.json().catch(() => null)) };
   const rows = await response.json().catch(() => []);
   await insertActivityEvent(organization.organizationId, req.sonaraUser?.id, "sonara.formula_result_saved", { formula_key: evaluated.formulaKey, formula_result_id: rows[0]?.id || null });
   return { ok: true, saved: true, code: "saved", formulaKey: evaluated.formulaKey, result: rows[0] || record };
+}
+
+// What a refused insert means. Every failure used to read "setup_required",
+// including the foreign-key refusal for a formula with no definition row --
+// which told the owner to finish a setup that was already finished, while the
+// actual cause was a seed missing from the migrations.
+function saveFailure(response, body) {
+  if (!response) return { code: "database_unavailable", service: "sonara_formula_results", status: 503 };
+  if (body?.code === "23503") return { code: "formula_not_in_database", service: "sonara_formula_definitions", status: 409 };
+  if (response.status === 404 || body?.code === "PGRST205" || body?.code === "42P01") return { code: "setup_required", service: "sonara_formula_results", status: 503 };
+  return { code: "database_unavailable", service: "sonara_formula_results", status: 503 };
 }
 
 function normalizeUuid(value) {

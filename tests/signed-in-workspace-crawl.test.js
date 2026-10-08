@@ -122,6 +122,11 @@ function registeredPages() {
   return [...new Set(routes.filter((route) => route.methods.includes("get")).map((route) => route.path))]
     .filter((route) => !route.includes(":"))
     .filter((route) => !route.startsWith("/api/"))
+    // /.well-known/ holds files a machine reads -- Android's verifier fetches
+    // assetlinks.json -- not pages a person opens, and assetlinks answers 404
+    // by design until the Play signing key is set. Its own test covers both
+    // answers: tests/the-android-app-is-vouched-for-only-by-its-real-key.test.js.
+    .filter((route) => !route.startsWith("/.well-known/"))
     .filter((route) => !route.startsWith("/admin"))
     // OAuth callback is a protocol endpoint, not a workspace page. A direct
     // request with no provider code/PKCE verifier is correctly HTTP 400.
