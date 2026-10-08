@@ -608,13 +608,14 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.getByRole("radio", { name: /Just that I checked in/ }).check();
     await page.getByRole("button", { name: "Check in", exact: true }).click();
     const status = page.locator("[data-sonara-check-in-status]");
+    const checkInScope = { organizationId: projectId(601), userId: projectId(603) };
     await expect(status).toContainText("Delivery is not confirmed");
     await page.getByRole("button", { name: "Send saved check-ins" }).click();
     await expect(status).toContainText("still waiting");
-    expect(await page.evaluate(() => window.SonaraOfflineQueue.pending({ scope: { organizationId: projectId(601), userId: projectId(603) } }))).toBe(1);
+    expect(await page.evaluate((scope) => window.SonaraOfflineQueue.pending({ scope }), checkInScope)).toBe(1);
     await page.getByRole("button", { name: "Send saved check-ins" }).click();
     await expect(status).toContainText("has now been recorded");
-    expect(await page.evaluate(() => window.SonaraOfflineQueue.pending({ scope: { organizationId: projectId(601), userId: projectId(603) } }))).toBe(0);
+    expect(await page.evaluate((scope) => window.SonaraOfflineQueue.pending({ scope }), checkInScope)).toBe(0);
     await page.evaluate(() => {
       const id = "99999999-9999-4999-8999-999999999999";
       localStorage.setItem(window.SonaraOfflineQueue.STORAGE_KEY, JSON.stringify([{ endpoint: "/api/location/events", body: { client_event_id: id, captured_at: new Date().toISOString(), event_type: "check_in" } }]));
