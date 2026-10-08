@@ -158,6 +158,14 @@ jobs:
             sleep 30
           done
 
+      # GitHub can report a workflow-level success while a required job is
+      # skipped, neutral, missing, duplicated, or omitted from a truncated
+      # jobs API response. Refuse those cases before protected credentials.
+      - name: Require mandatory exact-SHA job attestations
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-exact-sha-release-jobs.cjs
+
       # An environment name is not a human review gate by itself. Verify
       # required reviewers, self-review prohibition, branch scope and bypass
       # protection through the read-only GitHub API before installing packages
