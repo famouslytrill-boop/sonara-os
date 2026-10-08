@@ -12,6 +12,7 @@ const shellStyles = fs.readFileSync(path.join(root, "public/sonara-application-u
 const sourceStyles = fs.readFileSync(path.join(root, "ui/sonara/styles/99-zzzzzz-frontend-operations-2026.css"), "utf8");
 const workerSource = fs.readFileSync(path.join(root, "public/sw.js"), "utf8");
 const fontSource = fs.readFileSync(path.join(root, "public/sonara-fonts.css"), "utf8");
+const clientSource = fs.readFileSync(path.join(root, "public/sonara-one.js"), "utf8");
 const marker = "/* SONARA cross-device adaptive workspace navigation — 2026-10-08 */";
 const frame = createPageFrame({
   legalPages: () => [],
@@ -43,7 +44,7 @@ describe("cross-device workspace navigation", () => {
     assert.match(html, /aria-label="Workspace shortcuts"/);
     const matches = [...dock[1].matchAll(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g)];
     assert.deepEqual(matches.map((m) => [m[1], m[2]]), [
-      ["/dashboard", "Workspaces"],
+      ["/dashboard", "Home"],
       ["/business-builder/dashboard", "Build"],
       ["/creator-studio/assets", "Create"],
       ["/growth-studio/campaigns", "Grow"]
@@ -60,9 +61,25 @@ describe("cross-device workspace navigation", () => {
   it("marks only a known canonical shortcut as current", () => {
     const html = render({ authenticated: true, canonical: "/creator-studio/assets" });
     assert.equal((html.match(/aria-current="page"/g) || []).length, 1);
-    assert.match(html, /href="\/creator-studio\/assets" aria-current="page">Create<\/a>/);
+    assert.match(html, /href="\/creator-studio\/assets" data-i18n="dockCreate" aria-current="page">Create<\/a>/);
     const unknown = render({ authenticated: true, canonical: "" });
     assert.doesNotMatch(unknown, /aria-current="page"/);
+  });
+
+  it("localizes all compact links without expanding their screen width", () => {
+    const html = render({ authenticated: true });
+    for (const key of ["dockHome", "dockBuild", "dockCreate", "dockGrow"]) {
+      assert.match(html, new RegExp('data-i18n="' + key + '"'));
+      const occurrences = clientSource.match(new RegExp(key + ': "', "g")) || [];
+      assert.equal(occurrences.length, 5, key + " must have all five locale values");
+    }
+  });
+
+  it("distinguishes nested studio location from the exact current page", () => {
+    assert.match(clientSource, /const sections = \[/);
+    assert.match(clientSource, /current\.startsWith\(prefix \+ "\/"\)/);
+    assert.match(clientSource, /setAttribute\("aria-current", "location"\)/);
+    assert.match(shellStyles, /a\[aria-current="location"\]/);
   });
 
   it("opts into cutout-aware web safe areas without blocking zoom", () => {
