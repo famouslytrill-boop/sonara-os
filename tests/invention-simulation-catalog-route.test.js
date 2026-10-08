@@ -60,6 +60,10 @@ describe("research simulation catalog at the existing invention-systems route", 
     assert.match(res.payload, /Simulation and creative mathematics/);
     assert.match(res.payload, /No casino, betting, trading or money execution/);
     assert.match(res.payload, /SONARA One, Business Builder, Creator Studio and Growth Studio/);
+    assert.match(res.payload, /Read-only mathematical examples/);
+    assert.match(res.payload, /12 square units/);
+    assert.match(res.payload, /MIDI notes 60, 64, 67/);
+    assert.match(res.payload, /mixed-strategy row probability 0.5/);
   });
 
   it("registers no new mutation, wagering, payment or simulation-run endpoint", () => {
