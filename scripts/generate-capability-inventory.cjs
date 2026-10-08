@@ -3035,7 +3035,13 @@ function markdownFor(map) {
 function validateMap(map) {
   const errors = [];
   for (const [key, value] of Object.entries(map.validation)) {
-    if (Array.isArray(value) && value.length) errors.push(`${key}: ${value.length}`);
+    // Keep the gate strict, but name the actual review evidence that failed.
+    // Counts alone hide the route or file the engineer needs to repair.
+    if (Array.isArray(value) && value.length) {
+      errors.push(`${key}: ${value.length}`);
+      for (const detail of value.slice(0, 20)) errors.push(`${key}: ${String(detail)}`);
+      if (value.length > 20) errors.push(`${key}: ... ${value.length - 20} additional item(s)`);
+    }
   }
   if (!map.routeOperations.length) errors.push("no live route registrations were discovered");
   if (map.routeOperations.some((route) => !route.source.file || !route.workspace)) errors.push("one or more routes lack source or workspace ownership");
