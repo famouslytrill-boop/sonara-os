@@ -100,3 +100,27 @@ All public submissions from the two documented support forms go through the same
 - Verify real Resend sender DNS, Supabase Auth SMTP, support delivery receipts, and email suppression/complaint routing. No production secrets or customer messages are involved in this patch.
 - Determine whether any public legal text, pricing, cancellation or privacy representation needs counsel approval; no legal notices or acceptance records were changed here.
 - Keep all work in a draft pull request until the final commit's exact-head CI is green and production is separately authorized.
+
+## P0 live-database finding and proposed correction (2026-10-08)
+
+Read-only Supabase catalog and RLS queries on the connected project confirmed the following for `public.support_requests` and `public.feedback_reports`:
+
+- RLS is enabled and there are policies permitting anonymous `INSERT` when a few text fields are non-null. This leaves a direct Data API route that **bypasses** the Express form validators, request throttling and sensitive-data warning.
+- Both `anon` and `authenticated` have broad table-level privileges including `INSERT`, `SELECT`, `UPDATE`, `DELETE` and `TRUNCATE` from historical grants. RLS restricts row-level actions, so the grants alone do not prove any private reads occurred.
+- The trusted server's `service_role` retains write privileges and is the insertion authority for the current `/contact` and `/support/request` Express routes.
+- Default-branch source search found the support table server-side and no direct feedback-table client call; dynamic/mobile/external clients must still be inventoried before an ACL change.
+
+**Action:** `docs/security/PROPOSED_SUPPORT_BROWSER_GRANTS_2026-10-08.sql` is a *non-applied* SQL review artifact. It narrows browser grants while preserving authenticated SELECT and trusted service-role writes. After staging proof and approval, generate an official named Supabase migration using the repository's CLI, replay all migrations, test 42501 denial for direct browser inserts and validate both existing support forms. Do not apply production grants from this draft PR or blanket-grant `public` tables.
+
+### Counter unavailability is fail-closed for production support submissions
+
+The existing `createRateLimiter` now supports an opt-in `requireDurable` guard. The SONARA support/contact POST routes enable this in production; when Postgres RPC is unreachable, misconfigured or degraded to an instance-local budget, the public write fails HTTP 503 **before saving or sending**. It exposes no credentials or submitted content. Local development/tests can retain the bounded in-memory fallback. This is a conscious availability trade-off: it prevents provider-billed email abuse via unmetered serverless instances. The provider can still be unavailable independently, and provider acceptance still does not prove inbox delivery.
+
+### Latest read-only security advisor inventory
+
+The live advisor reported 66 INFO findings for RLS tables with no policies, 8 WARN findings for authenticated-executable privileged functions, 1 WARN for `vector` in `public`, and 1 WARN for disabled leaked-password protection. No automatic correction was applied. A server-only RLS-closed table is not made safer by granting it an arbitrary browser policy; classify exact intended grants and test each helper's dependencies before revoking or relocating anything.
+
+Official sources:
+- https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically
+- https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+- https://github.com/OWASP/ASVS/blob/master/5.0/en/0x17-V8-Authorization.md
