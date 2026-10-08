@@ -33,7 +33,8 @@ describe("free login-based SONARA platform surface policy", () => {
   });
   it("requires moderation before publishing or commenting", () => {
     const x = { product: "creator_studio", service: "marketplace", action: "publish",
-      userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true };
+      userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true,
+      termsAcceptanceVerified: true };
     assert.equal(surfacePolicy(x).code, "moderation_check_required");
     const withoutRights = surfacePolicy({ ...x, moderationApproved: true });
     assert.equal(withoutRights.code, "marketplace_rights_review_required");
@@ -71,10 +72,29 @@ describe("free login-based SONARA platform surface policy", () => {
     }
   });
 
+  it("requires verified current UGC terms on every brand before publication or comments", () => {
+    const base = { userId: U, organizationId: A, serverOrganizationId: A,
+      actorHasPermission: true, moderationApproved: true, rightsCleared: true };
+    for (const item of CATALOG) {
+      for (const action of ["publish", "comment"]) {
+        const draft = { ...base, product: item.product, service: item.service, action };
+        assert.equal(surfacePolicy(draft).code, "ugc_terms_acceptance_required", item.key);
+        assert.equal(surfacePolicy({ ...draft, termsAcceptanceVerified: "true" }).code,
+          "ugc_terms_acceptance_required", item.key);
+        assert.equal(surfacePolicy({ ...draft, termsAcceptanceVerified: true }).ok, true, item.key);
+      }
+      const report = surfacePolicy({ ...base, product: item.product, service: item.service,
+        action: "report", termsAcceptanceVerified: false });
+      assert.equal(report.ok, true, "reports should not be withheld to force UGC terms acceptance");
+      assert.equal(report.sideEffectExecuted, false);
+    }
+  });
+
   it("requires rights clearance for marketplace publication under every company brand", () => {
     for (const item of CATALOG.filter(x => x.service === "marketplace")) {
       const base = { product: item.product, service: item.service, action: "publish",
-        userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true };
+        userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true,
+        termsAcceptanceVerified: true };
       assert.equal(surfacePolicy({ ...base, moderationApproved: true }).code,
         "marketplace_rights_review_required", item.key);
       assert.equal(surfacePolicy({ ...base, moderationApproved: true, rightsCleared: "true" }).code,
@@ -91,7 +111,8 @@ describe("free login-based SONARA platform surface policy", () => {
 
   it("does not impose marketplace rights review on normal moderated social posts or free storefront setup", () => {
     const base = { userId: U, organizationId: A, serverOrganizationId: A,
-      actorHasPermission: true, moderationApproved: true, paidEntitlement: false };
+      actorHasPermission: true, moderationApproved: true, termsAcceptanceVerified: true,
+      paidEntitlement: false };
     assert.equal(surfacePolicy({ ...base, product: "growth_studio", service: "social",
       action: "publish" }).ok, true);
     assert.equal(surfacePolicy({ ...base, product: "business_builder", service: "storefront",
@@ -103,7 +124,7 @@ describe("free login-based SONARA platform surface policy", () => {
   it("refuses malformed user UUIDs, tenant UUIDs and scope spoofing on every free write", () => {
     const base = { product: "sonara_industries", service: "social", action: "create",
       userId: U, organizationId: A, serverOrganizationId: A,
-      actorHasPermission: true, paidEntitlement: false };
+      actorHasPermission: true, paidEntitlement: false, termsAcceptanceVerified: true };
     assert.equal(surfacePolicy(base).ok, true);
     for (const userId of ["x".repeat(36), "1".repeat(36), "11111111--111-4111-8111-111111111111", null]) {
       assert.equal(surfacePolicy({ ...base, userId }).code, "login_required");
