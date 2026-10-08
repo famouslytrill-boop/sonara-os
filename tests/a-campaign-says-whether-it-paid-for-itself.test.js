@@ -68,6 +68,41 @@ describe("a campaign says whether it paid for itself", () => {
     savedFetch = null;
   });
 
+  it("bounds Growth's nine campaign count reads, keeps tenant scope, and labels a failed count unknown", async () => {
+    const app = start(tables());
+    const installed = global.fetch;
+    let active = 0;
+    let maxActive = 0;
+    let countRequests = 0;
+    const organizationFilter = `organization_id=eq.${encodeURIComponent(ORG)}`;
+    global.fetch = async (input, init = {}) => {
+      if (init.headers?.Prefer !== "count=exact") return installed(input, init);
+      countRequests += 1;
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      try {
+        const url = String(typeof input === "string" ? input : input?.url);
+        assert.ok(url.includes(organizationFilter), "the Growth report removed its tenant filter");
+        await new Promise((resolve) => setTimeout(resolve, 2));
+        if (url.includes("growth_experiments?")) {
+          return { ok: false, status: 503, headers: { get: () => null }, json: async () => ({}) };
+        }
+        return installed(input, init);
+      } finally {
+        active -= 1;
+      }
+    };
+    const result = await request(app).get("/api/growth/metrics").set("Accept", "application/json");
+    assert.equal(result.status, 200);
+    assert.equal(countRequests, 9);
+    assert.ok(maxActive > 1, "counting must not serialize nine independent queries");
+    assert.ok(maxActive <= 3, "Growth exceeded the three-read concurrent budget");
+    assert.equal(active, 0);
+    assert.equal(result.body.scope.organizationId, ORG);
+    assert.equal(result.body.totals.experiments, null, "a failed count was turned into an invented zero");
+    assert.equal(result.body.countsRead.readable, 8);
+  });
+
   it("links each campaign to its page, and records spend from that page's form", async () => {
     const app = start(tables());
     const list = await request(app).get("/growth-studio/your-campaigns").set("accept", "text/html");
