@@ -6,7 +6,7 @@
 
 1. **lib/sonara-simulation-integration.cjs** is the new owned, dependency-free internal registry and dispatcher. It imports the existing pure engines for calculus/geometry, game state, probability/roulette, cards/poker and strategy, and now music/narrative theory. It does not import Express, Stripe, Supabase, network or storage.
 2. **lib/sonara-creative-theory-models.cjs** adds named chord intervals and MIDI note frequencies, plus tension-curve analysis of caller-authored narrative beat IDs/scores. No sounds, copyrighted book text or films are generated.
-3. **routes/invention-systems-routes.cjs** extends the EXISTING authenticated-by-host \`GET /api/invention-systems/catalog\` with \`researchSimulations\` and adds a clearly qualified overview card to the EXISTING \`/market-intelligence/invention-systems\` page. No POST, mutation, execution or cash transfer endpoint added.
+3. **routes/invention-systems-routes.cjs** extends the EXISTING authenticated-by-host \`GET /api/invention-systems/catalog\` with \`researchSimulations\` and adds a clearly qualified overview card to the EXISTING \`/market-intelligence/invention-systems\` page. No POST, mutation, user-input evaluation endpoint or cash transfer endpoint added. The precomputed research examples shown on page load are read-only: 4×3 area, C major chord notes and matching-pennies mixed equilibrium.
 4. **tests/sonara-simulation-integration.test.js**, **tests/invention-simulation-catalog-route.test.js** and **tests/sonara-creative-theory-models.test.js** verify cross-studio mapping, read-only route behavior, bounded inputs, malicious parameters, non-execution status, harmony and story-beat arithmetic.
 
 ### Studio capability mapping (15 total)
@@ -43,7 +43,7 @@ References:
 
 **P1 — secure runtime design before implementing it:** decide whether simulation results should be persistent. Define research_experiments and scenario_provenance tables only when a real customer workflow requires them, with explicit tenant, user, studio, engine_version, input_hash, retention, budget reservation and state transition columns. Scope \`SELECT\`/\`INSERT\`/deletion policy separately. Migration must revoke default anon/authenticated grants and grant only needed operations, enable RLS and include pgTAP cross-tenant allow/deny checks. Existing tables might already cover provenance; deduplicate before migration.
 
-**P1 — actual customer UI:** use the existing research-lab/invention-systems destination as an entry point; deliver step-by-step educational simulations with consented manual input, labeled uncertainty, accessible focus/keyboard navigation and typed outputs. Do NOT add inert buttons or fake subscription/betting dashboards. The current read-only catalog is not such a UI.
+**P1 — actual customer UI:** use the existing research-lab/invention-systems destination as an entry point; deliver step-by-step educational simulations with consented manual input, labeled uncertainty, accessible focus/keyboard navigation and typed outputs. Do NOT add inert buttons or fake subscription/betting dashboards. The current read-only catalog, accompanied by three fixed-input examples, is not such a user-interactive UI.
 
 **P1 — Creator asset/story integration:** map chord note frequencies into the existing Creator Project Graph as non-destructive editable educational overlays, not a new music timeline. Map narrative beats into user-owned project references without duplicating rights/approval status. All storage and exports require existing tenant-safe file contracts.
 
