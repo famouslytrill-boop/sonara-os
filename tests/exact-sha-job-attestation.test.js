@@ -238,6 +238,23 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     assert.deepEqual(badRequest.failures, ["release_context_missing"]);
   });
 
+  it("requires credential-free preflight before entering the production environment", () => {
+    const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
+      "controlled-production-deploy.yml"), "utf8");
+    const preStart = workflow.indexOf("  release-attestation-preflight:");
+    const deployStart = workflow.indexOf("  validate-migrate-deploy:");
+    assert.ok(preStart > 0 && deployStart > preStart, "preflight must precede deployment");
+    const preflight = workflow.slice(preStart, deployStart);
+    const deployment = workflow.slice(deployStart);
+    assert.match(preflight, /node scripts\\/verify-exact-sha-release-jobs\\.cjs/);
+    assert.match(preflight, /GITHUB_TOKEN:/);
+    assert.doesNotMatch(preflight, /secrets\\.|environment: production|VERCEL_TOKEN|SUPABASE_/);
+    assert.match(deployment, /needs: release-attestation-preflight/);
+    assert.match(deployment, /environment: production/);
+    assert.match(deployment, /secrets\\.VERCEL_TOKEN/);
+    assert.match(deployment, /secrets\\.SUPABASE_ACCESS_TOKEN/);
+  });
+
   it("is ordered after the exact-SHA run gate but before environment and secrets", () => {
     const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
       "controlled-production-deploy.yml"), "utf8");
