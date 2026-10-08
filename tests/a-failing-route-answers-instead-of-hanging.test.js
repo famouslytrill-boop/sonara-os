@@ -40,12 +40,18 @@ function race(agent) {
 // A fresh Express 4 app rather than the real one, because the question is what
 // the framework does with a throwing handler and the real app has no route that
 // throws on purpose -- adding one to it would be adding the defect.
-function buildApp({ install }) {
+function buildApp({ install, onMutation = () => {} }) {
   const probe = express();
   if (install) installAsyncRouteSafety(probe);
   probe.get("/page", async () => { throw new Error("probe failure"); });
   probe.get("/api/thing", async () => { throw new Error("probe failure"); });
   probe.get("/sync", () => { throw new Error("probe failure"); });
+  // The write already happened before the later failure: a 500 is not proof
+  // the operation can be safely retried with a new idempotency key.
+  probe.post("/api/partial-write", async () => {
+    onMutation();
+    throw new Error("write committed, final confirmation unavailable");
+  });
   probe.get("/already-sent", async (req, res) => {
     res.status(200).type("html").send("<p>the real answer</p>");
     throw new Error("probe failure after the response");
@@ -73,6 +79,23 @@ describe("a failing route answers instead of hanging", () => {
     const result = await race(request(buildApp({ install: true })).get("/api/thing"));
     assert.equal(result.status, 500);
     assert.equal(JSON.parse(result.text).code, "request_failed");
+  });
+
+  it("does not promise rollback after a write succeeds but confirmation fails", async () => {
+    let committedWrites = 0;
+    const result = await race(request(buildApp({
+      install: true,
+      onMutation: () => { committedWrites += 1; }
+    })).post("/api/partial-write"));
+    assert.equal(committedWrites, 1, "fixture must demonstrate a real completed effect before error");
+    assert.equal(result.status, 500);
+    const response = JSON.parse(result.text);
+    assert.equal(response.code, "request_failed");
+    assert.match(response.message, /could not be confirmed/i);
+    assert.match(response.message, /check its status before retrying/i);
+    assert.doesNotMatch(response.message, /nothing was changed|rolled back|no changes/i);
+    assert.doesNotMatch(result.text, /write committed, final confirmation unavailable/,
+      "internal exception reached API response");
   });
 
   it("says nothing about what failed", async () => {
