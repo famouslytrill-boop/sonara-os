@@ -326,6 +326,12 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
+    // The private autonomic claim ledger must prevent unsafe replay, enforce
+    // service-role-only access, and reject stale fencing tokens on real Postgres.
+    behaves(psql, "bounded SONARA autonomic claim, fencing and role proof",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-repair-role-matrix.sql"), "utf8"),
+      ["sonara_recovery_staging_passed"]);
+
     // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
     // remove one rigorously identical subscriptions policy in a single
     // rolled-back transaction. No production DDL is performed by replay.
