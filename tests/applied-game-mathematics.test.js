@@ -49,6 +49,32 @@ describe("SONARA applied game mathematics research", () => {
     assert.throws(() => polygonSignedArea([[0, 0], [1, NaN], [2, 0]]), RangeError);
     assert.throws(() => rotatePoint2D([1, Infinity], 2), RangeError);
   });
+  it("rejects bow-tie intersections instead of reporting misleading area", () => {
+    assert.throws(() => polygonSignedArea([
+      [0, 0], [4, 4], [0, 4], [4, 0]
+    ]), RangeError);
+  });
+  it("rejects repeated vertices and touching nonadjacent boundaries", () => {
+    assert.throws(() => polygonSignedArea([
+      [0, 0], [4, 0], [4, 4], [0, 4], [0, 0]
+    ]), RangeError);
+    assert.throws(() => polygonSignedArea([
+      [0, 0], [4, 0], [2, 0], [4, 4], [0, 4]
+    ]), RangeError);
+  });
+  it("rejects collinear zero-area and zero-length edges", () => {
+    assert.throws(() => polygonSignedArea([
+      [0, 0], [1, 0], [2, 0]
+    ]), RangeError);
+    assert.throws(() => polygonSignedArea([
+      [0, 0], [1, 0], [1, 0], [0, 1]
+    ]), RangeError);
+  });
+  it("keeps concave polygon shoelace area valid in both orientations", () => {
+    const shape = [[0, 0], [5, 0], [5, 5], [2, 5], [2, 2], [0, 2]];
+    assert.equal(polygonSignedArea(shape).signedArea, 19);
+    assert.equal(polygonSignedArea([...shape].reverse()).signedArea, -19);
+  });
   it("evaluates polynomial powers in ascending coefficient order", () => {
     assert.equal(evaluatePolynomial([3, 2, 1], 2), 11);
     assert.equal(evaluatePolynomial([0], 5), 0);
