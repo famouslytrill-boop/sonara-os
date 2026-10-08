@@ -57,6 +57,40 @@ function failures(source) {
   ]), "preflight must verify current protected main at dispatch SHA");
 
   requireItem(Boolean(production), "credential-bearing job missing");
+  // Environment approval is necessary but insufficient: job-level secrets
+  // expose live credentials to install/build/test tools and dependencies.
+  // Scope each secret to the exact verification step that consumes it.
+  const jobHeader = production.split(/^    steps:\s*$/m)[0];
+  requireItem(!/\$\{\{\s*secrets\./.test(jobHeader),
+    "provider secrets may not be scoped to the entire production job");
+  const namedStep = (name) => {
+    const marker = "      - name: " + name + "\n";
+    const start = production.indexOf(marker);
+    if (start < 0) return "";
+    const rest = production.slice(start + marker.length);
+    const next = /\n      - (?:name:|uses:)/.exec(rest);
+    return rest.slice(0, next ? next.index : rest.length);
+  };
+  const credentials = String.fromCharCode(36) + "{{ secrets.";
+  for (const [name, keys] of [
+    ["Require protected production credentials without exposing values",
+      ["VERCEL_TOKEN", "SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_ID", "SUPABASE_DB_PASSWORD", "STRIPE_RUNTIME_SECRET_KEY", "STRIPE_SECRET_KEY"]],
+    ["Link and preview production database migrations",
+      ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_ID", "SUPABASE_DB_PASSWORD"]],
+    ["Pull production environment for read-only configuration verification",
+      ["VERCEL_TOKEN"]],
+    ["Verify production project identity", ["SUPABASE_PROJECT_ID"]]
+  ]) {
+    const body = namedStep(name);
+    requireItem(Boolean(body), "required scoped credential step missing: " + name);
+    for (const key of keys) {
+      const assignment = credentials + key + " }}";
+      requireItem(body.includes(assignment),
+        "missing scoped secret " + key + " in " + name);
+    }
+  }
+  requireItem(production.includes("SONARA_ALLOWED_PENDING_MIGRATIONS=' >>"),
+    "manual main-only dry run must forbid pending/PR-specific migrations");
   requireItem(/^\s+environment:\s*production\s*$/m.test(production), "production secrets need protected environment");
   requireItem(/^\s+needs:\s*\[verify-current-main\]\s*$/m.test(production),
     "production job must depend on protected-main preflight");
@@ -88,7 +122,10 @@ function selfTest(source) {
     source.replace("        default: false", "        default: true"),
     source.replace("  pull-request-contract:\n", "  pull-request-contract:\n    env:\n      PASSWORD: " + secretReference + "\n"),
     source.replace("current.protected !== true", "current.protected === true"),
-    source.replace("  production-deploy-dry-run:\n", "  removed-production-job:\n")
+    source.replace("  production-deploy-dry-run:\n", "  removed-production-job:\n"),
+    source.replace("    env:\n      VERCEL_ORG_ID:", "    env:\n      VERCEL_TOKEN: " + secretReference.replace("SUPABASE_DB_PASSWORD", "VERCEL_TOKEN") + "\n      VERCEL_ORG_ID:"),
+    source.replace("          VERCEL_TOKEN: " + secretReference.replace("SUPABASE_DB_PASSWORD", "VERCEL_TOKEN") + "\n          SUPABASE_ACCESS_TOKEN:",
+      "          SUPABASE_ACCESS_TOKEN:")
   ];
   for (const [i, mutant] of mutants.entries()) {
     assert.notEqual(mutant, source, "mutation " + (i + 1) + " was ineffective");
