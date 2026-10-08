@@ -2047,6 +2047,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // Offline location check-ins must return to the same signed-in person and
+    // organization. A shared browser can retain another user's GPS record after
+    // logout. Only server-side session matching makes this boundary enforceable.
+    const delayed = req.body.sent_later === true || req.body.sent_later === "true";
+    if (delayed && (
+      String(req.body.origin_user_id || "") !== String(org.userId || "") ||
+      String(req.body.origin_organization_id || "") !== String(org.organizationId || "")
+    )) return res.status(403).json({ ok: false, code: "offline_identity_mismatch" });
     // An employee and an area supplied by the caller both become part of this
     // row, and the staff portal lists check-ins by employee_id -- so an
     // unchecked one writes a location record onto a colleague's page, or
@@ -2394,7 +2402,7 @@ async function staffSections(config, org, me, path, ui) {
         "What is recorded, and what is not",
         "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
       ),
-      checkInCard(me.profile.id, ui),
+      checkInCard(me.profile.id, ui, org),
       ...(listed.rows.length
         ? listed.rows.map((row) => ui.card(
           String(row.event_type || "check-in").replaceAll("_", " "),
@@ -2425,7 +2433,7 @@ async function staffSections(config, org, me, path, ui) {
 // The rounding runs in the browser before anything is sent -- see
 // public/sonara-location-precision.js. Rounding here would describe the storage
 // and not the disclosure.
-function checkInCard(employeeId, ui) {
+function checkInCard(employeeId, ui, org) {
   const options = LOCATION_PRIVACY_MODES.map((mode) => {
     const checked = mode.value === LOCATION_PRECISION_DEFAULT ? " checked" : "";
     return `<label class="choice"><input type="radio" name="privacy_mode" value="${ui.escape(mode.value)}"${checked}> <strong>${ui.escape(mode.label)}</strong><span class="fine"> ${ui.escape(mode.note)}</span></label>`;
@@ -2439,7 +2447,7 @@ function checkInCard(employeeId, ui) {
   // decoded -- escaping the quotes would hand JSON.parse a string full of
   // `&quot;`. What actually needs neutralising is a literal `</script>` in the
   // data, and \u003c does that while staying valid JSON.
-  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId }).replaceAll("<", "\\u003c");
+  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId, organizationId: org.organizationId, userId: org.userId }).replaceAll("<", "\\u003c");
 
   return [
     '<div class="card">',
