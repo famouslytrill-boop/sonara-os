@@ -27,7 +27,9 @@ CREATE TABLE sonara_private.autonomic_retry_jobs (
   CHECK (length(operation_id) BETWEEN 1 AND 128),
   CHECK (length(incident_id) BETWEEN 1 AND 128),
   CHECK (deadline_at > not_before + interval '1 second'),
-  UNIQUE (organization_id, operation_id, attempt)
+  -- One immutable retry envelope per tenant+operation across all attempts.
+  -- A changed attempt number cannot evade the duplicate safety budget.
+  UNIQUE (organization_id, operation_id)
 );
 CREATE INDEX autonomic_retry_due_idx
   ON sonara_private.autonomic_retry_jobs (not_before, id) WHERE state = 'queued';
