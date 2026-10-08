@@ -338,6 +338,12 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/autonomic-delayed-retry-role-matrix.sql"), "utf8"),
       ["sonara_delayed_retry_native_passed"]);
 
+    // The HMAC sensor anti-replay table must reject expired, duplicate and
+    // forged nonces under real service-role-only PostgreSQL execution.
+    behaves(psql, "signed recovery sensor nonce role and replay matrix",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-sensor-nonce-role-matrix.sql"), "utf8"),
+      ["sonara_signed_sensor_nonce_native_passed"]);
+
     // Two independent PostgreSQL sessions must not claim the same ready retry.
     // This is a behavioral race test, not a grep or single-transaction mock.
     const retryRaceOrg = "55555555-5555-4555-8555-555555555555";
