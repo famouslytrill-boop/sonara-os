@@ -10,7 +10,6 @@ import { existsSync, readFileSync } from "node:fs";
 
 const { STRIPE_PLANS } = await import("../server.js").then((m) => m.default || m);
 const { offeredPlanKeys } = await import("../lib/sonara-stripe-plans.cjs").then((m) => m.default || m);
-const { CONNECT_WEBHOOK_EVENTS } = await import("../lib/sonara-connected-checkout.cjs").then((m) => m.default || m);
 
 let failed = false;
 const ok = (message) => console.log(`[OK] ${message}`);
@@ -208,6 +207,11 @@ if (requireLive && !comparedLivePrices) {
 // ready for the existing direct-charge storefront/marketplace implementation to
 // run one separately approved canary.
 if (requireConnectCanary) {
+  // Lazy-load the runtime contract only for the Connect canary. The ordinary
+  // Stripe price verifier is deliberately runnable in a tiny isolated harness,
+  // and Connect-specific source must not become a hidden dependency of it.
+  const { CONNECT_WEBHOOK_EVENTS } = await import("../lib/sonara-connected-checkout.cjs").then((m) => m.default || m);
+
   if (isPlaceholder(secret) || !/^sk_(?:test|live)_[A-Za-z0-9_]+$/.test(String(secret || ""))) {
     fail("--require-connect-canary needs a Stripe secret key with read access to Accounts and Webhook Endpoints");
   } else {
@@ -325,11 +329,10 @@ if (failed) {
 }
 
 if (comparedLivePrices) {
-  console.log(
-    connectCanaryVerified
-      ? "\nStripe configuration verified against live prices and read-only Connect canary prerequisites."
-      : "\nStripe configuration verified against the deployed server, including live prices."
-  );
+  console.log("\nStripe configuration verified against the deployed server, including live prices.");
+  if (connectCanaryVerified) {
+    console.log("Stripe Connect canary prerequisites also verified read-only; no money-moving operation was performed.");
+  }
 } else {
   console.log(
     "\nStripe configuration verified offline: every paid plan names a variable, .env.example declares it, " +
