@@ -2,6 +2,7 @@
 const assert=require("node:assert/strict");
 const {createPostgresAutonomicOperatorGate}=require("../lib/sonara-postgres-operator-gate.cjs");
 const {runOneDueRecovery}=require("../lib/sonara-due-recovery-worker.cjs");
+const {runOperatorGatedRecovery}=require("../lib/sonara-controlled-recovery-execution.cjs");
 const NOW=1800000000000;
 const jobId="55555555-5555-4555-8555-555555555555";
 const claimToken="22222222-2222-4222-8222-222222222222";
@@ -81,6 +82,40 @@ describe("SONARA durable operator execution gate",()=>{
    });
    assert.equal(effects,1);
    assert.equal(result.status,"recovered");
+   assert.deepEqual(done,["verified"]);
+ });
+ it("operator-gated entry refuses missing database controls before claiming work",async()=>{
+   let claims=0;
+   const unavailable=await runOperatorGatedRecovery({
+     enabled:true,operatorRpc:null,
+     worker:{claimDue:async()=>{claims++;return null;},complete:async()=>true},
+     authorize:authorized,perform:async()=>{},verify:async()=>({healthy:true}),
+     clock:()=>NOW,nowMs:NOW
+   });
+   assert.equal(unavailable.reason,"operator_gate_not_configured");
+   assert.equal(claims,0);
+ });
+ it("operator-gated entry refuses the caller's forged permissive pause callback",async()=>{
+   let effects=0;const done=[];
+   const result=await runOperatorGatedRecovery({
+     enabled:true,operatorRpc:async()=>({data:false}),worker:worker(done),
+     authorize:authorized,clock:()=>NOW,nowMs:NOW,
+     isPaused:async()=>false, // ignored; not part of accepted contract.
+     perform:async()=>{effects++;},
+     verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})
+   });
+   assert.equal(result.reason,"recovery_paused");
+   assert.equal(effects,0);assert.deepEqual(done,["unverified"]);
+ });
+ it("operator-gated entry allows only DB-approved, independently verified recovery",async()=>{
+   let effects=0;const done=[];
+   const result=await runOperatorGatedRecovery({
+     enabled:true,operatorRpc:async()=>({data:true}),worker:worker(done),
+     authorize:authorized,clock:()=>NOW,nowMs:NOW,
+     perform:async()=>{effects++;},
+     verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})
+   });
+   assert.equal(result.status,"recovered");assert.equal(effects,1);
    assert.deepEqual(done,["verified"]);
  });
 });
