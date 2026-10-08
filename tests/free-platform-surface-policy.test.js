@@ -141,6 +141,27 @@ describe("free login-based SONARA platform surface policy", () => {
         now: TIME, aiContent: "exclude" }).items.length, 0);
     });
 
+    it("does not lose blocking when a saved block list is oversized or malformed", () => {
+      const entry = base();
+      for (const options of [
+        { blockedPublishers: Array(201).fill(U) },
+        { mutedTopics: Array(201).fill("music") },
+        { blockedPublishers: "not-an-array" },
+        { followedPublishers: [null] },
+        { topics: [""] }
+      ]) {
+        const result = selectCommunityCandidates([entry], { now: TIME, ...options });
+        assert.equal(result.ok, false);
+        assert.equal(result.code, "audience_preferences_invalid");
+        assert.equal(result.items.length, 0);
+      }
+      const blocked = selectCommunityCandidates([entry], {
+        now: TIME, blockedPublishers: [U]
+      });
+      assert.equal(blocked.ok, true);
+      assert.equal(blocked.items.length, 0);
+    });
+
     it("enforces explicit Following and deterministic opt-in discovery with publisher diversity", () => {
       const second = base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         href: "/channels/creator2", publishedAt: "2026-10-08T10:00:00.000Z" });
