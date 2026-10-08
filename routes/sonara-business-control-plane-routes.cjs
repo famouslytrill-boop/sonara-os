@@ -755,7 +755,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
         `<section class="bb-module-grid">${moduleCards}</section>`,
         operationsConsoleSection(operating),
         businessProfileEditor(business),
-        ownershipSection(business.id, escapeHtml)
+        ...(operating.ok && operating.permission.isBusinessOwner ? [ownershipSection(business.id, escapeHtml)] : [])
       ],
       actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/control-center", "All businesses"), linkAction("/support", "Support")],
       authenticated: true
