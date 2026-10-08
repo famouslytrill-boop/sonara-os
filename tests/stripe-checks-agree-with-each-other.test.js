@@ -44,10 +44,10 @@ module.exports = { STRIPE_PLANS: {
 };\n`);
       const result = spawnSync(process.execPath, ["--require", "./provider.cjs", "scripts/verify-stripe-env.mjs", "--require-live"], {
         cwd: dir, encoding: "utf8", timeout: 10000,
-        env: { ...process.env, STRIPE_SECRET_KEY: ['rk','live','synthetic'].join('_'), PRICE_ONE: "price_one", PRICE_TWO: "price_two" }
+        env: { ...process.env, NODE_OPTIONS: "", STRIPE_SECRET_KEY: ['rk','live','synthetic'].join('_'), PRICE_ONE: "price_one", PRICE_TWO: "price_two" }
       });
       assert.equal(result.status, 1, result.stdout + result.stderr);
-      assert.match(result.stdout, /Stripe charges exactly what the pricing page advertises/);
+      assert.match(result.stdout, /Stripe charges exactly what the pricing page advertises/, `fixture did not report its matched price; status=${result.status}, signal=${result.signal}, error=${result.error?.message || "none"}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
       assert.match(result.stderr, /second: could not reach Stripe; amounts not compared/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -81,17 +81,11 @@ module.exports = { STRIPE_PLANS: {
   });
 
   it("does not claim the live prices were checked when they were not", () => {
-    const summaries = [...releaseCheck.matchAll(/console\.log\(\s*\n?\s*"\\nStripe configuration verified[^"]*"/g)];
-    assert.ok(
-      summaries.length >= 2,
-      `only ${summaries.length} summary lines parsed from scripts/verify-stripe-env.mjs; this check has gone blind`
-    );
-    for (const summary of summaries) {
-      assert.ok(
-        /including live prices/.test(summary[0]) || /offline/.test(summary[0]),
-        `this summary claims verification without saying which half ran:\n${summary[0]}`
-      );
-    }
+    // Check both summaries directly. Do not parse JavaScript string layout: the
+    // offline message intentionally spans multiple source lines.
+    assert.match(releaseCheck, /Stripe configuration verified against the deployed server, including live prices/);
+    assert.match(releaseCheck, /Stripe configuration verified offline:/);
+    assert.match(releaseCheck, /Live prices were NOT compared in this run/);
     assert.match(releaseCheck, /comparedLivePrices/, "nothing tracks whether the live comparison happened");
     assert.match(
       releaseCheck,
