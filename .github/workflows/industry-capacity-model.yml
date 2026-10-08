@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "scripts/simulate-industry-capacity.mjs"
+      - "scripts/plan-industry-portfolio.mjs"
       - ".github/workflows/industry-capacity-model.yml"
   pull_request:
     paths:
@@ -34,6 +35,10 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Run offline deterministic model assertions
         run: node scripts/simulate-industry-capacity.mjs --self-test
+      - name: Verify simultaneous multi-industry demand model
+        run: node scripts/plan-industry-portfolio.mjs --self-test
+      - name: Print aggregate illustrative scenario
+        run: node scripts/plan-industry-portfolio.mjs
       - name: Evaluate healthy illustrative scenario
         run: node scripts/simulate-industry-capacity.mjs --strict --tenants=100 --averageRequestsPerSecondPerTenant=0.02
       - name: Prove overcapacity is rejected in strict mode
