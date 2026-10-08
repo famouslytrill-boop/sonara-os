@@ -93,13 +93,11 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approve_read_only_production_validation == true && needs.verify-current-main.result == 'success' }}
     runs-on: ubuntu-latest
     environment: production
+    # Only nonsecret project identifiers are visible to build/test steps.
+    # All provider credentials are scoped to the exact verification steps.
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
       VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -131,6 +129,10 @@ jobs:
       - name: Require protected production credentials without exposing values
         shell: bash
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
           STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
@@ -199,31 +201,35 @@ jobs:
         run: pnpm run verify:open-source
 
       - name: Verify production project identity
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: node scripts/verify-production-project-identity.mjs
 
       - name: Link and preview production database migrations
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
           supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Allow only migrations introduced by this pull request to remain pending
-        if: github.event_name == 'pull_request'
+      - name: Disallow unapplied migrations in this manual read-only verification
         shell: bash
         run: |
           set -euo pipefail
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          mapfile -t pending_versions < <(
-            git diff --diff-filter=A --name-only "$base" "$head" -- 'supabase/migrations/*.sql' |
-              sed -nE 's#^supabase/migrations/([0-9]+)_.*\.sql$#\1#p'
-          )
-          printf 'SONARA_ALLOWED_PENDING_MIGRATIONS=%s\n' "$(IFS=,; echo "${pending_versions[*]}")" >> "$GITHUB_ENV"
+          # A main-only dry run cannot authorize a PR-specific migration.
+          # verify-production-supabase must confirm every expected version
+          # exists in the linked database, rather than accepting pending work.
+          echo 'SONARA_ALLOWED_PENDING_MIGRATIONS=' >> "$GITHUB_ENV"
 
       - name: Pull production environment for read-only configuration verification
         shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p .vercel
