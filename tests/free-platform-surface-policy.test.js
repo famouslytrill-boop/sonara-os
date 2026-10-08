@@ -101,6 +101,14 @@ describe("free login-based SONARA platform surface policy", () => {
       assert.equal(selectCommunityCandidates([base()], { limit: 100, now: TIME }).code, "limit_out_of_range");
     });
 
+    it("accepts canonical UUIDs but rejects short four-segment identifiers", () => {
+      const valid = base();
+      const short = "aaaaaaaa-aaaa-4aaa-aaaaaaaaaaaa";
+      assert.deepEqual(selectCommunityCandidates([valid], { now: TIME }).items.map(x => x.id), [valid.id]);
+      assert.deepEqual(selectCommunityCandidates([base({ id: short })], { now: TIME }).items, []);
+      assert.deepEqual(selectCommunityCandidates([base({ publisherId: short })], { now: TIME }).items, []);
+    });
+
     it("never recommends drafts, blocked publishers, unmoderated work, or unlicensed listings", () => {
       const rows = [
         base(), base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", status: "draft" }),
