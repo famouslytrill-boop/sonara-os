@@ -560,3 +560,67 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
 });
+
+// Real staff route rendering with isolated employee/database fixtures. Browser
+// assets remain the shipped files; no real account or location is used.
+async function renderCheckInFixture() {
+  const registerRoutes = require("../routes/sonara-last9-routes.cjs");
+  const shell = require("../lib/sonara-shell.cjs");
+  const { createPageFrame } = require("../lib/sonara-page-frame.cjs");
+  const frame = createPageFrame({ legalPages: () => [], safeListTable: async () => ({ ok: true, rows: [] }) });
+  let render;
+  registerRoutes({ get: (path, ...handlers) => { if (path === "/staff/location") render = handlers.at(-1); }, post: () => {} }, {
+    ...shell, layout: (input) => frame.layout({ ...input, authenticated: true }),
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: projectId(601) }),
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://check-in-fixture.invalid", serviceRoleKey: "fixture" })
+  });
+  const original = global.fetch;
+  global.fetch = async (raw) => {
+    const url = new URL(raw);
+    if (url.host !== "check-in-fixture.invalid") throw new Error("Unexpected fixture destination");
+    return new Response(JSON.stringify(url.pathname.endsWith("/business_employee_profiles")
+      ? [{ id: projectId(602), display_name: "Field worker" }] : []));
+  };
+  let html;
+  const response = { status: () => response, type: () => response, send: (value) => { html = value; } };
+  try { await render({ sonaraUser: { id: projectId(603) }, query: {} }, response); }
+  finally { global.fetch = original; }
+  return html;
+}
+
+for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+  test(`saved check-ins require a receipt and recover at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    const html = await renderCheckInFixture();
+    await page.route("**/staff/location", (route) => route.fulfill({ status: 200, contentType: "text/html", body: html }));
+    const bodies = [];
+    await page.route("**/api/location/events", async (route) => {
+      bodies.push(route.request().postDataJSON());
+      if (bodies.length === 1) return route.fulfill({ status: 429, headers: { "Retry-After": "0" }, json: { ok: false } });
+      if (bodies.length === 2) return route.fulfill({ status: 200, contentType: "text/html", body: "<p>Sign in</p>" });
+      return route.fulfill({ status: 200, json: { ok: true, duplicate: true } });
+    });
+    await page.goto(`${BASE_URL}/staff/location`);
+    await expect(page).toHaveTitle(/My Location/);
+    await expect(page.getByRole("heading", { name: "Record a check-in" })).toBeVisible();
+    await page.getByRole("radio", { name: /Just that I checked in/ }).check();
+    await page.getByRole("button", { name: "Check in", exact: true }).click();
+    const status = page.locator("[data-sonara-check-in-status]");
+    await expect(status).toContainText("Delivery is not confirmed");
+    await page.getByRole("button", { name: "Send saved check-ins" }).click();
+    await expect(status).toContainText("still waiting");
+    expect(await page.evaluate(() => window.SonaraOfflineQueue.pending())).toBe(1);
+    await page.getByRole("button", { name: "Send saved check-ins" }).click();
+    await expect(status).toContainText("has now been recorded");
+    expect(await page.evaluate(() => window.SonaraOfflineQueue.pending())).toBe(0);
+    expect(new Set(bodies.map((body) => body.client_event_id)).size).toBe(1);
+    expect(bodies.every((body) => body.latitude === null && body.longitude === null)).toBe(true);
+    expect(bodies.every((body) => body.capture_user_id === projectId(603))).toBe(true);
+    expect(await status.getAttribute("role")).toBe("status");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(errors).toEqual([]);
+    await page.screenshot({ path: `artifacts/browser/check-in-recovery-${viewport.width}.png`, fullPage: true });
+  });
+}

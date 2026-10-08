@@ -67,6 +67,27 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(rows[0].metadata.sent_later, true);
     });
 
+    it("does not turn an unreadable database receipt into a duplicate confirmation", async () => {
+      const installed = global.fetch;
+      let corrupt = true;
+      global.fetch = async (url, options) => {
+        const response = await installed(url, options);
+        if (corrupt && options?.method === "POST" && String(url).includes("location_events")) {
+          return { ok: true, json: async () => { throw new Error("Truncated response"); } };
+        }
+        return response;
+      };
+      const body = { event_type: "check_in", privacy_mode: "manual", client_event_id: crypto.randomUUID() };
+      const app = buildApp(fake);
+      const uncertain = await request(app).post(ENDPOINT).send(body);
+      assert.equal(uncertain.body.ok, false);
+      assert.equal(uncertain.body.code, "insert_receipt_unreadable");
+      corrupt = false;
+      const retried = await request(app).post(ENDPOINT).send(body);
+      assert.equal(retried.body.duplicate, true);
+      assert.equal(fake.rows("location_events").length, 1);
+    });
+
     it("keeps the same id apart in two businesses", async () => {
       const id = crypto.randomUUID();
       await request(buildApp(fake, ORG)).post(ENDPOINT).send({ event_type: "check_in", privacy_mode: "manual", client_event_id: id });
@@ -95,6 +116,15 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(row.metadata.polluted, undefined);
       assert.equal(row.metadata.note, "van 3");
       assert.equal(row.metadata.api_key, undefined, "a secret-shaped key was kept");
+    });
+
+    it("refuses captured user or workspace changes before any write", async () => {
+      for (const scope of [{ capture_user_id: OTHER_ORG }, { capture_organization_id: OTHER_ORG }]) {
+        const response = await request(buildApp(fake)).post(ENDPOINT).send({ event_type: "check_in", privacy_mode: "manual", ...scope });
+        assert.equal(response.status, 403);
+        assert.equal(response.body.code, "check_in_scope_changed");
+      }
+      assert.equal(fake.rows("location_events").length, 0);
     });
 
     it("still takes a check-in that names no id, as it always did", async () => {
@@ -151,6 +181,100 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(refused.refused, 1);
       assert.equal(refused.duplicates, 1);
       assert.equal(queue.pending({ storage }), 0);
+    });
+
+    it("does not replay another employee's saved check-in", async () => {
+      const storage = memoryStorage();
+      queue.keep(ENDPOINT, queue.prepare({ employee_id: USER, capture_user_id: USER, capture_organization_id: ORG }), { storage });
+      let requests = 0;
+      const fetch = async () => { requests += 1; return answer(200, { ok: true }); };
+      for (const scope of [{ employeeId: OTHER_ORG, userId: USER, organizationId: ORG },
+        { employeeId: USER, userId: OTHER_ORG, organizationId: ORG },
+        { employeeId: USER, userId: USER, organizationId: OTHER_ORG }]) {
+        const result = await queue.flush({ storage, scope, fetch });
+        assert.equal(result.authenticationRequired, true);
+        assert.equal(result.waiting, 1);
+      }
+      assert.equal(requests, 0);
+      const done = await queue.flush({ storage, scope: { employeeId: USER, userId: USER, organizationId: ORG }, fetch });
+      assert.equal(done.sent, 1);
+    });
+
+    it("never sends a stored check-in to an unexpected destination", async () => {
+      const storage = memoryStorage();
+      const body = queue.prepare({ event_type: "check_in" });
+      assert.equal(queue.keep("https://example.invalid/collect", body, { storage }).kept, false);
+      storage.setItem(queue.STORAGE_KEY, JSON.stringify([{ endpoint: "https://example.invalid/collect", body }]));
+      let sent = false;
+      const result = await queue.flush({ storage, fetch: async () => { sent = true; return answer(200, { ok: true }); } });
+      assert.equal(sent, false);
+      assert.equal(result.refused, 1);
+    });
+
+    it("requires an explicit acceptance receipt and keeps ambiguous responses", async () => {
+      for (const response of [answer(200, {}), answer(200, { ok: false }), answer(200, { ok: "true" }),
+        { ...answer(200, {}), json: async () => { throw new Error("HTML login"); } },
+        { ...answer(200, { ok: true }), redirected: true }, answer(401, {}), answer(403, {}), answer(408, {}), answer(425, {})]) {
+        const storage = memoryStorage();
+        queue.keep(ENDPOINT, queue.prepare({ event_type: "check_in" }), { storage });
+        const result = await queue.flush({ storage, fetch: async () => response });
+        assert.equal(result.sent, 0);
+        assert.equal(result.refused, 0);
+        assert.equal(result.waiting, 1);
+        assert.equal(queue.pending({ storage }), 1);
+      }
+    });
+
+    it("honors both Retry-After forms before retrying the same event", async () => {
+      for (const retryAfter of ["60", new Date(Date.now() + 60000).toUTCString()]) {
+        const now = Date.now();
+        const storage = memoryStorage();
+        const body = queue.prepare({ event_type: "check_in" }, now);
+        queue.keep(ENDPOINT, body, { storage, now });
+        const limited = await queue.flush({ storage, now, fetch: async () => ({ ...answer(429, {}), headers: { get: () => retryAfter } }) });
+        assert.equal(limited.waiting, 1);
+        let attempts = 0;
+        const fetch = async (_url, init) => {
+          attempts += 1;
+          assert.equal(init.redirect, "error");
+          assert.equal(JSON.parse(init.body).client_event_id, body.client_event_id);
+          return answer(200, { ok: true });
+        };
+        await queue.flush({ storage, now: now + 1000, fetch });
+        assert.equal(attempts, 0);
+        const done = await queue.flush({ storage, now: now + 61000, fetch });
+        assert.equal(attempts, 1);
+        assert.equal(done.sent, 1);
+      }
+    });
+
+    it("shares overlapping retries and preserves an entry saved while a request is pending", async () => {
+      const storage = memoryStorage();
+      queue.keep(ENDPOINT, queue.prepare({ n: 1 }), { storage });
+      let resolve;
+      let requests = 0;
+      const fetch = () => { requests += 1; return new Promise((done) => { resolve = done; }); };
+      const first = queue.flush({ storage, fetch });
+      const overlap = queue.flush({ storage, fetch });
+      assert.equal(first, overlap);
+      await Promise.resolve();
+      queue.keep(ENDPOINT, queue.prepare({ n: 2 }), { storage });
+      resolve(answer(200, { ok: true }));
+      const result = await first;
+      assert.equal(requests, 1);
+      assert.equal(result.sent, 1);
+      assert.equal(result.waiting, 1);
+      assert.equal(JSON.parse(storage.getItem(queue.STORAGE_KEY))[0].body.n, 2);
+    });
+
+    it("does not claim the queue was cleared when storage refuses the receipt update", async () => {
+      const storage = memoryStorage();
+      queue.keep(ENDPOINT, queue.prepare({ n: 1 }), { storage });
+      storage.setItem = () => { throw new Error("Storage unavailable"); };
+      const result = await queue.flush({ storage, fetch: async () => answer(200, { ok: true }) });
+      assert.equal(result.sent, 1);
+      assert.equal(result.storageFailed, true);
+      assert.equal(result.waiting, 1);
     });
 
     it("drops an entry older than the server will accept instead of sending it as fresh", async () => {
