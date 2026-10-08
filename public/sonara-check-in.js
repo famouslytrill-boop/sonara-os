@@ -129,8 +129,10 @@
     if (reviewStatus) reviewStatus.textContent = "These saved check-ins are not sent automatically. Review each one before removing it from this device.";
     result.entries.forEach(function (entry) {
       var item = document.createElement("li");
-      var when = entry.capturedAt ? new Date(entry.capturedAt).toLocaleString() : "time unavailable";
-      item.appendChild(document.createTextNode((entry.source === "legacy" ? "Earlier account or browser session" : "Account scope needs review") + " — " + when + ". "));
+      // A shared device may retain someone else's pending check-in. The
+      // review is for deciding whether to discard it, never for exposing its
+      // original capture timestamp or coordinates to today's signed-in user.
+      item.appendChild(document.createTextNode((entry.source === "legacy" ? "Earlier account or browser session" : "Account scope needs review") + " — details hidden for privacy. "));
       var button = document.createElement("button");
       button.type = "button";
       button.className = "action";
