@@ -1,6 +1,6 @@
 name: Controlled Production Deployment
 
-# workflow_dispatch exists because its absence caused an outage.
+# Production release requires manual dispatch, explicit approval and a green exact-SHA matrix.
 #
 # On 2026-08-04 this workflow deployed main, verified the apex was serving the
 # expected commit, and reported success. Ten seconds later a manual "Redeploy"
@@ -14,11 +14,17 @@ name: Controlled Production Deployment
 # going around the pipeline. Going around it skips the migration gate, the
 # catalog boundary gate, and the post-deploy checks. A gated path that can be
 # run on demand is what makes the ungated one unnecessary.
+# Production changes are deliberate releases, not a side effect of merging.
+# Keep automatic CI on main; production migration and deployment require an
+# explicit manual dispatch plus GitHub production-environment authorization.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
+      approve_production_release:
+        description: "I authorize controlled production migration and deployment for the current main commit"
+        type: boolean
+        required: true
+        default: false
       synchronize_stripe_runtime_secret:
         description: "Explicitly synchronize the verified Stripe runtime credential"
         type: boolean
@@ -35,6 +41,9 @@ concurrency:
 
 jobs:
   validate-migrate-deploy:
+    # Skipping is intentional; neither a merge nor an unchecked manual run
+    # may touch provider credentials, production migrations, or deployment.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.approve_production_release == true }}
     runs-on: ubuntu-latest
     environment: production
     env:
