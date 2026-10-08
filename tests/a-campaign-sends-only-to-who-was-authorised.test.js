@@ -682,6 +682,21 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(result.uncertain.length, 2);
     });
 
+    it("rejects repeated provider IDs even when batch response cardinality matches", async () => {
+      let calls = 0;
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(2), report: () => {},
+        fetchImpl: async () => {
+          calls += 1;
+          return { ok: true, status: 200, json: async () => ({ data: [{ id: "same" }, { id: "same" }] }) };
+        }
+      });
+      assert.equal(calls, 1);
+      assert.equal(result.sent, 0);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 2);
+    });
+
     it("reports unconfirmed delivery instead of quietly replaying 503 responses", async () => {
       const reported = [];
       let requests = 0;
