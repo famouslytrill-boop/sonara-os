@@ -558,7 +558,8 @@ jobs:
 
           {
             echo "### Rollback checkpoint"
-            echo "- PITR restore target (UTC): \`$checkpoint_utc\`"
+            echo "- Pre-migration incident timestamp (UTC): \`$checkpoint_utc\`"
+            echo "- Data-backup status: \`not_proven_by_this_artifact\`"
             echo "- Previously live commit: \`$previous_sha\`"
             echo "- Runbook: docs/PRODUCTION_ROLLBACK_RUNBOOK.md"
           } >> "$GITHUB_STEP_SUMMARY"
