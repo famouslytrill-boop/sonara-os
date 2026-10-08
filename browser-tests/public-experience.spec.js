@@ -682,12 +682,25 @@ test.describe("cross-device adaptive workspace browser contract", () => {
       expect(metric.overflow).toBeLessThanOrEqual(1);
       await page.getByLabel("Draft note").fill("Unfinished work survives resizing");
       await expect(dock).toBeHidden();
+      const whileEditing = await page.evaluate(() => ({
+        scrollClearance: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBlockEnd),
+        bodyClearance: parseFloat(getComputedStyle(document.body).paddingBlockEnd)
+      }));
+      expect(whileEditing).toEqual({ scrollClearance: 0, bodyClearance: 0 });
       await page.setViewportSize({ width: 820, height: 900 });
       await expect(dock).toBeHidden();
       await page.setViewportSize({ width: 390, height: 844 });
       await expect(page.getByLabel("Draft note")).toHaveValue("Unfinished work survives resizing");
       await page.getByLabel("Draft note").evaluate((element) => element.blur());
       await expect(dock).toBeVisible();
+      await page.setViewportSize({ width: 320, height: 700 });
+      await expect(dock).toBeVisible();
+      const narrow = await page.evaluate(() => ({
+        horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        smallestTarget: Math.min(...[...document.querySelectorAll(".sonara-workspace-dock a")].map((link) => link.getBoundingClientRect().height))
+      }));
+      expect(narrow.horizontalOverflow).toBeLessThanOrEqual(1);
+      expect(narrow.smallestTarget).toBeGreaterThanOrEqual(48);
       await page.screenshot({ path: "artifacts/browser/cross-device-workspace-touch.png" });
     } finally {
       await context.close();
