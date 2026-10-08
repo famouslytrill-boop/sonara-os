@@ -32,6 +32,23 @@ const OPTIONAL_SKIPPED = Object.freeze({
     "Node 27 forward compatibility (manual, non-blocking)"
   ])
 });
+// Job success alone may conceal skipped conditional STEPS. In particular the
+// Docker job succeeds when Dockerfile is absent unless these exact steps ran.
+const REQUIRED_STEPS = Object.freeze({
+  "SONARA Industries CI": Object.freeze({
+    "sonara-industries": Object.freeze(["Run tests", "Verify database and storage contracts"])
+  }),
+  "Docker Image CI": Object.freeze({
+    "build": Object.freeze(["Build the Docker image", "Smoke test the built image"])
+  }),
+  "Node Runtime Compatibility": Object.freeze({
+    "Node 24 blocking compatibility": Object.freeze(["Test", "Build"]),
+    "Node 26 blocking compatibility": Object.freeze(["Test", "Build"])
+  }),
+  "Native migration replay": Object.freeze({
+    "*": Object.freeze(["Replay the candidate migration history"])
+  })
+});
 const REQUIRED_WORKFLOW_NAMES = Object.freeze(Object.keys(REQUIRED_JOBS));
 
 function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId } = {}) {
@@ -79,6 +96,16 @@ function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId }
             job.conclusion === "skipped" && (OPTIONAL_SKIPPED[name] || []).includes(job.name)
           ))) {
         failures.push(name + ":job_not_successful:" + job.name);
+      }
+      const necessary = REQUIRED_STEPS[name]?.[job.name] ||
+        REQUIRED_STEPS[name]?.["*"] || [];
+      for (const stepName of necessary) {
+        const matching = Array.isArray(job.steps)
+          ? job.steps.filter(step => step?.name === stepName) : [];
+        if (matching.length !== 1 || matching[0].status !== "completed" ||
+            matching[0].conclusion !== "success") {
+          failures.push(name + ":required_step_missing_or_unsuccessful:" + job.name + ":" + stepName);
+        }
       }
     }
     for (const required of REQUIRED_JOBS[name]) {
@@ -168,6 +195,7 @@ if (require.main === module) {
 module.exports = {
   REQUIRED_JOBS,
   OPTIONAL_SKIPPED,
+  REQUIRED_STEPS,
   REQUIRED_WORKFLOW_NAMES,
   assessExactShaJobMatrix,
   verifyExactShaJobMatrix
