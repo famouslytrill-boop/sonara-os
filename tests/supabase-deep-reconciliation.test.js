@@ -11,6 +11,7 @@ const migration = fs.readFileSync(path.join(
 ), "utf8");
 const verifier = fs.readFileSync(path.join(root, "scripts/verify-production-supabase.mjs"), "utf8");
 const productionWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy.yml"), "utf8");
+const dryRunWorkflow = fs.readFileSync(path.join(root, ".github/workflows/controlled-production-deploy-dry-run.yml"), "utf8");
 const ciWorkflow = fs.readFileSync(path.join(root, ".github/workflows/sonara-industries-ci.yml"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
@@ -55,6 +56,17 @@ describe("Supabase deep database reconciliation", () => {
     assert.match(ciWorkflow, /supabase link --project-ref/);
     assert.match(ciWorkflow, /supabase db push --linked --include-all --dry-run/);
     assert.match(ciWorkflow, /supabase migration list --linked/);
+  });
+
+  it("allows only migrations added by the pull request to be pending during the read-only dry run", () => {
+    assert.match(dryRunWorkflow, /git diff --diff-filter=A --name-only/);
+    assert.match(dryRunWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
+    assert.match(dryRunWorkflow, /github\.event\.pull_request\.base\.sha/);
+    assert.match(dryRunWorkflow, /github\.event\.pull_request\.head\.sha/);
+    assert.match(verifier, /allowedPendingMigrations\.has\(version\)/);
+    assert.match(verifier, /allowed pending migration is not present in this checkout/);
+    assert.match(verifier, /pull-request migration is intentionally pending production apply/);
+    assert.doesNotMatch(productionWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
   });
 
   it("applies migrations and verifies the complete production database before deploying", () => {
