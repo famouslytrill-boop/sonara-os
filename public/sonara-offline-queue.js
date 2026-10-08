@@ -138,11 +138,10 @@
     var body = item && item.body || {};
     var id = typeof body.client_event_id === "string" && UUID.test(body.client_event_id)
       ? body.client_event_id : source + ":" + index;
-    return Object.freeze({
-      id, source, reason,
-      capturedAt: typeof body.captured_at === "string" ? body.captured_at : null,
-      eventType: typeof body.event_type === "string" ? body.event_type : "check_in"
-    });
+    // Legacy records can belong to another person who previously used this
+    // browser. Do not disclose their capture time or event type merely because
+    // the current signed-in user can review and discard stale local data.
+    return Object.freeze({ id, source, reason, capturedAt: null, eventType: "check_in" });
   }
 
   // Legacy and scope-blocked records are inspectable but never silently moved
