@@ -350,8 +350,8 @@ describe("a check-in with no signal is sent later", () => {
       let resolve;
       let requests = 0;
       const fetch = () => { requests += 1; return new Promise((done) => { resolve = done; }); };
-      const first = queue.flush({ storage, fetch });
-      const overlap = queue.flush({ storage, fetch });
+      const first = queue.flush({ storage, scope: SCOPE, fetch });
+      const overlap = queue.flush({ storage, scope: SCOPE, fetch });
       assert.equal(first, overlap);
       await Promise.resolve();
       queue.keep(ENDPOINT, prepared({ n: 2 }), { storage, scope: SCOPE });
