@@ -146,3 +146,33 @@ describe("closed RLS tables grant no browser SQL privileges", () => {
   });
 });
 
+describe("pgvector extension schema hardening", () => {
+  const migrationPath = join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20261008120000_move_vector_extension_to_extensions_schema.sql"
+  );
+  const migration = readFileSync(migrationPath, "utf8");
+
+  it("preserves the optional pgvector fallback instead of creating a new launch dependency", () => {
+    assert.match(migration, /if not found then[\s\S]*pgvector is not installed/i);
+    assert.match(migration, /return;/i);
+    assert.doesNotMatch(migration, /create extension(?: if not exists)? vector/i);
+  });
+
+  it("moves only a relocatable public vector extension into extensions", () => {
+    assert.match(migration, /if not relocatable then/i);
+    assert.match(migration, /if current_schema = 'public' then[\s\S]*alter extension vector set schema extensions/i);
+    assert.match(migration, /current_schema <> 'extensions'/i);
+  });
+
+  it("verifies both the extension namespace and an existing vector column namespace", () => {
+    assert.match(migration, /pgvector remains in schema %, expected extensions/i);
+    assert.match(migration, /c\.relname = 'sonara_memory_records'/i);
+    assert.match(migration, /a\.attname = 'embedding'/i);
+    assert.match(migration, /embedding_type_name = 'vector'/i);
+    assert.match(migration, /embedding_type_schema <> 'extensions'/i);
+  });
+});
+
