@@ -194,6 +194,72 @@ describe("event consumer activation readiness", () => {
     assert.equal(logs[0].outcome, "ok");
   });
 
+  it("contains both synchronous and async queue-claim exceptions without leaking provider secrets", async () => {
+    for (const claimNextFiltered of [
+      () => { throw new Error("https://host.invalid?key=secret_do_not_log"); },
+      async () => { throw new Error("https://host.invalid?key=secret_do_not_log"); }
+    ]) {
+      const events = [];
+      let settlements = 0;
+      let handled = 0;
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered,
+          settle: async () => { settlements += 1; return { ok: true, row: {} }; }
+        },
+        handlers: { [CANARY_KIND]: async () => { handled += 1; return { ok: true }; } },
+        emitEvent: (entry) => events.push(entry)
+      });
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG,
+        kinds: [CANARY_KIND],
+        producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.status, "claim_failed");
+      assert.equal(result.code, "claim_request_failed");
+      assert.equal(result.sample, null);
+      assert.equal(handled, 0);
+      assert.equal(settlements, 0);
+      assert.equal(events[0]?.reason, "claim_request_failed");
+      assert.equal(JSON.stringify({ result, events }).includes("secret_do_not_log"), false);
+    }
+  });
+
+  it("contains thrown settlement exceptions after success and retryable failure without duplicate execution", async () => {
+    for (const [output, expectedCode] of [
+      [{ ok: true }, "settle_request_failed"],
+      [{ ok: false, code: "temporary_outage", retryable: true }, "settle_request_failed"]
+    ]) {
+      for (const settle of [
+        () => { throw new Error("https://host.invalid?token=secret_do_not_log"); },
+        async () => { throw new Error("https://host.invalid?token=secret_do_not_log"); }
+      ]) {
+        const events = [];
+        let handled = 0;
+        const worker = createEventConsumerWorker({
+          repository: { claimNextFiltered: async () => ({ ok: true, row: row() }), settle },
+          handlers: { [CANARY_KIND]: async () => { handled += 1; return output; } },
+          emitEvent: (entry) => events.push(entry),
+          now: () => new Date("2026-09-17T20:00:02.000Z")
+        });
+        const result = await worker.runOnce({
+          enabled: true, organizationId: ORG,
+          kinds: [CANARY_KIND],
+          producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+        });
+        assert.equal(result.ok, false);
+        assert.equal(result.status, "settlement_failed");
+        assert.equal(result.code, expectedCode);
+        assert.equal(result.sample.status, "settlement_failed");
+        assert.equal(result.sample.eventOutboxId, row().id);
+        assert.equal(handled, 1);
+        assert.equal(events[0]?.reason, expectedCode);
+        assert.equal(JSON.stringify({ result, events }).includes("secret_do_not_log"), false);
+      }
+    }
+  });
+
   it("never settles ambiguous handler responses as delivered", async () => {
     for (const returned of [undefined, null, false, 1, "ok", [], {}, { ok: 1 }, { ok: "true" }]) {
       const settlements = [];
