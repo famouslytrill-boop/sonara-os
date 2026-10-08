@@ -3,8 +3,8 @@
 -- Generate a forward migration through Supabase CLI only after live/fixture
 -- schema comparison, role-denial regression, approval and exact-head CI.
 -- Checks: 21 service-role-only policies already hardened by migration
--- 20261008100000 and four optimized user-ownership policies, then proposes
--- a transaction-rollback-only dedup of one exactly matching SELECT policy.
+-- 20261008100000 and four optimized user-ownership policies; verifies the canonical
+-- member/admin subscription SELECT policy. Rollback-only and read-only.
 -- Never restore an auth.role() predicate or broaden role access.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -71,62 +71,40 @@ BEGIN
 END
 $verify_optimized_policy_baseline$;
 
--- A guarded staging exercise: the exact duplicate may already have been
--- removed in another migration. Either state is valid only with the expected
--- surviving authenticated/owner-scoped policy and no unrelated policy.
-DO $dedup$
+-- The earlier dry-run erroneously expected two named subscription policies
+-- that do not exist in the canonical 011 SaaS migration. Removing that proposal
+-- is not relaxing RLS: assert the *actual* canonical subscription SELECT policy,
+-- its restricted role and its precise member/admin predicate. No policy is
+-- dropped or altered by this read-only transaction, which still rolls back.
+DO $subscriptions_canonical$
 DECLARE
-  matched integer;
-  total integer;
+  canonical integer;
 BEGIN
-  SELECT count(*) INTO matched FROM pg_policies
-   WHERE schemaname='public' AND tablename='subscriptions'
-     AND policyname IN ('Users can view own subscriptions',
-                        'Users can view their own subscription')
-     AND permissive='PERMISSIVE'
-     AND roles=ARRAY['authenticated']::name[]
-     AND cmd='SELECT'
-     AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-     AND with_check IS NULL;
-  SELECT count(*) INTO total FROM pg_policies
-   WHERE schemaname='public' AND tablename='subscriptions'
-     AND policyname IN ('Users can view own subscriptions',
-                        'Users can view their own subscription');
-  IF matched <> total OR matched NOT IN (1, 2)
-     OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
-                   AND tablename='subscriptions'
-                   AND policyname='Users can view own subscriptions') THEN
-    RAISE EXCEPTION 'subscription policy owner scope or inventory drift; abort';
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public'
+      AND tablename='subscriptions'
+      AND policyname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription')
+  ) THEN
+    RAISE EXCEPTION 'unexpected legacy subscription select policy; manual review required';
   END IF;
-  IF matched = 2 THEN
-    EXECUTE 'DROP POLICY "Users can view their own subscription" ON public.subscriptions';
-    RAISE NOTICE 'duplicate subscription SELECT policy dropped for rollback proof';
-  ELSE
-    RAISE NOTICE 'subscription SELECT duplicate already absent; verified owner scope';
+  SELECT count(*) INTO canonical FROM pg_policies
+    WHERE schemaname='public' AND tablename='subscriptions'
+      AND policyname='subscriptions_select_member'
+      AND permissive='PERMISSIVE'
+      AND roles=ARRAY['authenticated']::name[]
+      AND cmd='SELECT'
+      AND with_check IS NULL
+      AND regexp_replace(lower(coalesce(qual,'')), '[[:space:]()]', '', 'g')
+        IN ('(is_org_memberorganization_idoris_admin_or_founder)',
+            'is_org_memberorganization_idoris_admin_or_founder',
+            '(public.is_org_memberorganization_idorpublic.is_admin_or_founder)',
+            'public.is_org_memberorganization_idorpublic.is_admin_or_founder');
+  IF canonical <> 1 THEN
+    RAISE EXCEPTION 'canonical subscription member/admin policy drift; abort';
   END IF;
 END
-$dedup$;
+$subscriptions_canonical$;
 
--- Exact after-state and rollback proof: neither a role nor any of the
--- optimized RLS rules was modified by the dedup exercise.
-DO $postflight$
-DECLARE survivors integer;
-BEGIN
-  IF (SELECT count(*) FROM pg_policies
-      WHERE schemaname='public' AND tablename='subscriptions'
-        AND policyname='Users can view own subscriptions'
-        AND permissive='PERMISSIVE'
-        AND roles=ARRAY['authenticated']::name[]
-        AND cmd='SELECT'
-        AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 1
-  OR EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
-             AND tablename='subscriptions'
-             AND policyname='Users can view their own subscription') THEN
-    RAISE EXCEPTION 'P1 subscription dedup failed';
-  END IF;
-END
-$postflight$;
-
-SELECT 'p1_post_hardening_rls_and_dedup_rollback_passed';
+SELECT 'p1_post_hardening_rls_and_canonical_subscription_passed';
 ROLLBACK;
