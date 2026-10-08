@@ -15,7 +15,7 @@ describe("cross-studio research simulation integration", () => {
     assert.equal(c.externalActionsEnabled, false);
     assert.equal(c.inputBytesLimit, MAX_INPUT_BYTES);
     assert.equal(MAX_OUTPUT_BYTES, 65536);
-    assert.equal(c.capabilities.length, 13);
+    assert.equal(c.capabilities.length, 15);
     assert.ok(c.capabilities.every(x => x.state === "research_only" &&
       x.customerEnabled === false && x.requiresServerAuthorization === true));
     assert.ok(c.capabilities.every(x => !Object.hasOwn(x, "runner")));
@@ -57,6 +57,19 @@ describe("cross-studio research simulation integration", () => {
     assert.deepEqual(run("creator_studio", "board_minimax", {
       board: "XX.OO...."
     }).result.optimalMoves, [2]);
+  });
+  it("reuses Creator chord and narrative models without creating assets", () => {
+    const chord = run("creator_studio", "chord_harmony", {
+      rootMidi: 60, quality: "major"
+    }).result;
+    assert.deepEqual(chord.notes.map(note => note.midi), [60,64,67]);
+    assert.equal(chord.audioCreated, false);
+    const arc = run("creator_studio", "narrative_beats", {
+      beats: [{ id: "setup", tension: 10 }, { id: "climax", tension: 95 },
+        { id: "ending", tension: 20 }]
+    }).result;
+    assert.equal(arc.peakBeatId, "climax");
+    assert.equal(arc.publicationAuthority, false);
   });
   it("reuses Growth payoffs and bounded odds for education only", () => {
     assert.deepEqual(run("growth_studio", "strategy_payoffs", {
