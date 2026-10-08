@@ -505,6 +505,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       code: sent.code,
       sent: sent.sent,
       failed: sent.failed.length,
+      unconfirmed: (sent.uncertain || []).length,
       skipped: (sent.skipped || []).length,
       charge: sent.charge?.code || null,
       audience,
@@ -531,6 +532,9 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       detail: sent.detail,
       sent: sent.sent,
       failed: sent.failed,
+      // Provider may already have accepted these. They must be reconciled,
+      // not sent again under the remainder action.
+      uncertain: sent.uncertain || [],
       skipped: sent.skipped,
       // The recipients nothing was tried for. Computed by the dispatcher,
       // returned by it, and dropped here until 15 September 2026 -- so the
