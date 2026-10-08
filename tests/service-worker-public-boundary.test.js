@@ -59,6 +59,8 @@ describe("cross-device service-worker cache boundary", () => {
   });
 
   it("does not intercept unauthorized navigations or seemingly-static API responses", () => {
+    assert.equal(isPublicNavigation("/login"), false);
+    assert.equal(isPublicNavigation("/signup"), false);
     assert.equal(isPublicNavigation("/dashboard"), false);
     assert.equal(isPublicNavigation("/api/account"), false);
     assert.equal(isPublicNavigation("/creator-studio/projects/private"), false);
@@ -76,6 +78,27 @@ describe("cross-device service-worker cache boundary", () => {
       });
       assert.equal(intercepted, false, url + " must reach the network unhandled");
     }
+  });
+
+  it("fails installation instead of precaching a misconfigured private resource", async () => {
+    const badEntry = '  "/api/account/private-export.png",';
+    const originalEntry = '  "/site.webmanifest",';
+    assert.ok(source.includes(originalEntry));
+    const unsafe = source.replace(originalEntry, badEntry + "\n" + originalEntry);
+    const handlersUnsafe = {};
+    const unsafeScope = {
+      location: { origin },
+      addEventListener: (type, handler) => { handlersUnsafe[type] = handler; },
+      skipWaiting: () => undefined
+    };
+    vm.runInNewContext(unsafe, {
+      self: unsafeScope,
+      URL,
+      caches: { open: async () => ({ add: async () => undefined }) }
+    });
+    let installation;
+    handlersUnsafe.install({ waitUntil: (task) => { installation = task; } });
+    await assert.rejects(installation, /Unsafe asset configured for offline precache/);
   });
 
   it("rejects responses marked private, no-store or set-cookie", () => {
