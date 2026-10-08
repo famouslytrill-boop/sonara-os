@@ -622,7 +622,13 @@ test.describe("device media and bounded image processing", () => {
   });
   test("the camera timeout is enforced when recording is supported; unsupported capture is denied", async ({ page }) => {
     await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    // Run the finite startup deadline even with Playwright's mocked clock.
+    // Do not fast-forward before the asynchronous permission and stream checks
+    // finish. Once srcObject is attached, the preview deadline is scheduled.
+    await expect.poll(() => page.evaluate(() => {
+      const video = document.querySelector("[data-local-capture] video");
+      const message = document.querySelector("[data-local-capture] [role=status]")?.textContent || "";
+      return Boolean(video?.srcObject) || /unavailable|refused capture/.test(message);
+    })).toBe(true);
     await page.clock.runFor(4100);
     if (!(await cameraPreviewAvailable(page))) { await verifyCameraUnavailable(page); return; }
     await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
