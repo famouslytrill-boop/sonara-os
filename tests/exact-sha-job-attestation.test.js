@@ -6,6 +6,7 @@ const path = require("node:path");
 const {
   REQUIRED_JOBS,
   OPTIONAL_SKIPPED,
+  REQUIRED_STEPS,
   assessExactShaJobMatrix: assess,
   verifyExactShaJobMatrix: verify
 } = require("../scripts/verify-exact-sha-release-jobs.cjs");
@@ -25,7 +26,11 @@ function buildEvidence() {
     });
     jobsByRunId[id] = {
       total_count: jobNames.length,
-      jobs: jobNames.map(name => ({ name, run_id: id, status: "completed", conclusion: "success" }))
+      jobs: jobNames.map(jobName => ({
+        name: jobName, run_id: id, status: "completed", conclusion: "success",
+        steps: (REQUIRED_STEPS[name]?.[jobName] || REQUIRED_STEPS[name]?.["*"] || [])
+          .map(stepName => ({ name: stepName, status: "completed", conclusion: "success" }))
+      }))
     };
   }
   return { exactSha: sha, branch, workflowRuns, jobsByRunId };
@@ -54,6 +59,17 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     d.jobsByRunId[pair.id].jobs.push(d.jobsByRunId[pair.id].jobs[0]);
     d.jobsByRunId[pair.id].total_count++;
     assert.ok(assess(d).failures.some(x => x.includes("duplicate_job")));
+  });
+
+  it("rejects a green Docker job that skipped its build or smoke step", () => {
+    const v = buildEvidence();
+    const run = v.workflowRuns.find(x => x.name === "Docker Image CI");
+    v.jobsByRunId[run.id].jobs[0].steps[0].conclusion = "skipped";
+    assert.ok(assess(v).failures.some(x => x.includes("required_step_missing_or_unsuccessful")));
+    const w = buildEvidence();
+    const r = w.workflowRuns.find(x => x.name === "Native migration replay");
+    w.jobsByRunId[r.id].jobs[0].steps = [];
+    assert.ok(assess(w).failures.some(x => x.includes("required_step_missing_or_unsuccessful")));
   });
 
   it("permits only the named optional Node 27 skip; no other skip is allowed", () => {
