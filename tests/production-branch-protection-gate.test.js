@@ -35,3 +35,28 @@ describe("production release rejects unprotected main", () => {
       < workflow.indexOf("- uses: supabase/setup-cli@"));
   });
 });
+
+describe("required CI can attest merge-queue SHA without losing main evidence", () => {
+  const required = [
+    "sonara-industries-ci.yml",
+    "native-migration-replay.yml",
+    "node-runtime-compatibility.yml",
+    "docker-image.yml",
+    "engineering-intelligence-security.yml",
+    "dependency-scan.yml"
+  ];
+  for (const file of required) {
+    it(file + " triggers in a merge queue and cancels only superseded PR runs", () => {
+      const yaml = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", file), "utf8");
+      assert.match(yaml, /\n  merge_group:\n    types: \[checks_requested\]\n    branches: \[main\]/);
+      assert.match(yaml, /\n  pull_request:/, "pull request checks must still run");
+      assert.match(yaml, /\nconcurrency:\n/);
+      assert.ok(yaml.includes("github.event.pull_request.number || github.run_id"),
+        "main, manual and merge-group runs need unique non-PR concurrency groups");
+      assert.ok(yaml.includes("cancel-in-progress: " + "$" + "{{ github.event_name == 'pull_request' }}"),
+        "never cancel an independent main or merge-group attestation");
+      assert.doesNotMatch(yaml, /cancel-in-progress:\s*true\b/,
+        "unconditional cancellation can erase exact-main-SHA evidence");
+    });
+  }
+});
