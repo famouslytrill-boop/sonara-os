@@ -79,7 +79,7 @@ function failures(source) {
       ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_ID", "SUPABASE_DB_PASSWORD"]],
     ["Pull production environment for read-only configuration verification",
       ["VERCEL_TOKEN"]],
-    ["Verify production project identity", ["SUPABASE_PROJECT_ID"]]
+    ["Verify production project identity", ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_ID"]]
   ]) {
     const body = namedStep(name);
     requireItem(Boolean(body), "required scoped credential step missing: " + name);
