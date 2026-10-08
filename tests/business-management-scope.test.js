@@ -108,6 +108,21 @@ describe("a management request stays in the business that authorized it", () => 
     assert.deepEqual(queries, []);
   });
 
+  it("rejects another user's explicit membership before entering a delegated handler", () => {
+    let invoked = 0;
+    const valid = membership(MANAGED, "manager");
+    const foreign = runWithBusinessManagementScope(USER,
+      { ...valid, user_id: OTHER_USER.id }, () => { invoked += 1; });
+    assert.equal(foreign.ok, false);
+    assert.equal(foreign.code, "business_scope_unverified");
+    assert.equal(invoked, 0);
+    const own = runWithBusinessManagementScope(USER,
+      { ...valid, user_id: USER.id }, () => { invoked += 1; return "authorized"; });
+    assert.equal(own.ok, true);
+    assert.equal(own.value, "authorized");
+    assert.equal(invoked, 1);
+  });
+
   it("does not enter the handler for unverified, inactive, or non-management memberships", () => {
     const candidates = [
       null, {}, membership("not-an-organization"), { ...membership(), status: "inactive" },

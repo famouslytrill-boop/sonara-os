@@ -319,6 +319,20 @@ function main() {
       }
     }
 
+    // Security-critical: run real allow/deny SQL on this disposable cluster.
+    // Tests use synthetic auth users, two tenants and rolled-back temporary
+    // grants; they never execute in a customer Supabase project.
+    behaves(psql, "P0 synthetic two-tenant and role-based RLS write/deny matrix",
+      fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
+      ["p0_auth_rls_matrix_staging_passed"]);
+
+    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
+    // remove one rigorously identical subscriptions policy in a single
+    // rolled-back transaction. No production DDL is performed by replay.
+    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
+      fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
+      ["p1_rls_hygiene_staging_passed"]);
+
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
       ["generation_reserves_settles_and_isolates"]);

@@ -1915,7 +1915,35 @@ function buildInventory() {
         } else if (entry.evidence?.function) {
           const call = new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`);
           for (const [label, subject] of [["the route", raw], ["the page", page]]) {
-            if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.page}`);
+            const direct = call.test(String(subject.handlerSource || ""));
+            // A page may delegate to a shared renderer that actually performs
+            // the same read as its JSON endpoint. Make that indirection an
+            // explicit, falsifiable review instead of inventing a direct call.
+            let viaRenderer = false;
+            if (!direct && label === "the page" && entry.evidence?.function) {
+              const file = subject.source?.file;
+              const handler = String(subject.handlerSource || "");
+              // Infer real page->renderer calls from source rather than
+              // writing extra unverified metadata into the review registry.
+              // The canonical capability inventory output therefore stays
+              // stable while the evidence checker gets more stringent.
+              if (typeof file === "string" && file.startsWith("routes/")
+                  && file === raw.source?.file) {
+                const sourceText = fs.readFileSync(path.join(ROOT, file), "utf8");
+                const invocations = handler.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(\s*req\s*,\s*res\s*,\s*["']([a-z_]+)["']/g);
+                for (const invocation of invocations) {
+                  const renderer = invocation[1];
+                  const declaration = new RegExp("\\b(?:async\\s+)?function\\s+" + escapeRegExp(renderer) + "\\s*\\(");
+                  const found = declaration.exec(sourceText);
+                  if (!found) continue;
+                  const rest = sourceText.slice(found.index + found[0].length);
+                  const nextFunction = /\n  (?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/.exec(rest);
+                  const rendererBody = nextFunction ? rest.slice(0, nextFunction.index) : rest;
+                  if (call.test(rendererBody)) { viaRenderer = true; break; }
+                }
+              }
+            }
+            if (!direct && !viaRenderer) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function} (directly or by the reviewed renderer), so it is not the JSON form of ${entry.page}`);
           }
         } else problems.push(`${entry.route}: gives no evidence that it is the JSON form of ${entry.page}`);
       }
@@ -3035,7 +3063,13 @@ function markdownFor(map) {
 function validateMap(map) {
   const errors = [];
   for (const [key, value] of Object.entries(map.validation)) {
-    if (Array.isArray(value) && value.length) errors.push(`${key}: ${value.length}`);
+    // Keep the gate strict, but name the actual review evidence that failed.
+    // Counts alone hide the route or file the engineer needs to repair.
+    if (Array.isArray(value) && value.length) {
+      errors.push(`${key}: ${value.length}`);
+      for (const detail of value.slice(0, 20)) errors.push(`${key}: ${String(detail).slice(0, 300)}`);
+      if (value.length > 20) errors.push(`${key}: ... ${value.length - 20} additional item(s)`);
+    }
   }
   if (!map.routeOperations.length) errors.push("no live route registrations were discovered");
   if (map.routeOperations.some((route) => !route.source.file || !route.workspace)) errors.push("one or more routes lack source or workspace ownership");
