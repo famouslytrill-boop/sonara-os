@@ -191,7 +191,7 @@ Research context:
 1. /offline is now the sole explicitly allowed cacheable HTML exception. server.js sets Cache-Control: public, max-age=60 for this anonymous, generic fallback only. All other rendered HTML retains the no-store default. The PWA HTTP-response regression test checks both behaviors.
 2. Essential offline resources are fetched with Request credentials: omit, cache: no-store, and redirect: error. Private, no-store, set-cookie, opaque, redirected and cross-origin responses are rejected. Scripts and stylesheets returning HTML are not cached.
 3. Offline fallback, application CSS, design-system CSS and the main browser script form the essential shell. A failure rejects the install and deletes the incomplete new-version cache. Optional fonts and icons are best-effort subject to the same response policy.
-4. The worker no longer calls skipWaiting() automatically on install. The existing explicit message handler remains. The public update message accurately asks people to close and reopen all SONARA tabs when convenient.
+4. The worker no longer calls skipWaiting() automatically on install. The unused forced-activation message handler has been removed. The public update message accurately asks people to close and reopen all SONARA tabs when convenient.
 5. Runtime stale-while-revalidate also refetches static assets without credentials, rejects private or HTML responses, and uses event.waitUntil for the refresh when serving a cached asset.
 6. The service-worker boundary suite now has 12 regression cases, including anonymous precache, install rollback, wrong-MIME fallback, safe takeover, anonymous background refresh and network failure. The cross-device suite has 13 separate cases.
 
