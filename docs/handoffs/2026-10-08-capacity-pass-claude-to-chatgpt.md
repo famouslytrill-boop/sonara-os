@@ -55,3 +55,14 @@ SECURITY_AND_ACCESSIBILITY_EVIDENCE:
 PROPOSED_NEXT_SAFE_PATCH:
 OWNER_ACTIONS_REQUIRED:
 EVIDENCE_LINKS:
+
+## October 8 continuation — Claude must report on new additions
+Read `scripts/plan-industry-portfolio.mjs` (25 aggregate assertions), updated `scripts/simulate-industry-capacity.mjs` (21 assertions, overflow protection), updated `package.json`, updated `.github/workflows/industry-capacity-model.yml`, and the **new** `docs/operations/2026-10-08-live-postgres-traffic-baseline.md`. Exact baseline evidence: PostgreSQL 17.6, configured max_connections 60, 18 sessions (1 active, 0 waiting on locks), 4,862 retained pg_stat_statements entries, 21 evictions; cumulative temp files 6,651 and 18,127,702,078 bytes, not a disk-usage or per-second claim. A high-cost normalized query recorded 4 calls and 50,726.54 ms total; route attribution UNKNOWN. Do not expose raw SQL, tenant identifiers, credentials or private rows to monitoring.
+Fill new return fields:
+PORTFOLIO_MODEL_NODE24_TEST:
+PORTFOLIO_MODEL_NODE26_TEST:
+COST_OVERFLOW_REGRESSION:
+POSTGRES_SLOW_STATEMENT_TO_AUTHORIZED_QUERY_MAPPING:
+BEFORE_AFTER_REAL_LOAD_EVIDENCE:
+REVISED_INDUSTRY_POOL_BUDGETS:
+All remain UNKNOWN until tested. **Never fill unknown with assumed green**.
