@@ -87,9 +87,14 @@ const enqueues = await Promise.all(
   })
 );
 
-const enqueueFailures = enqueues.filter((result) => !result?.ok);
-if (enqueueFailures.length) {
-  console.error(`Event consumer canary could not enqueue ${enqueueFailures.length} of ${SAMPLE_COUNT} synthetic events.`);
+// Duplicate/ambiguous enqueues cannot establish that this synthetic run owns
+// the records subsequently delivered. Exact record IDs are the canary oracle.
+const enqueueFailures = enqueues.filter((result) =>
+  !result?.ok || result.created !== true || typeof result.row?.id !== "string" || !result.row.id.trim()
+);
+const expectedEventOutboxIds = enqueues.map((result) => result?.row?.id);
+if (enqueueFailures.length || new Set(expectedEventOutboxIds).size !== SAMPLE_COUNT) {
+  console.error("Event consumer canary could not prove fresh unique enqueue records for every synthetic event.");
   process.exit(1);
 }
 
@@ -115,7 +120,7 @@ async function lane(laneNumber) {
 
 await Promise.all(Array.from({ length: CONCURRENCY }, (_, index) => lane(index + 1)));
 
-const evaluation = evaluateCanaryActivation(results.map((result) => result.sample));
+const evaluation = evaluateCanaryActivation(results.map((result) => result?.sample ?? null), CANARY_ACTIVATION_GATE, { expectedEventOutboxIds });
 const statusCounts = results.reduce((acc, result) => {
   const status = String(result?.status || "unknown");
   acc[status] = (acc[status] || 0) + 1;
