@@ -85,3 +85,21 @@ P1: convert existing `sonara-ops-shell` list/detail screens into measured contai
 P1: native Android (Compose adaptive / insets) and iOS (SwiftUI safe areas) wrappers with signed device evidence; implement permission prompts only behind approved feature actions.
 P1: foreground/background lifecycle, offline queue conflict UI, explicit camera/microphone/location consent and denial fallbacks.
 P2: stylus, keyboard shortcuts, drag/drop, external display and fold posture, only after repeatable device evidence and usability testing.
+
+
+## Phase 2: narrow panel and focus-visibility hardening (review branch)
+
+Additional technical findings:
+- WCAG 2.2 SC 2.4.11 requires a focused component to remain at least partially visible even with sticky/fixed page chrome. Body padding alone is not a focus scroll contract. A dock-bearing page now declares its own HTML state, and CSS adds matching \`scroll-padding-block-end\`; short landscape and print explicitly remove it.
+- Device screen width is not enough to size a component inside a desktop split-screen or inspector. The existing \`.sonara-ops-panel\`, \`.sonara-ops-detail\` and \`.sonara-ops-inspector\` now establish inline-size query contexts, with stacked command controls below 420px. No additional token authority or dependency is introduced.
+- Samsung foldable continuity includes maintaining the same scroll position, entered text and keyboard through fold/unfold. The browser contract now checks text retention during live viewport resizing, but true device posture, virtual keyboard and hinge occlusion still need physical/simulator qualification.
+- Browser virtual keyboards differ: some resize the visual viewport only, while others resize the layout viewport. SONARA does not assume a single browser behavior and does not force the experimental VirtualKeyboard API.
+
+Added automated browser tests to the **existing** Browser Quality workflow's already-listed \`browser-tests/public-experience.spec.js\`. These test the authenticated dock under touch and mouse emulation, touch target geometry, input-focus hiding, scroll clearance, editing continuity across width changes, and container query layout. Separate physical device approval remains outstanding.
+
+Official engineering evidence:
+- WCAG focus visibility: https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum
+- Browser keyboard viewport differences: https://developer.chrome.com/blog/viewport-resize-behavior/
+- MDN container queries: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_size_and_style_queries
+- Android adaptive size classes: https://developer.android.com/develop/adaptive-apps/guides/use-window-size-classes
+- Apple HIG layout (September 2026): https://developer.apple.com/design/human-interface-guidelines/layout
