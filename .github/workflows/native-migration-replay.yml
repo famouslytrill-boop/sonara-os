@@ -27,26 +27,46 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ matrix.node }}
-      - name: Install native PostgreSQL
+      # Collect evidence even when the external package repository fails before replay.
+      - name: Initialize native replay evidence
+        shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install --yes curl ca-certificates
-          # Ubuntu 24.04 includes PostgreSQL 16; the official PGDG repository
-          # supplies PostgreSQL 17 and the PostgreSQL 18 compatibility candidate.
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl --fail --show-error --silent --location \
-            https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          printf '%s\n' \
-            'Types: deb' \
-            'URIs: https://apt.postgresql.org/pub/repos/apt' \
-            'Suites: noble-pgdg' \
-            'Components: main' \
-            'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
-            | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
-          sudo apt-get update
-          sudo apt-get install --yes "postgresql-$POSTGRES_MAJOR" "postgresql-contrib-$POSTGRES_MAJOR"
+          mkdir -p replay-evidence
+          git rev-parse HEAD > replay-evidence/commit.txt
+          node --version > replay-evidence/node-version.txt
+          printf 'PostgreSQL major: %s\n' "$POSTGRES_MAJOR" > replay-evidence/target.txt
+      - name: Install native PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            sudo apt-get -o Acquire::Retries=5 update
+            sudo apt-get -o Acquire::Retries=5 install --yes curl ca-certificates
+
+            # Ubuntu 24.04 ships PostgreSQL 16; only versions 17/18 need PGDG.
+            if [ "$POSTGRES_MAJOR" != "16" ]; then
+              sudo install -d /usr/share/postgresql-common/pgdg
+              curl --fail --show-error --silent --location \
+                --retry 5 --retry-all-errors --retry-delay 3 \
+                --connect-timeout 15 --max-time 120 \
+                https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+                -o "$RUNNER_TEMP/postgresql-signing-key.asc"
+              sudo install -m 0644 "$RUNNER_TEMP/postgresql-signing-key.asc" \
+                /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+              printf '%s\n' \
+                'Types: deb' \
+                'URIs: https://apt.postgresql.org/pub/repos/apt' \
+                'Suites: noble-pgdg' \
+                'Components: main' \
+                'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+                | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+              sudo apt-get -o Acquire::Retries=5 update
+            fi
+
+            sudo apt-get -o Acquire::Retries=5 install --yes \
+              "postgresql-$POSTGRES_MAJOR" "postgresql-contrib-$POSTGRES_MAJOR"
+          } 2>&1 | tee replay-evidence/install.log
       - name: Replay the candidate migration history
         shell: bash
         env:
