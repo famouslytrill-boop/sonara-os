@@ -330,7 +330,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
   function utcFormTime(value) {
     if (value === undefined || value === null || value === "") return { ok: true, iso: null };
-    if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(value)) return { ok: false };
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return { ok: false };
     const iso = value + ":00.000Z";
     const date = new Date(iso);
     return Number.isFinite(date.getTime()) && date.toISOString() === iso
@@ -419,21 +419,46 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     }, "waitlist");
   });
 
+
   app.post("/api/business/waitlist/:bookingId/offer", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
     if (!scope.ok) return sendReservation(req, res, scope.status, scope, "offer");
-    if (!validUuid(req.params.bookingId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
+    const bookingId = req.params.bookingId;
+    if (!validUuid(bookingId)) return sendReservation(req, res, 400, { ok: false, code: "invalid_booking_id" }, "offer");
     const found = await request(scope.config, TABLES.bookings,
-      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}&select=id,metadata,status&limit=1`);
+      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(bookingId)}&select=id,metadata,status&limit=1`);
+    if (!found.ok) return sendReservation(req, res, 503, { ok: false, code: found.code }, "offer");
     const booking = found.rows[0];
-    if (!found.ok) return sendReservation(req, res, 502, { ok: false, code: "database_request_failed" }, "offer");
-    if (!booking || booking?.metadata?.waitlist !== true) return sendReservation(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
-    const metadata = { ...(booking.metadata || {}), waitlist_state: "offered", offered_at: new Date().toISOString() };
+    if (!booking || booking.metadata?.waitlist !== true) {
+      return sendReservation(req, res, 404, { ok: false, code: "waitlist_entry_not_found" }, "offer");
+    }
+    if (booking.status !== "requested") {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_closed" }, "offer");
+    }
+    if (booking.metadata?.waitlist_state === "offered") {
+      return sendReservation(req, res, 200, { ok: true, entry: booking, alreadyOffered: true,
+        customerNotified: false }, "offer");
+    }
+    if (booking.metadata?.waitlist_state !== "waiting") {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_closed" }, "offer");
+    }
+    // Compare-and-swap using BOTH source status and complete original metadata.
+    // This rejects a concurrent booking confirmation/cancellation or a change
+    // to the customer's party/resources rather than overwriting it with stale data.
+    const nextMetadata = { ...booking.metadata,
+      waitlist_state: "offered", offered_at: new Date().toISOString(), offered_by: scope.userId };
+    const original = JSON.stringify(booking.metadata);
     const updated = await request(scope.config, TABLES.bookings,
-      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(req.params.bookingId)}`, {
-        method: "PATCH", body: { metadata, updated_at: new Date().toISOString() }
+      `organization_id=eq.${enc(scope.organizationId)}&id=eq.${enc(bookingId)}&status=eq.requested&metadata=eq.${enc(original)}`, {
+        method: "PATCH",
+        body: { metadata: nextMetadata, updated_at: new Date().toISOString() }
       });
-    return sendReservation(req, res, updated.ok ? 200 : 502, { ok: updated.ok, entry: updated.rows[0] || null, code: updated.code, customerNotified: false }, "offer");
+    if (!updated.ok) return sendReservation(req, res, 503, { ok: false, code: updated.code }, "offer");
+    if (updated.rows.length !== 1) {
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_changed" }, "offer");
+    }
+    return sendReservation(req, res, 200, { ok: true, entry: updated.rows[0],
+      customerNotified: false, alreadyOffered: false }, "offer");
   });
 
   app.get("/api/business/map/snapshot", requireBusinessManager, async (req, res) => {
