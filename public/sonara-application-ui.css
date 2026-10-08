@@ -2688,6 +2688,15 @@ body.sonara-home-v3 .sonara-interface-preview::before {
     color: var(--nx-ink);
   }
   /* Avoid placing fixed links over the on-screen keyboard while editing. */
+  /* When a text editor has focus, hiding the dock must also release its
+     reserved scroll clearance. Chrome Android and iOS Safari can resize only
+     the visual viewport while the on-screen keyboard is present. */
+  html[data-sonara-workspace-dock="true"]:has(body :is(input, textarea, select, [contenteditable="true"]):focus) {
+    scroll-padding-block-end: 0;
+  }
+  body.sonara-has-workspace-dock:has(:is(input, textarea, select, [contenteditable="true"]):focus) {
+    padding-block-end: 0;
+  }
   body.sonara-has-workspace-dock:has(:is(input, textarea, select, [contenteditable="true"]):focus) .sonara-workspace-dock {
     display: none;
   }
