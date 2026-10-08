@@ -5,6 +5,7 @@
 const {
   getInventionSystemsIntelligence
 } = require("../lib/sonara-invention-systems-2026.cjs");
+const { getStudioSimulationCatalog } = require("../lib/sonara-simulation-integration.cjs");
 
 module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
@@ -15,7 +16,11 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
   };
 
   app.get("/api/invention-systems/catalog", requireCustomer, (req, res) => {
-    return res.status(200).json(getInventionSystemsIntelligence());
+    // Catalog only: no exposed mathematical execution or new privilege grants.
+    return res.status(200).json({
+      ...getInventionSystemsIntelligence(),
+      researchSimulations: getStudioSimulationCatalog()
+    });
   });
 
 
@@ -25,6 +30,10 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
       ui.card(
         "System foundry",
         String(catalog.counts.inventionSystems) + " SONARA-owned system concepts map " + String(catalog.counts.domainCoverage) + " requested domain families into reusable platform primitives. None are marked live or granted runtime authority by this catalog."
+      ),
+      ui.card(
+        "Simulation and creative mathematics — research only",
+        String(getStudioSimulationCatalog().capabilities.length) + " bounded educational prototypes are mapped across SONARA One, Business Builder, Creator Studio and Growth Studio. Includes geometry, calculus, probability, game theory, card-hand classification, film timing, music notes, 2D motion and hypothetical trading. No casino, betting, trading or money execution; no public simulation runner, customer results, provider access or licensed-engine activation."
       ),
       ui.card(
         "Promotion model",
