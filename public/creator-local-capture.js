@@ -13,6 +13,10 @@
   const status = panel.querySelector("[role=status]");
   const download = panel.querySelector("[data-capture-download]");
   let sequence = 0, stream = null, recorder = null, timer = null, poll = null, url = null, controller = null;
+  // MediaElement.play() can remain pending while a browser decides whether
+  // playback is permitted or supported. A captured stream without a playable
+  // preview is not camera readiness; fail closed and release its tracks.
+  const CAMERA_PREVIEW_START_TIMEOUT_MS = 4000;
 
   function clearOutput() {
     if (url) URL.revokeObjectURL(url);
@@ -35,6 +39,20 @@
   function output(blob, name) {
     clearOutput(); url = URL.createObjectURL(blob);
     download.href = url; download.download = name; download.hidden = false;
+  }
+  async function startCameraPreview() {
+    let timeoutId;
+    try {
+      await Promise.race([
+        // Wrap sync throws and legacy undefined returns in a Promise.
+        Promise.resolve().then(() => video.play()),
+        new Promise((_, reject) => {
+          timeoutId = window.setTimeout(() => reject(new Error("Camera preview startup timed out.")), CAMERA_PREVIEW_START_TIMEOUT_MS);
+        })
+      ]);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
   async function start(kind) {
     abort();
@@ -72,7 +90,7 @@
           // A returned MediaStream is not proof its frames can play. Some
           // WebKit/Linux builds expose captureStream() but cannot render its
           // synthetic tracks. Refuse an unusable preview and close the stream.
-          await video.play();
+          await startCameraPreview();
         } catch {
           throw new Error("Camera capture is unavailable in this browser. You can still open your own files.");
         }
