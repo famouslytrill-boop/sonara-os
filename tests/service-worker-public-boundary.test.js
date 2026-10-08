@@ -74,6 +74,51 @@ function simulateWorkerInstall(overrides = {}) {
   };
 }
 
+function simulateRuntimeFetch({ cacheHit = true, cacheControl = "public, max-age=60", contentType = "application/javascript", networkFails = false } = {}) {
+  const requests = [];
+  const writes = [];
+  const events = {};
+  const existing = { source: "cached" };
+  const response = {
+    source: "network", ok: true, type: "basic", redirected: false,
+    url: origin + "/sonara-one.js?v=" + VERSION,
+    headers: {
+      get: (name) => name === "cache-control" ? cacheControl :
+        name === "content-type" ? contentType : null,
+      has: () => false
+    },
+    clone() { return { ...this, source: "network-clone" }; }
+  };
+  const worker = {
+    location: { origin },
+    addEventListener: (eventName, handler) => { events[eventName] = handler; }
+  };
+  class AnonymousRequest {
+    constructor(url, options) { this.url = url; Object.assign(this, options); requests.push(this); }
+  }
+  const storage = {
+    open: async () => ({
+      match: async () => cacheHit ? existing : undefined,
+      put: async (request, value) => { writes.push({ request, value }); }
+    })
+  };
+  vm.runInNewContext(source, {
+    self: worker, URL, Request: AnonymousRequest, caches: storage,
+    fetch: async () => {
+      if (networkFails) throw new Error("network offline");
+      return response;
+    }
+  });
+  let handled;
+  let lifetime;
+  events.fetch({
+    request: { method: "GET", mode: "no-cors", url: response.url },
+    respondWith: (promise) => { handled = promise; },
+    waitUntil: (promise) => { lifetime = promise; }
+  });
+  return { handled, lifetime: () => lifetime, requests, writes, existing, response };
+}
+
 describe("cross-device service-worker cache boundary", () => {
   it("accepts the public release assets that it actually precaches", () => {
     for (const asset of PUBLIC_STAGE) {
@@ -178,6 +223,33 @@ describe("cross-device service-worker cache boundary", () => {
     const job = simulateWorkerInstall({ htmlAt: "/sonara-one.js" });
     await assert.rejects(job.installation, /returned an HTML document/);
     assert.equal(job.deletions.length, 1);
+  });
+
+  it("revalidates public JS anonymously and holds worker lifetime for cache writes", async () => {
+    const task = simulateRuntimeFetch();
+    assert.equal(await task.handled, task.existing);
+    await task.lifetime();
+    assert.equal(task.requests.length, 1);
+    assert.equal(task.requests[0].credentials, "omit");
+    assert.equal(task.requests[0].cache, "no-store");
+    assert.equal(task.requests[0].redirect, "error");
+    assert.equal(task.writes.length, 1);
+    assert.equal(task.writes[0].value.source, "network-clone");
+  });
+
+  it("does not save private or HTML responses as offline JavaScript", async () => {
+    for (const options of [{ cacheControl: "private" }, { contentType: "text/html" }]) {
+      const task = simulateRuntimeFetch(options);
+      assert.equal(await task.handled, task.existing);
+      await task.lifetime();
+      assert.equal(task.writes.length, 0, JSON.stringify(options));
+    }
+  });
+
+  it("propagates network failure when there is no cached asset", async () => {
+    const task = simulateRuntimeFetch({ cacheHit: false, networkFails: true });
+    await assert.rejects(task.handled, /network offline/);
+    assert.equal(task.writes.length, 0);
   });
 
   it("rejects responses marked private, no-store or set-cookie", () => {
