@@ -108,6 +108,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     responsePage,
     checklistCard,
     escapeHtml,
+    contactForm,
     requireCustomer,
     requireWorkspaceAccess,
     wantsJson,
@@ -1546,23 +1547,11 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   // ---------------------------------------------------------------------------
 
   function supportForm(defaultCategory) {
-    return `<article class="card">
-    <h2>Support request</h2>
-    <form method="post" action="/support/request">
-      <label>Name<input name="name" type="text" required></label>
-      <label>Email<input name="email" type="email" required></label>
-      <label>Subject<input name="subject" type="text" required></label>
-      <select name="category" required>
-        <option value="support"${defaultCategory === "support" ? " selected" : ""}>Support</option>
-        <option value="billing">Billing</option>
-        <option value="contact">Contact</option>
-        <option value="feedback">Feedback</option>
-      </select>
-      <label>What do you need help with?<textarea name="message" rows="6" required></textarea></label>
-      <label class="fine"><input name="consent" type="checkbox" value="yes" required> Consent to process this request</label>
-      <button type="submit">Submit support request</button>
-    </form>
-  </article>`;
+    // The standalone /support page and /contact must not drift on labels,
+    // sensitive-data warnings, accepted fields or automation defenses.
+    return contactForm({ category: defaultCategory || "support" }, "", {
+      action: "/support/request"
+    });
   }
 
 
