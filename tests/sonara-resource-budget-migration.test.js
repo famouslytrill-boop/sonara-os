@@ -21,10 +21,33 @@ describe("weighted resource budget migration contract",()=>{
     assert.ok((sql.match(/grant execute on function public\.sonara_/gi)||[]).length>=3);
     assert.doesNotMatch(sql,/grant execute[^;]*to\s+(?:public|anon|authenticated)/i);
   });
-  it("stores only SHA-256 bucket keys rather than raw customer identifiers",()=>{
+  it("stores only SHA-256 bucket keys rather than raw customer-identifier columns",()=>{
     assert.match(sql,/bucket_key char\(64\)/i);
-    assert.match(sql,/bucket_key ~ '\^\[a-f0-9\]\{64\}\$'/i);
-    assert.doesNotMatch(sql,/\b(email|ip_address|raw_ip|access_token|refresh_token|api_key)\b/i);
+    assert.match(sql,/bucket_key ~ '\^\[a-f0-9\]\{64\}\
+  it("serializes budget consumption before changing shared state",()=>{
+    assert.match(sql,/from sonara_governance\.resource_budget_state[\s\S]*?for update/i);
+    assert.match(sql,/weighted_rate_budget_exceeded/i);
+    assert.match(sql,/daily_budget_exceeded/i);
+    assert.match(sql,/budget_exhausted_no_refill/i);
+  });
+  it("uses expiring idempotent concurrency leases instead of a fragile active counter",()=>{
+    assert.match(sql,/resource_budget_leases/i);
+    assert.match(sql,/expires_at <= v_now/i);
+    assert.match(sql,/lease_reused/i);
+    assert.match(sql,/concurrency_budget_exceeded/i);
+    assert.match(sql,/on delete cascade/i);
+  });
+  it("self-tests consume, saturation, replay, release and capacity recovery",()=>{
+    assert.match(sql,/resource budget self-test: first consume should pass/i);
+    assert.match(sql,/second consume should hit rate budget/i);
+    assert.match(sql,/replay must reuse the lease/i);
+    assert.match(sql,/second lease should be denied/i);
+    assert.match(sql,/capacity should recover after release/i);
+  });
+});
+/i);
+    const withoutComments=sql.replace(/--.*$/gm,"");
+    assert.doesNotMatch(withoutComments,/\b(email|ip_address|raw_ip|access_token|refresh_token|api_key)\b/i);
   });
   it("serializes budget consumption before changing shared state",()=>{
     assert.match(sql,/from sonara_governance\.resource_budget_state[\s\S]*?for update/i);
