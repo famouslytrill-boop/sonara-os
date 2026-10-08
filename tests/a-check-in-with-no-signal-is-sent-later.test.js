@@ -163,10 +163,10 @@ describe("a check-in with no signal is sent later", () => {
     const prepared = (body, now) => queue.prepare({ capture_user_id: USER, capture_organization_id: ORG, ...body }, now);
 
     it("names and times a check-in before its first attempt", () => {
-      const prepared = prepared({ event_type: "check_in", latitude: 51.5 }, Date.parse("2026-10-07T09:00:00Z"));
-      assert.match(prepared.client_event_id, /^[0-9a-f-]{36}$/);
-      assert.equal(prepared.captured_at, "2026-10-07T09:00:00.000Z");
-      assert.equal(prepared.latitude, 51.5);
+      const sample = prepared({ event_type: "check_in", latitude: 51.5 }, Date.parse("2026-10-07T09:00:00Z"));
+      assert.match(sample.client_event_id, /^[0-9a-f-]{36}$/);
+      assert.equal(sample.captured_at, "2026-10-07T09:00:00.000Z");
+      assert.equal(sample.latitude, 51.5);
     });
 
     it("partitions queued check-ins by workspace and signed-in user", async () => {
