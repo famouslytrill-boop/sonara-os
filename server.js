@@ -1720,7 +1720,7 @@ app.use((error, req, res, next) => {
 
 // Last, so every route and the 413 handler above get their turn first.
 app.use(createAsyncErrorHandler({
-  renderHtml: () => responsePage("Something went wrong", "This page could not be built just now. Try again, and tell us if it keeps happening.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
+  renderHtml: () => responsePage("Something went wrong", "This request could not be confirmed. Check its status before retrying, especially if it might have saved or sent something.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
 }));
 
 module.exports = Object.assign(app, { legalAliasHrefs: legalAliasPages().map((page) => page.href) });
