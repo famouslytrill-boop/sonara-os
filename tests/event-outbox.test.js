@@ -306,6 +306,8 @@ describe("event outbox PostgREST response integrity", () => {
     ["wrong kind", { kind: "media.job.requested" }],
     ["wrong producer", { producer: "unapproved" }],
     ["not claimed", { state: "ready" }],
+    ["wrong claim owner", { claimed_by: "stale-worker-token" }],
+    ["missing claim owner", { claimed_by: null }],
     ["missing id", { id: null }]
   ]) {
     it(`rejects a filtered claim with ${label}`, async () => {
@@ -317,6 +319,32 @@ describe("event outbox PostgREST response integrity", () => {
       assert.equal(result.row, null);
     });
   }
+
+  it("requires the returned lease owner for the unfiltered claim RPC too", async () => {
+    for (const claimedBy of ["other-worker-token", null, "", undefined]) {
+      const result = await repo(async () => apiResponse([claimed({ claimed_by: claimedBy })]))
+        .claimNext({ organizationId: ORG, consumer: CLAIM });
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "claim_identity_mismatch");
+      assert.equal(result.row, null);
+    }
+    const accepted = await repo(async () => apiResponse([claimed()]))
+      .claimNext({ organizationId: ORG, consumer: CLAIM });
+    assert.equal(accepted.ok, true);
+    assert.equal(accepted.row.claimed_by, CLAIM);
+  });
+
+  it("does not trust a different invocation's claim even within the same tenant", async () => {
+    const responseOwner = "worker#first";
+    const nextOwner = "worker#second";
+    const result = await repo(async () => apiResponse([claimed({ claimed_by: responseOwner })]))
+      .claimNextFiltered({
+        organizationId: ORG, consumer: nextOwner, kinds: [KIND], producers: [PRODUCER]
+      });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "claim_identity_mismatch");
+    assert.equal(result.row, null);
+  });
 
   it("rejects settlement of another tenant, outbox row or incorrect state", async () => {
     for (const patch of [
