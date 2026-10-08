@@ -608,10 +608,10 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(sendRows[0].reason, "provider_outcome_unknown");
     });
 
-    it("halts later sends after an individual accepted-looking response has no receipt", async () => {
-      // A suppressed or invalid-address recipient can leave a single first
-      // message followed by many later messages; the missing provider ID
-      // must stop all later batches, even when the first HTTP status is 200.
+    it("halts before a final singleton when an earlier batch has no provider receipt", async () => {
+      // A short success-looking batch response may follow real acceptance.
+      // The remaining singleton must not be sent until the ambiguous batch
+      // is reconciled against provider-authoritative evidence.
       const calls = [];
       const result = await dispatchCampaign({
         ...SEND, decision: many(101), report: () => {},
