@@ -210,3 +210,21 @@ References:
 - https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching
 - https://web.dev/articles/http-cache-security
 
+## Phase 7: exact-cache fallback and baseline CI remediation
+
+**Research and implementation:** MDN documents that CacheStorage.match searches across all stored caches in creation order, while Cache.match restricts a lookup to one chosen cache. The worker's offline navigation fallback is now read strictly from its active SONARA version cache. This prevents an unrelated cache or previous-release cache from supplying the fallback. MDN also notes that Clients.claim causes a worker to take control of otherwise uncontrolled pages; the worker no longer invokes it automatically during activation. The existing explicit SKIP_WAITING message pathway remains, but is not automatically triggered.
+
+**Auth boundary:** The browser-side service worker registration allowlist now excludes /login and /signup, matching the worker's navigation bypass. Public marketing pages continue to register as before.
+
+**Automated evidence:** Two dedicated worker tests cover the active-cache fallback and non-claim activation behavior, bringing the worker suite to 14 cases. An isolated execution harness ran all 14 successfully. An independent eight-route registration probe confirmed registration on public pages and absence on login, signup, and private pages. These results do not replace running the suite in Node 24 through GitHub Actions.
+
+**Baseline CI finding:** Completed main-branch SONARA Industries CI run 37815158957 contained 7,083 passing tests and a single failure: the generated handoff named 513 Mocha files, but the runner matched 516. This review branch adds two Mocha test files, and the GitHub repository contents inventory now contains exactly 518 eligible .js/.mjs files. docs/HANDOFF_PROMPT.md is corrected to 518 without changing or disabling the assertion in tests/the-handoff-counts-what-mocha-runs.test.js. Generator output and exact-head tests still need independent CI proof.
+
+**Separate production blocker:** Main-branch Production Commit Drift run 37836985899 failed because the production /api/health request returned HTTP 503. This is not evidence that PR #539 caused the failure. Do not enable production, assume a deployment cause, or bypass release gates without independent production authorization and provider evidence.
+
+**Remaining gates:** Full CI, generated handoff verification, browser quality (Chromium/Firefox/WebKit), security, Lighthouse, migration replay, real-device continuity, offline cache migration from the previous version, and explicit release approval.
+
+Official references:
+- https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/match
+- https://developer.mozilla.org/en-US/docs/Web/API/Cache/match
+- https://developer.mozilla.org/en-US/docs/Web/API/Clients/claim
