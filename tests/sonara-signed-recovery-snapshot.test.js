@@ -103,6 +103,37 @@ describe("SONARA signed observation immutable transport boundary", () => {
     assert.equal(jobs.length, 1);
     assert.equal(jobs[0].organizationId, TENANT);
   });
+  it("reads each security header exactly once even with accessor-backed input", async () => {
+    const signed = sign(), reads = {};
+    const envelope = {};
+    for (const [name, value] of Object.entries(signed)) {
+      Object.defineProperty(envelope, name, {
+        enumerable: true,
+        get() {
+          reads[name] = (reads[name] || 0) + 1;
+          return reads[name] === 1 ? value : (name === "rawBody" ? Buffer.alloc(10) : "tampered");
+        }
+      });
+    }
+    const verified = await verifySignedRecoveryObservation(envelope, {
+      nowMs: NOW, getKey: async () => KEY, claimNonce: async () => true
+    });
+    assert.equal(verified.authenticated, true);
+    for (const name of Object.keys(signed)) assert.equal(reads[name], 1);
+  });
+  it("fails closed without touching the key store on a throwing signature getter", async () => {
+    const envelope = sign();
+    Object.defineProperty(envelope, "signature", {
+      get() { throw Error("untrusted input"); }
+    });
+    let keyRequests = 0;
+    const verified = await verifySignedRecoveryObservation(envelope, {
+      nowMs: NOW, getKey: async () => { keyRequests++; return KEY; },
+      claimNonce: async () => true
+    });
+    assert.equal(verified.authenticated, false);
+    assert.equal(keyRequests, 0);
+  });
   it("keeps disabled ingress entirely inert under tampering", async () => {
     const envelope = sign();
     let called = 0;
