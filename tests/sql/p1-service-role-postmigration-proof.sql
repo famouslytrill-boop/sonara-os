@@ -1,7 +1,7 @@
 -- Disposable native-replay postcondition for the applied 20261008100000 migration.
 -- Earlier replay executes the historical P1 experiment immediately BEFORE
--- the migration and rolls it back, proving that its 25 guarded baseline
--- definitions and subscription policy deduplication were still valid.
+-- the migration, verifies 25 guarded definitions, creates the inherited
+-- subscription pair ONLY when absent and tests deduplication. It rolls back.
 -- This probe runs AFTER all migrations, requires the hardened role-scoped
 -- equivalents (not the old auth.role() predicates), and also rolls back.
 -- NEVER execute this script on customer/production databases.
@@ -95,17 +95,16 @@ BEGIN
       missing_count, left(coalesce(unmatched, '?'), 800);
   END IF;
 
-  -- Both historical subscription SELECT policies remain until the
-  -- separately reviewed forward-only deduplication change. Pre-migration
-  -- rolled-back proof verified they have the same role/predicate/command.
+  -- Fresh replay has no policies with these historical names. The live
+  -- project has an out-of-band pair, but source migrations never created it.
+  -- The earlier rollback fixture synthesizes and deduplicates the pair, and
+  -- ROLLBACK must leave ZERO such policies in a canonical fresh database.
+  -- A future forward migration adding them must update this explicit contract.
   IF (SELECT count(*) FROM pg_policies
       WHERE schemaname='public' AND tablename='subscriptions'
         AND policyname IN ('Users can view own subscriptions',
-                           'Users can view their own subscription')
-        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 2 THEN
-    RAISE EXCEPTION 'P1 subscription historical duplicate changed; review before dedup';
+                           'Users can view their own subscription')) <> 0 THEN
+    RAISE EXCEPTION 'P1 unexpected inherited subscription policies in fresh replay; reconcile migration provenance';
   END IF;
 END
 $verify_postmigration$;
