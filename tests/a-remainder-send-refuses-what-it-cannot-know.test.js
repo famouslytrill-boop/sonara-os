@@ -209,6 +209,35 @@ describe("a remainder send refuses what it cannot know", () => {
     assert.equal(response.body.code, "remainder_unknown");
   });
 
+  it("blocks remainder sends when a previous provider response remains unconfirmed", async () => {
+    const sendRecord = [{
+      email: "one@example.com",
+      status: "failed",
+      provider_message_id: null,
+      reason: "provider_outcome_unknown",
+      created_at: "2026-10-08T00:00:00Z"
+    }];
+    const { response, calls } = await send({ sendRecord }, { ...MESSAGE, remainder_only: true });
+    assert.deepEqual(calls.sentTo, [], "an uncertain send may have reached its recipient already");
+    assert.deepEqual(calls.ledgerRows, [], "an uncertain send must not generate another charge");
+    assert.equal(response.status, 503);
+    assert.equal(response.body.code, "remainder_unknown");
+    assert.equal(response.body.remainderCode, "provider_outcome_unknown");
+  });
+
+  it("does not show an unconfirmed recipient as safe-to-resend in the remainder endpoint", async () => {
+    const { response } = await readRemainder({
+      sendRecord: [{
+        email: "two@example.com", status: "failed",
+        reason: "provider_outcome_unknown", provider_message_id: null
+      }]
+    });
+    assert.equal(response.status, 503);
+    assert.equal(response.body.code, "remainder_unknown");
+    assert.equal(response.body.remainderCount, undefined);
+    assert.equal(response.body.remainderCode, "provider_outcome_unknown");
+  });
+
   it("sends only the people with no accepted row", async () => {
     const { response, calls } = await send(
       { sendRecord: [accepted("one@example.com"), accepted("TWO@Example.com")] },
