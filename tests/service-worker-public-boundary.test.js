@@ -21,6 +21,59 @@ vm.runInNewContext(
 const { isPublicStaticRequest, isPublicNavigation, isCacheableResponse, VERSION, PUBLIC_STAGE } = scope.__contract;
 const allowed = (url) => isPublicStaticRequest(new URL(url, origin));
 
+function simulateWorkerInstall(overrides = {}) {
+  const requests = [];
+  const writes = [];
+  const deletions = [];
+  const events = {};
+  let takeovers = 0;
+  const worker = {
+    location: { origin },
+    addEventListener: (type, handler) => { events[type] = handler; },
+    skipWaiting: () => { takeovers += 1; }
+  };
+  class AnonymousRequest {
+    constructor(url, options) {
+      this.url = url;
+      this.credentials = options.credentials;
+      this.cache = options.cache;
+      this.redirect = options.redirect;
+      requests.push(this);
+    }
+  }
+  const cache = { put: async (url) => { writes.push(url); } };
+  const storage = {
+    open: async () => cache,
+    delete: async (key) => { deletions.push(key); return true; }
+  };
+  const network = async (request) => {
+    const url = new URL(request.url);
+    const failure = overrides.failAt && url.pathname === overrides.failAt;
+    const privateReply = overrides.privateAt && url.pathname === overrides.privateAt;
+    const htmlReply = overrides.htmlAt && url.pathname === overrides.htmlAt;
+    return {
+      ok: !failure,
+      type: "basic",
+      redirected: false,
+      url: request.url,
+      headers: {
+        get: (name) => name.toLowerCase() === "cache-control" && privateReply ? "private"
+          : name.toLowerCase() === "content-type" && htmlReply ? "text/html"
+          : name.toLowerCase() === "cache-control" ? "public, max-age=60"
+          : name.toLowerCase() === "content-type" ? "application/javascript"
+          : null,
+        has: () => false
+      }
+    };
+  };
+  vm.runInNewContext(source, { self: worker, URL, Request: AnonymousRequest, fetch: network, caches: storage });
+  let installation;
+  events.install({ waitUntil: (promise) => { installation = promise; } });
+  return {
+    installation, requests, writes, deletions, takeoverCount: () => takeovers
+  };
+}
+
 describe("cross-device service-worker cache boundary", () => {
   it("accepts the public release assets that it actually precaches", () => {
     for (const asset of PUBLIC_STAGE) {
@@ -99,6 +152,32 @@ describe("cross-device service-worker cache boundary", () => {
     let installation;
     handlersUnsafe.install({ waitUntil: (task) => { installation = task; } });
     await assert.rejects(installation, /Unsafe asset configured for offline precache/);
+  });
+
+  it("installs the offline shell without cookies or forced activation", async () => {
+    const job = simulateWorkerInstall();
+    await job.installation;
+    assert.ok(job.writes.length >= 4, "core public shell and offline fallback must be cached");
+    assert.equal(job.deletions.length, 0);
+    assert.equal(job.takeoverCount(), 0, "existing tabs must keep their current worker");
+    for (const request of job.requests) {
+      assert.equal(request.credentials, "omit");
+      assert.equal(request.cache, "no-store");
+      assert.equal(request.redirect, "error");
+    }
+  });
+
+  it("rejects a private core response and clears incomplete installation", async () => {
+    const job = simulateWorkerInstall({ privateAt: "/sonara-design-system.css" });
+    await assert.rejects(job.installation, /anonymous public response/);
+    assert.equal(job.deletions.length, 1);
+    assert.equal(job.takeoverCount(), 0);
+  });
+
+  it("rejects HTML supplied instead of executable JavaScript", async () => {
+    const job = simulateWorkerInstall({ htmlAt: "/sonara-one.js" });
+    await assert.rejects(job.installation, /returned an HTML document/);
+    assert.equal(job.deletions.length, 1);
   });
 
   it("rejects responses marked private, no-store or set-cookie", () => {
