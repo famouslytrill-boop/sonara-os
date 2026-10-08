@@ -83,3 +83,23 @@ Express documents that CPU-heavy work should move off the main event loop into w
 WCAG 2.2 requires accessible input labels, error identification and keyboard use; verify the actual composed SONARA layout in real browsers and assistive technologies: https://www.w3.org/TR/WCAG22/
 
 Before any merge or production deployment require full exact-head CI, pnpm/Node tests, security, route/CSP verification, authentication checks, accessibility/browser checks, load budgets and approved release controls. Do not equate test-harness success with production readiness.
+
+## October 8 follow-on review: deny-by-default route wiring and board invariants
+
+### Corrected implementation defects
+
+1. The invention-systems child router previously used `deps.requireCustomer || passthrough`. If an unrelated caller or future refactor omitted the injected customer guard, the previously customer-only catalog and GET study page would have become anonymously accessible. The router now selects only an explicitly provided function; when it is unavailable, both endpoints use an unavailable-guard middleware returning HTTP 503 and a generic structured response. The top-level production wiring still passes `requireCustomer`. A negative test proves no next-handler call occurs with an omitted guard. This is defense in depth, not a replacement for session/tenant entitlement tests.
+2. Board turns previously accepted a structurally forged state where `turn` did not match `revision`, or where the scores map omitted players or contained extra player keys. Every transition now verifies turn/revision agreement, unique and nonreserved players, a matching exact set of score keys, valid finite bounded integer scores, and legal next-score bounds. States and nested player/score records are frozen upon creation and each turn; this prevents accidental mutation but is **not** proof of multiplayer authentication or tamper-resistant persistent state.
+3. Security and math boundary regression tests cover absent customer guard, forged and missing score records, altered turn counter, score overflow, and immutable results. Focused isolated V8 suite passed 121/121 cases across nine suites after these changes; this run emulates Node assertions/route callbacks, and does **not** constitute real Node/Mocha/browser CI.
+
+### Research basis and open infrastructure gaps
+
+- OWASP API5 discusses broken function-level authorization: an authorization middleware fallback must **not** silently grant access. https://api-security.owasp.org/editions/2023/en/0xa5-broken-function-level-authorization/
+- OWASP API4 warns against unrestricted work, cost and frequency; bounded computation is only the first step. Authenticated session, account/tenant request limits, request time budgets and capacity monitoring still need direct verified tests. https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/
+- A GET form encodes its query in the URL; the study fields allow only numeric and fixed-choice educational inputs, with `Cache-Control: private, no-store` and `Referrer-Policy: no-referrer`. Browsers can nonetheless retain URL history and servers may log request targets, so never collect or show personal secrets, financial account details, identifiers, manuscript text or provider tokens in these fields. https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Forms/Sending_and_retrieving_form_data
+- Explicit production authorization and shared state consistency require external trust boundaries: a server-verified actor, tenant-scoped persisted revision and event log, transaction isolation, idempotency and replay resilience. Frozen JS objects and research-side revision checks do not provide these guarantees.
+- Do not widen this feature to customer-operated wagering, securities transaction execution, payments or prize redemption. The mathematics remains simulation/education and has no regulatory operator authority.
+
+### Required release proof still missing
+
+Exact SHA full mandatory GitHub workflow matrix and pnpm Node 24/26, lint, typecheck, test, build, package/audit, route/browser accessibility, observed auth denial on real Express, load/rate limits, migration/security dependencies and controlled deployment authorization. Until those succeed, keep PR #530 draft and do not merge or deploy.
