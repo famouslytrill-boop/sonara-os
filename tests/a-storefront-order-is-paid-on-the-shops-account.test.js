@@ -383,9 +383,22 @@ describe("a storefront order is paid on the shop's own account", function storef
       const response = await request(ownerApp()).get("/business-builder/owner/store/reconciliation");
       assert.equal(response.status, 200, response.text);
       assert.match(response.text, /Everything agrees/);
-      assert.match(response.text, /Stripe took 24\.00 USD in 1 payment/);
+      assert.match(response.text, /Stripe payments checked: 1\. Gross: 24\.00 USD/);
       assert.match(response.text, /Stripe's fees: 1\.00 USD\. What reached your Stripe balance: 23\.00 USD/);
       assert.match(response.text, /Recorded here as paid: 24\.00 USD/);
+    });
+
+    it("shows unavailable refund evidence without a false agreement or repair control", async () => {
+      const { fake, stored } = world();
+      await placeOrder();
+      const [open] = fake.rows("merchant_orders");
+      await deliver(completed(open));
+      stored.set(open.checkout_session_id, paidSession(open, { payment_intent: { id: "pi_shoppay12345678", latest_charge: null } }));
+      const response = await request(ownerApp()).get("/business-builder/owner/store/reconciliation");
+      assert.equal(response.status, 200);
+      assert.match(response.text, /Refunded: Amount unavailable/);
+      assert.match(response.text, /A payment or refund amount is unavailable/);
+      assert.doesNotMatch(response.text, /Everything agrees|Record it from Stripe's record/);
     });
 
     it("finds a payment whose webhook never arrived, and records it only from Stripe's own record", async () => {

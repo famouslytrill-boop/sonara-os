@@ -554,3 +554,15 @@ behaviour, not settlement, deployment or real customer/device evidence.
 - Verification: frozen install, dependency audit (no known vulnerabilities), typecheck, lint, full Mocha suite (6,832 passing; 6 pending), build and diff checks passed on Node 24.19.0. Local pnpm is 11.25.0; the image retains the repository's pinned 12.7.0.
 - Docker is unavailable locally, so a real image build and exact-head hosted CI remain required. No deployment, migration, provider activation, signing claim or website reactivation occurred.
 - Next slice: validate the branch's hosted Docker smoke check; retain the exact-SHA deployment gate and the owner's temporary-offline instruction.
+
+## 2026-10-08 — Preserve unknown financial evidence in seller reporting
+
+- Exact base: `207372e40e56716199286d6ca95984eed2882b49` (main after #448/#450).
+- Files/locks: commerce amount helper; merchant payment reconciliation; merchant and creator report routes; four existing commerce/route test files; generated capability inventory offsets; research addendum `docs/research/SONARA_RECONCILIATION_EVIDENCE_PASS_2026-10-08.md`; this handoff. No dependency lock, schema, migration, deployment or provider configuration changes.
+- Workflow state closed: missing/invalid amounts remain unknown through aggregation; incomplete payment/refund evidence and currency disagreement cannot be reported as reconciled or offered as a missing-payment repair; differing settlement currency is not relabeled as payment currency. Buyer/local amount display uses the record's own currency.
+- Validation: frozen pnpm install; moderate dependency audit (no known vulnerabilities); typecheck; lint; build; full suite **6876 passing, 6 pending**; focused amount/merchant/creator route suite **115 passing**; client-secret scan and route smoke passed. Full governance chain result is recorded below when complete.
+- Research: checked Stripe charge refund and balance transaction currency/fee/net contracts on 2026-10-08; examined zero refunds, legitimate FX settlement, signed net values and aggregate-vs-row bounds as counterexamples. No live financial records accessed.
+- Provider/production proof unavailable: no live Stripe or Supabase checks; no deployment or reactivation. Local PostgreSQL replay explicitly skipped because binaries are absent; no SQL execution claimed. Preserve the owner's temporary-offline instruction.
+- Next smallest unblocked slice: validate charge/capture/source and balance arithmetic provenance, then add separate settlement-currency totals and review bounded-read completeness before claiming a complete financial ledger.
+- Local toolchain: Node 24.19.0 / pnpm 11.25.0; repository pins pnpm 12.7.0. Frozen install retained the lockfile. Hosted checks must supply the pinned-toolchain evidence.
+- Final governance result: `pnpm run verify:gates` passed, including coverage floors; migration replay remained an explicit local skip. Documentation path validation and staged whitespace checks passed.
