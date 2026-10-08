@@ -77,7 +77,7 @@ describe("Google Search Console customer-owned OAuth lifecycle", () => {
     assert.equal(url.searchParams.get("response_type"), "code");
     assert.equal(url.searchParams.get("scope"), READONLY_SCOPE);
     assert.equal(url.searchParams.get("access_type"), "offline");
-    assert.equal(url.searchParams.get("include_granted_scopes"), "true");
+    assert.equal(url.searchParams.has("include_granted_scopes"), false);
     assert.equal(url.searchParams.has("prompt"), false);
     assert.equal(url.searchParams.get("code_challenge_method"), "S256");
     assert.notEqual(url.searchParams.get("state"), "");
