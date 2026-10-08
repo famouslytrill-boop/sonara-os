@@ -803,6 +803,37 @@ registerScrollRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCu
 
 registerVoiceStudioRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer });
 
+// Public contact can send a provider email and write a database row. Charge
+// both hashed origin and hashed email buckets before either costly side effect.
+// The database RPC is distributed; a bounded in-memory fallback is explicitly
+// reported as degraded by the shared rate-limit module.
+const contactSubmitLimiter = createRateLimiter({
+  name: "support.contact",
+  windowSeconds: 60 * 60,
+  maxAttempts: 60,
+  degradedMaxAttempts: 60,
+  scopes: ["ip", "subject"],
+  subjectFrom: (req) => req.body?.email,
+  getSupabaseServerConfig,
+  renderDenied({ req, res, retryAfterSeconds }) {
+    if (!acceptsHtml(req)) return false;
+    return res.status(429).type("html").send(responsePage(
+      "Too many support messages",
+      `This connection has submitted too many support messages. Try again in about ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s). No new request was stored or sent.`,
+      [linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
+    ));
+  }
+});
+
+// The /support/request route is registered by the service lifecycle module
+// earlier than the /contact handler. Put the shared middleware BEFORE both,
+// so neither public entry point can bypass the exact same server-side budget.
+// A middleware mount, not a second POST route, keeps route inventory unique.
+app.use(["/contact", "/support/request"], (req, res, next) => {
+  if (req.method !== "POST") return next();
+  return contactSubmitLimiter(req, res, next);
+});
+
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that
   // shows a signed-in customer their own requests and a visitor nothing.
@@ -953,29 +984,7 @@ app.get("/contact", (req, res) => {
   );
 });
 
-// Public contact can send a provider email and write a database row. Charge
-// both hashed origin and hashed email buckets before either costly side effect.
-// The database RPC is distributed; a bounded in-memory fallback is explicitly
-// reported as degraded by the shared rate-limit module.
-const contactSubmitLimiter = createRateLimiter({
-  name: "support.contact",
-  windowSeconds: 60 * 60,
-  maxAttempts: 60,
-  degradedMaxAttempts: 60,
-  scopes: ["ip", "subject"],
-  subjectFrom: (req) => req.body?.email,
-  getSupabaseServerConfig,
-  renderDenied({ req, res, retryAfterSeconds }) {
-    if (!acceptsHtml(req)) return false;
-    return res.status(429).type("html").send(responsePage(
-      "Too many support messages",
-      `This connection has submitted too many support messages. Try again in about ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s). No new request was stored or sent.`,
-      [linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
-    ));
-  }
-});
-
-app.post("/contact", contactSubmitLimiter, async (req, res) => {
+app.post("/contact", async (req, res) => {
   const request = normalizeSupportRequest(req.body);
   const wantsJson = req.is("application/json") || req.get("accept")?.includes("application/json");
 
@@ -998,15 +1007,7 @@ app.post("/contact", contactSubmitLimiter, async (req, res) => {
     );
   }
 
-  const result = await saveSupportRequest(request.value);
-  // Record only the delivery outcome, never the sender, body or subject.
-  emitEvent({
-    event: "support.request_submission",
-    scope: "process",
-    capability: "support",
-    outcome: result.ok ? (result.status === "received" ? "ok" : "partial") : "failed",
-    reason: result.status
-  });
+  const result = await saveSupportRequest(request.value, { sourcePath: "/contact" });
   // 503 when nothing was stored and nothing was sent, so a caller reading only the status code cannot take a vanished request for a filed one.
   if (wantsJson) return res.status(result.ok ? 200 : 503).json(result);
   return res.status(result.ok ? 200 : 503).type("html").send(
@@ -2313,7 +2314,7 @@ function normalizeSupportRequest(body) {
   return { ok: true, value: { category, name, email, subject, message } };
 }
 
-async function saveSupportRequest(request) {
+async function saveSupportRequest(request, { sourcePath = "/support/request" } = {}) {
   const referenceId = randomUUID();
   let stored = false;
   let supportRequestId;
@@ -2333,9 +2334,9 @@ async function saveSupportRequest(request) {
     message: redactSensitiveText(request.message).slice(0, 4000),
     urgency: "normal",
     status: "new",
-    source_path: "/support",
+    source_path: sourcePath,
     consent_accepted: true,
-    metadata: { source: "express_contact", submitted_category: request.category }
+    metadata: { source: "public_support", submitted_category: request.category }
   });
 
   if (insert.ok) {
@@ -2346,7 +2347,18 @@ async function saveSupportRequest(request) {
   const email = await sendSupportNotification({ ...request, referenceId });
   if (supportRequestId) await updateSupportEmailStatus(supportRequestId, email);
 
-  return supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
+  const outcome = supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
+  // Both public contact routes share this writer. Never log the message,
+  // email address, submitted name or subject.
+  emitEvent({
+    event: "support.request_submission",
+    scope: "process",
+    capability: "support",
+    outcome: !outcome.ok ? "failed" : outcome.status === "received" ? "ok" : "partial",
+    reason: outcome.status,
+    detail: { route: sourcePath }
+  });
+  return outcome;
 }
 
 async function sendSupportNotification(request) {
