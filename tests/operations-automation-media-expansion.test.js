@@ -3,7 +3,8 @@
 const assert = require("node:assert/strict");
 const { summarizeBusinessOperations } = require("../lib/sonara-business-analytics.cjs");
 const { buildMapSnapshot, pointFromEvent } = require("../lib/sonara-location-map.cjs");
-const { validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
+const { INDUSTRY_PACKS, templates: businessTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
+const registerOperationsExpansionRoutes = require("../routes/sonara-operations-expansion-routes.cjs");
 const { planMediaWorkflow, buildGenerationJobs, workflowTemplates } = require("../lib/sonara-creator-media-workflows.cjs");
 
 describe("operations analytics", () => {
@@ -141,6 +142,92 @@ describe("automation workflow planner", () => {
     const result = validateWorkflow({ name: "No code", trigger: "manual", steps: [{ action: "eval_javascript" }] });
     assert.equal(result.ok, false);
     assert.equal(result.code, "unsupported_action");
+  });
+});
+
+
+describe("cross-industry workflow templates", () => {
+  it("covers all 17 requested operating sectors without duplicate keys", () => {
+    const expected = [
+      "restaurant", "food_truck", "trades", "trucking", "cleaning", "retail",
+      "rentals", "venues", "manufacturing", "real_estate", "professional_services",
+      "delivery", "salon", "ecommerce", "nonprofit", "construction", "facilities"
+    ];
+    assert.deepEqual(INDUSTRY_PACKS.map((pack) => pack.industry).sort(), expected.sort());
+    const every = businessTemplates();
+    assert.equal(new Set(every.map((pack) => pack.key)).size, every.length);
+    assert.ok(every.length >= INDUSTRY_PACKS.length + 2);
+  });
+
+  it("uses the real shared workflow validator for every industry, not a fake executable workflow", () => {
+    for (const pack of INDUSTRY_PACKS) {
+      assert.equal(pack.launchState, "template_only", pack.key);
+      assert.ok(pack.requiredRecords.length, pack.key);
+      assert.ok(pack.disclosure.length > 15, pack.key);
+      const validated = validateWorkflow(pack);
+      assert.equal(validated.ok, true, pack.key);
+      assert.equal(validated.workflow.arbitraryCodeAllowed, false, pack.key);
+      assert.ok(validated.workflow.steps.every((step) => step.action && step.approval), pack.key);
+      const listed = businessTemplates().find((row) => row.key === pack.key);
+      assert.equal(listed.valid, true, pack.key);
+      assert.equal(listed.approvalRequired, validated.workflow.approvalRequired, pack.key);
+      assert.equal(listed.product, "business_builder", pack.key);
+    }
+  });
+
+  it("enforces per-workflow owner approval for customer contact and leaves automatic tasks internally scoped", () => {
+    const customerContact = INDUSTRY_PACKS.filter((pack) =>
+      pack.steps.some((step) => ["notify_customer", "enqueue_email"].includes(step.action)));
+    assert.ok(customerContact.length >= 4);
+    for (const pack of customerContact) {
+      assert.equal(validateWorkflow(pack).workflow.effectiveAutonomy, "approval_required", pack.key);
+      assert.equal(validateWorkflow({ ...pack, autonomy: "safe_automatic" }).workflow.approvalRequired, true, pack.key);
+    }
+    const rest = INDUSTRY_PACKS.filter((pack) => !customerContact.includes(pack));
+    for (const pack of rest) {
+      assert.equal(validateWorkflow(pack).workflow.approvalRequired, false, pack.key);
+      assert.ok(pack.steps.every((step) => !["charge_payment", "mutate_booking", "sync_provider"].includes(step.action)));
+    }
+  });
+
+  it("serves cross-industry templates through the existing authenticated Business Builder API", () => {
+    const gets = new Map();
+    const app = {
+      get(path, ...handlers) { gets.set(path, handlers); },
+      post() {}
+    };
+    const ownerGate = (_req, _res, next) => next();
+    registerOperationsExpansionRoutes(app, {
+      requireBusinessManager: ownerGate,
+      getCustomerPrimaryOrganization: async () => ({ ok: false }),
+      getSupabaseServerConfig: () => ({ ok: false }),
+      supabaseHeaders: () => ({}),
+      layout: () => "",
+      linkAction: () => "",
+      escapeHtml: (value) => String(value)
+    });
+    const handlers = gets.get("/api/business/automations/templates");
+    assert.equal(handlers[0], ownerGate, "the route must still require an authorized business manager");
+    let response;
+    handlers[1]({}, {
+      status(status) { assert.equal(status, 200); return this; },
+      json(body) { response = body; return this; }
+    });
+    assert.ok(response.ok);
+    assert.equal(response.arbitraryCodeAllowed, false);
+    assert.equal(response.templates.filter((pack) => pack.launchState === "template_only").length, 17);
+    assert.equal(response.templates.every((pack) => pack.valid === true), true);
+  });
+
+  it("rejects invented actions, arbitrary code, and extra steps even for industry templates", () => {
+    const sample = INDUSTRY_PACKS[0];
+    assert.equal(validateWorkflow({ ...sample, steps: [{ action: "pay_vendor" }] }).code, "unsupported_action");
+    assert.equal(validateWorkflow({ ...sample, steps: [{ action: "run_shell_command" }] }).code, "unsupported_action");
+    const risky = validateWorkflow({ ...sample, autonomy: "safe_automatic",
+      steps: [{ action: "charge_payment", config: { approval: "safe_automatic", amount: 1 } }] });
+    assert.equal(risky.ok, true);
+    assert.equal(risky.workflow.approvalRequired, true);
+    assert.equal(risky.workflow.arbitraryCodeAllowed, false);
   });
 });
 
