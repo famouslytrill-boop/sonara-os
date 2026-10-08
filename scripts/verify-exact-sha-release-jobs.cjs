@@ -25,6 +25,11 @@ const REQUIRED_JOBS = Object.freeze({
   ]),
   "dependency-scan": Object.freeze([
     "frontend-dependencies", "backend-dependencies", "agentkit"
+  ]),
+  // A successful Browser Quality workflow is not proof that three actual
+  // engine jobs executed. Verify all three on a manual exact-main release run.
+  "Browser Quality": Object.freeze([
+    "Playwright chromium", "Playwright firefox", "Playwright webkit"
   ])
 });
 const OPTIONAL_SKIPPED = Object.freeze({
@@ -47,6 +52,9 @@ const REQUIRED_STEPS = Object.freeze({
   }),
   "Native migration replay": Object.freeze({
     "*": Object.freeze(["Replay the candidate migration history"])
+  }),
+  "Browser Quality": Object.freeze({
+    "*": Object.freeze(["Run browser contract", "Upload browser evidence"])
   })
 });
 const REQUIRED_WORKFLOW_NAMES = Object.freeze(Object.keys(REQUIRED_JOBS));
@@ -58,8 +66,12 @@ const REQUIRED_WORKFLOW_FILES = Object.freeze({
   "Node Runtime Compatibility": ".github/workflows/node-runtime-compatibility.yml",
   "Native migration replay": ".github/workflows/native-migration-replay.yml",
   "Engineering Intelligence and Security Evidence": ".github/workflows/engineering-intelligence-security.yml",
-  "dependency-scan": ".github/workflows/dependency-scan.yml"
+  "dependency-scan": ".github/workflows/dependency-scan.yml",
+  "Browser Quality": ".github/workflows/browser-quality.yml"
 });
+function requiredRunEvent(name) {
+  return name === "Browser Quality" ? "workflow_dispatch" : "push";
+}
 function expectedWorkflowSource(run, name) {
   const file = REQUIRED_WORKFLOW_FILES[name];
   return Boolean(file) && (run?.path === file || run?.path === file + "@main");
@@ -80,7 +92,7 @@ function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId }
   for (const name of REQUIRED_WORKFLOW_NAMES) {
     const runs = workflowRuns
       .filter(run => run?.name === name && run?.head_sha === exactSha &&
-        run?.head_branch === "main" && run?.event === "push" &&
+        run?.head_branch === "main" && run?.event === requiredRunEvent(name) &&
         expectedWorkflowSource(run, name))
       .sort((a, b) => {
         const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
@@ -166,7 +178,7 @@ async function verifyExactShaJobMatrix({
     if (branch?.protected !== true || branch?.commit?.sha !== exactSha) {
       return assessExactShaJobMatrix({ exactSha, branch, workflowRuns: [], jobsByRunId: {} });
     }
-    const listing = await read("/actions/runs?head_sha=" + exactSha + "&event=push&per_page=100");
+    const listing = await read("/actions/runs?head_sha=" + exactSha + "&branch=main&per_page=100");
     if (!Array.isArray(listing.workflow_runs) ||
         !Number.isInteger(listing.total_count) ||
         listing.total_count > listing.workflow_runs.length) {
@@ -176,7 +188,7 @@ async function verifyExactShaJobMatrix({
     for (const name of REQUIRED_WORKFLOW_NAMES) {
       const runs = listing.workflow_runs
         .filter(run => run?.name === name && run?.head_sha === exactSha &&
-        run?.head_branch === "main" && run?.event === "push" &&
+        run?.head_branch === "main" && run?.event === requiredRunEvent(name) &&
         expectedWorkflowSource(run, name))
         .sort((a, b) => {
           const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
