@@ -408,6 +408,71 @@ describe("event consumer activation readiness", () => {
     }
   });
 
+  it("does not replay unclassified errors or result failures as though retry-safe", async () => {
+    const failures = [
+      async () => ({ ok: false, code: "unclassified_provider_response" }),
+      async () => { throw Object.assign(new Error("unknown provider status"), { code: "unclassified_failure" }); }
+    ];
+    for (const run of failures) {
+      const settlements = [];
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: row() }),
+          settle: async (input) => {
+            settlements.push(input);
+            return { ok: true, row: { ...row(), state: input.outcome } };
+          }
+        },
+        handlers: { [CANARY_KIND]: run },
+        emitEvent: () => undefined,
+        now: () => new Date("2026-09-17T20:00:02.000Z")
+      });
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG,
+        kinds: [CANARY_KIND], producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.status, "dead_lettered");
+      assert.equal(result.nextAvailableAt, null);
+      assert.equal(settlements[0].outcome, "dead_lettered");
+    }
+  });
+
+  it("retries only explicitly classified transient errors from both handler return and throw paths", async () => {
+    const retries = [
+      async () => ({ ok: false, code: "temporary_provider_issue", retryable: true }),
+      async () => {
+        const error = new Error("temporary_provider_issue");
+        error.code = "temporary_provider_issue";
+        error.retryable = true;
+        throw error;
+      }
+    ];
+    for (const run of retries) {
+      const settlements = [];
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: row() }),
+          settle: async (input) => {
+            settlements.push(input);
+            return { ok: true, row: { ...row(), state: input.outcome } };
+          }
+        },
+        handlers: { [CANARY_KIND]: run },
+        emitEvent: () => undefined,
+        now: () => new Date("2026-09-17T20:00:02.000Z")
+      });
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG,
+        kinds: [CANARY_KIND], producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.status, "retry");
+      assert.equal(settlements[0].outcome, "retry");
+      assert.equal(settlements[0].errorCode, "temporary_provider_issue");
+      assert.ok(result.nextAvailableAt);
+    }
+  });
+
   it("backs off exponentially and retries before the delivery-attempt ceiling", async () => {
     const settlements = [];
     const worker = createEventConsumerWorker({
