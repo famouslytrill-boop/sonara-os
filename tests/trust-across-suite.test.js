@@ -87,4 +87,40 @@ describe("trust and customer guidance across all SONARA companies", function () 
       }
     }
   });
+  it("denies both POST routes before database writes or email when the durable budget says no", async () => {
+    const keys = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    const originalFetch = global.fetch;
+    const calls = [];
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_support_budget_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_support_budget_key_1234567890";
+    global.fetch = async (url) => {
+      calls.push(String(url));
+      if (String(url).includes("/rpc/sonara_consume_rate_limit")) {
+        return { ok: true, json: async () => [{ allowed: false, remaining: 0, retry_after_seconds: 3600 }] };
+      }
+      throw new Error("a rate-limited request reached downstream services");
+    };
+    const base = {
+      name: "Example Customer", email: "customer@example.com", subject: "Help needed",
+      category: "support", message: "This is a valid support request.", consent: "yes"
+    };
+    try {
+      for (const route of ["/contact", "/support/request"]) {
+        const response = await request(app).post(route).set("Accept", "application/json").send(base);
+        assert.equal(response.status, 429, `${route} bypassed the durable budget`);
+        assert.equal(response.body.code, "rate_limited");
+        assert.match(response.headers["retry-after"] || "", /^\d+$/);
+      }
+      assert.ok(calls.length >= 2 && calls.every((url) => url.includes("/rpc/sonara_consume_rate_limit")));
+    } finally {
+      global.fetch = originalFetch;
+      for (const [key,value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  });
+
 });
