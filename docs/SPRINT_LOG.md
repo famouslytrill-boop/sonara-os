@@ -2,6 +2,35 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-08 - Main merged into #446: two fixes for one Android crash, both kept
+
+Main moved by #448 (release evidence integrity) and #450 (commerce amount
+integrity). The conflicts were generated files, regenerated, and the shared
+handoff log, where both sides' entries are kept.
+
+One overlap was real. The Docker image had died at startup because the
+`/.well-known/assetlinks.json` route read `android/twa/build-contract.json`,
+which the image did not ship. It was fixed twice, from two sides:
+- **This branch** moved the association into
+  `lib/sonara-android-app-association.cjs`, so the route reads nothing from
+  `android/`.
+- **Main (4d1b74a0)** began shipping `android/` in the image.
+
+Main's fix alone would still crash on Vercel. The function's `includeFiles` is
+`{public/**,routes/**,lib/**}` (`vercel.json`), which does not include
+`android/`. So both are kept.
+
+`tests/the-server-starts-from-what-is-shipped.test.js` asserted that the image
+does not ship `android/`. That was true when it was written and stopped being
+true with 4d1b74a0. It now holds the two properties that matter:
+- **Docker:** the server starts from exactly what the Dockerfile copies, and a
+  copy holding anything more fails.
+- **Vercel-shaped:** the server also starts without `android/`, and the test
+  re-reads `vercel.json` in case that changes.
+
+Falsified: a route reading `android/` again fails only the Vercel-shaped case,
+and a copy holding more than was shipped fails the guard.
+
 ### 2026-10-08 - Every form answers a person with a page that says what happened
 
 The Growth forms answering in JSON were found by accident, so the whole product

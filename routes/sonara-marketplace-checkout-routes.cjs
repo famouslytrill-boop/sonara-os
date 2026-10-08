@@ -2,6 +2,8 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
+const { formatChargeAmount } = require("../lib/sonara-commerce-amounts.cjs");
+
 // Buying a licence on the Creator Studio marketplace, end to end.
 //
 //   POST /marketplace/:id/buy                    start a purchase (signed in)
@@ -281,7 +283,7 @@ function registerMarketplaceCheckoutRoutes(app, deps = {}) {
     actions: [linkAction("/account/purchases", "Your purchases"), linkAction("/marketplace", "The marketplace")]
   }));
 
-  const money = (cents, currency) => `${(Number(cents) / 100).toFixed(2)} ${String(currency || "").toUpperCase()}`;
+  const money = formatChargeAmount;
 
   async function versionAndApprovals(organizationId, versionId) {
     const versions = await read(

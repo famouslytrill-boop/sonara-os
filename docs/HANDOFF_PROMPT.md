@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 503 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 504 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,42 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 43 most recent entries of 474 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 44 most recent entries of 475 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-08 - Main merged into #446: two fixes for one Android crash, both kept
+
+Main moved by #448 (release evidence integrity) and #450 (commerce amount
+integrity). The conflicts were generated files, regenerated, and the shared
+handoff log, where both sides' entries are kept.
+
+One overlap was real. The Docker image had died at startup because the
+`/.well-known/assetlinks.json` route read `android/twa/build-contract.json`,
+which the image did not ship. It was fixed twice, from two sides:
+- **This branch** moved the association into
+  `lib/sonara-android-app-association.cjs`, so the route reads nothing from
+  `android/`.
+- **Main (4d1b74a0)** began shipping `android/` in the image.
+
+Main's fix alone would still crash on Vercel. The function's `includeFiles` is
+`{public/**,routes/**,lib/**}` (`vercel.json`), which does not include
+`android/`. So both are kept.
+
+`tests/the-server-starts-from-what-is-shipped.test.js` asserted that the image
+does not ship `android/`. That was true when it was written and stopped being
+true with 4d1b74a0. It now holds the two properties that matter:
+- **Docker:** the server starts from exactly what the Dockerfile copies, and a
+  copy holding anything more fails.
+- **Vercel-shaped:** the server also starts without `android/`, and the test
+  re-reads `vercel.json` in case that changes.
+
+Falsified: a route reading `android/` again fails only the Vercel-shaped case,
+and a copy holding more than was shipped fails the guard.
+
+
 
 ### 2026-10-08 - Every form answers a person with a page that says what happened
 

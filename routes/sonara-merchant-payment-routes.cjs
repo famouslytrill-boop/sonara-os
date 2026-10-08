@@ -277,7 +277,7 @@ function registerMerchantPaymentRoutes(app, deps = {}) {
   const { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, getEnv, createRateLimiter } = deps;
   const shared = createMerchantPayments(deps);
   const { read } = shared;
-  const money = (centsValue, currency) => storefront.money(Number(centsValue) || 0, currency);
+  const money = (centsValue, currency) => storefront.money(centsValue, currency);
   const RECONCILE_PAGE = "/business-builder/owner/store/reconciliation";
 
   const publicPage = (res, { status = 200, heading, body, sections = [] }) => res.status(status).type("html").send(layout({
