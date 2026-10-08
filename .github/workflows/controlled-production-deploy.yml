@@ -654,6 +654,12 @@ jobs:
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
 
+      - name: Require clean production Supabase security advisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-production-security-advisors.mjs
+
       - name: Remove temporary production environment material
         if: always()
         shell: bash
