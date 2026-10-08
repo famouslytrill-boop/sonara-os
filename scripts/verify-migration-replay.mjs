@@ -319,6 +319,13 @@ function main() {
       }
     }
 
+    // Security-critical: run real allow/deny SQL on this disposable cluster.
+    // Tests use synthetic auth users, two tenants and rolled-back temporary
+    // grants; they never execute in a customer Supabase project.
+    behaves(psql, "P0 synthetic two-tenant and role-based RLS write/deny matrix",
+      fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
+      ["p0_auth_rls_matrix_staging_passed"]);
+
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
       ["generation_reserves_settles_and_isolates"]);
