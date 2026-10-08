@@ -5,6 +5,31 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
+// CI browser failures must show whether the isolated local runtime actually
+// delivered its own JS/CSS, rather than displaying only a missing DOM element.
+// Log only local asset path and bounded browser reason; never query strings.
+test.beforeEach(async ({ page }) => {
+  page.on("requestfailed", (req) => {
+    try {
+      const u = new URL(req.url());
+      if (u.hostname === "127.0.0.1" && /\\.(?:css|js)$/.test(u.pathname))
+        console.error("SONARA_BROWSER_ASSET_FAILURE", u.pathname, String(req.failure()?.errorText || "unknown").slice(0, 180));
+    } catch {}
+  });
+  page.on("response", (res) => {
+    try {
+      const u = new URL(res.url());
+      if (u.hostname === "127.0.0.1" && /\\.(?:css|js)$/.test(u.pathname) && res.status() >= 400)
+        console.error("SONARA_BROWSER_ASSET_HTTP", u.pathname, res.status());
+    } catch {}
+  });
+  page.on("console", (msg) => {
+    const message = String(msg.text() || "");
+    if (msg.type() === "error" && /refused to load|failed to load|content security policy|stylesheet|script/i.test(message))
+      console.error("SONARA_BROWSER_CONSOLE", message.slice(0, 240).replace(/[?#][^\s)]*/g, ""));
+  });
+});
+
 async function mountLocalComponent(page, markup, scriptPath) {
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
