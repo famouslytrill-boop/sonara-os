@@ -64,3 +64,49 @@ BreachLab is an external offensive-security training reference. SONARA may deriv
 Security findings can block a release. They cannot grant access, approve a consequential agent action, modify tenant scope, or override `lib/sonara-agent-authority.cjs`.
 
 Release evidence records what happened. It never manufactures permission.
+
+
+## Shared runtime capability authority (2026-10-08)
+
+The runtime capability service in `lib/sonara-runtime-capabilities.cjs`
+and the in-memory flag provider in `lib/sonara-feature-flags.cjs`
+are reusable **denial** controls. They are not a new source of billing,
+membership, or owner-approval authority.
+
+A capability requiring customer entitlements must pass, in order:
+
+1. An explicitly reviewed enabled boolean flag (default off).
+2. Valid organization context and the configured tenant allowlist when scoped.
+3. Every configured entitlement checked against a real server-side billing
+   source. **No checker, provider error, non-boolean response, or missing
+   entitlement means denied.** The caller must not infer a paid subscription
+   from a client flag or mutable request field.
+
+The current static `TypedInMemoryProvider` is held per capability service.
+The OpenFeature SDK's process-wide named provider registry is intentionally
+**not** mutated by each evaluation: constructing a second service with
+different flags must not change the first service's decisions. The
+`DOMAIN` property is a stable public label, not a shared mutable
+authorization namespace. A remote provider should only be considered after
+its isolated lifecycle, semantics, failure handling, and tenancy are tested.
+
+| Product | Candidate high-risk operation | Additional authority outside this helper |
+| --- | --- | --- |
+| Business Builder™ | POS settlement, refunds and customer billing | Merchant ownership, provider confirmation, idempotent ledger and owner review where required |
+| Creator Studio™ | Licensed media export, publication and GPU processing | Explicit content and distribution rights, resource budget, provider/runtime authorization and provenance |
+| Growth Studio™ | Cross-platform account publishing or campaign spend | Verified OAuth scopes, connected account ownership, destination/consent approval and rate/cost ceilings |
+| SONARA One | Durable event-consumer canary and autonomous recovery | Filtered claim ownership, tenant/mutation scope, fencing, operational evidence, rollback and release approval |
+
+These are **integration requirements**; listing an operation in this
+table does not claim that its route currently calls the runtime capability
+service. Before a product route adopts the service, the integration PR must
+name the exact handler, caller identity, tenant source, billing lookup,
+user-visible denial reason, cost/approval path, unit/integration tests and
+post-deploy evidence. Reuse existing agent and commerce authorization modules
+rather than treating a flag as permission to spend or publish.
+
+`tests/openfeature.test.js`, `tests/runtime-capabilities.test.js` and
+`.github/workflows/event-consumer-readiness.yml` exercise shared flag and
+entitlement behavior. These are local-code controls, **not** a substitute
+for direct staging RLS A/B tests, Stripe/provider reconciliation, or GitHub
+protected-branch and exact-SHA release governance.
