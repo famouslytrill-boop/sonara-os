@@ -81,7 +81,7 @@ describe("reservation resources and waitlist destinations", () => {
       await handlers[0](req, res, () => handlers[1](req, res));
       return res;
     }
-    return { fake, call, guardCount: () => guards };
+    return { fake, call, guardCount: () => guards, pageHandlerSource: (route) =>\n      registered.get("get " + route)?.at(-1)?.toString() || "" };
   }
   function mutations(fake) { return fake.queries.filter((q) => ["POST", "PATCH"].includes(q.method)); }
 
@@ -99,7 +99,11 @@ describe("reservation resources and waitlist destinations", () => {
   });
 
   it("shares each organization-scoped reader once between the waiting-list page and its JSON twins", async () => {
-    const { call, fake } = world();
+    const { call, fake, pageHandlerSource } = world();
+    // The route registration itself must expose the two actual shared reader
+    // calls that the inventory checker verifies, not an undocumented claim.
+    assert.match(pageHandlerSource(WAITLIST_PAGE), /readWaitlist\\s*\\(/);
+    assert.match(pageHandlerSource(WAITLIST_PAGE), /readResources\\s*\\(/);
     const page = await call("get", WAITLIST_PAGE, { html: true });
     assert.equal(page.statusCode, 200);
     const bookingReads = () => fake.queries.filter((query) => query.table === "business_bookings");
