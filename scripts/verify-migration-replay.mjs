@@ -344,6 +344,37 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/autonomic-sensor-nonce-role-matrix.sql"), "utf8"),
       ["sonara_signed_sensor_nonce_native_passed"]);
 
+    // Two signed deliveries can hit different servers simultaneously.
+    // The private nonce unique index must make exactly one claim succeed.
+    const nonceRaceScript = path.join(socketDir, "autonomic-nonce-race.sql");
+    fs.writeFileSync(nonceRaceScript, `begin; set local role service_role;
+      select 'sensor_claim|' || case when public.sonara_claim_autonomic_sensor_nonce(
+        'race-sensor', 'cccccccccccccccccccccccccccccccc',
+        floor(extract(epoch from clock_timestamp()) * 1000)::bigint, 250000
+      ) then 'true' else 'false' end;
+      select pg_sleep(0.25); commit;`);
+    if (owner) execFileSync("chown", [owner, nonceRaceScript]);
+    const nonceRaceOutputs = [0, 1].map((index) => path.join(socketDir, `autonomic-nonce-${index}.out`));
+    const nonceRaceErrors = [0, 1].map((index) => path.join(socketDir, `autonomic-nonce-${index}.err`));
+    const nonceRaceCommand = `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -t -A -q -f ${sh(nonceRaceScript)}`;
+    const nonceRaced = shell(`${nonceRaceCommand} > ${sh(nonceRaceOutputs[0])} 2> ${sh(nonceRaceErrors[0])} & first=$!; ` +
+      `${nonceRaceCommand} > ${sh(nonceRaceOutputs[1])} 2> ${sh(nonceRaceErrors[1])} & second=$!; ` +
+      `wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+    if (nonceRaced.status !== 0) stop(`Independent PostgreSQL nonce claim sessions failed: ${nonceRaced.stderr || nonceRaced.stdout}`);
+    const nonceClaims = nonceRaceOutputs.map((file) => {
+      const raw = fs.readFileSync(file, "utf8");
+      return [...raw.matchAll(/^sensor_claim\\|(true|false)$/gm)].map((match) => match[1]);
+    });
+    if (nonceClaims.some((values) => values.length !== 1) ||
+        nonceClaims.flat().sort().join(",") !== "false,true") {
+      stop(`Simultaneous signed sensor delivery was not claimed exactly once: ${JSON.stringify(nonceClaims)}`);
+    }
+    behaves(psql, "verify one durable winning sensor nonce", `
+      select 'sensor_nonce_race_rows_' || count(*)
+      from sonara_private.autonomic_sensor_nonces
+      where sensor_id = 'race-sensor' and nonce = 'cccccccccccccccccccccccccccccccc';
+    `, ["sensor_nonce_race_rows_1"]);
+
     // Two independent PostgreSQL sessions must not claim the same ready retry.
     // This is a behavioral race test, not a grep or single-transaction mock.
     const retryRaceOrg = "55555555-5555-4555-8555-555555555555";
