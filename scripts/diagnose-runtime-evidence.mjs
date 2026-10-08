@@ -30,10 +30,16 @@ if (!file || process.argv.length !== 4) {
       const latencyMs = record.detail?.duration_ms;
       if (!Number.isInteger(status) || status < 100 || status > 599 ||
           !Number.isFinite(latencyMs) || latencyMs < 0) { invalidEvents++; continue; }
-      if (samples.length === 10_000) { samples.shift(); truncatedSamples++; }
       // HTTP 4xx is an explicit refusal, not necessarily an outage. Operational
       // 5xx is the availability SLI; product-specific SLIs are separate.
-      samples.push({ ok: status < 500, latencyMs });
+      // A ring buffer avoids quadratic Array.shift() behavior on long logs.
+      const sample = { ok: status < 500, latencyMs };
+      if (samples.length === 10_000) {
+        samples[truncatedSamples % 10_000] = sample;
+        truncatedSamples++;
+      } else {
+        samples.push(sample);
+      }
     }
     const health = measureServiceHealth(samples);
     const report = {
