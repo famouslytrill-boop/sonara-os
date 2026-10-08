@@ -37,18 +37,20 @@ describe("public trust, help and support", () => {
     assert.match(response.text, /name="website"/);
   });
 
-  it("refuses a filled honeypot before any support storage or outbound email", async () => {
-    const response = await request(app).post("/contact").type("form").send({
-      name: "Example Customer",
-      email: "customer@example.com",
-      subject: "Contact issue",
-      category: "support",
-      message: "Please help with this issue.",
-      consent: "yes",
-      website: "spam.example"
-    });
-    assert.equal(response.status, 400);
-    assert.match(response.text, /Unable to accept this request/);
+  it("refuses a filled honeypot on both public submission paths", async () => {
+    for (const route of ["/contact", "/support/request"]) {
+      const response = await request(app).post(route).type("form").send({
+        name: "Example Customer",
+        email: "customer@example.com",
+        subject: "Contact issue",
+        category: "support",
+        message: "Please help with this issue.",
+        consent: "yes",
+        website: "spam.example"
+      });
+      assert.equal(response.status, 400, `${route} accepted a honeypot`);
+      assert.match(response.text, /Unable to accept this request/);
+    }
   });
 
   it("retains entered values safely on a validation error", async () => {
