@@ -1,3 +1,12 @@
+> **Post-deployment update — 2026-10-08:** Migration `20261008090000` is now
+> applied to active preview project `yqncsonkxgwhcxedgevk` (162 migrations).
+> Live advisor reports 0 duplicate-index warnings, 25 auth RLS initplan
+> warnings, 581 unused-index warnings and 1,292 overlapping-policy warnings.
+> This document's original pre-deployment counts and staging steps are retained
+> as historical evidence, not the current state. See
+> [P0–P2 execution ledger](POSTGRES_P0_P2_EXECUTION_2026-10-08.md).
+> The active preview project is not confirmed to be production.
+
 # Supabase PostgreSQL performance consolidation — 8 October 2026
 
 Status: **draft, not deployed**. Database remains unchanged. This repair targets the active Supabase preview project `yqncsonkxgwhcxedgevk`, **not** inactive `sonara-industries-prod` (`ltzpppffnwopdxbchajr`).
