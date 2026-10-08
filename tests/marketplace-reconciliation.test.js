@@ -121,6 +121,45 @@ describe("marketplace sales are checked against payment and delivery evidence", 
       assert.ok(codes(run({ grants: [grant(changed)] })).includes("licence_mismatch"));
     }
   });
+  it("flags duplicate licence grants rather than hiding one in a Map overwrite", () => {
+    const result = run({ grants: [grant(), grant()] });
+    assert.deepEqual(codes(result), ["licence_duplicate"]);
+    assert.equal(result.checked, 0);
+    assert.equal(result.attention, 1);
+  });
+  it("checks every duplicate grant's buyer, version, revocation and seller scope", () => {
+    const mismatch = run({ grants: [grant(), grant({ buyer_user_id: OTHER })] });
+    assert.ok(codes(mismatch).includes("licence_duplicate"));
+    assert.ok(codes(mismatch).includes("licence_mismatch"));
+    const revoked = run({ grants: [grant(), grant({
+      revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "disputed"
+    })] });
+    assert.ok(codes(revoked).includes("licence_duplicate"));
+    assert.ok(codes(revoked).includes("licence_revoked"));
+    assert.throws(() => run({ grants: [grant(), grant({ organization_id: OTHER })] }), /seller scope/);
+  });
+  it("does not let a refunded order look revoked when any duplicate remains active", () => {
+    const closed = run({
+      orderRows: [order({ state: "refunded" })],
+      sessions: [refunded(2500)],
+      grants: [
+        grant({ revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "refunded" }),
+        grant()
+      ]
+    });
+    assert.ok(codes(closed).includes("licence_duplicate"));
+    assert.ok(codes(closed).includes("revocation_pending"));
+    const allRevoked = run({
+      orderRows: [order({ state: "refunded" })],
+      sessions: [refunded(2500)],
+      grants: [
+        grant({ revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "refunded" }),
+        grant({ revoked_at: "2026-10-08T10:00:00Z", revoked_reason: "refunded" })
+      ]
+    });
+    assert.ok(codes(allRevoked).includes("licence_duplicate"));
+    assert.ok(!codes(allRevoked).includes("revocation_pending"));
+  });
   it("reports full refunds and disputes which have not been recorded", () => {
     assert.ok(codes(run({ sessions: [refunded(2500)] })).includes("refund_not_recorded"));
     assert.ok(codes(run({ sessions: [refunded(0, true)] })).includes("dispute_not_recorded"));
