@@ -15,6 +15,9 @@ A signed sensor observation, durable nonce claim, and PostgreSQL due-job claim d
 5. `tests/sql/autonomic-operator-gate-role-matrix.sql` validates browser-role denial, default deny, no tenant grant, approved job, wrong token and fence, global pause and expired approval **inside a disposable PostgreSQL rollback transaction**. The native replay script now requires its proof marker.
 6. `tests/sonara-postgres-operator-gate.test.js` tests the fail-closed adapter and its interaction with the worker. Migration SHA-256 is pinned to `supabase/applied-migration-checksums.json`.
 
+7. `lib/sonara-controlled-recovery-execution.cjs` is the preferred server execution entry. It constructs the PostgreSQL operator gate itself and passes its `isPaused` method to the existing worker. An arbitrary permissive `isPaused` argument is not accepted by this composition layer. It adds no endpoint or background runner.
+8. Additional JS tests prove missing operator RPC stops work before claiming, a caller-supplied always-allow pause function cannot bypass the controlled entry, and a positive DB grant still requires independent operation verification.
+
 ## Operational authorization boundaries
 
 - The migration creates **no writable RPC** for modifying policy/grant tables and provides service_role no direct write permissions. A later approved, auditable operator administrative plane must handle grant issuance/revocation and authenticate both approving human identities. The distinct names in the table are necessary but **not sufficient evidence of two real authenticated approvers**.
