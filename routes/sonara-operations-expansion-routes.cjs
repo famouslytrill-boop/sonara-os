@@ -320,40 +320,103 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     return res.status(200).json({ ok: true, waitlist: waitlist.rows, partial: waitlist.partial });
   });
 
+
+  async function ownedReference(scope, table, id, options = "") {
+    const found = await list(scope.config, table, scope.organizationId, "id", `&id=eq.${enc(id)}${options}`, 1);
+    return !found.ok ? { ok: false, status: 503, code: "database_request_failed" }
+      : found.rows.some((row) => row.id === id) ? { ok: true }
+        : { ok: false, status: 404, code: table === TABLES.assets ? "resource_not_available" : "reference_not_found" };
+  }
+
+  function utcFormTime(value) {
+    if (value === undefined || value === null || value === "") return { ok: true, iso: null };
+    if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(value)) return { ok: false };
+    const iso = value + ":00.000Z";
+    const date = new Date(iso);
+    return Number.isFinite(date.getTime()) && date.toISOString() === iso
+      ? { ok: true, iso } : { ok: false };
+  }
+
   app.post("/api/business/waitlist", requireBusinessManager, async (req, res) => {
     const scope = await context(req);
     if (!scope.ok) return sendReservation(req, res, scope.status, scope, "waitlist");
-    const customerName = clean(req.body?.customer_name || req.body?.customerName, 200);
-    const customerEmail = clean(req.body?.customer_email || req.body?.customerEmail, 320);
-    const customerPhone = clean(req.body?.customer_phone || req.body?.customerPhone, 80);
+    const body = req.body || {};
+    const customerName = clean(body.customer_name || body.customerName, 200);
+    const customerEmail = clean(body.customer_email || body.customerEmail, 320);
+    const customerPhone = clean(body.customer_phone || body.customerPhone, 80);
     if (!customerName && !customerEmail && !customerPhone) {
       return sendReservation(req, res, 400, { ok: false, code: "waitlist_contact_required" }, "waitlist");
+    }
+    if (customerEmail && !looksLikeEmail(customerEmail)) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_contact" }, "waitlist");
+    }
+    const partyValue = body.party_size ?? body.partySize ?? 1;
+    const partySize = typeof partyValue === "number" || typeof partyValue === "string" ? Number(partyValue) : NaN;
+    if (String(partyValue).trim() === "" || !Number.isSafeInteger(partySize) || partySize < 1 || partySize > 1000) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_party_size" }, "waitlist");
+    }
+    const start = utcFormTime(body.preferred_start ?? body.preferredStart);
+    const end = utcFormTime(body.preferred_end ?? body.preferredEnd);
+    if (!start.ok || !end.ok || (start.iso && end.iso && end.iso <= start.iso)) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_time_window" }, "waitlist");
+    }
+    const rawResourceIds = body.resource_ids ?? body.resourceIds;
+    if (rawResourceIds !== undefined && rawResourceIds !== null && !Array.isArray(rawResourceIds)
+      && typeof rawResourceIds !== "string") {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_resource_ids" }, "waitlist");
+    }
+    const resourceIds = listOf(rawResourceIds);
+    if (resourceIds.length > 50 || resourceIds.some((id) => !validUuid(id)) || new Set(resourceIds).size !== resourceIds.length) {
+      return sendReservation(req, res, 400, { ok: false, code: "invalid_resource_ids" }, "waitlist");
+    }
+    for (const id of resourceIds) {
+      const owned = await ownedReference(scope, TABLES.assets, id, "&status=eq.active");
+      if (!owned.ok) return sendReservation(req, res, owned.status, { ok: false, code: owned.code }, "waitlist");
+      const read = await list(scope.config, TABLES.assets, scope.organizationId, "id,metadata",
+        `&id=eq.${enc(id)}&status=eq.active`, 1);
+      if (!read.ok) return sendReservation(req, res, 503, { ok: false, code: read.code }, "waitlist");
+      if (read.rows[0]?.metadata?.bookable !== true) {
+        return sendReservation(req, res, 404, { ok: false, code: "resource_not_available" }, "waitlist");
+      }
+    }
+    const refs = [
+      ["location_id", "business_locations"],
+      ["service_id", "business_service_catalog"],
+      ["assigned_employee_id", "business_employee_profiles"],
+      ["customer_id", "customers"]
+    ];
+    const linked = {};
+    for (const [column, table] of refs) {
+      const camel = column.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      const supplied = body[column] ?? body[camel] ?? null;
+      if (supplied === "" || supplied === null) { linked[column] = null; continue; }
+      if (!validUuid(supplied)) return sendReservation(req, res, 400, { ok: false, code: "invalid_" + column }, "waitlist");
+      const owned = await ownedReference(scope, table, supplied);
+      if (!owned.ok) return sendReservation(req, res, owned.status, { ok: false, code: owned.code }, "waitlist");
+      linked[column] = supplied;
     }
     const created = await request(scope.config, TABLES.bookings, "", {
       method: "POST",
       body: {
         organization_id: scope.organizationId,
-        location_id: validUuid(req.body?.location_id || req.body?.locationId) ? (req.body.location_id || req.body.locationId) : null,
-        service_id: validUuid(req.body?.service_id || req.body?.serviceId) ? (req.body.service_id || req.body.serviceId) : null,
-        assigned_employee_id: validUuid(req.body?.assigned_employee_id || req.body?.assignedEmployeeId) ? (req.body.assigned_employee_id || req.body.assignedEmployeeId) : null,
-        customer_id: validUuid(req.body?.customer_id || req.body?.customerId) ? (req.body.customer_id || req.body.customerId) : null,
+        ...linked,
         customer_name: customerName || null,
         customer_email: customerEmail || null,
         customer_phone: customerPhone || null,
         status: "requested",
-        notes: clean(req.body?.notes, 2000) || null,
+        notes: clean(body.notes, 2000) || null,
         metadata: {
-          waitlist: true,
-          waitlist_state: "waiting",
-          preferred_start: clean(req.body?.preferred_start || req.body?.preferredStart, 80) || null,
-          preferred_end: clean(req.body?.preferred_end || req.body?.preferredEnd, 80) || null,
-          party_size: Math.min(1000, Math.max(1, Number(req.body?.party_size || req.body?.partySize) || 1)),
-          // A form posts one ticked box as a string and several as an array.
-          resource_ids: listOf(req.body?.resource_ids ?? req.body?.resourceIds).filter(validUuid).slice(0, 50)
+          waitlist: true, waitlist_state: "waiting",
+          preferred_start: start.iso, preferred_end: end.iso,
+          party_size: partySize, resource_ids: resourceIds
         }
       }
     });
-    return sendReservation(req, res, created.ok ? 201 : 502, { ok: created.ok, entry: created.rows[0] || null, code: created.code }, "waitlist");
+    const confirmed = created.ok && Boolean(created.rows[0]?.id);
+    return sendReservation(req, res, confirmed ? 201 : 502, {
+      ok: confirmed, entry: created.rows[0] || null,
+      code: confirmed ? null : created.code || "database_request_failed"
+    }, "waitlist");
   });
 
   app.post("/api/business/waitlist/:bookingId/offer", requireBusinessManager, async (req, res) => {
