@@ -77,4 +77,81 @@ describe("free login-based SONARA platform surface policy", () => {
     assert.equal(surfacePolicy({ product: "business_builder", service: "storefront", action: "unknown" }).code,
       "unsupported_surface_action");
   });
+
+  describe("opt-in cross-product public discovery policy (not runtime-wired)", () => {
+    const { selectCommunityCandidates } = require("../lib/sonara-community-discovery.cjs");
+    const TIME = new Date("2026-10-08T12:00:00.000Z");
+    const base = (override = {}) => ({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      publisherId: U, publicProjection: true, visibility: "public",
+      status: "published", moderationStatus: "approved", rightsStatus: "cleared",
+      product: "creator_studio", topic: "music", title: "Rights-cleared sample",
+      href: "/marketplace/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      publishedAt: "2026-10-08T11:00:00.000Z", territory: "global",
+      ageRating: "general", aiGenerated: false, sponsored: false,
+      originalityVerified: true, quality: 0.8, diversity: 0.5, ...override
+    });
+
+    it("refuses unreadable, excessive, and unconsented personalized feeds", () => {
+      assert.equal(selectCommunityCandidates(null).code, "candidates_unreadable");
+      assert.equal(selectCommunityCandidates(Array(251).fill(base())).code, "candidate_limit_exceeded");
+      assert.equal(selectCommunityCandidates([base()], { mode: "discover", now: TIME }).code,
+        "discovery_opt_in_required");
+      assert.equal(selectCommunityCandidates([base()], { mode: "unknown", now: TIME }).code, "mode_unknown");
+      assert.equal(selectCommunityCandidates([base()], { limit: 100, now: TIME }).code, "limit_out_of_range");
+    });
+
+    it("never recommends drafts, blocked publishers, unmoderated work, or unlicensed listings", () => {
+      const rows = [
+        base(), base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", status: "draft" }),
+        base({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", moderationStatus: "pending" }),
+        base({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", rightsStatus: "unknown" }),
+        base({ id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", publicProjection: false }),
+        base({ id: "ffffffff-ffff-4fff-8fff-ffffffffffff", href: "https://example.test/" }),
+        base({ id: "99999999-9999-4999-8999-999999999999", ageRating: "mature" })
+      ];
+      const result = selectCommunityCandidates(rows, { now: TIME });
+      assert.equal(result.ok, true);
+      assert.deepEqual(result.items.map(x => x.id), [rows[0].id]);
+      assert.equal(Object.hasOwn(result.items[0], "publisherId"), false);
+      assert.equal(Object.hasOwn(result.items[0], "organizationId"), false);
+      assert.equal(Object.hasOwn(result.items[0], "quality"), false);
+      assert.equal(selectCommunityCandidates([base()], { now: TIME,
+        blockedPublishers: [U] }).items.length, 0);
+    });
+
+    it("requires verified age and permitted country, respects topic and AI controls", () => {
+      const scoped = base({ territory: "regional", allowedCountries: ["US"], ageRating: "mature" });
+      assert.equal(selectCommunityCandidates([scoped], { now: TIME }).items.length, 0);
+      assert.equal(selectCommunityCandidates([scoped], { now: TIME,
+        ageVerifiedAdult: true, country: "GB" }).items.length, 0);
+      assert.equal(selectCommunityCandidates([scoped], { now: TIME,
+        ageVerifiedAdult: true, country: "US" }).items.length, 1);
+      assert.equal(selectCommunityCandidates([base()], { now: TIME,
+        mutedTopics: ["MUSIC"] }).items.length, 0);
+      assert.equal(selectCommunityCandidates([base({ aiGenerated: true })], {
+        now: TIME, aiContent: "exclude" }).items.length, 0);
+    });
+
+    it("enforces explicit Following and deterministic opt-in discovery with publisher diversity", () => {
+      const second = base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        href: "/channels/creator2", publishedAt: "2026-10-08T10:00:00.000Z" });
+      const third = base({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        href: "/store/creator3", publishedAt: "2026-10-08T09:00:00.000Z" });
+      const fourth = base({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        publisherId: B, href: "/channels/other", topic: "food",
+        publishedAt: "2026-10-08T08:00:00.000Z" });
+      const rows = [third, fourth, base(), second];
+      assert.equal(selectCommunityCandidates(rows, { mode: "following", now: TIME,
+        followedPublishers: [B] }).items.length, 1);
+      const run = () => selectCommunityCandidates(rows, {
+        mode: "discover", discoveryOptIn: true, topics: ["music"], now: TIME
+      });
+      assert.deepEqual(run().items, run().items);
+      assert.equal(run().items.filter(item => item.id === third.id).length, 0);
+      assert.equal(run().items.length, 3);
+      assert.equal(run().personalized, true);
+      assert.equal(run().items.every(x => typeof x.explanation === "string"), true);
+    });
+  });
 });
