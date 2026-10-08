@@ -87,6 +87,26 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(current, /ROLLBACK;\s*$/);
     });
 
+    it("separates source-only subscription policy proof from remote-only dedup claims", () => {
+      const oldSql = fs.readFileSync(path.join(root,
+        "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
+      const newSql = fs.readFileSync(path.join(root,
+        "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8");
+      for (const sql of [oldSql, newSql]) {
+        assert.match(sql, /policyname='subscriptions_select_member'/);
+        assert.match(sql, /roles=ARRAY\['authenticated'\]::name\[\]/);
+        assert.match(sql, /is_org_memberorganization_idoris_admin_or_founder/);
+        assert.match(sql, /Users can view their own subscription/);
+        assert.match(sql, /ROLLBACK;\s*$/);
+      }
+      assert.match(oldSql, /legacy_count FROM subscription_replay_shape\) = 0/);
+      assert.match(oldSql, /legacy_count FROM subscription_replay_shape\) = 2/);
+      assert.match(oldSql, /DO \$dedup_if_applicable\$/);
+      assert.doesNotMatch(oldSql, /(?m)^DROP POLICY "Users can view their own subscription"/,
+        "a source replay without these two optional policies must not drop one");
+      assert.match(newSql, /postmigration subscription policy lineage differs from reviewed exact state/);
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);
