@@ -35,6 +35,17 @@ BEGIN
   IF second.duplicate IS DISTINCT FROM true OR second.persisted THEN
     RAISE EXCEPTION 'same job scheduled twice';
   END IF;
+  -- A changed attempt number must not create another in-flight recovery for
+  -- the same operation; UNIQUE (organization_id,operation_id) enforces this.
+  BEGIN
+    PERFORM public.sonara_schedule_autonomic_retry(
+      k, '11111111-1111-4111-8111-111111111111', 'operation-1','incident-other',
+      1, '["[\\"organization\\",\\"11111111-1111-4111-8111-111111111111\\",\\"retry_idempotent\\",\\"fixture-mail\\"]","operation-1",1]',
+      clock_timestamp()+interval '15 seconds',clock_timestamp()+interval '1 hour');
+    RAISE EXCEPTION 'attempt-number bypass created concurrent job';
+  EXCEPTION WHEN unique_violation THEN
+    NULL; -- Required denial of cross-attempt duplicate.
+  END;
   SELECT * INTO second FROM public.sonara_schedule_autonomic_retry(
     k, '22222222-2222-4222-8222-222222222222','operation-1','incident-2',
     0,d,clock_timestamp()+interval '15 seconds',clock_timestamp()+interval '1 hour');
