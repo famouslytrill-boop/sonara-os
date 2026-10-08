@@ -317,6 +317,16 @@ describe("HTTP observability middleware", () => {
     assert.equal(event.organization, "11111111-1111-4111-8111-111111111111");
   });
 
+  it("uses a bounded OpenTelemetry HTTP method dimension", () => {
+    const { safeHttpMethod } = freshModule();
+    for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QUERY"]) {
+      assert.equal(safeHttpMethod(method), method);
+    }
+    for (const candidate of ["PROPFIND", "CUSTOM-" + "x".repeat(512), "get", "", null, undefined]) {
+      assert.equal(safeHttpMethod(candidate), "_OTHER");
+    }
+  });
+
   it("never injects user-controlled Express router mount paths into metric route labels", () => {
     const { safeRouteTemplate } = freshModule();
     const requestWithSensitiveMount = {
