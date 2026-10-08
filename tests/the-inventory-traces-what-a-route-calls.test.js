@@ -65,12 +65,21 @@ describe("the inventory traces what a route calls", () => {
     reaches("GET /api/integrations/providers", ["integration_providers"]);
   });
 
-  it("places a route registered inside a callback on its own line", () => {
-    // V8 prints anonymous frames without parentheses; reading only the
-    // parenthesised form placed this route on the forEach line above it.
+  it("places a callback-registered route at an actionable registration site", () => {
+    // A route may be registered directly with app.get(...) or through a local
+    // registration helper. The inventory's source must still lead a reviewer
+    // to the registration statement, not merely the enclosing callback.
     const row = route("GET /api/integrations/providers");
     assert.equal(row.source.file, "routes/sonara-last9-routes.cjs");
-    assert.match(require("node:fs").readFileSync(row.source.file, "utf8").split("\n")[row.source.line - 1], /app\.get\(/);
+    const source = require("node:fs").readFileSync(row.source.file, "utf8");
+    const line = source.split("\n")[row.source.line - 1];
+    const direct = /app\.get\(/.test(line);
+    const helper = /registerRestResource\(/.test(line);
+    assert.ok(direct || helper, "inventory source is not a direct or helper route registration: " + line);
+    if (helper) {
+      assert.match(source, /function\s+registerRestResource\s*\(/);
+      assert.match(source, /function\s+registerRestResource[\s\S]*?app\.get\(path,/);
+    }
   });
 
   it("follows the handler a registration helper was given, including inside a nested call", () => {
