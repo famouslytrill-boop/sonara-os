@@ -420,9 +420,9 @@ function registerMerchantPaymentRoutes(app, deps = {}) {
     }
     for (const total of result.totals) {
       sections.push(brandCard(`Totals in ${escapeHtml(total.currency.toUpperCase())}`, [
-        `<p>Stripe took ${escapeHtml(money(total.stripeGross, total.currency))} in ${escapeHtml(String(total.payments))} payment${total.payments === 1 ? "" : "s"}, and refunded ${escapeHtml(money(total.stripeRefunded, total.currency))}.</p>`,
+        `<p>Stripe payments checked: ${escapeHtml(String(total.payments))}. Gross: ${escapeHtml(money(total.stripeGross, total.currency))}. Refunded: ${escapeHtml(money(total.stripeRefunded, total.currency))}.</p>`,
         total.stripeFees === null
-          ? "<p>Stripe did not report the fee on every payment, so the fee and what you received are not totalled here rather than understated.</p>"
+          ? "<p>Fees and net receipts are unavailable in this currency because some balance amounts are missing, invalid, or in a different currency.</p>"
           : `<p>Stripe's fees: ${escapeHtml(money(total.stripeFees, total.currency))}. What reached your Stripe balance: ${escapeHtml(money(total.stripeNet, total.currency))}.</p>`,
         `<p>Recorded here as paid: ${escapeHtml(money(total.recordedPaid, total.currency))}, refunded ${escapeHtml(money(total.recordedRefunded, total.currency))}.</p>`
       ].join("")));
@@ -436,7 +436,7 @@ function registerMerchantPaymentRoutes(app, deps = {}) {
         ? problems.map((row) => [
           `<p><strong>${escapeHtml(row.order?.buyer_name || "An order")}</strong> — ${escapeHtml(row.sentence)}`,
           row.stripeAmountCents !== null ? ` Stripe: ${escapeHtml(money(row.stripeAmountCents, row.currency))}.` : "",
-          row.order?.amount_paid_cents != null ? ` Recorded: ${escapeHtml(money(row.order.amount_paid_cents, row.currency))}.` : "",
+          row.order?.amount_paid_cents != null ? ` Recorded: ${escapeHtml(money(row.order.amount_paid_cents, row.order.currency))}.` : "",
           "</p>",
           row.repairable
             ? `<form method="post" action="/api/business/storefront/reconcile/record"><input type="hidden" name="order_id" value="${escapeHtml(row.orderId)}">`
