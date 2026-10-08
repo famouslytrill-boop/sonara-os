@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {
   REQUIRED_JOBS,
+  REQUIRED_WORKFLOW_FILES,
   OPTIONAL_SKIPPED,
   REQUIRED_STEPS,
   assessExactShaJobMatrix: assess,
@@ -21,7 +22,8 @@ function buildEvidence() {
   for (const [name, jobNames] of Object.entries(REQUIRED_JOBS)) {
     const id = ++runId;
     workflowRuns.push({
-      name, id, head_sha: sha, head_branch: "main", event: "push", status: "completed",
+      name, id, path: REQUIRED_WORKFLOW_FILES[name],
+      head_sha: sha, head_branch: "main", event: "push", status: "completed",
       conclusion: "success", created_at: "2026-10-08T18:00:00Z"
     });
     jobsByRunId[id] = {
@@ -47,6 +49,23 @@ describe("immutable release SHA requires complete job-level evidence", () => {
     const run = v.workflowRuns.find(x => x.name === "Native migration replay");
     v.jobsByRunId[run.id].jobs[0].conclusion = "skipped";
     assert.ok(assess(v).failures.some(x => x.includes("job_not_successful")));
+  });
+
+  it("rejects a same-name workflow defined in a different file", () => {
+    const evidence = buildEvidence();
+    const first = evidence.workflowRuns[0];
+    first.path = ".github/workflows/fake-release-check.yml";
+    assert.ok(assess(evidence).failures.includes(first.name + ":workflow_missing"));
+  });
+
+  it("ignores newer same-name lookalike workflows instead of using their results", () => {
+    const evidence = buildEvidence();
+    const legitimate = evidence.workflowRuns[0];
+    evidence.workflowRuns.push({
+      ...legitimate, id: 99999, path: ".github/workflows/lookalike.yml",
+      created_at: "2026-10-09T00:00:00Z", conclusion: "failure"
+    });
+    assert.equal(assess(evidence).ok, true);
   });
 
   it("refuses push runs from another branch even when the SHA and workflow name match", () => {
