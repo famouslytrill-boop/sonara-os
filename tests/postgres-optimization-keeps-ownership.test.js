@@ -49,3 +49,30 @@ describe("PostgreSQL optimization never broadens RLS or migration history", () =
     assert.doesNotMatch(source, /\bCREATE POLICY\b|\bDROP POLICY\b/i);
   });
 });
+
+
+describe("staging-only RLS consolidation replays against the hardened policy state", () => {
+  const probe = fs.readFileSync(path.join(root, "tests", "sql",
+    "p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
+
+  it("pins 21 strictly scoped service-role policies and four existing owner InitPlans", () => {
+    const serviceRolePolicies = probe.match(/'\{service_role\}', 'ALL', 'true', 'true'/g) || [];
+    const userSelectPolicies = probe.match(/'\{authenticated\}', 'SELECT', '\(\( SELECT auth\.uid\(\) AS uid\) = user_id\)', NULL/g) || [];
+    assert.equal(serviceRolePolicies.length, 21, "all prior auth.role guards now require service_role and true-only predicates");
+    assert.equal(userSelectPolicies.length, 4, "all four owner selectors must retain their exact auth.uid comparison");
+    assert.match(probe, /IF \(SELECT count\(\*\) FROM expected_rls_p1\) <> 25/);
+    assert.match(probe, /p\.roles::text IS DISTINCT FROM e\.roles/);
+    assert.match(probe, /p\.qual IS DISTINCT FROM e\.qualifier/);
+    assert.match(probe, /p\.with_check IS DISTINCT FROM e\.check_expr/);
+  });
+
+  it("never changes hardened ownership grants or RLS outside the rolled-back duplicate policy proof", () => {
+    assert.doesNotMatch(probe, /^\s*ALTER POLICY\b/gmi);
+    assert.doesNotMatch(probe, /^\s*(?:GRANT|REVOKE|COMMIT|DROP TABLE|DROP INDEX)\b/gmi);
+    assert.deepEqual([...probe.matchAll(/^DROP POLICY\s+(.+);$/gmi)].map((match) => match[1]),
+      ['"Users can view their own subscription" ON public.subscriptions']);
+    assert.match(probe, /RAISE EXCEPTION 'P1 policy definition drift on % policies; abort'/);
+    assert.match(probe, /RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort'/);
+    assert.match(probe, /ROLLBACK;\s*$/);
+  });
+});
