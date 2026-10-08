@@ -90,3 +90,19 @@ describe("commerce amounts keep their type, range and currency", () => {
     assert.equal(amounts.formatChargeAmount(1200, null), "1200 minor units (currency unavailable)");
   });
 });
+
+
+describe("financial totals preserve missing evidence", () => {
+  it("keeps zero, rejects coercion and remains unknown after another contribution", () => {
+    assert.equal(amounts.addKnownAmounts(0, 0), 0);
+    for (const value of [null, undefined, false, "2", NaN, 0.5]) {
+      assert.equal(amounts.addKnownAmounts(20, value), null);
+      assert.equal(amounts.addKnownAmounts(amounts.addKnownAmounts(20, value), 5), null);
+    }
+  });
+  it("rejects overflow but permits totals above a single database row", () => {
+    assert.equal(amounts.addKnownAmounts(2147483647, 1), 2147483648);
+    assert.equal(amounts.addKnownAmounts(Number.MAX_SAFE_INTEGER, 1), null);
+    assert.equal(amounts.addKnownAmounts(-Number.MAX_SAFE_INTEGER, -1), null);
+  });
+});

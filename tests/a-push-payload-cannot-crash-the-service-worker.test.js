@@ -122,6 +122,10 @@ describe("a push payload cannot crash the service worker", () => {
     for (const hostile of [
       "https://evil.example/steal",
       "//evil.example/steal",
+      "/\\\\evil.example/steal", // Browsers parse this as another origin.
+      "/\\evil.example/steal",
+      "/dashboard\\nset-cookie: bad",
+      "/dashboard\\danger",
       "javascript:alert(1)",
       "../../etc",
       ""
@@ -130,7 +134,7 @@ describe("a push payload cannot crash the service worker", () => {
       listeners.get("push")(event);
       await event.settled();
     }
-    assert.equal(shown.length, 5);
+    assert.equal(shown.length, 9);
     for (const entry of shown) {
       assert.equal(entry.options.data.path, "/dashboard", `${entry.options.data.path} should have been refused`);
     }
@@ -173,6 +177,27 @@ describe("a push payload cannot crash the service worker", () => {
       listeners.get("notificationclick")(event);
       await event.settled();
       assert.deepEqual(opened, ["/dashboard"]);
+    });
+
+    it("revalidates legacy click data so a backslash cannot open another site", async () => {
+      const worker = loadWorker();
+      const event = clickEvent("/\\\\evil.example/steal");
+      worker.listeners.get("notificationclick")(event);
+      await event.settled();
+      assert.deepEqual(worker.opened, ["/dashboard"]);
+    });
+
+    it("does not mistake a URL substring for the actual open page", async () => {
+      const worker = loadWorker();
+      worker.self.__windows = [
+        // The worker may focus the existing tab before opening a new one,
+        // but it must not treat a query-string mention as an exact route match.
+        { url: "https://app.example/other?next=/dashboard", focus: async () => {} }
+      ];
+      const event = clickEvent("/dashboard");
+      worker.listeners.get("notificationclick")(event);
+      await event.settled();
+      assert.deepEqual(worker.opened, ["/dashboard"]);
     });
 
     it("focuses a tab already showing that page rather than opening a second one", async () => {

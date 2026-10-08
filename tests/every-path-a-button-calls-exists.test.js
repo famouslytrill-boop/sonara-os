@@ -173,6 +173,18 @@ describe("every path a button calls through JavaScript exists", () => {
       getSupabaseServerConfig: () => ({ ok: false }), layout: ({ sections }) => sections.join("")
     });
     for (const bundle of await loadedClientFiles(["/creator-studio/generation"], generation)) loaded.add(bundle);
+    // Staff scripts are served behind authentication even when a workspace
+    // has no records. Render that route; do not excuse a bundle by filename.
+    const staff = require("express")();
+    require("../routes/sonara-last9-routes.cjs")(staff, {
+      requireCustomer: (req, _res, next) => { req.sonaraUser = { id }; next(); },
+      getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: id }),
+      getSupabaseServerConfig: () => ({ ok: false }),
+      layout: ({ sections }) => `<html><body>${sections.join("")}</body></html>`
+    });
+    const staffBundles = await loadedClientFiles(["/staff/location"], staff);
+    assert.ok(staffBundles.has("sonara-offline-queue.js"), "the staff page must serve its retry queue");
+    for (const bundle of staffBundles) loaded.add(bundle);
     // Follow literal same-origin Worker/importScripts imports from served code.
     for (const name of loaded) {
       const source = fs.readFileSync(path.join(root, "public", name), "utf8");

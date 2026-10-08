@@ -60,7 +60,7 @@ const PINNED = Object.freeze([{ version_id: VERSION, object_path: `${ORG}/versio
 
 function harness({ listing, version, approvals, entryRows = [], failCatalogueWrite = false, failCatalogueDelete = false,
   connectEnabled = false, paymentRows = [], livePayment = null, failAccountRead = false, organizationId = ORG,
-  pinnedRows = PINNED, assetRows = [], failCopy = false, failPinWrite = false } = {}) {
+  salesRows = [], pinnedRows = PINNED, assetRows = [], failCopy = false, failPinWrite = false } = {}) {
   const calls = [];
   const realFetch = global.fetch;
   global.fetch = async (url, init = {}) => {
@@ -78,6 +78,7 @@ function harness({ listing, version, approvals, entryRows = [], failCatalogueWri
       if (method === "POST" && failPinWrite) return { ok: false, status: 500, json: async () => ({}) };
       return ok(method === "GET" ? pinnedRows : []);
     }
+    if (table === "creator_marketplace_orders") return ok(salesRows);
     if (table === "creator_assets") return ok(assetRows);
     if (parsed.hostname === "api.stripe.com") {
       if (!livePayment) throw new Error("Provider unavailable");
@@ -554,5 +555,23 @@ describe("a listing on sale is a listing still cleared", () => {
       assert.equal(calls, 2, `takeVersionOffSale is called ${calls} times; review and decide should both call it`);
       assert.match(source, /state !== "approved"/);
     });
+  });
+});
+
+
+describe("seller sales totals retain missing amounts", () => {
+  it("keeps a currency total unavailable regardless of the order of its rows", async () => {
+    for (const prices of [[null, 2500], [2500, null]]) {
+      const { app, calls, restore } = harness({ salesRows: prices.map((price_cents) => ({
+        id: LISTING, title: "A track", state: "paid", currency: "USD", price_cents
+      })) });
+      try {
+        const response = await request(app).get("/creator-studio/owner/marketplace");
+        assert.equal(response.status, 200);
+        assert.match(response.text, /Paid and not refunded: Amount unavailable/);
+        const query = calls.find((call) => call.table === "creator_marketplace_orders").query;
+        assert.equal(new URLSearchParams(query).get("organization_id"), `eq.${ORG}`);
+      } finally { restore(); }
+    }
   });
 });

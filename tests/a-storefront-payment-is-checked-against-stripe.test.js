@@ -264,6 +264,41 @@ describe("a storefront payment is checked against Stripe", () => {
       assert.equal(total.feesKnown, false);
     });
 
+    it("does not reconcile missing or malformed amounts as zero", () => {
+      for (const value of [null, undefined, false, "", "oops", -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+        const missingRefund = run([PAID], [stripeSession({}, { amount_refunded: value })]);
+        assert.equal(finding(missingRefund), "amount_unknown");
+        assert.equal(missingRefund.totals[0].stripeRefunded, null);
+        const missingGross = run([PAID], [stripeSession({ amount_total: value })]);
+        assert.equal(finding(missingGross), "amount_unknown");
+        assert.equal(missingGross.totals[0].stripeGross, null);
+        const local = run([{ ...PAID, amount_paid_cents: value, refunded_cents: value }], [stripeSession()]);
+        assert.equal(finding(local), "amount_unknown");
+        assert.equal(local.totals[0].recordedPaid, null);
+        assert.equal(local.totals[0].recordedRefunded, null);
+        assert.equal(run([OPEN], [stripeSession({ amount_total: value })]).rows[0].repairable, false);
+      }
+    });
+
+    it("keeps incomplete totals unknown in either row order", () => {
+      const unknown = stripeSession({ amount_total: null }, { amount_refunded: null });
+      for (const sessions of [[unknown, stripeSession()], [stripeSession(), unknown]]) {
+        const [total] = run([PAID], sessions).totals;
+        assert.equal(total.stripeGross, null);
+        assert.equal(total.stripeRefunded, null);
+      }
+    });
+
+    it("does not match different currencies or relabel settlement fees", () => {
+      assert.equal(finding(run([PAID], [stripeSession({ currency: "eur" })])), "currency_mismatch");
+      assert.equal(run([OPEN], [stripeSession({ currency: "eur" })]).rows[0].repairable, false);
+      for (const currency of ["eur", "", null]) {
+        const [total] = run([PAID], [stripeSession({}, { balance_transaction: { fee: 100, net: 2500, currency } })]).totals;
+        assert.equal(total.stripeFees, null);
+        assert.equal(total.stripeNet, null);
+      }
+    });
+
     it("ignores unpaid checkouts and unpaid orders entirely", () => {
       const result = run([ORDER_ROW], [stripeSession({ payment_status: "unpaid" })]);
       assert.deepEqual([result.rows.length, result.totals.length], [0, 0]);

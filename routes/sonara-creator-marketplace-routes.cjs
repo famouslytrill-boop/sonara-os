@@ -52,7 +52,7 @@ const market = require("../lib/sonara-creator-marketplace.cjs");
 const payments = require("../lib/sonara-connected-payments.cjs");
 const checkout = require("../lib/sonara-connected-checkout.cjs");
 const orders = require("../lib/sonara-marketplace-orders.cjs");
-const { formatChargeAmount } = require("../lib/sonara-commerce-amounts.cjs");
+const { formatChargeAmount, databaseAmount, addKnownAmounts } = require("../lib/sonara-commerce-amounts.cjs");
 const storage = require("../lib/sonara-file-storage.cjs");
 const { registerMarketplaceReconciliationRoutes, RECONCILIATION_PAGE } = require("./sonara-marketplace-reconciliation-routes.cjs");
 
@@ -200,7 +200,8 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     for (const order of rows) {
       counts[order.state] = (counts[order.state] || 0) + 1;
       if (order.state !== "paid") continue;
-      totals.set(order.currency, (totals.get(order.currency) || 0) + Number(order.price_cents || 0));
+      const currency = String(order.currency || "").trim().toLowerCase();
+      totals.set(currency, addKnownAmounts(totals.has(currency) ? totals.get(currency) : 0, databaseAmount(order.price_cents)));
     }
     const totalText = totals.size
       ? [...totals.entries()].map(([currency, cents]) => formatChargeAmount(cents, currency)).join(", ")

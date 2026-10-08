@@ -2101,6 +2101,12 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // A replay may arrive after a session or workspace switch. Capture scope is
+    // a consistency check, never an authorization source; use the live session.
+    if ((req.body.capture_user_id && req.body.capture_user_id !== org.userId)
+      || (req.body.capture_organization_id && req.body.capture_organization_id !== org.organizationId)) {
+      return res.status(403).json({ ok: false, code: "check_in_scope_changed" });
+    }
     // An employee and an area supplied by the caller both become part of this
     // row, and the staff portal lists check-ins by employee_id -- so an
     // unchecked one writes a location record onto a colleague's page, or
@@ -2448,7 +2454,7 @@ async function staffSections(config, org, me, path, ui) {
         "What is recorded, and what is not",
         "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
       ),
-      checkInCard(me.profile.id, ui),
+      checkInCard(me.profile.id, ui, org),
       ...(listed.rows.length
         ? listed.rows.map((row) => ui.card(
           String(row.event_type || "check-in").replaceAll("_", " "),
@@ -2479,7 +2485,7 @@ async function staffSections(config, org, me, path, ui) {
 // The rounding runs in the browser before anything is sent -- see
 // public/sonara-location-precision.js. Rounding here would describe the storage
 // and not the disclosure.
-function checkInCard(employeeId, ui) {
+function checkInCard(employeeId, ui, org) {
   const options = LOCATION_PRIVACY_MODES.map((mode) => {
     const checked = mode.value === LOCATION_PRECISION_DEFAULT ? " checked" : "";
     return `<label class="choice"><input type="radio" name="privacy_mode" value="${ui.escape(mode.value)}"${checked}> <strong>${ui.escape(mode.label)}</strong><span class="fine"> ${ui.escape(mode.note)}</span></label>`;
@@ -2493,7 +2499,7 @@ function checkInCard(employeeId, ui) {
   // decoded -- escaping the quotes would hand JSON.parse a string full of
   // `&quot;`. What actually needs neutralising is a literal `</script>` in the
   // data, and \u003c does that while staying valid JSON.
-  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId }).replaceAll("<", "\\u003c");
+  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId, userId: org.userId, organizationId: org.organizationId }).replaceAll("<", "\\u003c");
 
   return [
     '<div class="card">',
@@ -2503,7 +2509,10 @@ function checkInCard(employeeId, ui) {
     '<form id="sonara-check-in-form" method="post" action="/api/location/events">',
     options,
     '<button class="action" type="submit" data-sonara-check-in-submit>Check in</button>',
-    '<p class="fine" data-sonara-check-in-status></p>',
+    '<button class="action" type="button" data-sonara-check-in-retry>Send saved check-ins</button>',
+    '<button class="action" type="button" data-sonara-check-in-review-toggle>Review saved check-ins</button>',
+    '<p class="fine" role="status" aria-live="polite" data-sonara-check-in-status></p>',
+    '<section class="card" data-sonara-check-in-review hidden><h3>Saved check-ins needing review</h3><p role="status" aria-live="polite" data-sonara-check-in-review-status></p><ul data-sonara-check-in-review-list></ul></section>',
     "</form>",
     "</div>"
   ].join("");
@@ -3675,8 +3684,9 @@ async function supabaseInsertOnce(config, table, payload, conflictColumns) {
     body: JSON.stringify(payload)
   }).catch(() => undefined);
   if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
-  const rows = await response.json().catch(() => []);
-  return { ok: true, table, rows, duplicate: Array.isArray(rows) && rows.length === 0 };
+  const rows = await response.json().catch(() => null);
+  if (!Array.isArray(rows)) return { ok: false, code: "insert_receipt_unreadable", table };
+  return { ok: true, table, rows, duplicate: rows.length === 0 };
 }
 
 async function supabaseInsert(config, table, payload) {
