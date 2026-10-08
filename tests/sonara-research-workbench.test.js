@@ -7,6 +7,9 @@ const { EXAMPLES, MAX_QUERY_KEYS, MAX_QUERY_BYTES,
 describe("SONARA bounded research workbench", () => {
   it("uses three bounded example forms, no trading or casino widgets", () => {
     assert.deepEqual(EXAMPLES.map(e => e.study), ["layout", "chord", "payoff"]);
+    assert.ok(Object.isFrozen(EXAMPLES));
+    assert.ok(EXAMPLES.every(e => Object.isFrozen(e) && Object.isFrozen(e.fields)));
+    assert.ok(EXAMPLES.every(e => e.fields.every(f => Object.isFrozen(f))));
     assert.equal(MAX_QUERY_KEYS, 5);
     assert.equal(MAX_QUERY_BYTES, 256);
     assert.match(renderResearchWorkbench(), /method="get"/);
