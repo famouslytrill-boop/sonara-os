@@ -252,6 +252,66 @@ describe("cross-device service-worker cache boundary", () => {
     assert.equal(task.writes.length, 0);
   });
 
+  it("reads offline fallback only from this worker's versioned public cache", async () => {
+    const events = {};
+    const opened = [];
+    let globalCacheMatchCalled = false;
+    const offline = { kind: "current-version-offline" };
+    const worker = {
+      location: { origin },
+      addEventListener: (name, handler) => { events[name] = handler; }
+    };
+    const storage = {
+      open: async (key) => {
+        opened.push(key);
+        return {
+          match: async (keyToMatch) => keyToMatch === "/offline" ? offline : undefined
+        };
+      },
+      match: async () => {
+        globalCacheMatchCalled = true;
+        return { kind: "unrelated-cache" };
+      }
+    };
+    vm.runInNewContext(source, {
+      self: worker, URL, caches: storage,
+      fetch: async () => { throw new Error("offline"); }
+    });
+    let response;
+    events.fetch({
+      request: { method: "GET", mode: "navigate", url: origin + "/pricing" },
+      respondWith: (task) => { response = task; }
+    });
+    assert.equal(await response, offline);
+    assert.deepEqual(opened, ["sonara-public-" + VERSION]);
+    assert.equal(globalCacheMatchCalled, false);
+  });
+
+  it("cleans retired SONARA caches without taking over existing pages", async () => {
+    const events = {};
+    const deleted = [];
+    let claimed = 0;
+    const worker = {
+      location: { origin },
+      addEventListener: (name, handler) => { events[name] = handler; },
+      clients: { claim: async () => { claimed += 1; } }
+    };
+    const storage = {
+      keys: async () => [
+        "other-app-cache",
+        "sonara-public-previous-release",
+        "sonara-public-" + VERSION
+      ],
+      delete: async (key) => { deleted.push(key); return true; }
+    };
+    vm.runInNewContext(source, { self: worker, URL, caches: storage });
+    let completion;
+    events.activate({ waitUntil: (task) => { completion = task; } });
+    await completion;
+    assert.deepEqual(deleted, ["sonara-public-previous-release"]);
+    assert.equal(claimed, 0);
+  });
+
   it("rejects responses marked private, no-store or set-cookie", () => {
     function response(headers) {
       const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
