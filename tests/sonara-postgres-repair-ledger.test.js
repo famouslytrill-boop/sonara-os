@@ -9,7 +9,7 @@ const TOKEN = "22222222-2222-4222-8222-222222222222";
 const INCIDENT = Object.freeze({
   incidentId: "incident-1", resourceId: "optional-email", scope: "organization",
   organizationId: ORG, observedAtMs: NOW, sensitive: false, authorizedScope: true,
-  domain: "optional_provider", signal: "provider.timeout", verifiedIdempotency: true,
+  domain: "optional_provider", signal: "provider.optional_unavailable", optionalDependency: true, verifiedIdempotency: true,
   operationId: "operation-1", attempt: 0, deadlineAtMs: NOW + 45_000
 });
 
@@ -68,7 +68,7 @@ describe("SONARA PostgreSQL durable repair boundary", () => {
       return {data: true};
     }});
     const result = await executeRemediation(INCIDENT, {enabled: true, nowMs: NOW, ledger, audit,
-      handlers: { retry_idempotent: async (ctx) => { events.push([ctx.claimToken, ctx.fencingToken]); } },
+      handlers: { open_optional_circuit: async (ctx) => { events.push([ctx.claimToken, ctx.fencingToken]); } },
       verify: async (ctx) => ({ healthy: ctx.fencingToken === 7, scopeVerified: ctx.organizationId === ORG }) });
     assert.equal(result.status, "recovered");
     assert.deepEqual(events, [[TOKEN, 7]]);
@@ -78,7 +78,7 @@ describe("SONARA PostgreSQL durable repair boundary", () => {
     let executions = 0;
     const result = await executeRemediation(INCIDENT, {enabled: true, nowMs:NOW,
       ledger: { claim: async () => ({ claimed:true, claimToken:"invalid", fencingToken: 1 }) },
-      audit: async () => true, handlers: { retry_idempotent: async () => { executions++; } },
+      audit: async () => true, handlers: { open_optional_circuit: async () => { executions++; } },
       verify: async () => ({ healthy:true, scopeVerified:true }) });
     assert.equal(result.reason, "invalid_durable_claim");
     assert.equal(executions, 0);
