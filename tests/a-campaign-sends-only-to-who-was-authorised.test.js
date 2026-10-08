@@ -7,8 +7,7 @@ const {
   dispatchCampaign,
   RESEND_ENDPOINT,
   RESEND_BATCH_ENDPOINT,
-  MAX_PER_REQUEST,
-  MAX_FALLBACK_BATCHES
+  MAX_PER_REQUEST
 } = require("../lib/growth-studio-dispatch.cjs");
 const { authoriseCampaign, MINIMUM_BILLABLE_EMAILS } = require("../lib/growth-studio-sender.cjs");
 const { quote } = require("../lib/sonara-paid-capabilities.cjs");
