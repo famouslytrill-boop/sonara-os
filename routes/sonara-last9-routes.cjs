@@ -975,7 +975,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         heading: page.title,
         body: page.body,
         sections,
-        actions: ownerActions(ui, page.path)
+        actions: ownerActions(ui, page.path, req.sonaraBusinessMembership?.workspace_id)
       }));
     });
 
@@ -3361,8 +3361,13 @@ function formField(field, references, ui, current = "") {
   return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${value}${required}></label>${hint}`;
 }
 
-function ownerActions(ui, currentPath) {
+function ownerActions(ui, currentPath, workspaceId = "") {
+  const workspaceQuery = workspaceId ? "?workspaceId=" + encodeURIComponent(workspaceId) : "";
   return [
+    ...(currentPath === "/business-builder/owner/bookings" ? [
+      ui.link("/business-builder/owner/reservation-resources" + workspaceQuery, "Reservation resources"),
+      ui.link("/business-builder/owner/waitlist" + workspaceQuery, "Waitlist")
+    ] : []),
     // On every owner record page, because the page a customer is on is the one
     // where they realise they cannot find the record they came for.
     ui.link("/search", "Search"),
@@ -3761,3 +3766,4 @@ module.exports.RESOURCE_MAP = RESOURCE_MAP;
 module.exports.recordCountCaption = recordCountCaption;
 module.exports.PAGE_SIZE = PAGE_SIZE;
 module.exports.pageNumber = pageNumber;
+

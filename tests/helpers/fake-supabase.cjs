@@ -15,6 +15,7 @@
 // organization B's data" is the property worth holding.
 
 const crypto = require("node:crypto");
+const { isDeepStrictEqual } = require("node:util");
 const tenantGuard = require("../../lib/sonara-tenant-guard.cjs");
 
 const PASSTHROUGH = Symbol("not a supabase request");
@@ -113,6 +114,16 @@ function parseFilters(searchParams) {
   return filters;
 }
 
+// PostgREST equality on a jsonb column compares JSON values, not object
+// string coercions. Object key order is immaterial; array order is not.
+function equalValue(actual, expected) {
+  if (actual !== null && typeof actual === "object") {
+    try { return isDeepStrictEqual(JSON.parse(JSON.stringify(actual)), JSON.parse(expected)); }
+    catch { return false; }
+  }
+  return String(actual) === expected;
+}
+
 function matches(row, filter) {
   if (filter.any) return filter.any.some((condition) => matches(row, condition));
   if (filter.all) return filter.all.every((condition) => matches(row, condition));
@@ -120,9 +131,9 @@ function matches(row, filter) {
   const actual = row[filter.column];
   switch (filter.operator) {
     case "eq":
-      return String(actual) === filter.value;
+      return equalValue(actual, filter.value);
     case "neq":
-      return String(actual) !== filter.value;
+      return !equalValue(actual, filter.value);
     case "is":
       return filter.value === "null" ? actual === null || actual === undefined : String(actual) === filter.value;
     case "in": {
@@ -388,3 +399,4 @@ function createFakeSupabase(options = {}) {
 }
 
 module.exports = { createFakeSupabase, PASSTHROUGH };
+

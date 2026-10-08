@@ -6,6 +6,7 @@ const { summarizeBusinessOperations } = require("../lib/sonara-business-analytic
 const { buildMapSnapshot } = require("../lib/sonara-location-map.cjs");
 const { templates: workflowTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
 const pages = require("../lib/sonara-waitlist-pages.cjs");
+const { createReservationPages, RESOURCE_PAGE } = require("../lib/sonara-reservation-pages.cjs");
 
 const TABLES = Object.freeze({
   bookings: "business_bookings",
@@ -44,6 +45,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
   }
 
   const enc = encodeURIComponent;
+  const resourcePages = createReservationPages({ layout, linkAction, escapeHtml });
 
   async function context(req) {
     const config = getSupabaseServerConfig();
@@ -113,6 +115,36 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       pages.addToWaitlistForm(resources, options),
       pages.resourcesCard(resources, options)
     ].filter(Boolean));
+  });
+
+  // A dedicated, accessible resource page complements the existing waitlist page.
+  // Keep the newer shared read model and analytics path rather than replacing them
+  // with the older reservation branch's operations handlers.
+  app.get(RESOURCE_PAGE, requireBusinessManager, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const scope = await context(req);
+    const [resources, locations] = scope.ok ? await Promise.all([
+      readResources(scope),
+      list(scope.config, "business_locations", scope.organizationId, "id,name", "&status=eq.active&order=name.asc,id.asc", 201)
+    ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }];
+    const unreadable = !scope.ok || !resources.ok || !locations.ok;
+    const failures = {
+      resource_name_required: "Enter a resource name and try again.",
+      invalid_capacity: "Capacity must be a whole number between 1 and 1000.",
+      invalid_location_id: "Choose a valid location for this business.",
+      location_not_yours: "The selected location is not part of this business.",
+      database_request_failed: "The resource could not be saved. Check the list before retrying."
+    };
+    const problem = String(req.query?.problem || "");
+    const error = Boolean(problem);
+    const message = error ? (failures[problem] || "The request could not be completed.")
+      : req.query?.done === "resource" ? "Your resource has been saved." : "";
+    return res.status(unreadable ? (scope.status || 503) : 200).type("html").send(resourcePages.resources({
+      rows: resources.rows || [], locations: (locations.rows || []).slice(0, 200),
+      workspaceId: req.sonaraBusinessMembership?.workspace_id || "",
+      unreadable, truncated: (resources.rows || []).length >= 1000 || (locations.rows || []).length >= 201,
+      error, message, createAction: "/api/business/reservation-resources"
+    }));
   });
 
   // One reader for the page and the JSON, so they cannot disagree. A source
@@ -225,12 +257,25 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!name) return respond(req, res, 400, { ok: false, code: "resource_name_required" }, "resource");
     const requestedType = clean(req.body?.resource_type || req.body?.resourceType || req.body?.asset_type, 40) || "equipment";
     const assetType = BUSINESS_ASSET_TYPES.has(requestedType) ? requestedType : "other";
-    const capacity = Math.min(1000, Math.max(1, Number(req.body?.capacity) || 1));
+    const capacity = Number(req.body?.capacity ?? 1);
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 1000) {
+      return respond(req, res, 400, { ok: false, code: "invalid_capacity" }, "resource");
+    }
+    const locationId = req.body?.location_id || req.body?.locationId || null;
+    if (locationId) {
+      if (!validUuid(locationId)) return respond(req, res, 400, { ok: false, code: "invalid_location_id" }, "resource");
+      const owned = await list(scope.config, "business_locations", scope.organizationId,
+        "id", `&id=eq.${enc(locationId)}`, 1);
+      if (!owned.ok) return respond(req, res, 503, { ok: false, code: "database_request_failed" }, "resource");
+      if (!owned.rows.some((row) => row.id === locationId)) {
+        return respond(req, res, 403, { ok: false, code: "location_not_yours" }, "resource");
+      }
+    }
     const created = await request(scope.config, TABLES.assets, "", {
       method: "POST",
       body: {
         organization_id: scope.organizationId,
-        location_id: validUuid(req.body?.location_id || req.body?.locationId) ? (req.body.location_id || req.body.locationId) : null,
+        location_id: locationId,
         name,
         asset_type: assetType,
         status: "active",
@@ -242,7 +287,11 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
         }
       }
     });
-    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, resource: created.rows[0] || null, code: created.code }, "resource");
+    const confirmed = created.ok && Boolean(created.rows[0]?.id);
+    return respond(req, res, confirmed ? 201 : 502, {
+      ok: confirmed, resource: created.rows[0] || null,
+      code: confirmed ? null : created.code || "database_request_failed"
+    }, "resource");
   });
 
   app.get("/api/business/waitlist", requireBusinessManager, async (req, res) => {

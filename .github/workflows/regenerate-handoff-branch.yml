@@ -7,6 +7,7 @@ on:
       - codex/google-signin-no-legacy-rebase-20260919
       - codex/convergence-execution-contract-20261007
       - codex/business-management-scope-20261007
+      - codex/reservation-workflows-20261007
 
 permissions:
   contents: write
@@ -40,7 +41,7 @@ jobs:
           pnpm run capability-map:write
           pnpm run report:capability-coverage
       - name: Regenerate management scope route evidence
-        if: github.ref_name == 'codex/business-management-scope-20261007'
+        if: github.ref_name == 'codex/business-management-scope-20261007' || github.ref_name == 'codex/reservation-workflows-20261007'
         run: |
           pnpm run capability-map:write
           pnpm run report:capability-coverage

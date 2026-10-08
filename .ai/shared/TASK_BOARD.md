@@ -95,3 +95,37 @@ The following entries preserve earlier checkpoints; their counts and branch stat
 - Current audited source `main`: `fa9402a8671bae7934925c5c64f147a221bf4e16`.
 - Latest READY Vercel production commit found: `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`.
 - Production remains behind source until an exact-SHA controlled deployment proves otherwise.
+
+## Booking workflow convergence — PR #445 — 2026-10-07
+
+- Creator PR #441 merged on main at `538fa5cd84e7725f8e99fa39ce105ec143f8a9f0`.
+  This workflow branch includes that update and the latest scope PR #443 head
+  `0dea677c377eab0b161cdaa16ba90e112ef21d39`.
+- Adds resource and waitlist screens linked from bookings, native form saves,
+  workspace-preserving redirects, and conditional offer writes that cannot
+  revive or overwrite changed bookings. A recorded offer is not a message,
+  time reservation or confirmed booking.
+- Local verification: 24 focused tests pass. Six actual server cases and four
+  desktop/mobile browser cases are included; full exact-head CI is pending.
+- The intended destination closure is five endpoints. Check generated evidence
+  before claiming a measured fallback reduction.
+- Merge #443 first. #444 independently owns market/prompt screens, destination
+  review evidence, and nested fake Supabase logical filters. Preserve those edits.
+- No production deployment, migration, customer message or live transaction.
+
+### PR #445 workflow proof at `6bb6a49aedf19ca2698df644c412f672283e0c9f`
+
+- Full server suite: 6,394 tests pass, including six real-server native form,
+  workspace, foreign-reference and concurrent-booking regressions.
+- Chromium: all 38 cases pass, including four new desktop/mobile native HTTP
+  workflows. Screenshots of both resource and offered-waitlist pages have been
+  inspected: readable cards and forms, no mobile horizontal overflow.
+- Generated inventory: 939 HTTP operations, 303 declared pages, zero route
+  data-contract review gaps and 56 workspace destination fallbacks (five closed).
+- CodeQL identified a case-sensitive script-tag assertion in the new unit test.
+  The assertion now checks mixed-case opening tags, including tags with attributes;
+  mixed-case malicious input is explicitly tested. Final exact-head checks rerun
+  after this correction. The runtime renderer already escaped those values.
+- Native HTTP browser evidence uses the real controller/renderer and runtime
+  assets with offline database and manager fixtures; real authorization runs in
+  the server regressions. No physical-device or live-customer proof is claimed.
