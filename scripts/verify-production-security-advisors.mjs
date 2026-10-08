@@ -6,8 +6,12 @@
 //
 // Policy:
 // - every WARN/ERROR security lint blocks deployment;
-// - leaked-password protection may remain a warning only while the existing
-//   SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION ratchet is not enabled;
+// - in --pre-migration mode only extension_in_public and
+//   authenticated_security_definer_function_executable may remain, because this
+//   release carries reviewed migrations for exactly those classes;
+// - after migration every security WARN/ERROR blocks deployment, including
+//   leaked-password protection, so external Auth configuration must be fixed
+//   before any production DDL is allowed;
 // - INFO findings (notably intentionally closed RLS tables with no policy)
 //   are reported, not converted into fake policies merely to make a dashboard
 //   green.
@@ -16,8 +20,11 @@ const MANAGEMENT_API = "https://api.supabase.com/v1/projects";
 
 const accessToken = String(process.env.SUPABASE_ACCESS_TOKEN || "").trim();
 const projectId = String(process.env.SUPABASE_PROJECT_ID || "").trim();
-const requireLeakedPasswordProtection =
-  String(process.env.SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION || "").toLowerCase() === "true";
+const preMigration = process.argv.includes("--pre-migration");
+const PRE_MIGRATION_REPAIRABLE = new Set([
+  "extension_in_public",
+  "authenticated_security_definer_function_executable"
+]);
 
 function fail(message) {
   console.error("[fail] " + message);
@@ -54,8 +61,8 @@ if (!process.exitCode) {
     if (!lints) {
       fail("security-advisor response did not include a lints array; Management API shape may have changed");
     } else {
-      let warnedLeakedPassword = false;
       const blocking = [];
+      const deferred = [];
 
       for (const lint of lints) {
         const name = String(lint?.name || "unknown_security_lint");
@@ -67,18 +74,21 @@ if (!process.exitCode) {
           continue;
         }
 
-        if (name === "auth_leaked_password_protection" && !requireLeakedPasswordProtection) {
-          warnedLeakedPassword = true;
-          console.log(
-            "[warn] auth_leaked_password_protection remains advisory until " +
-            "SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true; enable the Supabase setting before setting the ratchet"
-          );
-          continue;
-        }
-
         if (level === "WARN" || level === "WARNING" || level === "ERROR" || level === "CRITICAL") {
+          if (preMigration && PRE_MIGRATION_REPAIRABLE.has(name)) {
+            deferred.push({ name, level, count: Number.isFinite(count) ? count : null });
+            continue;
+          }
           blocking.push({ name, level, count: Number.isFinite(count) ? count : null });
         }
+      }
+
+      for (const item of deferred) {
+        console.log(
+          `[pre-migration] allowing ${item.level} ${item.name}` +
+          (item.count == null ? "" : ` (${item.count} finding(s))`) +
+          " only because this release contains the reviewed migration that must remove it; the strict post-migration pass still gates deployment"
+        );
       }
 
       if (blocking.length) {
@@ -90,9 +100,9 @@ if (!process.exitCode) {
         }
       } else if (!process.exitCode) {
         console.log(
-          `Production Supabase security advisor verified: no blocking WARN/ERROR findings` +
-          (warnedLeakedPassword ? "; leaked-password protection remains explicitly unratcheted" : "") +
-          "."
+          preMigration
+            ? "Production Supabase pre-migration security advisor verified: only explicitly migration-repairable WARNs may remain."
+            : "Production Supabase security advisor verified: no WARN/ERROR findings remain after migration."
         );
       }
     }
