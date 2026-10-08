@@ -34,7 +34,7 @@ The release evidence manifest records:
 - failed checks; and
 - one canonical SHA-256 evidence digest over the artifact set.
 
-`node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json` fails unless every required check succeeded, every required evidence file exists, and the evidence digest is well formed.
+`node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json` checks the manifest's reported status and digest syntax. **This check alone does not rehash evidence bytes.** The enforced CI step now runs `node scripts/verify-release-evidence-integrity.mjs --self-test`, then the existing status check, then `node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "$GITHUB_SHA"`. The second checker enforces all eight expected gates, each required artifact, exact SHA-1 Git commit identity, real file existence and SHA-256/byte-length equality, and a recomputed canonical digest. It rejects missing or duplicated evidence, skipped checks, traversal/symlink escape, stale bytes, and mismatched commits. It does not authenticate the original producing process or prove production/live-provider behavior; CI ownership, review, and post-deploy verification remain distinct.
 
 ## Tenant and adversarial proof
 
