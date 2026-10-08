@@ -2101,9 +2101,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
-    // A replay may arrive after a session or workspace switch. Capture scope is
-    // a consistency check, never an authorization source; use the live session.
-    if ((req.body.capture_user_id && req.body.capture_user_id !== org.userId)
+    // The signed-in session, not client-provided IDs, selects the organization.
+    // Delayed check-ins must carry BOTH original identities. A legacy record
+    // with no capture IDs could otherwise be attached to whichever account
+    // happens to be signed in on a shared phone/browser.
+    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
+    if ((sentLater && (!req.body.capture_user_id || !req.body.capture_organization_id))
+      || (req.body.capture_user_id && req.body.capture_user_id !== org.userId)
       || (req.body.capture_organization_id && req.body.capture_organization_id !== org.organizationId)) {
       return res.status(403).json({ ok: false, code: "check_in_scope_changed" });
     }
@@ -2184,7 +2188,6 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       }
       capturedAt = new Date(when).toISOString();
     }
-    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
 
     const payload = {
       organization_id: org.organizationId,
