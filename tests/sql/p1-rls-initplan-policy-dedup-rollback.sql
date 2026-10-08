@@ -68,7 +68,15 @@ BEGIN
        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
        AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+   RAISE EXCEPTION 'subscription policies require review; observed=%', (
+       SELECT left(coalesce(jsonb_agg(jsonb_build_object(
+         'policy',policyname,'permissive',permissive,'roles',roles,
+         'command',cmd,'using',qual,'check',with_check
+       ) ORDER BY policyname)::text, 'none'), 1900)
+       FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
+         AND policyname IN ('Users can view own subscriptions',
+                            'Users can view their own subscription')
+     );
  END IF;
 END
 $drift$;
