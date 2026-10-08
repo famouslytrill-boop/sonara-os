@@ -184,6 +184,50 @@ describe("free login-based SONARA platform surface policy", () => {
       assert.equal(blocked.items.length, 0);
     });
 
+    it("refuses to advertise unknown sponsorship or generated-media status as organic", () => {
+      for (const candidate of [
+        base({ sponsored: undefined }),
+        base({ sponsored: "false" }),
+        base({ aiGenerated: undefined }),
+        base({ aiGenerated: "false" })
+      ]) {
+        const result = selectCommunityCandidates([candidate], { now: TIME });
+        assert.equal(result.ok, true);
+        assert.equal(result.items.length, 0);
+        assert.equal(result.hasMoreCandidates, false);
+      }
+      const paid = selectCommunityCandidates([base({ sponsored: true, aiGenerated: true })], {
+        now: TIME, aiContent: "include"
+      });
+      assert.equal(paid.items.length, 1);
+      assert.equal(paid.items[0].sponsored, true);
+      assert.equal(paid.items[0].aiGenerated, true);
+    });
+
+    it("only signals a next discovery page when another diversity-eligible candidate exists", () => {
+      const second = base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        href: "/channels/second", publishedAt: "2026-10-08T10:00:00.000Z" });
+      const third = base({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        href: "/store/third", publishedAt: "2026-10-08T09:00:00.000Z" });
+      const alternative = base({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        publisherId: B, href: "/marketplace/another",
+        publishedAt: "2026-10-08T08:00:00.000Z" });
+      const params = { now: TIME, mode: "discover", discoveryOptIn: true,
+        topics: ["music"], limit: 2 };
+      const exhausted = selectCommunityCandidates([base(), second, third], params);
+      assert.equal(exhausted.items.length, 2);
+      assert.equal(exhausted.hasMoreCandidates, false,
+        "the only remaining candidate is excluded by publisher diversity");
+      const more = selectCommunityCandidates([base(), second, third, alternative], params);
+      assert.equal(more.items.length, 2);
+      assert.equal(more.hasMoreCandidates, true,
+        "another verified publisher remains after the display limit");
+      const latest = selectCommunityCandidates([base(), second, third],
+        { now: TIME, mode: "latest", limit: 2 });
+      assert.equal(latest.hasMoreCandidates, true,
+        "chronological browsing should not apply the discovery diversity cap");
+    });
+
     it("enforces explicit Following and deterministic opt-in discovery with publisher diversity", () => {
       const second = base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         href: "/channels/creator2", publishedAt: "2026-10-08T10:00:00.000Z" });
