@@ -7,6 +7,7 @@ const { buildMapSnapshot } = require("../lib/sonara-location-map.cjs");
 const { templates: workflowTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
 const pages = require("../lib/sonara-waitlist-pages.cjs");
 const { createReservationPages, RESOURCE_PAGE } = require("../lib/sonara-reservation-pages.cjs");
+const { looksLikeEmail } = require("../lib/sonara-email-shape.cjs");
 
 const TABLES = Object.freeze({
   bookings: "business_bookings",
@@ -69,9 +70,12 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
     }).catch(() => null);
     if (!response) return { ok: false, status: 502, code: "database_unreachable", rows: [] };
-    const payload = await response.json().catch(() => []);
-    if (!response.ok) return { ok: false, status: 502, code: "database_request_failed", rows: [] };
-    return { ok: true, status: response.status, rows: Array.isArray(payload) ? payload : [] };
+    const payload = response.status === 204 ? [] : await response.json().catch(() => null);
+    if (!response.ok) return { ok: false, status: 503, code: "database_request_failed", rows: [] };
+    // PostgREST representation must be an array. A 200 with malformed JSON
+    // is a failed read, not evidence that the tenant has zero records.
+    if (!Array.isArray(payload)) return { ok: false, status: 503, code: "database_response_invalid", rows: [] };
+    return { ok: true, status: response.status, rows: payload };
   }
 
   async function list(config, table, organizationId, select, extra = "", limit = 1000) {
@@ -81,19 +85,21 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
 
   // The two reads the waitlist page and its JSON twins share, so the page and
   // the API cannot disagree about what is bookable or who is waiting.
-  async function readResources(scope) {
+  async function readResources(scope, limit = 1000) {
     const rows = await list(scope.config, TABLES.assets, scope.organizationId,
-      "id,location_id,name,asset_type,status,metadata,created_at,updated_at", "&status=eq.active", 1000);
-    if (!rows.ok) return { ok: false, code: rows.code, rows: [] };
-    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.bookable === true) };
+      "id,location_id,name,asset_type,status,metadata,created_at,updated_at", "&status=eq.active", limit);
+    if (!rows.ok) return { ok: false, code: rows.code, rows: [], partial: false };
+    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.bookable === true), partial: rows.rows.length >= limit };
   }
 
   async function readWaitlist(scope) {
     const rows = await list(scope.config, TABLES.bookings, scope.organizationId,
       "id,location_id,service_id,assigned_employee_id,customer_id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,notes,metadata,created_at,updated_at",
       "&status=eq.requested&order=created_at.asc", 1000);
-    if (!rows.ok) return { ok: false, code: rows.code, rows: [] };
-    return { ok: true, rows: rows.rows.filter((row) => row?.metadata?.waitlist === true && row?.metadata?.waitlist_state !== "booked" && row?.metadata?.waitlist_state !== "cancelled") };
+    if (!rows.ok) return { ok: false, code: rows.code, rows: [], partial: false };
+    return { ok: true, rows: rows.rows.filter((row) =>
+      row?.metadata?.waitlist === true && row?.metadata?.waitlist_state !== "booked"
+      && row?.metadata?.waitlist_state !== "cancelled"), partial: rows.rows.length >= 1000 };
   }
 
   app.get(WAITLIST_PAGE, requireBusinessManager, async (req, res) => {
