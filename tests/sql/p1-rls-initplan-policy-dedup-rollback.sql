@@ -71,24 +71,41 @@ BEGIN
 END
 $verify_optimized_policy_baseline$;
 
--- A rollback-only exercise for exact duplicate subscription SELECT policies.
-DO $check_duplicate_before$
+-- A guarded staging exercise: the exact duplicate may already have been
+-- removed in another migration. Either state is valid only with the expected
+-- surviving authenticated/owner-scoped policy and no unrelated policy.
+DO $dedup$
+DECLARE
+  matched integer;
+  total integer;
 BEGIN
-  IF (SELECT count(*) FROM pg_policies
-      WHERE schemaname = 'public' AND tablename = 'subscriptions'
-        AND policyname IN ('Users can view own subscriptions',
-                           'Users can view their own subscription')
-        AND permissive = 'PERMISSIVE'
-        AND roles = ARRAY['authenticated']::name[]
-        AND cmd = 'SELECT'
-        AND qual = '(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 2 THEN
-    RAISE EXCEPTION 'subscription dedup preflight definitions drifted; abort';
+  SELECT count(*) INTO matched FROM pg_policies
+   WHERE schemaname='public' AND tablename='subscriptions'
+     AND policyname IN ('Users can view own subscriptions',
+                        'Users can view their own subscription')
+     AND permissive='PERMISSIVE'
+     AND roles=ARRAY['authenticated']::name[]
+     AND cmd='SELECT'
+     AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+     AND with_check IS NULL;
+  SELECT count(*) INTO total FROM pg_policies
+   WHERE schemaname='public' AND tablename='subscriptions'
+     AND policyname IN ('Users can view own subscriptions',
+                        'Users can view their own subscription');
+  IF matched <> total OR matched NOT IN (1, 2)
+     OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+                   AND tablename='subscriptions'
+                   AND policyname='Users can view own subscriptions') THEN
+    RAISE EXCEPTION 'subscription policy owner scope or inventory drift; abort';
+  END IF;
+  IF matched = 2 THEN
+    EXECUTE 'DROP POLICY "Users can view their own subscription" ON public.subscriptions';
+    RAISE NOTICE 'duplicate subscription SELECT policy dropped for rollback proof';
+  ELSE
+    RAISE NOTICE 'subscription SELECT duplicate already absent; verified owner scope';
   END IF;
 END
-$check_duplicate_before$;
-
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+$dedup$;
 
 -- Exact after-state and rollback proof: neither a role nor any of the
 -- optimized RLS rules was modified by the dedup exercise.
