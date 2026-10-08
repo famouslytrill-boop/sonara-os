@@ -389,6 +389,12 @@ jobs:
           set -euo pipefail
           node scripts/verify-production-project-identity.mjs
 
+      - name: Block non-migration security warnings before production DDL
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-production-security-advisors.mjs --pre-migration
+
       - name: Link and preview production database migrations
         shell: bash
         run: |
