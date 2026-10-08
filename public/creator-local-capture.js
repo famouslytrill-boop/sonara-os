@@ -68,7 +68,14 @@
       timer = window.setTimeout(() => stop.click(), 60000);
       if (kind === "camera") {
         video.srcObject = stream; video.hidden = false;
-        await video.play();
+        try {
+          // A returned MediaStream is not proof its frames can play. Some
+          // WebKit/Linux builds expose captureStream() but cannot render its
+          // synthetic tracks. Refuse an unusable preview and close the stream.
+          await video.play();
+        } catch {
+          throw new Error("Camera capture is unavailable in this browser. You can still open your own files.");
+        }
         if (revision !== sequence) return;
         photo.hidden = false;
         status.textContent = "Camera preview is on. It stops after 60 seconds. Take a photo or stop when finished.";
