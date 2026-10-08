@@ -661,6 +661,30 @@ test.describe("cross-device adaptive workspace browser contract", () => {
     }, html);
   }
 
+  test("nested studio navigation highlights its section and keeps local labels concise", async ({ page }) => {
+    const html = frame.layout({
+      title: "Creator project",
+      eyebrow: "Creator Studio",
+      heading: "My project",
+      body: "Continue your project.",
+      sections: [],
+      actions: [],
+      authenticated: true
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem("sonara:nexus:preferences:v2", JSON.stringify({
+        language: "es", theme: "system", motion: "off", sound: "off", haptics: "off"
+      }));
+    });
+    await page.route("**/creator-studio/projects", (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: html }));
+    await page.goto(BASE_URL + "/creator-studio/projects");
+    const dock = page.getByRole("navigation", { name: "Workspace shortcuts" });
+    await expect(dock.locator("a")).toHaveText(["Inicio", "Negocio", "Crear", "Crecer"]);
+    await expect(dock.locator('a[href="/creator-studio/assets"]')).toHaveAttribute("aria-current", "location");
+    await expect(dock.locator('a[aria-current]')).toHaveCount(1);
+  });
+
   test("touch dock respects safe scrolling, keyboard focus and window resizing", async ({ browser }) => {
     const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
     try {
