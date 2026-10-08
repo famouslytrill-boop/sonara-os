@@ -85,17 +85,17 @@ describe("cross-device workspace navigation", () => {
   });
 
   it("reserves scroll clearance for focus rather than relying on body padding alone", () => {
-    assert.match(shellStyles, /html\\[data-sonara-workspace-dock="true"\\]/);
-    assert.match(shellStyles, /scroll-padding-block-end:\\s*calc\\(96px/);
-    assert.match(shellStyles, /@media \\(max-height: 480px\\)/);
-    assert.match(shellStyles, /html\\[data-sonara-workspace-dock="true"\\] \\{ scroll-padding-block-end: 0; \\}/);
+    assert.match(shellStyles, /html\[data-sonara-workspace-dock="true"\]/);
+    assert.match(shellStyles, /scroll-padding-block-end:\s*calc\(96px/);
+    assert.match(shellStyles, /@media \(max-height: 480px\)/);
+    assert.match(shellStyles, /html\[data-sonara-workspace-dock="true"\] \{ scroll-padding-block-end: 0; \}/);
   });
 
   it("uses panel width, not device name, for narrow command controls", () => {
-    assert.match(shellStyles, /@supports \\(container-type: inline-size\\)/);
-    assert.match(shellStyles, /@container \\(max-width: 420px\\)/);
-    assert.match(shellStyles, /\\.sonara-ops-panel,[\\s\\S]*?container-type: inline-size/);
-    assert.match(shellStyles, /\\.sonara-ops-commandbar \\[data-primary-action\\][\\s\\S]*?margin-inline-start: 0;/);
+    assert.match(shellStyles, /@supports \(container-type: inline-size\)/);
+    assert.match(shellStyles, /@container \(max-width: 420px\)/);
+    assert.match(shellStyles, /\.sonara-ops-panel,[\s\S]*?container-type: inline-size/);
+    assert.match(shellStyles, /\.sonara-ops-commandbar \[data-primary-action\][\s\S]*?margin-inline-start: 0;/);
   });
 
   it("cannot trigger a device permission or network call through the dock", () => {
