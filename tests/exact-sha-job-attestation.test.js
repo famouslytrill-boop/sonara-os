@@ -300,6 +300,12 @@ describe("immutable release SHA requires complete job-level evidence", () => {
       }).map(block => block.split("\n")[0].slice("      - name: ".length));
       assert.deepEqual(seen.sort(), approved.slice().sort(),
         credential + " may be used only by the reviewed steps, with no omissions");
+      // An otherwise-correct allowlist does not catch an EXTRA binding in
+      // an action's with: input, shell command, or a second unreviewed env.
+      // Count the literal secret source across the entire workflow as well.
+      const binding = "\u0024{{ secrets." + credential + " }}";
+      assert.equal(workflow.split(binding).length - 1, approved.length,
+        credential + " has an undeclared secret reference outside its approved step env");
       for (const step of steps.filter(block => approved.some(name =>
         block.startsWith("      - name: " + name + "\n")))) {
         assert.ok(step.includes(credential + ": ${{ secrets." + credential + " }}"),
