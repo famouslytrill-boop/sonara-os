@@ -1337,6 +1337,9 @@ app.post("/api/billing/create-portal-session", async (req, res) => {
   const secretStatus = getStripeSecretStatus();
   if (secretStatus.status !== "configured") return sendSetupRequired(req, res, 503, "stripe_secret_key", secretStatus.status);
 
+  const publicOrigin = getPublicAppUrl(req);
+  if (!publicOrigin) return sendSetupRequired(req, res, 503, "site_origin", "site_origin_not_configured");
+
   const stripeCustomer = await getOrCreateStripeCustomer(customer.user, organization.organizationId);
   if (!stripeCustomer.ok) return sendSetupRequired(req, res, 503, "stripe_customer", stripeCustomer.code || "not_available");
 
@@ -1345,7 +1348,7 @@ app.post("/api/billing/create-portal-session", async (req, res) => {
     headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       customer: stripeCustomer.stripeCustomerId,
-      return_url: `${getPublicAppUrl(req)}/business-builder/billing`
+      return_url: `${publicOrigin}/business-builder/billing`
     }).toString()
   }).catch(() => undefined);
   if (!response?.ok) return sendSetupRequired(req, res, 502, "stripe_customer_portal", "portal_unavailable");
