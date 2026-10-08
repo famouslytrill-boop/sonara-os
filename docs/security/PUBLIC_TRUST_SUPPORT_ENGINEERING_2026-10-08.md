@@ -85,3 +85,18 @@ These are **proposed thresholds, not verified SLOs or existing alerts**. Never a
 - W3C WCAG 2.2: https://www.w3.org/TR/WCAG22/
 - Gmail sender rules: https://support.google.com/mail/answer/81126
 - SONARA governance: `docs/legal/2026-09-23-LEGAL-TERMS-TRADEMARK-GOVERNANCE.md`
+
+## Cross-application enforcement extension (2026-10-08)
+
+The parent and all three studios render public/operational HTML through `lib/sonara-page-frame.cjs` (except intentionally self-rendered special surfaces such as LeadForge). Shared navigation now comes from `lib/sonara-trust-navigation.cjs` instead of hand-copying links into each studio. Tests cover parent/studio public pages, tutorial pages, canonical legal footer links, and a shared contact form used at `/contact` and `/support`.
+
+All public submissions from the two documented support forms go through the same server-side input gate and hashed-IP/hashed-email rate limiter; overlong or non-string fields, control characters in subjects, missing consent, and filled honeypots are rejected before persistence or email. These controls do not, by themselves, establish tenant isolation for the rest of the application or full email deliverability.
+
+### Release blockers outside this scoped change
+
+- Re-run full route × actor × organization authorization adversarial tests for authenticated customer, owner, support and provider roles. A footer link is not authorization.
+- Inspect one-off standalone-rendered public surfaces, mobile wrappers and offline UI separately; they do not automatically inherit the shared HTML shell.
+- Verify runtime effective database grants as well as RLS. Supabase announced that public-schema tables will no longer be automatically exposed via the Data API for existing projects on **October 30, 2026**. Existing explicit grants may need review; do not grant blanket access to compensate for permission errors. Source: https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically
+- Verify real Resend sender DNS, Supabase Auth SMTP, support delivery receipts, and email suppression/complaint routing. No production secrets or customer messages are involved in this patch.
+- Determine whether any public legal text, pricing, cancellation or privacy representation needs counsel approval; no legal notices or acceptance records were changed here.
+- Keep all work in a draft pull request until the final commit's exact-head CI is green and production is separately authorized.
