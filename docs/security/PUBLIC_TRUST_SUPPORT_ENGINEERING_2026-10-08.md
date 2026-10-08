@@ -7,9 +7,9 @@ Scope: SONARA Industries, Business Builder™, Creator Studio™, Growth Studio�
 ## What this change implements
 
 - The existing public `/help` route gains eight accessible, native HTML FAQ answers, with direct routes to real support, tutorials, account security, billing and policy destinations. No parallel FAQ database or speculative chatbot is introduced.
-- The `POST /contact` handler now uses the existing server-side `createRateLimiter` service with hashed IP and submitted-email scopes. Default is 60 attempts per 60 minutes for each scope, enforced by the atomic Supabase rate-limit RPC when configured.
+- Both public submissions, `POST /contact` and `POST /support/request`, share the existing server-side `createRateLimiter` service with hashed IP and submitted-email scopes. Default is 60 attempts per 60 minutes for each scope, enforced by the atomic Supabase rate-limit RPC when configured.
 - The existing rate-limit service provides a bounded, *non-distributed* fallback when the durable RPC is unavailable and emits a redacted degradation event. This is partial resilience, **not** proof of protection against distributed attacks in fallback mode.
-- Support request outcomes emit a single structured `support.request_submission` event with only status and outcome. No name, address, message text, token or email body is logged by this new event.
+- Both support request paths emit one structured `support.request_submission` event with status, outcome and static source route; records keep the actual source route. No name, address, message text, token or email body is logged by this new event.
 - The public form now labels its request-type select, gives a plain-language sensitive-data warning, exposes a 4000-character cap, and adds a supplementary hidden honeypot. The honeypot alone is not an anti-bot security boundary.
 - Invalid form submissions preserve the fields the user typed, escaped as HTML; the password fields elsewhere must never be reflected.
 - No tables, RLS policies, secret values, production environments, billing data or consent records are changed by this branch.
@@ -21,7 +21,7 @@ Scope: SONARA Industries, Business Builder™, Creator Studio™, Growth Studio�
 | Public About | `GET /about` | Mission, accurate product description, no unverifiable production/security claims |
 | Help and FAQ | `GET /help` and `lib/sonara-public-faq.cjs` | Accessible disclosure, linked destinations, status-aware language |
 | Instructions | `/tutorials` and four tutorials | Task steps, preconditions, actual end points, known limitations |
-| Contact intake | `POST /contact`, `support_requests` | Validate input, bound abuse, save and/or email, truthful outcome |
+| Contact intake | `POST /contact`, `POST /support/request`, `support_requests` | Shared abuse budget, input validation, actual source route, save/email and truthful outcome |
 | Account controls | `/account/security`, auth routes | Server authorization and session checks; no public role grants |
 | Public security notice | `/security` | High-level posture without guarantees or vendor-secret details |
 | Legal notices | `/terms`, `/privacy`, `/refund-policy`, `/acceptable-use`, `/cookies`, `/accessibility` | Correct policy owner, current version/effective date, counsel approval |
@@ -69,7 +69,7 @@ These are **proposed thresholds, not verified SLOs or existing alerts**. Never a
 ## Release acceptance gates
 
 1. Run targeted `pnpm test -- --grep "public trust, help and support"`, plus the existing rate-limiter, support, security and marketing-page suites. Run `pnpm run verify:launch` on the final exact head; no bypass for already-open CI failures.
-2. Test 429 response from `POST /contact` with durable Supabase RPC available; then force RPC failure and confirm bounded fallback plus `rate_limit.degraded`. Observe that no storage or email call happens after a denied request.
+2. Test 429 responses across the shared budget for both `POST /contact` and `POST /support/request` with durable Supabase RPC available; then force RPC failure and confirm bounded fallback plus `rate_limit.degraded`. Observe that no storage or email call happens after a denied request.
 3. Test malformed/oversized requests, malicious HTML, filled honeypot, absent consent, provider 5xx, support DB failure, concurrent requests and recovery.
 4. Prove three cross-tenant roles cannot access each other's records, including exports, admin/support queues and service-role-backed queries.
 5. Audit form contrast, keyboard focus, error announcements, screen-reader summary behavior, mobile reflow and the full legal/support nav.
