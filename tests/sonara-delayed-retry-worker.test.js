@@ -79,7 +79,7 @@ describe("private PostgreSQL delayed retry boundary",()=>{
       jobId:JOB,claimToken:TOKEN,fencingToken:1,organizationId:ORG,
       resourceKey,operationId:"operation-1",attempt:1,deadlineAtMs:NOW+60_000
     };},complete:async x=>{sequence.push("complete:"+x.outcome);return true;}};
-    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,
+    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,isPaused:async()=>false,
       authorize:async x=>{sequence.push("authorize");return {authorized:true,tenantVerified:x.organizationId===ORG,idempotencyVerified:true,fencingVerified:true,operationRetryable:true};},
       perform:async()=>{sequence.push("perform");},
       verify:async()=>{sequence.push("verify");return {healthy:true,tenantVerified:true,operationVerified:true};}
@@ -90,7 +90,7 @@ describe("private PostgreSQL delayed retry boundary",()=>{
   it("prevents provider effects without current authorization",async()=>{
     let calls=0;
     const worker={claimDue:async()=>({...claimed,jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+10000}),complete:async x=>{assert.equal(x.outcome,"unverified");return true;}};
-    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,
+    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,isPaused:async()=>false,
       authorize:async()=>({authorized:true,tenantVerified:false,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
       perform:async()=>{calls++;},verify:async()=>({healthy:true})});
     assert.equal(result.reason,"current_authority_not_proven");
@@ -100,7 +100,7 @@ describe("private PostgreSQL delayed retry boundary",()=>{
     let effects=0, terminal;
     const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+10000}),
       complete:async ({outcome})=>{terminal=outcome;return true;}};
-    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,isPaused:async()=>false,
       authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
       perform:async()=>{effects++;throw Error("provider accepted but response lost");},
       verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
@@ -111,9 +111,30 @@ describe("private PostgreSQL delayed retry boundary",()=>{
     let effects=0;
     const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+500}),
       complete:async()=>false};
-    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,isPaused:async()=>false,
       authorize:async()=>({authorized:true}),perform:async()=>{effects++;},verify:async()=>({healthy:true})});
     assert.equal(effects,0);assert.equal(r.reason,"deadline_and_terminal_audit_failed");
+  });
+  it("requires a real pause adapter on an enabled worker",async()=>{
+    let claims=0;
+    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,
+      worker:{claimDue:async()=>{claims++;return null;},complete:async()=>true},
+      authorize:async()=>({authorized:true}),perform:async()=>{},verify:async()=>({healthy:true})});
+    assert.equal(result.reason,"worker_dependencies_missing");
+    assert.equal(claims,0);
+  });
+  it("does not execute when pause verification finishes after the deadline",async()=>{
+    let actions=0;let ticks=0;let terminal;
+    const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+10000}),
+      complete:async({outcome})=>{terminal=outcome;return true;}};
+    const result=await runOneDueRecovery({enabled:true,nowMs:NOW,worker,
+      clock:()=>++ticks===1?NOW:NOW+10001,isPaused:async()=>false,
+      authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,
+        fencingVerified:true,operationRetryable:true}),
+      perform:async()=>{actions++;},verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
+    assert.equal(actions,0);
+    assert.equal(terminal,"unverified");
+    assert.equal(result.reason,"deadline_expired_during_pause_check");
   });
   it("rechecks the deadline after authorization, before any provider effect",async()=>{
     let effects=0;let terminal;
