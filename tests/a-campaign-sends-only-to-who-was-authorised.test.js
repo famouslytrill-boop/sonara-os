@@ -52,7 +52,7 @@ function okFetch(calls) {
     for (const message of batch) calls.messages.push({ url: String(url), body: message });
     // A batch call must answer with one id per email or the dispatcher falls
     // back, so the stub answers the way a clean batch does.
-    return { ok: true, status: 200, json: async () => ({ data: batch.map((unused, index) => ({ id: `id-${index}` })) }) };
+    return { ok: true, status: 200, json: async () => batch.length === 1 ? { id: "id-single" } : { data: batch.map((unused, index) => ({ id: `id-${index}` })) } };
   };
 }
 
@@ -222,65 +222,38 @@ describe("a campaign sends only to who was authorised", () => {
   });
 
   describe("when some of the sends fail", () => {
-    it("counts and names the failures rather than reporting success", async () => {
-      // An owner told "sent" when 40 bounced has been told something false.
-      const decision = authorised([
-        { email: "good@example.com", consent: CONSENTED },
-        { email: "bad@example.com", consent: CONSENTED },
-      ]);
-
-      const fetchImpl = async (url, options) => {
-        const to = JSON.parse(options.body).to[0];
-        return to === "bad@example.com" ? { ok: false, status: 422 } : { ok: true, status: 200 };
-      };
-
-      const result = await dispatchCampaign({ ...SEND, decision, appendLedger: async () => ({ ok: true }), fetchImpl });
-      assert.equal(result.code, "partly_sent");
-      assert.equal(result.sent, 1);
+    it("reports a definite single-recipient rejection without labeling it accepted", async () => {
+      const decision = authorised([{ email: "bad@example.com", consent: CONSENTED }]);
+      const result = await dispatchCampaign({
+        ...SEND, decision, appendLedger: async () => ({ ok: true }),
+        fetchImpl: async () => ({ ok: false, status: 422 })
+      });
+      assert.equal(result.code, "all_failed");
+      assert.equal(result.sent, 0);
       assert.equal(result.failed.length, 1);
-      assert.equal(result.failed[0].email, "bad@example.com", "the owner needs to know WHO did not receive it");
-      assert.equal(result.failed[0].status, 422, "a 422 and a 429 need different actions");
+      assert.equal(result.failed[0].email, "bad@example.com");
+      assert.equal(result.failed[0].status, 422);
     });
 
-    it("charges for what was accepted, not for what was attempted", async () => {
-      // We pay Resend per accepted message. Billing for attempts would charge
-      // the customer for our own failed requests.
-      //
-      // CORRECTED 10 September 2026. This test used three recipients with one
-      // accepted and asserted `units === 1`, which encoded a real bug rather
-      // than catching it: the sender authorises credit against
-      // MINIMUM_BILLABLE_EMAILS and tells the customer "billed at the 10-email
-      // minimum", while the draw here used the raw accepted count. Both numbers
-      // sat below the minimum, so the test could not see the disagreement, and
-      // the charge went out at exactly the zero margin the minimum exists to
-      // prevent.
-      //
-      // Twenty-four recipients with four rejected puts BOTH counts clear of the
-      // minimum, so the assertion actually distinguishes accepted from
-      // attempted instead of collapsing them onto the floor.
-      const addresses = Array.from({ length: 24 }, (unused, index) => `bulk${index}@example.com`);
-      const rejected = new Set(["bulk0@example.com", "bulk3@example.com", "bulk7@example.com", "bulk9@example.com"]);
-      const decision = authorised(addresses.map((email) => ({ email, consent: CONSENTED })));
-
-      const rows = [];
-      const fetchImpl = async (url, options) =>
-        (rejected.has(JSON.parse(options.body).to[0]) ? { ok: false, status: 500 } : { ok: true, status: 200 });
-
+    it("charges only for recipients with complete provider receipts", async () => {
+      // Four eligible contacts have unusable unsubscribe identities, so they
+      // cannot be sent. The remaining 20 have distinct batch provider IDs.
+      const decision = authorised(Array.from({ length: 24 }, (_, i) => ({
+        email: `bulk${i}@example.com`, consent: CONSENTED,
+        ...(i < 4 ? { id: null } : {})
+      })));
+      const ledgerRows = [];
       const result = await dispatchCampaign({
-        ...SEND,
-        decision,
-        appendLedger: async (row) => {
-          rows.push(row);
-          return { ok: true };
-        },
-        fetchImpl
+        ...SEND, decision,
+        appendLedger: async (row) => { ledgerRows.push(row); return { ok: true }; },
+        fetchImpl: okFetch(recorder())
       });
-
       assert.equal(result.sent, 20);
-      assert.equal(rows.length, 1);
-      assert.equal(rows[0].units, 20, "twenty-four attempted, twenty accepted, twenty charged");
-      assert.equal(rows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
-      assert.notEqual(rows[0].amount_minor, quote("campaign_email", 24).chargeMinor, "billing the attempts would charge for our own failures");
+      assert.equal(result.failed.length, 4);
+      assert.equal(ledgerRows.length, 1);
+      assert.equal(ledgerRows[0].units, 20);
+      assert.equal(ledgerRows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
+      assert.notEqual(ledgerRows[0].amount_minor, quote("campaign_email", 24).chargeMinor);
     });
 
     it("bills a small campaign at the minimum the sender authorised, not at the raw count", async () => {
@@ -297,7 +270,7 @@ describe("a campaign sends only to who was authorised", () => {
           rows.push(row);
           return { ok: true };
         },
-        fetchImpl: async () => ({ ok: true, status: 200 })
+        fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ id: "id-single" }) })
       });
 
       assert.equal(result.sent, 1);
@@ -309,7 +282,7 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(quote("campaign_email", 1).marginMinor, 0, "and one email at the raw count is the zero-margin case it prevents");
     });
 
-    it("charges nothing when every send failed", async () => {
+    it("charges nothing when provider completion is unconfirmed", async () => {
       const decision = authorised([{ email: "a@example.com", consent: CONSENTED }]);
       const rows = [];
       const result = await dispatchCampaign({
@@ -323,11 +296,12 @@ describe("a campaign sends only to who was authorised", () => {
       });
 
       assert.equal(result.ok, false);
-      assert.equal(result.code, "all_failed");
-      assert.equal(rows.length, 0, "nothing was delivered, so nothing may be charged");
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 1);
+      assert.equal(rows.length, 0, "unknown delivery cannot be charged as confirmed");
     });
 
-    it("treats a thrown request as a failure, not as a success", async () => {
+    it("treats a thrown request as uncertain, not as verified acceptance", async () => {
       const decision = authorised([{ email: "a@example.com", consent: CONSENTED }]);
       const result = await dispatchCampaign({
         ...SEND,
@@ -338,7 +312,8 @@ describe("a campaign sends only to who was authorised", () => {
         }
       });
       assert.equal(result.sent, 0);
-      assert.equal(result.failed.length, 1);
+      assert.equal(result.failed.length, 0);
+      assert.equal(result.uncertain.length, 1);
     });
   });
 
@@ -650,7 +625,7 @@ describe("a campaign sends only to who was authorised", () => {
         const emails = JSON.parse(options.body);
         return Array.isArray(emails)
           ? { ok: true, status: 200, json: async () => ({ data: emails.map((_, i) => ({ id: `id-${i}` })) }) }
-          : { ok: true, status: 200 };
+          : { ok: true, status: 200, json: async () => ({ id: "id-single" }) };
       };
       const input = {
         ...SEND, decision: many(2), fetchImpl: capture,
