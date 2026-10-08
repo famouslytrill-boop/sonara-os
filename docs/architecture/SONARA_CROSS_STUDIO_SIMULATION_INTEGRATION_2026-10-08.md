@@ -1,12 +1,12 @@
 # SONARA One — Cross-studio mathematical and simulation integration, October 8, 2026
 
-**Status:** coded on draft PR #530, **not merged**, **not deployed**, **not available to execute from the public/customer website**. Existing invention-systems research catalog has been augmented with READ-ONLY metadata; no endpoints were added that evaluate arbitrary customer computations. No migrations, database writes, provider accounts, billing hooks or platform permissions were changed.
+**Status:** coded on draft PR #530, **not merged**, **not deployed**, **not available publicly; three bounded, stateless educational GET calculations are now implemented on the existing customer-authenticated research page, subject to release**. Existing invention-systems research catalog has been augmented with READ-ONLY metadata; no new API endpoint was added; the existing authenticated page now supports three fixed-schema, inexpensive customer-supplied examples. No migrations, database writes, provider accounts, billing hooks or platform permissions were changed.
 
 ## What changed
 
 1. **lib/sonara-simulation-integration.cjs** is the new owned, dependency-free internal registry and dispatcher. It imports the existing pure engines for calculus/geometry, game state, probability/roulette, cards/poker and strategy, and now music/narrative theory. It does not import Express, Stripe, Supabase, network or storage.
 2. **lib/sonara-creative-theory-models.cjs** adds named chord intervals and MIDI note frequencies, plus tension-curve analysis of caller-authored narrative beat IDs/scores. No sounds, copyrighted book text or films are generated.
-3. **routes/invention-systems-routes.cjs** extends the EXISTING authenticated-by-host \`GET /api/invention-systems/catalog\` with \`researchSimulations\` and adds a clearly qualified overview card to the EXISTING \`/market-intelligence/invention-systems\` page. No POST, mutation, user-input evaluation endpoint or cash transfer endpoint added. The precomputed research examples shown on page load are read-only: 4×3 area, C major chord notes and matching-pennies mixed equilibrium.
+3. **routes/invention-systems-routes.cjs** extends the EXISTING authenticated-by-host \`GET /api/invention-systems/catalog\` with \`researchSimulations\` and adds a clearly qualified overview card to the EXISTING \`/market-intelligence/invention-systems\` page. No POST, new API endpoint, mutation or cash transfer endpoint was added. Fixed reference examples remain, while bounded customer-supplied inputs now calculate geometry, chord and 2×2 strategic-payoff examples.
 4. **tests/sonara-simulation-integration.test.js**, **tests/invention-simulation-catalog-route.test.js** and **tests/sonara-creative-theory-models.test.js** verify cross-studio mapping, read-only route behavior, bounded inputs, malicious parameters, non-execution status, harmony and story-beat arithmetic.
 
 ### Studio capability mapping (15 total)
@@ -43,7 +43,7 @@ References:
 
 **P1 — secure runtime design before implementing it:** decide whether simulation results should be persistent. Define research_experiments and scenario_provenance tables only when a real customer workflow requires them, with explicit tenant, user, studio, engine_version, input_hash, retention, budget reservation and state transition columns. Scope \`SELECT\`/\`INSERT\`/deletion policy separately. Migration must revoke default anon/authenticated grants and grant only needed operations, enable RLS and include pgTAP cross-tenant allow/deny checks. Existing tables might already cover provenance; deduplicate before migration.
 
-**P1 — actual customer UI:** use the existing research-lab/invention-systems destination as an entry point; deliver step-by-step educational simulations with consented manual input, labeled uncertainty, accessible focus/keyboard navigation and typed outputs. Do NOT add inert buttons or fake subscription/betting dashboards. The current read-only catalog, accompanied by three fixed-input examples, is not such a user-interactive UI.
+**P1 — actual customer UI:** use the existing research-lab/invention-systems destination as an entry point; deliver step-by-step educational simulations with consented manual input, labeled uncertainty, accessible focus/keyboard navigation and typed outputs. Do NOT add inert buttons or fake subscription/betting dashboards. The existing page now also includes three functional and accessible educational calculation forms. It is not a general-purpose game engine or persisted experiment workspace.
 
 **P1 — Creator asset/story integration:** map chord note frequencies into the existing Creator Project Graph as non-destructive editable educational overlays, not a new music timeline. Map narrative beats into user-owned project references without duplicating rights/approval status. All storage and exports require existing tenant-safe file contracts.
 
@@ -61,3 +61,25 @@ References:
 - CI readiness must be confirmed from the latest PR head; do not infer passing status from green isolated tests or PR mergeability.
 
 **No production claim:** source work is ready for review as a draft implementation; release gating is a separate evidence-driven step.
+
+## October 8 engineering continuation — authenticated study forms
+
+- lib/sonara-research-workbench.cjs is the new stateless and dependency-free page component, using the existing cross-studio calculation dispatch instead of a second engine. It is registered only within the existing authenticated invention-systems GET page.
+- Three actually working native GET forms: (1) Business Builder rectangle width/height, 0.01–100 units with two decimal precision; (2) Creator Studio 0–116 MIDI chord root and a four-entry chord-quality allowlist; (3) Growth Studio four 2×2 zero-sum payoff entries, each −10…10. These invoke the respective limited pure calculation engines and return explanatory text.
+- The other computational engines — Monte Carlo, expensive searches, backtesting, roulette, physics and arbitrary formulas — are intentionally NOT exposed as user-submitted web calculations in this patch.
+- Customer inputs are restricted to at most five named fields and 256 bytes of JSON, disallowing extra/repeated keys, prototype-pollution attempts, arbitrary expressions and nonnumeric values. Native form constraints are only convenience; server-side parsing independently enforces limits.
+- HTML uses labels paired with input IDs, native number fields and selects, keyboard-operable submit controls, a polite result output and a text alert on invalid input. All derived results and errors are escaped and rendered without any third-party JavaScript dependency.
+- No customer data, tenant ID, file, transaction, secret, account, payment, order, trading provider or broker connection is referenced or stored. User GET values appear in the URL; the interface instructs users not to include private information.
+- Existing customer middleware is unchanged. Page response adds private no-store caching and no-referrer headers to prevent accidental forwarding of submitted calculations. It does not automatically implement cross-tenant permissions for any future persisted scenario.
+- Route tests now cover actual customer-submitted bounded calculations and injection rejection. Together with previous suites, 118 focused tests passed in the isolated JavaScript harness BEFORE the latest immutability improvement; full Node/Mocha/browser testing remains pending.
+- New preview forms are an incremental functional research interface, not an authorized production roll-out. No new mutations, endpoints, database migrations, billing or subscription permissions were created.
+
+### Research and next infrastructure gates
+
+OWASP API4 recommends limits on request sizes, work units, concurrency, latency and expense; continue with per-user and per-tenant quotas and real load tests before offering more expensive simulations: https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/
+
+Express documents that CPU-heavy work should move off the main event loop into workers: https://expressjs.com/en/advanced/best-practice-performance/
+
+WCAG 2.2 requires accessible input labels, error identification and keyboard use; verify the actual composed SONARA layout in real browsers and assistive technologies: https://www.w3.org/TR/WCAG22/
+
+Before any merge or production deployment require full exact-head CI, pnpm/Node tests, security, route/CSP verification, authentication checks, accessibility/browser checks, load budgets and approved release controls. Do not equate test-harness success with production readiness.
