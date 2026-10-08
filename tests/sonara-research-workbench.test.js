@@ -88,6 +88,37 @@ describe("SONARA bounded research workbench", () => {
     assert.ok(parseSubmission({ study: "layout", width: ["1", "2"], height: "3" }).error);
     assert.ok(parseSubmission({ study: "layout", width: "4", height: "3", x: "1", y: "1", z: "1" }).error);
   });
+  it("never accepts inherited width or height values from a polluted prototype", () => {
+    const inherited = Object.create({ width: "4", height: "3" });
+    inherited.study = "layout";
+    const state = parseSubmission(inherited);
+    assert.equal(state.result, null);
+    assert.match(state.error, /supply this field/);
+  });
+  it("rejects accessor fields without triggering user-supplied getter code", () => {
+    let getterCalls = 0;
+    const query = { study: "layout", height: "3" };
+    Object.defineProperty(query, "width", { enumerable: true, get() {
+      getterCalls += 1;
+      throw new Error("must not invoke accessor");
+    } });
+    const state = parseSubmission(query);
+    assert.equal(getterCalls, 0);
+    assert.equal(state.result, null);
+    assert.match(state.error, /Invalid example input/);
+  });
+  it("does not invoke hidden toJSON accessors while bounding query sizes", () => {
+    let invoked = 0;
+    const query = { study: "layout", width: "4", height: "3" };
+    Object.defineProperty(query, "toJSON", { get() {
+      invoked += 1;
+      throw new Error("must not invoke serialization hook");
+    } });
+    const state = parseSubmission(query);
+    assert.equal(state.error, null);
+    assert.equal(state.result.absoluteArea, 12);
+    assert.equal(invoked, 0);
+  });
   it("uses actual labels and semantic keyboard-compatible form controls", () => {
     const html = renderResearchWorkbench({});
     assert.match(html, /<label for="sonara-layout-width">/);
