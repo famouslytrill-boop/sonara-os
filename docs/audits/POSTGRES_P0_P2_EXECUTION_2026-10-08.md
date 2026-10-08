@@ -163,6 +163,43 @@ run on isolated staging and use a separately gated migration. Never auto-create
 5. Only with deployment approval may a new production migration be applied.
    Compare advisor state, grants, policies and rollback afterward.
 
+
+## October 8 afternoon update — integrated hardening and replay proof
+
+The integration merge on `main` included immutable forward migration
+`20261008100000_tighten_service_role_rls_policies.sql`, after the original
+P1 rollback-only proposal was authored. As a result, running that proposal
+**after** the complete migration replay began to reject 25 *intentionally
+changed* definitions. The 9 Node × PostgreSQL CI replay lanes failed on
+this guard; this was not evidence that PostgreSQL silently broadened access.
+
+Draft PR #526 preserves both independently falsifiable checkpoints:
+
+1. Run `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` within its own
+   transaction **immediately before** the hardening migration. It verifies
+   exact historical predicates and probes duplicate-policy cleanup, then
+   rolls back; no migrated object is altered by the test.
+2. Run `tests/sql/p1-service-role-postmigration-proof.sql` after the
+   complete replay, also rollback-only. It verifies 21 named service-only
+   policies are restricted to `service_role` with simple TRUE predicates,
+   and four authenticated user-owned SELECT policies preserve scalar
+   `auth.uid() = user_id` ownership. It checks the subscriptions policy
+   pair remains unmodified pending separate approval for deduplication.
+
+**Read-only current-project validation on October 8:** Supabase project
+`yqncsonkxgwhcxedgevk` reported 163 applied versions, latest
+`20261008100000`. A catalog comparison of the new postflight fixture
+against live `pg_policies` matched all **21/21 service-role** and **4/4
+owner** expectations. This is a *catalog-definition check*, not
+authorization proof for every authenticated action, not proof of production
+identity, and not a substitute for all nine native CI replay lanes or
+synthetic tenant RLS tests.
+
+The same PR resynchronizes the generated handoff's Mocha count from
+513 to 516, matching the latest runner evidence. Do not merge the PR until
+its exact head is green and repository protection/reviewer governance is
+actually enforced.
+
 ## Sources
 
 - https://supabase.com/docs/guides/database/postgres/row-level-security
