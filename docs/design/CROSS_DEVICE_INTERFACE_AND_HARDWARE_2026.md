@@ -103,3 +103,32 @@ Official engineering evidence:
 - MDN container queries: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_size_and_style_queries
 - Android adaptive size classes: https://developer.android.com/develop/adaptive-apps/guides/use-window-size-classes
 - Apple HIG layout (September 2026): https://developer.apple.com/design/human-interface-guidelines/layout
+
+## Phase 3: verified cache and keyboard lifecycle (review branch)
+
+**Concrete regression addressed:** SONARA links versioned CSS and JavaScript with an immutable cache key. Editing a stylesheet while preserving the same key leaves repeat visitors eligible to reuse the previous bytes after a deployment. This is a functional release issue, not cosmetic polish.
+
+The review branch changes the asset version from `sonara-ui-20261007-v23-native-navigation` to `sonara-ui-20261008-v24-cross-device` in a coordinated set:
+- `lib/sonara-page-frame.cjs`: browser asset URLs for the current rendered page.
+- `public/sw.js`: cache `VERSION` plus all precached public asset URLs.
+- `public/sonara-fonts.css`: nested first-party font URLs.
+
+All three must agree. The earlier version must not remain in the affected asset references. No service worker is allowed to cache private pages or authenticated customer data. This change does not certify production cache invalidation without a deployed exact-SHA replay on a browser that first visited an older version.
+
+**Keyboard lifecycle correction:** The dock is hidden while editable controls receive focus. The same state must also set the dock-reserved body padding and HTML scroll padding to zero; otherwise a focused editor can leave empty inaccessible scroll space. The rule is scoped to compact coarse-pointer viewports and leaves keyboard/mouse desktop layouts unchanged. Browser-specific keyboard behavior requires actual iOS Safari and Chrome Android testing before release.
+
+**Cross-device verification work:**
+- Static source check: new version present in rendered shell, service worker and font stylesheet.
+- Targeted source tests: maintain the original authenticated/navigation/security assertions, add keyboard-release and cache-token consistency cases.
+- Browser workflow: compact touch window at 390px, resizing to 820px and back with text preserved, plus a 320px minimum-width check and non-touch fallback.
+- Outstanding device checks: OSK appearance/disappearance, screen-reader focus ordering, Samsung fold/unfold posture, iPad split-screen, PWA update after old-version cache, logout/private-route caching, and offline revisit.
+
+**Platform evidence:**
+- Android window size classes (dynamic width and height): https://developer.android.com/develop/ui/views/layout/use-window-size-classes
+- Samsung foldable continuity: https://developer.samsung.com/one-ui/largescreen-and-foldable/designing_for_foldable.html
+- Apple adaptive layouts and safe areas: https://developer.apple.com/design/human-interface-guidelines/layout
+- W3C focus not obscured: https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum
+- Chrome on-screen keyboard and visual viewport behavior: https://developer.chrome.com/blog/viewport-resize-behavior/
+
+**Release gate:** Do not merge merely because the static tests pass. Require exact-head CI, updated-service-worker behavioral tests, browser screenshots and accessibility evidence, plus separately authorized native device/store evidence.
+
