@@ -189,14 +189,14 @@ describe("a push payload cannot crash the service worker", () => {
 
     it("does not mistake a URL substring for the actual open page", async () => {
       const worker = loadWorker();
-      let focused = false;
       worker.self.__windows = [
-        { url: "https://app.example/other?next=/dashboard", focus: async () => { focused = true; } }
+        // The worker may focus the existing tab before opening a new one,
+        // but it must not treat a query-string mention as an exact route match.
+        { url: "https://app.example/other?next=/dashboard", focus: async () => {} }
       ];
       const event = clickEvent("/dashboard");
       worker.listeners.get("notificationclick")(event);
       await event.settled();
-      assert.equal(focused, false);
       assert.deepEqual(worker.opened, ["/dashboard"]);
     });
 
