@@ -138,15 +138,17 @@ describe("server-only browser grant hardening", () => {
     assert.doesNotMatch(migration, /for\s+target\s+in[\s\S]*pg_policies[\s\S]*revoke all privileges/i);
   });
 
-  it("fails closed unless every target is still RLS-on, policy-free and browser-granted", () => {
+  it("accepts only fully granted or already-hardened browser DML states", () => {
     assert.match(migration, /relrowsecurity/i);
     assert.match(migration, /policy_count <> 0/i);
     for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
       assert.match(
         migration,
-        new RegExp(`has_table_privilege\\(role_name, relation_name, '${privilege}'\\)`, "i")
+        new RegExp(`has_table_privilege\\(role_name, relation_name, '${privilege}'\\)::int`, "i")
       );
     }
+    assert.match(migration, /not in \(0, 4\)/i);
+    assert.match(migration, /fresh replay can legitimately have none/i);
     assert.match(migration, /browser grant precondition drift/i);
   });
 
