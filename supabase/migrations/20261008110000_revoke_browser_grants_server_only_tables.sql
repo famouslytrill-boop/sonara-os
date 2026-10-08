@@ -76,15 +76,19 @@ begin
         relation_name, policy_count;
     end if;
 
-    -- Pin the live posture this change was reviewed against. If another change
-    -- narrows these grants first, stop and regenerate rather than pretending
-    -- this migration still describes the database we reviewed.
+    -- Production currently has all four DML grants on these targets, while a
+    -- fresh replay can legitimately have none because the later default-
+    -- privilege hardening prevents this historical drift from being recreated.
+    -- Accept those two exact states only. A partial grant set means the reviewed
+    -- posture has changed and needs a new decision rather than a blind revoke.
     foreach role_name in array array['anon','authenticated']
     loop
-      if not has_table_privilege(role_name, relation_name, 'SELECT')
-         or not has_table_privilege(role_name, relation_name, 'INSERT')
-         or not has_table_privilege(role_name, relation_name, 'UPDATE')
-         or not has_table_privilege(role_name, relation_name, 'DELETE')
+      if (
+        has_table_privilege(role_name, relation_name, 'SELECT')::int
+        + has_table_privilege(role_name, relation_name, 'INSERT')::int
+        + has_table_privilege(role_name, relation_name, 'UPDATE')::int
+        + has_table_privilege(role_name, relation_name, 'DELETE')::int
+      ) not in (0, 4)
       then
         raise exception 'browser grant precondition drift for role % on %', role_name, relation_name;
       end if;
