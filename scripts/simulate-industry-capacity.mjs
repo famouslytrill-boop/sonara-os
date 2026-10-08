@@ -127,7 +127,7 @@ function selfTest() {
   assert.throws(() => evaluateIndustryCapacity({ unverifiedTenantLimit: 10 }), /unknown capacity input/);
   assert.throws(() => evaluateIndustryCapacity({ tenants: 10000000, averageRequestsPerSecondPerTenant: 100000,
     peakMultiplier: 10000, databaseOperationsPerRequest: 10000 }), /overflows safe precision/);
-  console.log("Industry capacity planning model: 15 deterministic assertions passed.");
+  console.log("Industry capacity planning model: 20 deterministic assertions passed.");
 }
 
 function parseArgs(args) {
@@ -152,7 +152,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       if (process.argv.length !== 3) throw new TypeError("--self-test must be used alone");
       selfTest();
     } else {
-      const result = evaluateIndustryCapacity(parseArgs(process.argv.slice(2)));
+      const result = evaluateIndustryCapacity(parseArgs(process.argv.slice(2).filter(arg => arg !== "--strict")));
       console.log(JSON.stringify(result, null, 2));
       if (process.argv.includes("--strict") && !result.passesPlanningTarget) process.exitCode = 1;
     }
