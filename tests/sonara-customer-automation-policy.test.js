@@ -1,7 +1,8 @@
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 "use strict";
 const assert=require("node:assert/strict");
-const {SKILLS,skillPlan,automationDefinitionPreflight,automationRunDecision}=
+const {SKILLS,skillPlan,automationDefinitionPreflight,automationRunDecision,
+  governedAutomationRunPreflight}=
   require("../lib/sonara-customer-automation-policy.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const A="22222222-2222-4222-8222-222222222222";
@@ -84,5 +85,104 @@ describe("customer automation and agent skills",()=>{
   it("catalog keeps customer automation skills explicit and inspectable",()=>{
     assert.ok(Object.keys(SKILLS).length>=8);
     assert.equal(SKILLS.campaign_dispatch.sideEffect,"external");
+  });
+
+  const governed=(o={})=>governedAutomationRunPreflight({
+    organizationId:ORG,serverOrganizationId:ORG,userId:U,role:"owner",
+    skillKey:"report_builder",ownsRecord:true,
+    runCountToday:0,maxRunsPerDay:24,activeRuns:0,maxConcurrentRuns:2,
+    customerPaused:false,serverReceivedAt:"2026-10-08T18:00:00-04:00",
+    timeZone:"America/New_York",payloadBytes:1024,declaredWorkUnits:1,
+    rateState:{capacityUnits:100,refillUnitsPerMinute:60,availableUnits:100,
+      lastRefillAt:"2026-10-08T17:59:00-04:00"},
+    dailyState:{usedUnits:10,dailyLimitUnits:1000},
+    stepUpVerified:false,approvalDecision:null,...o
+  });
+
+  it("composes the existing controls for a safe private automation without executing it",()=>{
+    const out=governed();
+    assert.equal(out.state,"governed_run_preflight_ready");
+    assert.equal(out.authorization.allowed,true);
+    assert.equal(out.rateBudget.allowed,true);
+    assert.equal(out.dailyBudget.allowed,true);
+    assert.equal(out.concurrency.allowed,true);
+    assert.equal(out.runtimePermissionGranted,false);
+    assert.equal(out.rateStateConsumed,false);
+    assert.equal(out.externalSideEffectExecuted,false);
+  });
+
+  it("blocks a safe automation when the shared weighted budget is exhausted",()=>{
+    const out=governed({rateState:{capacityUnits:100,refillUnitsPerMinute:0,
+      availableUnits:0,lastRefillAt:"2026-10-08T18:00:00-04:00"}});
+    assert.ok(out.blockers.includes("budget_exhausted_no_refill"));
+    assert.equal(out.rateStateConsumed,false);
+  });
+
+  it("requires fresh customer-board evidence and step-up for each campaign dispatch",()=>{
+    let out=governed({skillKey:"campaign_dispatch",stepUpVerified:true,
+      riskInput:{likelihood:2,impact:3,controlEffectivenessBasisPoints:5000,
+        controlEvidenceVerified:true,controlEvidenceCurrent:true}});
+    assert.ok(out.blockers.includes("customer_board_approval_required_this_run"));
+    out=governed({skillKey:"campaign_dispatch",stepUpVerified:false,
+      approvalDecision:{state:"approval_evidence_ready"},
+      riskInput:{likelihood:2,impact:3,controlEffectivenessBasisPoints:5000,
+        controlEvidenceVerified:true,controlEvidenceCurrent:true}});
+    assert.ok(out.blockers.includes("step_up_authentication_required"));
+  });
+
+  it("requires verified residual risk for sensitive automation instead of assuming controls work",()=>{
+    const out=governed({skillKey:"campaign_dispatch",stepUpVerified:true,
+      approvalDecision:{state:"approval_evidence_ready"},
+      riskInput:{likelihood:3,impact:4,controlEffectivenessBasisPoints:8000,
+        controlEvidenceVerified:false,controlEvidenceCurrent:true}});
+    assert.ok(out.blockers.includes("verified_residual_risk_required"));
+    assert.equal(out.risk.residualBand,"unknown");
+  });
+
+  it("holds critical residual risk on the manual path even after customer approval",()=>{
+    const out=governed({skillKey:"campaign_dispatch",stepUpVerified:true,
+      approvalDecision:{state:"approval_evidence_ready"},
+      riskInput:{likelihood:5,impact:5,controlEffectivenessBasisPoints:0,
+        controlEvidenceVerified:true,controlEvidenceCurrent:true}});
+    assert.ok(out.blockers.includes("critical_residual_risk_requires_manual_path"));
+    assert.equal(out.externalSideEffectExecuted,false);
+  });
+
+  it("shows high residual risk as an owner-attention flag without pretending it is a probability",()=>{
+    const out=governed({skillKey:"campaign_dispatch",stepUpVerified:true,
+      approvalDecision:{state:"approval_evidence_ready"},
+      riskInput:{likelihood:4,impact:4,controlEffectivenessBasisPoints:1000,
+        controlEvidenceVerified:true,controlEvidenceCurrent:true}});
+    assert.ok(out.reviewFlags.includes("high_residual_risk_owner_attention"));
+    assert.equal(out.risk.probabilityClaimed,false);
+  });
+
+  it("requires complete attributable proof before an automated customer review may reach publication preflight",()=>{
+    const claimHash="a".repeat(64);
+    const base={
+      skillKey:"review_publisher",stepUpVerified:true,
+      approvalDecision:{state:"approval_evidence_ready"},
+      riskInput:{likelihood:2,impact:2,controlEffectivenessBasisPoints:5000,
+        controlEvidenceVerified:true,controlEvidenceCurrent:true}
+    };
+    let out=governed(base);
+    assert.ok(out.blockers.includes("proof_packet_required_for_review_publication"));
+    out=governed({...base,proofInput:{
+      organizationId:ORG,serverOrganizationId:ORG,claimHash,
+      requiredEvidenceTypes:["customer_confirmation"],
+      evidence:[{id:"44444444-4444-4444-8444-444444444444",organizationId:ORG,
+        type:"customer_confirmation",sourceRef:"review_author_confirmation",
+        claimHash,hashVerified:true,actorIdentityVerified:true}]
+    }});
+    assert.equal(out.proof.state,"required_evidence_complete");
+    assert.equal(out.state,"governed_run_preflight_ready");
+    assert.equal(out.externalSideEffectExecuted,false);
+  });
+
+  it("rejects untrusted timestamps and malformed resource-budget state before a run",()=>{
+    let out=governed({serverReceivedAt:"local time"});
+    assert.ok(out.blockers.includes("trusted_server_time_invalid"));
+    out=governed({rateState:null});
+    assert.ok(out.blockers.includes("resource_budget_state_invalid"));
   });
 });
