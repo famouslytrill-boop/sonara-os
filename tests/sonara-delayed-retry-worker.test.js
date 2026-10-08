@@ -140,7 +140,7 @@ describe("private PostgreSQL delayed retry boundary",()=>{
     let effects=0;let terminal;
     const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+10_000}),
       complete:async ({outcome})=>{terminal=outcome;return true;}};
-    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,clock:()=>NOW+11_000,worker,
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,clock:()=>NOW+11_000,worker,isPaused:async()=>false,
       authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
       perform:async()=>{effects++;},verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
     assert.equal(r.reason,"deadline_expired_during_authorization");
