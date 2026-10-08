@@ -3060,6 +3060,17 @@ function main() {
   const invariantErrors = validateMap(map);
   if (invariantErrors.length) {
     console.error(`Capability inventory invariants failed:\n- ${invariantErrors.join("\n- ")}`);
+    // Report concrete *route-contract* violations, not just their count.
+    // These IDs are source-owned route names and evidence outcomes; never
+    // print provider credentials, customer rows, session data or full map.
+    for (const key of ["routeDestinationReviewsNotHeld"]) {
+      const problems = map.validation[key] || [];
+      if (!Array.isArray(problems) || !problems.length) continue;
+      console.error(`${key} details (${problems.length}):`);
+      for (const reason of problems.slice(0, 20)) {
+        console.error(`- ${String(reason).slice(0, 300)}`);
+      }
+    }
     process.exitCode = 1;
     return;
   }
