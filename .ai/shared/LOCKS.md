@@ -1,6 +1,13 @@
 # Locks
 
 Active:
+- HELD: customer governance request control plane -- Codex, branch
+  `codex/customer-governance-control-plane-20261008`, taken 2026-10-08.
+  Covers new governance preflight, execution claim/settlement, review moderation
+  metrics, their tests, and review-only governance execution schema/docs. Does
+  not modify existing marketplace, Growth campaign, reservation, payment,
+  production migration, agent-authority or route-inventory implementations.
+  Release when this branch merges or closes.
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
   PR #445, branch `codex/reservation-workflows-20261007`, taken 2026-10-07.
   Covers the operations expansion controller, reservation renderer, bookings
@@ -9,11 +16,6 @@ Active:
   No payments, inventory, schema, market-intelligence or prompt-library edits.
   The fake Supabase addition models jsonb equality; preserve Claude #444's
   nested logical-filter work. Release when PR #445 merges or closes.
-- HELD: Creator marketplace reconciliation and delivery snapshot checks -- Codex,
-  PR #441, branch `codex/convergence-execution-contract-20261007`, taken 2026-10-07.
-  Covers the new seller report, buyer receipt/download guards and connected
-  checkout pagination. No schema, inventory or Growth changes. Release when
-  PR #441 merges or closes.
 - HELD: Growth campaign results, attribution and delivery receipts -- Claude,
   PR #446, branch `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-08.
   Covers `lib/sonara-campaign-results.cjs`, `lib/sonara-campaign-results-pages.cjs`,
