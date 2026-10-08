@@ -634,3 +634,92 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.screenshot({ path: `artifacts/browser/check-in-recovery-${viewport.width}.png`, fullPage: true });
   });
 }
+
+test.describe("cross-device adaptive workspace browser contract", () => {
+  const frame = require("../lib/sonara-page-frame.cjs").createPageFrame({
+    legalPages: () => [],
+    safeListTable: async () => ({ ok: true, rows: [] })
+  });
+
+  async function mountWorkScreen(page) {
+    const html = frame.layout({
+      title: "Workspace",
+      heading: "Your work",
+      eyebrow: "SONARA One",
+      body: "Continue without losing your work",
+      authenticated: true,
+      sections: ['<article class="card"><label for="device-draft">Draft note</label><input id="device-draft" type="text" value=""></article>'],
+      actions: []
+    });
+    await page.goto(BASE_URL);
+    await page.evaluate((markup) => {
+      const parsed = new DOMParser().parseFromString(markup, "text/html");
+      document.body.className = parsed.body.className;
+      document.body.innerHTML = parsed.body.innerHTML;
+      document.querySelector("#sonara-loader")?.remove();
+      document.documentElement.dataset.sonaraWorkspaceDock = "true";
+    }, html);
+  }
+
+  test("touch dock respects safe scrolling, keyboard focus and window resizing", async ({ browser }) => {
+    const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await mountWorkScreen(page);
+      const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
+      expect(coarse).toBe(true);
+      const dock = page.getByRole("navigation", { name: "Workspace shortcuts" });
+      await expect(dock).toBeVisible();
+      await expect(dock.locator("a")).toHaveCount(4);
+      const metric = await page.evaluate(() => ({
+        clearance: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBlockEnd),
+        dockHeight: document.querySelector(".sonara-workspace-dock").getBoundingClientRect().height,
+        targetHeights: [...document.querySelectorAll(".sonara-workspace-dock a")].map((link) => link.getBoundingClientRect().height),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      }));
+      expect(metric.clearance).toBeGreaterThanOrEqual(metric.dockHeight);
+      expect(metric.targetHeights.every((height) => height >= 48)).toBe(true);
+      expect(metric.overflow).toBeLessThanOrEqual(1);
+      await page.getByLabel("Draft note").fill("Unfinished work survives resizing");
+      await expect(dock).toBeHidden();
+      await page.setViewportSize({ width: 820, height: 900 });
+      await expect(dock).toBeHidden();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(page.getByLabel("Draft note")).toHaveValue("Unfinished work survives resizing");
+      await page.getByLabel("Draft note").evaluate((element) => element.blur());
+      await expect(dock).toBeVisible();
+      await page.screenshot({ path: "artifacts/browser/cross-device-workspace-touch.png" });
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a mouse layout never receives a fixed touch dock", async ({ browser }) => {
+    const context = await browser.newContext({ hasTouch: false, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await mountWorkScreen(page);
+      await expect(page.getByRole("navigation", { name: "Workspace shortcuts" })).toBeHidden();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("operational command controls adapt to the panel, not just the window", async ({ page }) => {
+    await page.goto(BASE_URL);
+    const result = await page.evaluate(() => {
+      const panel = document.createElement("section");
+      panel.className = "sonara-ops-panel";
+      panel.style.width = "310px";
+      panel.innerHTML = '<div class="sonara-ops-commandbar"><button type="button">Find records</button><button type="button" data-primary-action>Save changes</button></div>';
+      document.body.appendChild(panel);
+      const command = panel.querySelector(".sonara-ops-commandbar");
+      const narrow = getComputedStyle(command).display;
+      panel.style.width = "700px";
+      const wide = getComputedStyle(command).display;
+      panel.remove();
+      return { narrow, wide };
+    });
+    expect(result).toEqual({ narrow: "grid", wide: "flex" });
+  });
+});
