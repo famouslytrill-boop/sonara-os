@@ -504,6 +504,29 @@ describe("a price nobody set is not free", () => {
       assert.equal(writes(calls, "merchant_order_lines")[0].body[0].unit_price_cents, 1200);
     });
 
+    it("refuses an oversized order before writing an order or reserving stock", async () => {
+      const { app, calls } = buildApp({ variants: [variant({ price_cents: 2147483647 })] });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "2" });
+      assert.equal(response.status, 400);
+      assert.match(response.text, /too large to record safely/);
+      assert.equal(writes(calls, "merchant_orders").length, 0);
+      assert.equal(writes(calls, "merchant_order_lines").length, 0);
+      assert.equal(calls.filter((call) => call.href.includes("/rpc/inventory_order_hold")).length, 0);
+    });
+
+    it("shows a yen price accurately and saves the same units on the order", async () => {
+      const { app, calls } = buildApp({ shops: [shopRow({ currency: "jpy" })], variants: [variant({ currency: "jpy" })] });
+      const browse = await request(app).get(`/store/${SLUG}`);
+      assert.equal(browse.status, 200);
+      assert.match(browse.text, /1200 JPY/);
+      assert.doesNotMatch(browse.text, /12\.00 JPY/);
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "2" });
+      assert.equal(response.status, 200);
+      assert.match(response.text, /2400 JPY/);
+      assert.equal(writes(calls, "merchant_orders")[0].body.subtotal_cents, 2400);
+      assert.equal(writes(calls, "merchant_order_lines")[0].body[0].line_total_cents, 2400);
+    });
+
     it("refuses the whole order when it contains something not on sale", async () => {
       const { app, calls } = buildApp({ variants: [variant(), variant({ id: VARIANT_TWO, price_cents: 0 })] });
       const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1", [`qty_${VARIANT_TWO}`]: "1" });

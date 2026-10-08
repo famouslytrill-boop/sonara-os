@@ -1,5 +1,38 @@
 # Handoff Log
 
+## 2026-10-08 - Codex - commerce amount integrity and engineering/marketing pass
+
+- Exact base: `add53bf33a1c7cffa72fb7fc2b3738c25e8dac00`. Branch:
+  `codex/commerce-amount-integrity-20261008`. Separate Docker repair: draft
+  [PR #449](https://github.com/famouslytrill-boop/sonara-os/pull/449), with
+  hosted image, native migration replay and validation checks passing.
+  Implementation parent: `4d1b74a08db7ad734e8a35775c790f18f029b3d5`.
+  Include the repair as an ancestor for container proof. Target main to run
+  base-filtered checks; merge the repair first so the commerce diff narrows.
+- Added `lib/sonara-commerce-amounts.cjs`; reused it in storefront, creator
+  marketplace, merchant-payment policy and five commerce route modules.
+  Charge displays now preserve Stripe minor units, including JPY/MGA and
+  ISK/UGX compatibility. Strict stored-amount parsing rejects coercion and
+  int32 overflow; oversized orders fail before writes or inventory holds.
+- Workflow slice: offered price -> bounded immutable order amounts -> accurate
+  receipt/report display. No second stock/payment transition was introduced.
+  Payment/currency eligibility and FX remain provider contracts.
+- Added negative, boundary and currency regressions, including route refusal
+  without side effects. Refreshed generated inventory/handoff; updated the
+  proprietary-source equality count for the new module. Locks/migrations unchanged.
+- Added dated `docs/research/SONARA_ENGINEERING_MARKETING_PASS_2026-10-08.md`;
+  removed the unsupported universal-lowest-price claim from plan-source commentary.
+- Verification: frozen install, moderate audit, typecheck, lint and build pass;
+  201 focused commerce checks and 6,869 full-suite tests pass, six pending.
+  Governance gates, route smoke and client-secret scan pass. Local Node
+  24.19.0/pnpm 11.25.0 differ from pinned pnpm 12.7.0; no lock changes.
+- Live Stripe prices skipped without credentials. Local SQL replay skipped:
+  migration files read, no SQL executed. No provider transaction, production
+  schema/device/customer proof or deployment. Keep the site temporarily offline.
+- Next unblocked slice: audit remaining financial aggregates for unknown values.
+  Next provider-dependent slice: authorized creator purchase through versioned
+  private delivery, refund/dispute and seller reconciliation.
+
 ## 2026-10-07 - Codex - latest main commerce evidence and #444 follow-up
 
 - Base: `b8684abd`, Claude #444 merged. Branch: `codex/commerce-evidence-hardening-20261007`.

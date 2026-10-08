@@ -258,6 +258,18 @@ describe("the seller can open a scoped reconciliation screen", () => {
     assert.doesNotMatch(res.body, /must-never-be-rendered|client_secret|Bearer/);
     assert.ok(calls.every((call) => !call.init.method || call.init.method === "GET"));
   });
+  for (const [currency, gross, net] of [
+    ["jpy", "¥2,500", "¥2,400"], ["mga", "MGA 2,500", "MGA 2,400"],
+    ["isk", "ISK 25.00", "ISK 24.00"], ["ugx", "UGX 25.00", "UGX 24.00"]
+  ]) it("renders sale and balance amounts using Stripe charge units for " + currency, async () => {
+    const payment = session({ currency });
+    payment.payment_intent.latest_charge.currency = currency;
+    payment.payment_intent.latest_charge.balance_transaction.currency = currency;
+    const { res } = await request({ orders: [order({ currency })], sessions: [payment] });
+    assert.equal(res.statusCode, 200);
+    assert.ok(res.body.replace(/\u00a0/g, " ").includes("Recorded paid orders: " + gross), res.body);
+    assert.ok(res.body.replace(/\u00a0/g, " ").includes("Original charge net: " + net), res.body);
+  });
   // SONARA_CUSTOMER_FUNDS_MODE closes NEW merchant checkout unless the owner
   // approves it, and the fixture environment leaves it unset. Sales a business
   // already has still have to be checkable, which is why historical Stripe
