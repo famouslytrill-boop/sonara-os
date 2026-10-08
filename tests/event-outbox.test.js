@@ -36,15 +36,15 @@ function event(overrides = {}) {
 describe("durable event outbox", () => {
   it("writes a validated, tenant-scoped event with its idempotency key", async () => {
     const calls = [];
+    const item = event();
     const repository = createEventOutboxRepository({
       getSupabaseServerConfig: CONFIG,
       fetchImpl: async (url, init) => {
         calls.push({ url, init });
-        return response({ status: 201, body: [{ id: "outbox_1", organization_id: "00000000-0000-0000-0000-000000000111" }] });
+        return response({ status: 201, body: [{ id: "outbox_1", organization_id: item.organizationId, idempotency_key: item.idempotencyKey }] });
       }
     });
 
-    const item = event();
     const result = await repository.enqueue(item);
     assert.equal(result.ok, true);
     assert.equal(result.created, true);
