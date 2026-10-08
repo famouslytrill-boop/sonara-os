@@ -379,7 +379,12 @@ describe("signed-in workspaces speak plainly", () => {
   // requireBusinessManager. Its copy -- including that money is shown per
   // currency and that a capped read is "at least" -- is read by
   // tests/how-the-business-is-doing-counts-real-money.test.js.
-  const SIGNED_IN_SKIPPED = 123;
+  // 123 -> 124 on 8 October: the separate /business-builder/owner/
+  // reservation-resources page now requires the business-manager workspace
+  // context. The anonymous crawl receives a guarded response, not the private
+  // page. Focused reservation page tests exercise its customer-facing copy
+  // under a verified manager; this audit still records every skipped page.
+  const SIGNED_IN_SKIPPED = 124;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
