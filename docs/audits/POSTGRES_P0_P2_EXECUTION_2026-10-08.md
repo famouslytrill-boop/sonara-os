@@ -30,6 +30,12 @@ not verified production.** No production project was altered in this audit.
 - **Not yet accepted:** anonymous, authenticated A and B, service-role,
   positive inserts, negative cross-user inserts, prohibited updates/deletes
   and creator-follow policy behavior require synthetic test fixtures.
+  Fresh migration replay requires `public.profiles` for membership foreign
+  keys and is currently missing authenticated table grants on
+  `public.user_preferences` that the active preview database has. PR #482's
+  fixture therefore seeds synthetic profiles and uses **transactional
+  staging-only preference grants** before exercising RLS; the real schema
+  and grant discrepancies remain open in issue #492.
   `tests/sql/p0-auth-rls-role-matrix.sql` is designed to execute only
   in the disposable native PostgreSQL replay and to finish with `ROLLBACK`.
   `scripts/verify-migration-replay.mjs` fails if its success marker is absent.
@@ -78,7 +84,21 @@ Read-only grouping on the active database:
 | Client role with relevant privilege; needs predicate-specific review | 328 |
 | **Total** | **1,292** |
 
-The 1,292 findings span **201 tables**. Some of the 328 client-role/grant
+The 1,292 findings span **201 tables**. Among the 328 client-role/grant
+combinations, **200** include a predicate specifically checking
+`auth.role() = 'service_role'` (including its InitPlan form), while
+**128** have no such predicate in their permissive policy set. This
+classification is based on catalog predicate text; a service-role guard is a
+triage signal and does **not** prove the remaining OR conditions are safe.
+The 128 without that guard deserve the earliest role/tenant semantic review.
+
+The read-only query used for exact policy duplication, effective client grants,
+RLS policy overlap and all candidate FK indexes is now checked into
+`scripts/sql/postgres-p1-p2-candidate-review.sql`. Its four diagnostic SELECTs
+were executed successfully against the active preview database. It performs
+**no DDL** and makes no decisions to drop policies or add indexes.
+
+Some of the 328 client-role/grant
 overlaps are harmless OR combinations of a tenant check and a service-role-only
 condition; others may not be. Audit action and row predicate for each before
 merging/removing policies.
@@ -114,6 +134,13 @@ notices. The latter do not mean those indexes are safe to remove.
 ~112 KB. `service_catalog_items`: ~53 estimated rows, 33 sequential scans,
 ~200 KB. PostgreSQL sequential scans of such tiny tables are expected.
 No index build is warranted today simply to silence a linter.
+
+The conservative read-only B-tree prefix-coverage query in the new audit file
+reported **385** candidate FKs versus 379 advisor warnings. Differences in
+coverage definitions, index access methods, partial/expression indexes and
+constraint selection must be reconciled before a build plan. All 385 candidates
+had fewer than 1,000 planner-estimated child rows, maximum estimated 17.
+Neither estimate is sufficient to justify 385 writes on an early-stage DB.
 
 Future index candidate trigger: table/child cardinality grows materially,
 analyzed `EXPLAIN (ANALYZE, BUFFERS)` shows FK parent-delete or tenant join
