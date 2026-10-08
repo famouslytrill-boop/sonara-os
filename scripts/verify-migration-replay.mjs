@@ -332,6 +332,12 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/autonomic-repair-role-matrix.sql"), "utf8"),
       ["sonara_recovery_staging_passed"]);
 
+    // Native PostgreSQL behavior, not a source-text contract: no early retry,
+    // cross-tenant admission, duplicate claim, or stale-token terminal rewrite.
+    behaves(psql, "private delayed retry due-time and tenant/role matrix",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-delayed-retry-role-matrix.sql"), "utf8"),
+      ["sonara_delayed_retry_native_passed"]);
+
     // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
     // remove one rigorously identical subscriptions policy in a single
     // rolled-back transaction. No production DDL is performed by replay.
