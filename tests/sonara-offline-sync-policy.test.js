@@ -29,7 +29,7 @@ describe("offline deterministic sync policy",()=>{
     }
   });
   it("blocks sensitive financial/security field names even in an allowed operation",()=>{
-    for(const field of ["bank","routing","payment_status","refund","secret","token"]){
+    for(const field of ["bank","routing","payment_status","payment_status_override","bank_iban","card_number","credential_ref","api_key","refund","secret","token"]){
       assert.ok(prepareOfflineMutation(valid({payloadFields:["title",field]}))
         .blockers.includes("sensitive_fields_not_allowed_offline"));
     }
@@ -68,9 +68,29 @@ describe("offline deterministic sync policy",()=>{
   });
   it("idempotent mutation replay does nothing twice",()=>{
     const out=reconcileOfflineMutation({operation:"append_note",baseVersion:1,serverVersion:5,
-      mutationAlreadyApplied:true});
+      mutationAlreadyApplied:true,idempotencyReceiptVerified:true});
     assert.equal(out.state,"idempotent_already_applied");
     assert.equal(out.applyCandidate,false);
+  });
+  it("does not trust an unverified replay claim from a device",()=>{
+    const out=reconcileOfflineMutation({operation:"draft_task",baseVersion:4,serverVersion:4,
+      mutationAlreadyApplied:true,payloadHashMatchesQueued:true,serverEntityExists:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+    assert.ok(out.issues.includes("idempotency_receipt_unverified"));
+  });
+  it("rejects a purported replay receipt for an invalid operation",()=>{
+    const out=reconcileOfflineMutation({operation:"refund",baseVersion:4,serverVersion:4,
+      mutationAlreadyApplied:true,idempotencyReceiptVerified:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+  });
+  it("does not increment a version beyond JavaScript's safe integer range",()=>{
+    const out=reconcileOfflineMutation({operation:"append_note",baseVersion:4,
+      serverVersion:Number.MAX_SAFE_INTEGER,payloadHashMatchesQueued:true});
+    assert.equal(out.state,"blocked_pending_review");
+    assert.equal(out.applyCandidate,false);
+    assert.ok(out.issues.includes("version_unreadable_or_overflow"));
   });
   it("unknown operations fail closed",()=>{
     const out=prepareOfflineMutation(valid({operation:"do_anything"}));
