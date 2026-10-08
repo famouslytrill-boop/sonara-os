@@ -849,6 +849,7 @@ registerServiceLifecycleRoutes(app, {
   responsePage,
   checklistCard,
   escapeHtml,
+  contactForm,
   requireCustomer,
   requireWorkspaceAccess,
   wantsJson,
@@ -2295,20 +2296,27 @@ function legalAliasPages() {
   ].map((alias) => ({ ...byHref[alias.source], href: alias.href, source: alias.source }));
 }
 
-function normalizeSupportRequest(body) {
-  // A hidden browser honeypot is supplementary to distributed rate limiting;
-  // automated clients can omit it, so it is never the sole abuse control.
-  if (String(body.website || "").trim()) return { ok: false, message: "Unable to accept this request." };
-  const category = String(body.category || "contact").trim();
-  const name = String(body.name || "").trim();
-  const email = String(body.email || "").trim();
-  const subject = String(body.subject || "").trim();
-  const message = String(body.message || "").trim();
+function normalizeSupportRequest(body = {}) {
+  // A public route must accept only a plain field object, not arrays, JSON
+  // primitives or nested records. HTML and JSON requests use this same gate.
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, message: "Enter a valid support request." };
+  }
+  const field = (key) => typeof body[key] === "string" ? body[key].trim() : "";
+  // A hidden browser honeypot is supplementary to distributed rate limiting.
+  if (field("website")) return { ok: false, message: "Unable to accept this request." };
+  const category = field("category") || "contact";
+  const name = field("name");
+  const email = field("email");
+  const subject = field("subject");
+  const message = field("message");
   const consent = body.consent === "yes" || body.consent === "on" || body.consent === true;
   if (!["contact", "support", "billing", "feedback"].includes(category)) return { ok: false, message: "Choose a valid request type." };
-  if (name.length < 2) return { ok: false, message: "Enter your name." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
-  if (subject.length < 3) return { ok: false, message: "Enter a subject." };
+  if (name.length < 2 || name.length > 120) return { ok: false, message: "Enter a name between 2 and 120 characters." };
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
+  if (subject.length < 3 || subject.length > 160 || /[\x00-\x1f\x7f]/.test(subject)) {
+    return { ok: false, message: "Enter a subject between 3 and 160 characters without control characters." };
+  }
   if (message.length < 10 || message.length > 4000) return { ok: false, message: "Enter a message between 10 and 4000 characters." };
   if (!consent) return { ok: false, message: "Consent is required before submitting a request." };
   return { ok: true, value: { category, name, email, subject, message } };
