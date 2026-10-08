@@ -18,8 +18,9 @@ One mechanism, and it runs on every production deployment.
 **before any migration is applied**, in a step named
 `Record pre-migration rollback checkpoint`. It records three things:
 
-- **`checkpoint_utc`** — a UTC timestamp. This is the **point-in-time recovery
-  restore target**: the moment to roll the database back to.
+- **`checkpoint_utc`** — a UTC pre-migration incident timestamp. It is useful
+  release evidence, but on the current Free plan it is **not** a usable PITR
+  restore target and is not a customer-data backup.
 - **`previous_production_sha`** — the commit that was live, read from the
   running deployment's `/api/health` rather than assumed. This is the SHA to
   redeploy if only the application half needs reverting.
@@ -30,8 +31,9 @@ All three are published to the workflow run's job summary, alongside a pointer
 to the runbook.
 
 **The dump is schema-only on purpose.** A data dump would copy customer records
-into a GitHub artifact. Data recovery is Supabase point-in-time recovery, for
-which the recorded timestamp is the restore target.
+into a GitHub artifact. The schema dump plus timestamp support diagnosis and
+schema comparison; they do not provide customer-data recovery. The current
+recovery constraint and the two acceptable future recovery paths are below.
 
 ## The runbook
 
