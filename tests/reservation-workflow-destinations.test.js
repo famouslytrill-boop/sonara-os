@@ -98,6 +98,29 @@ describe("reservation resources and waitlist destinations", () => {
     assert.ok(fake.queries.every((q) => q.filters.some((f) => f.column === "organization_id" && f.value === ORG)));
   });
 
+  it("shares each organization-scoped reader once between the waiting-list page and its JSON twins", async () => {
+    const { call, fake } = world();
+    const page = await call("get", WAITLIST_PAGE, { html: true });
+    assert.equal(page.statusCode, 200);
+    const bookingReads = () => fake.queries.filter((query) => query.table === "business_bookings");
+    const assetReads = () => fake.queries.filter((query) => query.table === "business_assets");
+    assert.equal(bookingReads().length, 1, "page must call the shared waitlist reader once");
+    assert.equal(assetReads().length, 1, "page must call the shared resource reader once");
+    assert.ok([...bookingReads(), ...assetReads()].every((query) =>
+      query.filters.some((filter) => filter.column === "organization_id" && filter.value === ORG)));
+
+    const waitlistJson = await call("get", "/api/business/waitlist");
+    const resourceJson = await call("get", "/api/business/reservation-resources");
+    assert.equal(waitlistJson.statusCode, 200);
+    assert.equal(resourceJson.statusCode, 200);
+    assert.equal(bookingReads().length, 2, "JSON waitlist has one separately scoped read");
+    assert.equal(assetReads().length, 2, "JSON resources have one separately scoped read");
+    assert.ok(JSON.stringify(waitlistJson.jsonValue).includes("Waiting customer"));
+    assert.ok(JSON.stringify(resourceJson.jsonValue).includes("Window table"));
+    assert.doesNotMatch(JSON.stringify(waitlistJson.jsonValue), /Foreign private/);
+    assert.doesNotMatch(JSON.stringify(resourceJson.jsonValue), /Foreign private/);
+  });
+
   it("renders the actual create and offer forms with a route to the existing booking", async () => {
     const { call } = world();
     const res = await call("get", WAITLIST_PAGE, { html: true });
