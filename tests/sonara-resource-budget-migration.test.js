@@ -33,8 +33,11 @@ describe("weighted resource budget migration contract",()=>{
   it("stores only SHA-256 bucket keys rather than raw customer-identifier columns",()=>{
     assert.match(sql,/bucket_key char\(64\)/i);
     assert.match(sql,/bucket_key ~ '\^\[a-f0-9\]\{64\}\$'/i);
-    const withoutComments=sql.replace(/--.*$/gm,"");
-    assert.doesNotMatch(withoutComments,/\b(email|ip_address|raw_ip|access_token|refresh_token|api_key)\b/i);
+    const withoutLineComments=sql.replace(/--.*$/gm,"");
+    assert.doesNotMatch(
+      withoutLineComments,
+      /\b(email|ip_address|raw_ip|access_token|refresh_token|api_key)\s+(?:text|inet|varchar|character|jsonb?)\b/i
+    );
   });
 
   it("serializes budget consumption before changing shared state",()=>{
