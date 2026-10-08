@@ -1,6 +1,9 @@
 name: SONARA One Validation
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
     branches: [main]
   push:
@@ -11,8 +14,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: sonara-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel obsolete PR-head runs only; never lose main, manual or queued-merge proof.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
