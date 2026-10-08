@@ -1,0 +1,13 @@
+# SONARA Public Network, free services and discovery — 2026-10-08
+
+The parent public network connects opt-in identities, creator portfolios, merchants, communities and their child-product workspaces. Free core social use, free marketplace listing/participation and free storefront creation require no SONARA subscription. Seller product prices, provider processing fees, taxes, shipping and optional resource-intensive media are separate. Public browsing may remain anonymous; publishing requires a verified account, ownership and moderation.
+
+Business Builder contributes published merchant catalogs, local services, events and offers. Creator Studio contributes approved previews, provenance, rights records and licensed assets. Growth Studio contributes public channels, posts, campaigns and social profiles. Parent discovery uses **public sanitized projections only** and returns to the owning child app for write/checkout/delivery. Do not join tenant-private transactions into a public feed.
+
+Research 2024–2026: TikTok's June 2025 Manage Topics/keyword controls and Nov 2025 generated-content labels suggest opt-in preferences and AI visibility controls; Meta 2025/26 publicly reports cross-app recommendation personalization and an emphasis on newer original posts. Treat secret competitor algorithms as unknown. References: https://newsroom.tiktok.com/tiktok-trending-summer-2025-plus-new-ways-to-shape-your-feed?lang=en-150 ; https://newsroom.tiktok.com/more-ways-to-spot-shape-and-understand-ai-generated-content?lang=en-GB ; https://about.fb.com/news/2026/01/2026-ai-drives-performance/
+
+This branch adds a pure, NOT YET SERVED component at lib/sonara-community-discovery.cjs: chronological default, verified-public eligibility, moderation and rights gates, blocked author/muted topic filters, opt-in Discover, labeled generated media, deterministic diversity caps, bounded inputs and public-safe output. No personal data tracking or provider calls. Tests are appended to the existing free-platform test suite.
+
+Next before a route: verify publisher/member access against canonical tables, obtain authoritative public projection data, add real block/report/follow controls and appeal records, enforce quota, show user-facing recommendation explanations and chronological toggle, test minors and abuse. Store policies require UGC moderation, reporting and blocking: https://support.google.com/googleplay/android-developer/answer/9876937?hl=en
+
+Do not say a proposed social endpoint or marketplace route is live merely because this document names it.

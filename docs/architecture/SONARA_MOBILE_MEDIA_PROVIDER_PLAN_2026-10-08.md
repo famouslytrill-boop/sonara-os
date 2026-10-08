@@ -1,0 +1,15 @@
+# Mobile, media, lobbies, servers and integrations — 2026-10-08
+
+**Android:** extend existing TWA/PWA/Capacitor planning into tested signed builds, verified deep links, Play policy, camera/mic/location permission prompts and device-specific offline tests. **Apple:** separate iOS release pipeline; Universal Links, Keychain, App Store review, native background transfer limitations and device proof. One accessible HTTP/event contract is shared; Android packaging is not proof of an iOS binary.
+
+Offline architecture: account+tenant+product+device-partitioned storage; local reads; bounded mutation queue with operation UUID, expected revision, content hash and timestamp; server re-verifies session/tenant on reconnect and resolves conflicts visibly. Never auto-replay payments, refunds, security approvals or destructive commands offline. Clear tenant data on logout, revocation and organization switch. Ask permission at point of use for GPS, camera, microphone, contacts, push and motion sensors; do not silently capture or track.
+
+Media plane: original rights-cleared assets → quarantine/type check → metadata → caption/transcript → render job → review → license → signed delivery. CPU-first deterministic FFmpeg where feasible; optional GPU workers behind metering, job reservation, cancellation, idempotent retry, dead-letter, provenance, storage retention and cost ledger. Education libraries for art, music theory, film, literature and languages are versioned/licensed; an export manifest is not a rendered movie/song.
+
+Realtime lobbies: authenticated WebRTC signaling, room membership, TURN/SFU budget, privacy, block/report, recording consent, retention, moderation and accessible transcript/chat alternative. Do not ship anonymous open video rooms or always-on streaming/game servers before safety and economics proof.
+
+Provider gateway: Microsoft Graph Excel, Google APIs, Apple services, independently connected merchant processors, notifications and email. Require least-privilege OAuth, encrypted server-side refresh tokens, signed webhooks, retry honoring 429 Retry-After, tenant quota, disconnect/erasure, and a verified reconciliation state. Microsoft specifically recommends workbook sessions and avoiding concurrent writes: https://learn.microsoft.com/en-us/graph/workbook-best-practice
+
+Files: CSV/XLSX sniffing, size/zip quotas, dry-run, column schema, duplicate detection, dates/currencies and formula-injection defenses. Reuse existing safe CSV export, not raw string joins. Microsoft Excel Graph currently supports OOXML workbooks in Business/SharePoint settings, not legacy .xls directly: https://learn.microsoft.com/en-us/graph/api/resources/excel?view=graph-rest-1.0
+
+Android offline guidance: https://developer.android.com/topic/architecture/data-layer/offline-first ; Apple background tasks: https://developer.apple.com/documentation/BackgroundTasks
