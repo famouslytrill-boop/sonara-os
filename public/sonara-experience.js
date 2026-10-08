@@ -62,7 +62,7 @@
             if (!worker) return;
             worker.addEventListener("statechange", () => {
               if (worker.state === "installed" && navigator.serviceWorker.controller) {
-                notify("Update ready", "Refresh when convenient to use the latest SONARA interface.");
+                notify("Update ready", "Close all SONARA tabs and reopen when convenient to finish updating.");
               }
             });
           });
