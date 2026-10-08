@@ -783,6 +783,11 @@ body.sonara-frontops nav a {
 .sonara-workspace-dock { display: none; }
 
 @media (max-width: 599px) and (pointer: coarse) {
+  /* The fixed bar needs scroll clearance as well as body padding: a tabbed-to
+     action at the bottom must not sit underneath the bar. */
+  html[data-sonara-workspace-dock="true"] {
+    scroll-padding-block-end: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
   body.sonara-has-workspace-dock {
     padding-block-end: calc(72px + env(safe-area-inset-bottom, 0px));
   }
@@ -835,10 +840,36 @@ body.sonara-frontops nav a {
 
 /* A short landscape viewport should favor the task, not permanent chrome. */
 @media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+  html[data-sonara-workspace-dock="true"] { scroll-padding-block-end: 0; }
   body.sonara-has-workspace-dock { padding-block-end: 0; }
   .sonara-workspace-dock { display: none; }
 }
 @media print {
+  html[data-sonara-workspace-dock="true"] { scroll-padding-block-end: 0; }
   .sonara-workspace-dock { display: none !important; }
   body.sonara-has-workspace-dock { padding-block-end: 0; }
+}
+
+/* Panel-size behavior, not phone model detection. A narrow inspector in an
+   1100px split-screen should wrap its controls just like a narrow phone.
+   Existing flex-wrap is the fallback for browsers without container queries. */
+@supports (container-type: inline-size) {
+  .sonara-ops-panel,
+  .sonara-ops-detail,
+  .sonara-ops-inspector {
+    container-type: inline-size;
+  }
+  @container (max-width: 420px) {
+    .sonara-ops-commandbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sonara-ops-commandbar > :is(button, a, input, select) {
+      width: 100%;
+      min-width: 0;
+    }
+    .sonara-ops-commandbar [data-primary-action] {
+      margin-inline-start: 0;
+    }
+  }
 }
