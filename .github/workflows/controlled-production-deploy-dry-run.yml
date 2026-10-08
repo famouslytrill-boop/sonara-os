@@ -45,6 +45,18 @@ jobs:
       - name: Prove the PR job cannot use production credentials
         run: node scripts/verify-production-dry-run-boundary.cjs --self-test
 
+      - name: Report PR-only evidence (not a production dry run)
+        shell: bash
+        run: |
+          {
+            echo '### Pull-request contract only'
+            echo
+            echo 'Credential separation passed. No production environment, secrets,'
+            echo 'linked database verification, customer data, or deployment was accessed.'
+            echo
+            echo '**Do not treat this PR job as an approved production dry-run result.**'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   verify-current-main:
     # Run BEFORE the production-environment job can become eligible.
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approve_read_only_production_validation == true }}
