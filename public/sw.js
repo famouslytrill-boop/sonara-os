@@ -130,17 +130,15 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  // Preserve each page's existing controller. A new worker may update the
+  // cache after old clients close, but must not forcibly claim open tabs.
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+    caches.keys().then((keys) =>
+      Promise.all(keys
+        .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
       )
-      .then(() => self.clients.claim())
+    )
   );
 });
 
@@ -157,7 +155,12 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     if (!isPublicNavigation(url.pathname)) return;
     event.respondWith(
-      fetch(event.request, { cache: "no-store" }).catch(() => caches.match(OFFLINE_URL))
+      fetch(event.request, { cache: "no-store" }).catch(async () => {
+        // CacheStorage.match() searches ALL caches by creation order. Never
+        // let an unrelated cache or retired release supply this fallback.
+        const publicCache = await caches.open(CACHE_NAME);
+        return publicCache.match(OFFLINE_URL);
+      })
     );
     return;
   }
