@@ -22,8 +22,7 @@ const PUBLIC_NAVIGATION_PATHS = new Set([
   "/contact",
   "/security",
   "/accessibility",
-  "/login",
-  "/signup",
+  // Login and signup may produce session-specific responses; bypass the worker.
   OFFLINE_URL,
   "/business-builder",
   "/creator-studio",
@@ -77,9 +76,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await cache.add(OFFLINE_URL);
-      await Promise.allSettled(
-        PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL).map((url) => cache.add(url))
-      );
+      const assets = PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL);
+      if (!assets.every((url) => isPublicStaticRequest(new URL(url, self.location.origin)))) {
+        throw new Error("Unsafe asset configured for offline precache");
+      }
+      await Promise.allSettled(assets.map((url) => cache.add(url)));
     })
   );
   self.skipWaiting();
