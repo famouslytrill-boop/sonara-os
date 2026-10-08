@@ -6,8 +6,11 @@ const {
   GOOGLE_AUTHORIZATION_ENDPOINT,
   GOOGLE_TOKEN_ENDPOINT,
   GOOGLE_WRITE_SCOPE,
+  GOOGLE_REVOKE_ENDPOINT,
   createGoogleSearchConsoleAuthorization,
-  completeGoogleSearchConsoleAuthorization
+  completeGoogleSearchConsoleAuthorization,
+  runGoogleSearchConsoleDailySync,
+  revokeGoogleSearchConsoleAuthorization
 } = require("../lib/sonara-google-search-console-read.cjs");
 
 const ORG = "11111111-1111-4111-8111-111111111111";
@@ -274,5 +277,189 @@ describe("Google Search Console customer-owned OAuth lifecycle", () => {
     assert.equal(out.code, "provider_rate_limited");
     assert.equal(out.retryMode, "durable_deferred");
     assert.equal(calls, 2);
+  });
+
+  it("runs a daily read by resolving the refresh credential only inside the broker", async () => {
+    const calls = [];
+    let resolves = 0;
+    const fetchImpl = async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      if (String(url) === GOOGLE_TOKEN_ENDPOINT) {
+        const body = new URLSearchParams(options.body);
+        assert.equal(body.get("grant_type"), "refresh_token");
+        assert.equal(body.get("refresh_token"), "stored-refresh-token");
+        return response(200, {
+          access_token: "ephemeral-sync-token",
+          expires_in: 3600,
+          token_type: "Bearer"
+        });
+      }
+      const requestBody = JSON.parse(options.body);
+      assert.equal(options.headers.authorization, "Bearer ephemeral-sync-token");
+      if (requestBody.dimensions) return response(200, { rows: [] });
+      return response(200, { rows: [{ clicks: 0, impressions: 0, ctr: 0, position: 0 }] });
+    };
+
+    const out = await runGoogleSearchConsoleDailySync({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-10-07",
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      resolveRefreshToken: async (input) => {
+        resolves += 1;
+        assert.equal(input.organizationId, ORG);
+        assert.equal(input.connectionId, CONNECTION);
+        return { refreshToken: "stored-refresh-token" };
+      },
+      fetchImpl,
+      sleepImpl: async () => undefined
+    });
+
+    assert.equal(out.ok, true);
+    assert.equal(out.report.provider, "google_search_console");
+    assert.equal(out.report.rowCount, 0);
+    assert.equal(resolves, 1);
+    assert.equal(calls.length, 3);
+    assert.equal(JSON.stringify(out).includes("stored-refresh-token"), false);
+    assert.equal(JSON.stringify(out).includes("ephemeral-sync-token"), false);
+  });
+
+  it("requires reauthorization when Google's refresh grant is invalid", async () => {
+    const out = await runGoogleSearchConsoleDailySync({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-10-07",
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      resolveRefreshToken: async () => ({ refreshToken: "stored-refresh-token" }),
+      fetchImpl: async (url) => {
+        assert.equal(String(url), GOOGLE_TOKEN_ENDPOINT);
+        return response(400, { error: "invalid_grant" });
+      }
+    });
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "provider_reauthorization_required");
+    assert.equal(out.credentialInvalidated, true);
+  });
+
+  it("will not silently discard a rotated long-lived refresh credential", async () => {
+    const out = await runGoogleSearchConsoleDailySync({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-10-07",
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      resolveRefreshToken: async () => ({ refreshToken: "stored-refresh-token" }),
+      fetchImpl: async () => response(200, {
+        access_token: "ephemeral-sync-token",
+        refresh_token: "rotated-refresh-token",
+        expires_in: 3600,
+        token_type: "Bearer"
+      })
+    });
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "provider_refresh_token_rotation_requires_persistence");
+    assert.equal(JSON.stringify(out).includes("rotated-refresh-token"), false);
+  });
+
+  it("refuses background sync if the stored connection authority is broader than read-only", async () => {
+    let resolved = 0;
+    const out = await runGoogleSearchConsoleDailySync({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      grantedScopes: [READONLY_SCOPE, GOOGLE_WRITE_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-10-07",
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      resolveRefreshToken: async () => { resolved += 1; return { refreshToken: "must-not-resolve" }; }
+    });
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "least_privilege_exact_scope_required");
+    assert.equal(resolved, 0);
+  });
+
+  it("revokes Google before deleting the local credential and proves both outcomes", async () => {
+    const order = [];
+    const out = await revokeGoogleSearchConsoleAuthorization({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      resolveRefreshToken: async () => ({ refreshToken: "stored-refresh-token" }),
+      fetchImpl: async (url, options) => {
+        order.push("provider");
+        assert.equal(String(url), GOOGLE_REVOKE_ENDPOINT);
+        assert.equal(new URLSearchParams(options.body).get("token"), "stored-refresh-token");
+        return response(200, {});
+      },
+      revokeStoredSecret: async (input) => {
+        order.push("local");
+        assert.equal(input.credentialReference, "vault://customer-providers/gsc-1");
+        return { ok: true, revoked: true };
+      }
+    });
+    assert.equal(out.ok, true);
+    assert.equal(out.providerRevoked, true);
+    assert.equal(out.localCredentialRevoked, true);
+    assert.deepEqual(order, ["provider", "local"]);
+    assert.equal(JSON.stringify(out).includes("stored-refresh-token"), false);
+  });
+
+  it("does not delete the local credential when Google revocation is unverified", async () => {
+    let localDeletes = 0;
+    const out = await revokeGoogleSearchConsoleAuthorization({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      resolveRefreshToken: async () => ({ refreshToken: "stored-refresh-token" }),
+      fetchImpl: async () => response(400, { error: "invalid_token" }),
+      revokeStoredSecret: async () => {
+        localDeletes += 1;
+        return { ok: true, revoked: true };
+      }
+    });
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "provider_revoke_unverified");
+    assert.equal(localDeletes, 0);
+  });
+
+  it("reports partial disconnect when Google revokes but local credential cleanup fails", async () => {
+    const out = await revokeGoogleSearchConsoleAuthorization({
+      organizationId: ORG,
+      businessId: BUSINESS,
+      userId: USER,
+      connectionId: CONNECTION,
+      credentialReference: "vault://customer-providers/gsc-1",
+      resolveRefreshToken: async () => ({ refreshToken: "stored-refresh-token" }),
+      fetchImpl: async () => response(200, {}),
+      revokeStoredSecret: async () => ({ ok: false, revoked: false })
+    });
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "provider_revoked_local_credential_cleanup_failed");
+    assert.equal(out.providerRevoked, true);
+    assert.equal(out.localCredentialRevoked, false);
   });
 });
