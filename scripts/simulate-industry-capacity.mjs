@@ -65,6 +65,19 @@ export function evaluateIndustryCapacity(input = {}) {
     boundedNumber(input.egressKilobytesPerRequest, "egressKilobytesPerRequest", 0, 10000000);
   const providerRate = input.providerUsdPerThousandRequests === undefined ? null :
     boundedNumber(input.providerUsdPerThousandRequests, "providerUsdPerThousandRequests", 0, 1000000);
+  const projectedEgress = egress === null ? null : monthlyRequestsAtAverage * egress / 1024 / 1024;
+  const projectedProviderCost = providerRate === null ? null :
+    monthlyRequestsAtAverage / 1000 * providerRate;
+  // Optional projections also need a safe numerical bound; very large USD
+  // projections cannot be represented with trustworthy integer precision.
+  for (const [name, value] of Object.entries({
+    projectedEgress, projectedProviderCost
+  })) {
+    if (value !== null && (!Number.isFinite(value) ||
+        !Number.isSafeInteger(Math.ceil(value)))) {
+      throw new RangeError("capacity result overflows safe precision: " + name);
+    }
+  }
 
   for (const [name, value] of Object.entries({
     steadyRps, peakRps, peakOperationsPerSecond, offeredConcurrentOperations,
@@ -89,10 +102,8 @@ export function evaluateIndustryCapacity(input = {}) {
     requiredConcurrencyAtTarget: requiredConcurrency,
     peakBacklogGrowthOperationsPerMinute: growingBacklogOperationsPerMinute,
     monthlyRequestsAtAverage,
-    modeledEgressGibPerMonth: egress === null ? null :
-      monthlyRequestsAtAverage * egress / 1024 / 1024,
-    modeledProviderVariableCostUsdPerMonth: providerRate === null ? null :
-      monthlyRequestsAtAverage / 1000 * providerRate,
+    modeledEgressGibPerMonth: projectedEgress,
+    modeledProviderVariableCostUsdPerMonth: projectedProviderCost,
     passesPlanningTarget: utilization <= target
   });
 }
@@ -127,7 +138,12 @@ function selfTest() {
   assert.throws(() => evaluateIndustryCapacity({ unverifiedTenantLimit: 10 }), /unknown capacity input/);
   assert.throws(() => evaluateIndustryCapacity({ tenants: 10000000, averageRequestsPerSecondPerTenant: 100000,
     peakMultiplier: 10000, databaseOperationsPerRequest: 10000 }), /overflows safe precision/);
-  console.log("Industry capacity planning model: 20 deterministic assertions passed.");
+  assert.throws(() => evaluateIndustryCapacity({
+    tenants: 5000000, averageRequestsPerSecondPerTenant: 1,
+    peakMultiplier: 1, databaseOperationsPerRequest: 0,
+    providerUsdPerThousandRequests: 1000000
+  }), /projectedProviderCost/);
+  console.log("Industry capacity planning model: 21 deterministic assertions passed.");
 }
 
 function parseArgs(args) {
