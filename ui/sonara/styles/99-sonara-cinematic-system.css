@@ -1,5 +1,8 @@
 /* SONARA One Experience System 2026 — Balanced Precision / Cinematic Operations v4 */
-@view-transition{navigation:auto}
+/* Native form redirects and offline pages cannot guarantee that both
+   documents opt into the View Transition API. Prefer deterministic navigation;
+   SONARA's local animations and reduced-motion options remain available. */
+@view-transition{navigation:none}
 ::view-transition-old(root){animation:nxExit .16s ease both}
 ::view-transition-new(root){animation:nxEnter .24s cubic-bezier(.2,.75,.2,1) both}
 
