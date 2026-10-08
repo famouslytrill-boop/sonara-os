@@ -27,6 +27,15 @@ INSERT INTO public.user_preferences (user_id,language,unit_system) VALUES
  ('a1111111-1111-4111-8111-111111111111','en-US','imperial'),
  ('b2222222-2222-4222-8222-222222222222','en-US','imperial');
 
+-- Exercise all eight membership SECURITY DEFINER helper functions with
+-- positive and negative fixtures, including an entity viewer who is not admin.
+INSERT INTO public.entities(id,slug,name,entity_type,description) VALUES
+ ('a7777777-7777-4777-8777-777777777777','p0-rls-entity-a','RLS Fixture Entity A','business_operations','Temporary RLS test fixture'),
+ ('b8888888-8888-4888-8888-888888888888','p0-rls-entity-b','RLS Fixture Entity B','business_operations','Temporary RLS test fixture');
+INSERT INTO public.entity_memberships(entity_id,user_id,role) VALUES
+ ('a7777777-7777-4777-8777-777777777777','a1111111-1111-4111-8111-111111111111','owner'),
+ ('b8888888-8888-4888-8888-888888888888','b2222222-2222-4222-8222-222222222222','viewer');
+
 INSERT INTO public.creator_artist_profiles (id,artist_name,artist_key,organization_id,user_id) VALUES
  ('a5555555-5555-4555-8555-555555555555','Test Creator A','p0_rls_fixture_a','a3333333-3333-4333-8333-333333333333','a1111111-1111-4111-8111-111111111111'),
  ('b6666666-6666-4666-8666-666666666666','Test Creator B','p0_rls_fixture_b','b4444444-4444-4444-8444-444444444444','b2222222-2222-4222-8222-222222222222');
@@ -68,6 +77,16 @@ BEGIN
      OR NOT public.is_org_owner_or_admin('a3333333-3333-4333-8333-333333333333')
      OR public.is_org_owner_or_admin('b4444444-4444-4444-8444-444444444444')
   THEN RAISE EXCEPTION 'privileged organization helper did not enforce user A'; END IF;
+
+  IF NOT public.is_entity_member('a7777777-7777-4777-8777-777777777777')
+     OR public.is_entity_member('b8888888-8888-4888-8888-888888888888')
+     OR NOT public.can_manage_entity('a7777777-7777-4777-8777-777777777777')
+     OR public.can_manage_entity('b8888888-8888-4888-8888-888888888888')
+     OR NOT public.has_entity_role('a7777777-7777-4777-8777-777777777777',
+          ARRAY['owner','admin']::public.entity_member_role[])
+     OR public.has_entity_role('b8888888-8888-4888-8888-888888888888',
+          ARRAY['owner','admin']::public.entity_member_role[])
+  THEN RAISE EXCEPTION 'entity owner helpers leaked across users'; END IF;
 
   denied := false;
   BEGIN
@@ -122,6 +141,12 @@ BEGIN
   IF NOT public.is_org_member('b4444444-4444-4444-8444-444444444444')
     OR public.is_org_member('a3333333-3333-4333-8333-333333333333')
   THEN RAISE EXCEPTION 'privileged organization helper did not enforce user B'; END IF;
+  IF NOT public.is_entity_member('b8888888-8888-4888-8888-888888888888')
+     OR public.is_entity_member('a7777777-7777-4777-8777-777777777777')
+     OR public.can_manage_entity('b8888888-8888-4888-8888-888888888888')
+     OR public.has_entity_role('b8888888-8888-4888-8888-888888888888',
+          ARRAY['owner','admin']::public.entity_member_role[])
+  THEN RAISE EXCEPTION 'entity viewer obtained owner-level privileges'; END IF;
 END
 $test_b$;
 
