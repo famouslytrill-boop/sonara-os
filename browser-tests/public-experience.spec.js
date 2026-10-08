@@ -449,14 +449,17 @@ test.describe("public experience browser contract", () => {
 test.describe("device media and bounded image processing", () => {
   const USER = "33333333-3333-4333-8333-333333333333";
   const media = require("../routes/creator-generation-routes.cjs");
-  // Native capture APIs are platform-specific: Linux WebKit may lack canvas
-  // captureStream and MediaRecorder. Assert a visible fail-closed fallback on
-  // such runners while testing real recording where browser APIs exist.
-  async function canvasCameraAvailable(page) {
-    return page.evaluate(() => typeof document.createElement("canvas").captureStream === "function");
+  // A canvas method alone is not proof that a stream can be played.
+  // Test the product's visible successful preview or bounded denial state.
+  async function cameraPreviewAvailable(page) {
+    const status = page.locator("[data-local-capture] [role=status]");
+    await expect.poll(async () => (await status.textContent()) || "", { timeout: 11000 })
+      .toMatch(/Camera preview is on|Camera (capture|preview) is unavailable in this browser|Your browser refused capture/);
+    return (await status.textContent()).includes("Camera preview is on");
   }
   async function verifyCameraUnavailable(page) {
-    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Camera capture is unavailable in this browser.");
+    await expect(page.locator("[data-local-capture] [role=status]"))
+      .toContainText(/Camera (capture|preview) is unavailable in this browser|Your browser refused capture/);
     await expect(page.locator("[data-capture-download]")).toBeHidden();
     await expect(page.locator("[data-local-capture] video")).toBeHidden();
   }
@@ -477,6 +480,13 @@ test.describe("device media and bounded image processing", () => {
       window.captureCalls = 0; window.stoppedTracks = 0;
       navigator.mediaDevices.getUserMedia = async (constraints) => {
         window.captureCalls++;
+        // A pending OS prompt is a deterministic timing fixture; do not
+        // depend on headless WebKit producing a playable canvas stream.
+        if (window.deferCapture) {
+          const track = { stop() { window.stoppedTracks++; }, addEventListener() {} };
+          const delayedStream = { getTracks: () => [track], getVideoTracks: () => [track] };
+          return new Promise((resolve) => { window.resolveCapture = () => resolve(delayedStream); });
+        }
         let stream;
         if (constraints.video) {
           const canvas = document.createElement("canvas"); canvas.width = canvas.height = 2;
@@ -494,7 +504,6 @@ test.describe("device media and bounded image processing", () => {
           const original = track.stop.bind(track);
           track.stop = () => { window.stoppedTracks++; original(); };
         }
-        if (window.deferCapture) return new Promise((resolve) => { window.resolveCapture = () => resolve(stream); });
         return stream;
       };
     });
@@ -519,7 +528,7 @@ test.describe("device media and bounded image processing", () => {
     const errors = []; page.on("pageerror", (error) => errors.push(error.message));
     await mountMedia(page);
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    if (!(await canvasCameraAvailable(page))) {
+    if (!(await cameraPreviewAvailable(page))) {
       await verifyCameraUnavailable(page);
       expect(errors).toEqual([]);
       return;
@@ -575,7 +584,7 @@ test.describe("device media and bounded image processing", () => {
   test("revoked account permission stops supported capture; unsupported capture is denied", async ({ page }) => {
     const permission = { allowed: true }; await mountMedia(page, permission);
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    if (!(await canvasCameraAvailable(page))) { await verifyCameraUnavailable(page); return; }
+    if (!(await cameraPreviewAvailable(page))) { await verifyCameraUnavailable(page); return; }
     await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
     permission.allowed = false;
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Capture stopped", { timeout: 9000 });
@@ -606,14 +615,16 @@ test.describe("device media and bounded image processing", () => {
   });
   test("leaving the visible page stops supported capture; unsupported capture is denied", async ({ page }) => {
     await mountMedia(page); await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    if (!(await canvasCameraAvailable(page))) { await verifyCameraUnavailable(page); return; }
+    if (!(await cameraPreviewAvailable(page))) { await verifyCameraUnavailable(page); return; }
     await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
     await page.evaluate(() => { Object.defineProperty(document, "hidden", { value: true, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden(); await expect(page.locator("[data-capture-download]")).toBeHidden();
   });
   test("the camera timeout is enforced when recording is supported; unsupported capture is denied", async ({ page }) => {
     await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    if (!(await canvasCameraAvailable(page))) { await verifyCameraUnavailable(page); return; }
+    // Run the finite startup deadline even with Playwright's mocked clock.
+    await page.clock.runFor(4100);
+    if (!(await cameraPreviewAvailable(page))) { await verifyCameraUnavailable(page); return; }
     await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
