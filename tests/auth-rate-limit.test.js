@@ -91,6 +91,28 @@ describe("authentication rate limiting", () => {
     assert.equal(denied.status, 429, "casing must not create a fresh budget");
   });
 
+  it("still limits missing subjects on subject-only routes instead of bypassing every bucket", async () => {
+    const app = buildApp({ scopes: ["subject"], subjectFrom: (req) => req.body?.email });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await request(app).post("/try").set("x-forwarded-for", "203.0.113.150").send({});
+      assert.equal(response.status, 200);
+    }
+    const denied = await request(app).post("/try")
+      .set("x-forwarded-for", "203.0.113.150").send({});
+    assert.equal(denied.status, 429, "empty subject must still consume a limited IP budget");
+    const anotherIp = await request(app).post("/try")
+      .set("x-forwarded-for", "203.0.113.151").send({});
+    assert.equal(anotherIp.status, 200, "unrelated IP should not inherit a missing-subject bucket");
+  });
+
+  it("rejects a limiter configured without unique recognized scopes", () => {
+    for (const scopes of [[], ["not_a_scope"], ["ip", "ip"], ["subject", "subject"], "ip"]) {
+      assert.throws(() => createRateLimiter({
+        name: "invalid-scope-test", windowSeconds: 60, maxAttempts: 2, scopes
+      }), /unique ip\/subject scopes/);
+    }
+  });
+
   it("answers HTML form posts with a page when renderDenied is supplied", async () => {
     const app = buildApp({
       renderDenied: ({ req, res, retryAfterSeconds }) => {
