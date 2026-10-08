@@ -338,6 +338,48 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/autonomic-delayed-retry-role-matrix.sql"), "utf8"),
       ["sonara_delayed_retry_native_passed"]);
 
+    // Two independent PostgreSQL sessions must not claim the same ready retry.
+    // This is a behavioral race test, not a grep or single-transaction mock.
+    const retryRaceOrg = "55555555-5555-4555-8555-555555555555";
+    const retryRaceResource = JSON.stringify(["organization", retryRaceOrg, "retry_idempotent", "race-provider"]);
+    const retryRaceDedupe = JSON.stringify([retryRaceResource, "race-operation", 0]);
+    const retryRaceQuote = (value) => `\u0027${String(value).replaceAll("\u0027", "\u0027\u0027")}\u0027`;
+    behaves(psql, "prepare one durable ready recovery job", `
+      set role service_role;
+      select case when persisted then \u0027race_retry_queued\u0027 else \u0027race_retry_not_queued\u0027 end
+      from public.sonara_schedule_autonomic_retry(
+        ${retryRaceQuote(retryRaceResource)}, ${retryRaceQuote(retryRaceOrg)}::uuid,
+        \u0027race-operation\u0027, \u0027race-incident\u0027, 0, ${retryRaceQuote(retryRaceDedupe)},
+        clock_timestamp() - interval \u00271 second\u0027, clock_timestamp() + interval \u00271 hour\u0027
+      );
+      reset role;
+    `, ["race_retry_queued"]);
+    const retryRaceScript = path.join(socketDir, "autonomic-retry-race.sql");
+    fs.writeFileSync(retryRaceScript, `begin; set local role service_role;
+      select \u0027race_claim|\u0027 || coalesce(
+        (select job_id::text from public.sonara_claim_due_autonomic_retry()), \u0027none\u0027);
+      select pg_sleep(0.25); commit;`);
+    if (owner) execFileSync("chown", [owner, retryRaceScript]);
+    const retryRaceOutputs = [0, 1].map((index) => path.join(socketDir, `autonomic-race-${index}.out`));
+    const retryRaceErrors = [0, 1].map((index) => path.join(socketDir, `autonomic-race-${index}.err`));
+    const retryRaceCommand = `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -t -A -q -f ${sh(retryRaceScript)}`;
+    const retryRaced = shell(`${retryRaceCommand} > ${sh(retryRaceOutputs[0])} 2> ${sh(retryRaceErrors[0])} & first=$!; ` +
+      `${retryRaceCommand} > ${sh(retryRaceOutputs[1])} 2> ${sh(retryRaceErrors[1])} & second=$!; ` +
+      `wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+    if (retryRaced.status !== 0) stop(`Independent PostgreSQL recovery workers failed: ${retryRaced.stderr || retryRaced.stdout}`);
+    const retryRaceResults = retryRaceOutputs.map((file) => {
+      const content = fs.readFileSync(file, "utf8");
+      return [...content.matchAll(/^race_claim\|([^\s]+)$/gm)].map((match) => match[1]);
+    });
+    if (retryRaceResults.some((claims) => claims.length !== 1) ||
+        retryRaceResults.flat().filter((value) => value !== "none").length !== 1) {
+      stop(`Two competing retry consumers did not produce exactly one winning claim: ${JSON.stringify(retryRaceResults)}`);
+    }
+    behaves(psql, "verify exactly one committed recovery claim", `
+      select \u0027race_retry_started_\u0027 || count(*)
+      from sonara_private.autonomic_retry_jobs
+      where organization_id = ${retryRaceQuote(retryRaceOrg)}::uuid and state = \u0027started\u0027;
+    `, ["race_retry_started_1"]);
     // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
     // remove one rigorously identical subscriptions policy in a single
     // rolled-back transaction. No production DDL is performed by replay.
