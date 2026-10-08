@@ -15,6 +15,7 @@ const BASE = Object.freeze({
   operationId: "op-789", attempt: 0, deadlineAtMs: NOW + 60_000
 });
 const plan = (overrides = {}) => planRemediation({ ...BASE, ...overrides }, { nowMs: NOW });
+const GOOD_CLAIM = Object.freeze({ claimed: true, claimToken: "11111111-1111-4111-8111-111111111111", fencingToken: 1 });
 const run = (overrides, adapters = {}) => executeRemediation({ ...BASE, ...overrides }, { nowMs: NOW, ...adapters });
 
 describe("SONARA bounded self-healing supervisor", () => {
@@ -100,7 +101,7 @@ describe("SONARA bounded self-healing supervisor", () => {
         order.push("claim");
         if (claims.has(resourceKey)) return { claimed: false };
         claims.add(resourceKey);
-        return { claimed: true };
+        return GOOD_CLAIM;
       } },
       audit: async ({ state }) => { order.push("audit:" + state); return true; },
       handlers: { retry_idempotent: async () => { order.push("repair"); } },
@@ -115,7 +116,7 @@ describe("SONARA bounded self-healing supervisor", () => {
   it("never executes after a failed pre-action audit", async () => {
     let executions = 0;
     const result = await run({}, {
-      enabled: true, ledger: { claim: async () => ({ claimed: true }) },
+      enabled: true, ledger: { claim: async () => GOOD_CLAIM },
       audit: async () => false,
       handlers: { retry_idempotent: async () => { executions++; } },
       verify: async () => ({ healthy: true, scopeVerified: true })
@@ -126,7 +127,7 @@ describe("SONARA bounded self-healing supervisor", () => {
 
   it("escalates failed actions, missing verification and verification exceptions", async () => {
     const base = {
-      enabled: true, ledger: { claim: async () => ({ claimed: true }) },
+      enabled: true, ledger: { claim: async () => GOOD_CLAIM },
       audit: async () => true,
       handlers: { retry_idempotent: async () => undefined }
     };
