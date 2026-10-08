@@ -102,56 +102,53 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       && row?.metadata?.waitlist_state !== "cancelled"), partial: rows.rows.length >= 1000 };
   }
 
-  app.get(WAITLIST_PAGE, requireBusinessManager, async (req, res) => {
-    const page = (sections, status = 200) => res.status(status).type("html").send(layout({
-      title: "Waiting list", eyebrow: "Business Builder", heading: "Waiting list",
-      body: "Who is waiting for a place, and the rooms, tables and equipment they can book.",
-      sections,
-      actions: [linkAction("/business-builder/owner/bookings", "Bookings"), linkAction("/business-builder/dashboard", "Back to your workspace")]
-    }));
-    const scope = await context(req);
-    if (!scope.ok) {
-      return page([`<article class="card" role="alert"><h2>Your workspace could not be read</h2><p>${escapeHtml(pages.PROBLEMS[scope.code] || "This page cannot say who is waiting.")} It is not saying nobody is.</p></article>`], scope.status);
-    }
-    const [waitlist, resources] = await Promise.all([readWaitlist(scope), readResources(scope)]);
-    const options = { back: WAITLIST_PAGE, escape: escapeHtml };
-    return page([
-      pages.notice(req.query, escapeHtml),
-      pages.waitlistCard(waitlist, resources, options),
-      pages.addToWaitlistForm(resources, options),
-      pages.resourcesCard(resources, options)
-    ].filter(Boolean));
-  });
 
-  // A dedicated, accessible resource page complements the existing waitlist page.
-  // Keep the newer shared read model and analytics path rather than replacing them
-  // with the older reservation branch's operations handlers.
-  app.get(RESOURCE_PAGE, requireBusinessManager, async (req, res) => {
+  // The HTML and JSON views share the same organization-scoped readers.
+  async function renderReservationPage(req, res, kind, status = null, input = {}, problem = "") {
     res.set("Cache-Control", "private, no-store");
     const scope = await context(req);
-    const [resources, locations] = scope.ok ? await Promise.all([
-      readResources(scope),
-      list(scope.config, "business_locations", scope.organizationId, "id,name", "&status=eq.active&order=name.asc,id.asc", 201)
-    ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }];
-    const unreadable = !scope.ok || !resources.ok || !locations.ok;
-    const failures = {
-      resource_name_required: "Enter a resource name and try again.",
+    const workspaceId = req.sonaraBusinessMembership?.workspace_id || "";
+    const success = String(req.query?.saved || req.query?.done || "");
+    const issue = problem || String(req.query?.problem || "");
+    const errors = {
       invalid_capacity: "Capacity must be a whole number between 1 and 1000.",
       invalid_location_id: "Choose a valid location for this business.",
       location_not_yours: "The selected location is not part of this business.",
-      database_request_failed: "The resource could not be saved. Check the list before retrying."
+      resource_not_available: "The selected resource is not available.",
+      invalid_party_size: "Party size must be a whole number between 1 and 1000.",
+      database_request_failed: "The save could not be confirmed. Check the list before trying to add it again.",
+      database_response_invalid: "Records could not be read. Please check again.",
+      waitlist_contact_required: "Add a name, email or phone number.",
+      invalid_contact: "Check the customer email address.",
+      invalid_time_window: "Enter real UTC times in chronological order."
     };
-    const problem = String(req.query?.problem || "");
-    const error = Boolean(problem);
-    const message = error ? (failures[problem] || "The request could not be completed.")
-      : req.query?.done === "resource" ? "Your resource has been saved." : "";
-    return res.status(unreadable ? (scope.status || 503) : 200).type("html").send(resourcePages.resources({
-      rows: resources.rows || [], locations: (locations.rows || []).slice(0, 200),
-      workspaceId: req.sonaraBusinessMembership?.workspace_id || "",
-      unreadable, truncated: (resources.rows || []).length >= 1000 || (locations.rows || []).length >= 201,
-      error, message, createAction: "/api/business/reservation-resources"
+    const [resources, locations, waitlist] = scope.ok ? await Promise.all([
+      readResources(scope, 201),
+      kind === "resources" ? list(scope.config, "business_locations", scope.organizationId,
+        "id,name", "&status=eq.active&order=name.asc,id.asc", 201) : Promise.resolve({ ok: true, rows: [] }),
+      kind === "waitlist" ? readWaitlist(scope) : Promise.resolve({ ok: true, rows: [] })
+    ]) : [{ ok: false, rows: [] }, { ok: false, rows: [] }, { ok: false, rows: [] }];
+    const unreadable = !scope.ok || !resources.ok || (kind === "resources" ? !locations.ok : !waitlist.ok);
+    const error = Boolean(issue || !scope.ok);
+    const message = error ? (errors[issue] || (scope.ok ? "Your changes were not saved." : "Your workspace could not be read."))
+      : success ? "Saved. Your records were updated." : "";
+    if (kind === "resources") {
+      return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(resourcePages.resources({
+        rows: (resources.rows || []).slice(0, 200), locations: (locations.rows || []).slice(0, 200),
+        workspaceId, input, unreadable, truncated: resources.partial || (locations.rows || []).length >= 201,
+        error, message, createAction: "/api/business/reservation-resources"
+      }));
+    }
+    return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(resourcePages.waitlist({
+      rows: waitlist.rows || [], resources: resources.rows || [], workspaceId, input,
+      unreadable, truncated: Boolean(resources.partial || waitlist.partial),
+      error, message, createAction: "/api/business/waitlist",
+      offerAction: "/api/business/waitlist/:bookingId/offer"
     }));
-  });
+  }
+
+  app.get(WAITLIST_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "waitlist"));
+  app.get(RESOURCE_PAGE, requireBusinessManager, (req, res) => renderReservationPage(req, res, "resources"));
 
   // One reader for the page and the JSON, so they cannot disagree. A source
   // that could not be read is named rather than counted as zero, and a source
