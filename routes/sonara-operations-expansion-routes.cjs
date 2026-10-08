@@ -139,6 +139,24 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
         error, message, createAction: "/api/business/reservation-resources"
       }));
     }
+    // The original manager-only combined page remains usable when the session
+    // has no selected business workspace. New workspace-selected screens use
+    // the dedicated accessible reservation UI above instead.
+    if (!workspaceId) {
+      const options = { back: WAITLIST_PAGE, escape: escapeHtml };
+      return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(layout({
+        title: "Waiting list", eyebrow: "Business Builder", heading: "Waiting list",
+        body: "Who is waiting and what resources they can book.",
+        sections: [
+          pages.notice(req.query || {}, escapeHtml),
+          pages.waitlistCard(waitlist, resources, options),
+          pages.addToWaitlistForm(resources, options),
+          pages.resourcesCard(resources, options)
+        ].filter(Boolean),
+        actions: [linkAction("/business-builder/owner/bookings", "Bookings"),
+          linkAction(RESOURCE_PAGE, "Reservation resources")]
+      }));
+    }
     return res.status(status ?? (unreadable ? (scope.status || 503) : 200)).type("html").send(resourcePages.waitlist({
       rows: waitlist.rows || [], resources: resources.rows || [], workspaceId, input,
       unreadable, truncated: Boolean(resources.partial || waitlist.partial),
@@ -152,6 +170,14 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     if (!wantsHtml(req)) return res.status(status).json(body);
     const destination = doneKey === "resource" ? RESOURCE_PAGE : WAITLIST_PAGE;
     const workspaceId = req.sonaraBusinessMembership?.workspace_id;
+    // Legacy browser forms explicitly name the combined waitlist page and
+    // predate workspace selection. Restrict the destination to this known route;
+    // never let an arbitrary `back` URL redirect a browser off-site.
+    if (!workspaceId && req.body?.back === WAITLIST_PAGE) {
+      const key = status < 300 && body?.ok !== false ? "done" : "problem";
+      const value = key === "done" ? doneKey : body?.code || "database_request_failed";
+      return res.redirect(303, WAITLIST_PAGE + "?" + key + "=" + encodeURIComponent(value));
+    }
     if (status < 300 && body?.ok !== false) {
       const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}&saved=${doneKey}` : `?saved=${doneKey}`;
       return res.redirect(303, destination + query);
@@ -455,7 +481,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       });
     if (!updated.ok) return sendReservation(req, res, 503, { ok: false, code: updated.code }, "offer");
     if (updated.rows.length !== 1) {
-      return sendReservation(req, res, 409, { ok: false, code: "waitlist_changed" }, "offer");
+      return sendReservation(req, res, 409, { ok: false, code: "waitlist_entry_changed" }, "offer");
     }
     return sendReservation(req, res, 200, { ok: true, entry: updated.rows[0],
       customerNotified: false, alreadyOffered: false }, "offer");

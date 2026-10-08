@@ -146,7 +146,15 @@ describe("a business keeps its waiting list on a page", () => {
 
   it("still answers an API client with JSON", async () => {
     const app = start();
-    const created = await request(app).post("/api/business/waitlist").send({ customerEmail: "a@example.com", resourceIds: ["not-a-uuid"] });
+    // Unknown resources cannot be discarded silently and then advertised as
+    // a successful booking. First prove the new fail-closed API contract.
+    const invalid = await request(app).post("/api/business/waitlist")
+      .send({ customerEmail: "a@example.com", resourceIds: ["not-a-uuid"] });
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.code, "invalid_resource_ids");
+    assert.equal(fake.rows("business_bookings").length, 0);
+    // An ordinary valid JSON client can still create a waiting entry.
+    const created = await request(app).post("/api/business/waitlist").send({ customerEmail: "a@example.com" });
     assert.equal(created.status, 201);
     assert.equal(created.body.ok, true);
     assert.deepEqual(fake.rows("business_bookings")[0].metadata.resource_ids, []);
