@@ -138,6 +138,19 @@ jobs:
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
           supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
 
+      - name: Allow only migrations introduced by this pull request to remain pending
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          mapfile -t pending_versions < <(
+            git diff --diff-filter=A --name-only "$base" "$head" -- 'supabase/migrations/*.sql' |
+              sed -nE 's#^supabase/migrations/([0-9]+)_.*\.sql$#\1#p'
+          )
+          printf 'SONARA_ALLOWED_PENDING_MIGRATIONS=%s\n' "$(IFS=,; echo "${pending_versions[*]}")" >> "$GITHUB_ENV"
+
       - name: Pull production environment for read-only configuration verification
         shell: bash
         run: |
