@@ -282,11 +282,15 @@ Known formulas remain deterministic code; model output is explanatory text only.
 Review-only file:
 `docs/architecture/SONARA_GOVERNANCE_EXECUTION_CLAIM_SCHEMA_PROPOSAL_2026_10_08.sql`.
 
-Four tables:
+Three new proposed tables:
 - `claims`
 - `attempts`
 - `resource_consumptions`
-- `outbox`
+
+Canonical reuse:
+- `public.agent_pending_actions` remains the organization-scoped customer approval queue.
+- `public.event_outbox` + `public.event_delivery_attempts` remain the durable result/event delivery system.
+- `public.sonara_auth_rate_limits` remains authentication-specific throttling and is not reused as a weighted resource-budget ledger.
 
 Security posture:
 - private schema;
@@ -368,8 +372,8 @@ Review authorship requires authenticated exact-text confirmation.
 ## 14. Release sequence from here
 
 1. Keep this branch pure/review-only until exact-head CI is green.
-2. Reconcile the proposal with existing `agent_pending_actions`, `entity_action_approvals` and current rate-limit tables; do not create duplicate production truth.
-3. Implement one atomic claim RPC in a non-production Supabase environment.
+2. Preserve `agent_pending_actions` as canonical organization approval truth and `event_outbox` as canonical durable delivery; do not revive `entity_action_approvals` as a competing organization approval system.
+3. Implement one atomic claim RPC in a non-production Supabase environment, rechecking `agent_pending_actions` and consuming a dedicated weighted-resource budget in the same transaction.
 4. Run 50-way concurrency proof: one idempotency key → exactly one claim winner.
 5. Add rollback/restore and outbox duplicate-delivery tests.
 6. Wire a **safe reversible** action first (for example private report generation), not money/publishing/security.
