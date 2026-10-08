@@ -641,9 +641,26 @@ test.describe("device media and bounded image processing", () => {
     expect(errors).toEqual([]); expect(uploads).toEqual([]);
   });
   test("cancelled work keeps the original and creates no download", async ({ page }) => {
-    await mountMedia(page, { allowed: true, delay: 150 }); await imageFile(page, 20, 20);
-    await page.getByRole("button", { name: "Process image", exact: true }).click(); await page.getByRole("button", { name: "Cancel processing", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled(); await expect(page.locator("[data-local-download]")).toBeHidden();
+    await mountMedia(page); await imageFile(page, 20, 20);
+    // A 20×20 CPU job is often faster than a real pointer click in Firefox.
+    // Hold the permission read pending to prove actual mid-flight cancellation,
+    // rather than racing after a completed job and hiding a genuine failure.
+    await page.evaluate(() => {
+      const originalVerify = window.SonaraDeviceAccess.verify;
+      window.SonaraDeviceAccess.verify = (keys, userId, signal) => {
+        if (!keys.includes("local_compute")) return originalVerify(keys, userId, signal);
+        return new Promise((resolve, reject) => {
+          if (signal?.aborted) return reject(new Error("cancelled"));
+          signal?.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
+        });
+      };
+    });
+    await page.getByRole("button", { name: "Process image", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Cancel processing", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel processing", exact: true }).click();
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("Processing cancelled");
+    await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled();
+    await expect(page.locator("[data-local-download]")).toBeHidden();
     expect(await page.evaluate(() => [...document.querySelector("[data-local-image] canvas").getContext("2d").getImageData(0, 0, 1, 1).data])).toEqual([100, 120, 140, 255]);
   });
   test("low-memory devices refuse a 4K image before processing", async ({ page }) => {
