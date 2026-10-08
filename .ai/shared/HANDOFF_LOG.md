@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-10-08 - Claude - Growth create forms answer with a page (PR #446)
+
+- The nine Growth create routes carry `answeredOnItsPage(key)` before
+  `access`. A browser form post (HTML accepted, JSON not) is redirected 303 to
+  the record page with `?saved=1` or `?problem=<code>&form=create`, which
+  `lib/sonara-growth-form-outcomes.cjs` puts into words. JSON callers are
+  unchanged. `form=create` keeps a failed save apart from the campaigns page's
+  existing `?problem=` for a failed send.
+- A new refusal code in one of those handlers needs a sentence in `PROBLEMS`,
+  or `tests/a-growth-form-answers-with-a-page.test.js` fails. A sentence whose
+  code is gone fails it too.
+
 ## 2026-10-08 - Claude - Growth create APIs refuse another workspace's ids (PR #446)
 
 - `ownedReferences` checks campaign_id, lead_id, touchpoint_id, content_id,

@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 501 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 502 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,62 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 43 most recent entries of 472 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 43 most recent entries of 473 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-08 - A Growth form answers a person with a page
+
+The nine "Add a ..." forms on the Growth record pages post straight to
+`/api/growth/<key>`, and those handlers answered only in JSON. Nothing
+intercepted the forms: no client script, no server adapter. A person who
+pressed Save on an enquiry, a campaign or a conversion was shown
+`{"ok":true,...}` and had to press Back to find out what had happened. The
+form tests posted with `Accept: application/json`, so none of them saw it.
+
+`lib/sonara-growth-form-outcomes.cjs` puts a small middleware in front of each
+of the nine create routes, ahead of the access check:
+- **When it applies:** only when the request asks for HTML and not for JSON,
+  as a browser's form post does.
+- **What it does:** the handler's JSON answer becomes a 303 back to the form's
+  own page, as `?saved=1` or `?problem=<code>&form=create`. The page says what
+  happened in a sentence.
+- **Why the marker:** `?problem=` is the convention every other form here uses,
+  and `tests/no-save-looks-like-it-worked.test.js` holds them to it. My first
+  version used `?not_saved=` to stay clear of the campaigns page, which already
+  reads `?problem=` for a campaign that could not be sent, and that test failed
+  it. `&form=create` lets each card read only its own failure. Without it a
+  failed save would be announced as "Nothing was sent", and a failed send as
+  "Not saved".
+- **JSON callers:** unchanged.
+- **Wiring checked at start-up:** each route's page is resolved at
+  registration, so a create form with no page fails to start rather than
+  answering a person in JSON.
+
+The page prints only sentences written in that module. An unknown code gets
+the general "not saved" sentence and is never echoed, because the query string
+is in an address anybody can send. A name like `constructor` is not read as a
+code either.
+
+`tests/a-growth-form-answers-with-a-page.test.js` posts each form with the body
+read off its rendered page and follows the answer back. It also reads the nine
+handlers' source and fails in both directions: a refusal with no sentence, or a
+sentence for a refusal no handler gives any more. Falsified ten ways, each
+failing it:
+- one route left on JSON;
+- an unknown code echoed;
+- JSON callers redirected too;
+- the page saying nothing;
+- a refusal without a sentence;
+- a sentence for no refusal;
+- every answer called saved;
+- prototype names read as codes;
+- the send card reading a save's problem;
+- the save card reading a send's problem.
+
+
 
 ### 2026-10-08 - A Growth record links only to its own workspace's records
 
@@ -2147,67 +2198,3 @@ gate's business is a page offering to sell more, and the copy check would catch 
 
 `pnpm test` and `verify:gates` both 0 on the merged tree -- each read from its own
 file.
-
-
-
-
-### 2026-10-02 - A floor that a realistic throttle sat exactly on
-
-The owner's instruction, three times over: "there are no rate limits once
-subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
-service"; "everything in that workspace becomes yours to do with and use as you
-please for that subscription length"; and -- the clause that is easy to lose and
-that changes what can honestly be promised -- "there are no provider quotes rate
-limits still stand but providing quotes and intake forms are out".
-
-So an **upstream provider's** limit still applies, because it is not ours to waive.
-What is forbidden is ours. `scripts/verify-subscription-completeness.mjs` holds the
-three parts of that which are actually checkable, and its output says it holds three
-rather than the whole promise, because a check implying it had verified "nothing else
-to buy" whole would be the defect this repository is about.
-
-**What the measurement found.** Seventeen rate limiters, and none of them throttles a
-subscriber's ordinary work: eight sit on surfaces with nobody signed in, five stand in
-front of a secret, and the four a signed-in person can hit are at 1800/hour
-(procurement), 2700/hour (work orders), 240/hour (scroll sites) and 20/hour (avatar
-uploads). No customer-facing string asks for a quote, an intake form, a demo or a word
-with sales -- 51,701 strings across 327 runtime files, zero findings. The promise holds
-today; what did not exist was anything to stop it quietly stopping.
-
-**The floor was badly chosen and the falsification is what showed it.** The first draft
-held subscriber-facing limiters to 300/hour. Throttling work orders from 45 a minute to
-5 -- a cap somebody meets during an ordinary afternoon -- lands on exactly 300/hour, and
-the comparison was `perHour < floor`, so the break passed. Not an undetected break: a
-*detected-as-fine* break, which is worse, because the number had been chosen to look
-reasonable rather than against anything. It is 600/hour now, five a minute fails by
-name, and the two limiters underneath it carry their own figure in `RATE_EXCEPTIONS`
-with the reason measured -- an exception with a number somebody has to look at is
-harder to erode than a floor quietly lowered to fit.
-
-**An escape hatch found by trying to use it.** Reclassifying every `abuse_ceiling` as
-an `anonymous_surface` leaves the floor applied to nothing and the gate green. It fails
-now: *"no limiter is registered as an abuse_ceiling, so the floor below was applied to
-nothing"*. This is shape 1 arriving through a category rather than through an empty
-list, and it is the shape to expect of any check that classifies before it measures.
-
-The registration is two-sided as usual: an unregistered limiter fails, a registration
-for a limiter that no longer exists fails, and an exception recorded for a limiter that
-has risen above the floor fails naming the figure.
-
-### Falsified, not assumed
-
-| break | result |
-|---|---|
-| work orders throttled to 5/minute | **green first time** -- 300/hour sat exactly on the floor; after the fix, red naming the figure |
-| work orders throttled to 2/minute | red, *120 per hour ... below the 600/hour* |
-| a limiter nobody registered | red, *this check does not know why it exists* |
-| a quote in customer copy | red, naming the file and quoting the string |
-| an exception for a limiter now above the floor | red, *has an exception recorded for being below* |
-| a registration for a limiter that no longer exists | red, naming it |
-| every ceiling reclassified as an anonymous surface | red, *the floor below was applied to nothing* |
-| the floor dropped back to 300 | its test red, *five writes a minute sits exactly on* |
-| the gate stops disclaiming what it does not check | its test red |
-| the detector stops looking for a quote | 4 red, including the gate's own fixture self-test |
-
-`pnpm test` 5763 passing, `verify:gates` 0 across 63 commands -- every exit code read
-from its own file.

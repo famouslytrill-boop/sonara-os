@@ -2,6 +2,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-08 - A Growth form answers a person with a page
+
+The nine "Add a ..." forms on the Growth record pages post straight to
+`/api/growth/<key>`, and those handlers answered only in JSON. Nothing
+intercepted the forms: no client script, no server adapter. A person who
+pressed Save on an enquiry, a campaign or a conversion was shown
+`{"ok":true,...}` and had to press Back to find out what had happened. The
+form tests posted with `Accept: application/json`, so none of them saw it.
+
+`lib/sonara-growth-form-outcomes.cjs` puts a small middleware in front of each
+of the nine create routes, ahead of the access check:
+- **When it applies:** only when the request asks for HTML and not for JSON,
+  as a browser's form post does.
+- **What it does:** the handler's JSON answer becomes a 303 back to the form's
+  own page, as `?saved=1` or `?problem=<code>&form=create`. The page says what
+  happened in a sentence.
+- **Why the marker:** `?problem=` is the convention every other form here uses,
+  and `tests/no-save-looks-like-it-worked.test.js` holds them to it. My first
+  version used `?not_saved=` to stay clear of the campaigns page, which already
+  reads `?problem=` for a campaign that could not be sent, and that test failed
+  it. `&form=create` lets each card read only its own failure. Without it a
+  failed save would be announced as "Nothing was sent", and a failed send as
+  "Not saved".
+- **JSON callers:** unchanged.
+- **Wiring checked at start-up:** each route's page is resolved at
+  registration, so a create form with no page fails to start rather than
+  answering a person in JSON.
+
+The page prints only sentences written in that module. An unknown code gets
+the general "not saved" sentence and is never echoed, because the query string
+is in an address anybody can send. A name like `constructor` is not read as a
+code either.
+
+`tests/a-growth-form-answers-with-a-page.test.js` posts each form with the body
+read off its rendered page and follows the answer back. It also reads the nine
+handlers' source and fails in both directions: a refusal with no sentence, or a
+sentence for a refusal no handler gives any more. Falsified ten ways, each
+failing it:
+- one route left on JSON;
+- an unknown code echoed;
+- JSON callers redirected too;
+- the page saying nothing;
+- a refusal without a sentence;
+- a sentence for no refusal;
+- every answer called saved;
+- prototype names read as codes;
+- the send card reading a save's problem;
+- the save card reading a send's problem.
+
 ### 2026-10-08 - A Growth record links only to its own workspace's records
 
 Nine Growth create endpoints took the ids a record links to from the request

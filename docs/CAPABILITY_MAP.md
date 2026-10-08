@@ -85,7 +85,7 @@ These operations still resolve to workspace homes. Each needs a real destination
 | `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:309` |
 | `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1539` |
 | `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1563` |
-| `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:92` |
+| `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:93` |
 | `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2234` |
 | `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1991` |
 | `GET /api/invention-systems/catalog` | sonara_shared_api | `/dashboard` | `routes/invention-systems-routes.cjs:17` |

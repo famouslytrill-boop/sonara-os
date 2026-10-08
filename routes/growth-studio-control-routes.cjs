@@ -11,7 +11,8 @@ const {
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
-const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
+const { GROWTH_CREATE_SPECS, getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
+const growthFormOutcomes = require("../lib/sonara-growth-form-outcomes.cjs");
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 const { getGoogleSearchConsoleReadContract } = require("../lib/sonara-google-search-console-read.cjs");
 
@@ -178,7 +179,17 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/campaigns", access, listHandler(TABLES.campaigns, deps, "campaigns"));
-  app.post("/api/growth/campaigns", access, async (req, res) => {
+  // A browser's post to a create form is answered back on the page the form
+  // is on (lib/sonara-growth-form-outcomes.cjs); a JSON caller is unchanged.
+  // Resolved at registration, so a form with no page fails to start rather
+  // than answering a person in JSON.
+  const answeredOnItsPage = (key) => {
+    const spec = GROWTH_CREATE_SPECS.find((entry) => entry.key === key);
+    const page = spec && GROWTH_RECORD_PAGES.find((record) => record.tableKey === spec.tableKey);
+    return growthFormOutcomes.answerFormWithPage(page?.path);
+  };
+
+  app.post("/api/growth/campaigns", answeredOnItsPage("campaigns"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -729,7 +740,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/leads", access, listHandler(TABLES.leads, deps, "leads"));
-  app.post("/api/growth/leads", access, async (req, res) => {
+  app.post("/api/growth/leads", answeredOnItsPage("leads"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -776,7 +787,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/segments", access, listHandler(TABLES.segments, deps, "segments"));
-  app.post("/api/growth/segments", access, async (req, res) => {
+  app.post("/api/growth/segments", answeredOnItsPage("segments"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -809,7 +820,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/consents", access, listHandler(TABLES.consents, deps, "consents"));
-  app.post("/api/growth/consents", access, async (req, res) => {
+  app.post("/api/growth/consents", answeredOnItsPage("consents"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -851,7 +862,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     return truthy(raw) ? true : null;
   }
 
-  app.post("/api/growth/touchpoints", access, async (req, res) => {
+  app.post("/api/growth/touchpoints", answeredOnItsPage("touchpoints"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     if (!truthy(req.body.tracking_basis_attested || req.body.trackingBasisAttested)) return res.status(400).json({ ok: false, code: "tracking_basis_attestation_required" });
@@ -900,7 +911,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/conversions", access, listHandler(TABLES.conversions, deps, "conversions"));
-  app.post("/api/growth/conversions", access, async (req, res) => {
+  app.post("/api/growth/conversions", answeredOnItsPage("conversions"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -943,7 +954,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/content", access, listHandler(TABLES.content, deps, "content"));
-  app.post("/api/growth/content", access, async (req, res) => {
+  app.post("/api/growth/content", answeredOnItsPage("content"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const channel = clean(req.body.channel, 100).toLowerCase();
@@ -1004,7 +1015,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/experiments", access, listHandler(TABLES.experiments, deps, "experiments"));
-  app.post("/api/growth/experiments", access, async (req, res) => {
+  app.post("/api/growth/experiments", answeredOnItsPage("experiments"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
@@ -1065,7 +1076,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/automations", access, listHandler(TABLES.automations, deps, "automations"));
-  app.post("/api/growth/automations", access, async (req, res) => {
+  app.post("/api/growth/automations", answeredOnItsPage("automations"), access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const trigger = clean(req.body.trigger_key || req.body.triggerKey, 100);
@@ -1298,6 +1309,9 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         else rows = result.rows;
       }
       const sections = unavailable ? [ui.card("Not available right now", unavailable)] : [];
+      // What happened to the form this page posted, before anything else.
+      const formOutcome = growthFormOutcomes.outcomeCard(req.query, getGrowthCreateSpec(page.tableKey)?.noun, ui.escape);
+      if (formOutcome) sections.unshift(formOutcome);
       if (!unavailable && page.includesTotals) sections.push(await growthTotalsCard(config, context, ui));
       // The refusal rules for a row action can need records this page does not
       // list. A failed read is left as null rather than an empty array so the
@@ -2285,7 +2299,10 @@ function unsubscribePage(ui, { state, token }) {
 // Returns null when there is nothing to report, so a first visit is not given a
 // card about a send that did not happen.
 function sendOutcomeCard(query, escape) {
-  const problem = clean(query?.problem, 120);
+  // A failed save from the page's own "Add a campaign" form also comes back as
+  // ?problem=, marked form=create (lib/sonara-growth-form-outcomes.cjs). That
+  // one is not a send, and announcing it as "Nothing was sent" would be wrong.
+  const problem = query?.form === "create" ? "" : clean(query?.problem, 120);
   if (problem) {
     return `<article class="card"><h2>Nothing was sent</h2><p>${escape(SEND_PROBLEMS[problem] || display(problem))}</p></article>`;
   }
