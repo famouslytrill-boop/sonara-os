@@ -597,6 +597,24 @@ describe("a campaign sends only to who was authorised", () => {
       assert.match(result.detail, /reconcile provider receipts/);
     });
 
+    it("contains synchronous provider adapter exceptions without blindly replaying", async () => {
+      for (const count of [1, 3]) {
+        let attempts = 0;
+        const result = await dispatchCampaign({
+          ...SEND, decision: many(count), report: () => {},
+          fetchImpl: () => {
+            attempts += 1;
+            throw new Error("provider_url_with_secret_should_not_escape");
+          }
+        });
+        assert.equal(attempts, 1);
+        assert.equal(result.code, "delivery_unconfirmed");
+        assert.equal(result.uncertain.length, count);
+        assert.equal(result.sent, 0);
+        assert.equal(JSON.stringify(result).includes("provider_url_with_secret_should_not_escape"), false);
+      }
+    });
+
     it("does not mistake an individual definitive 422 rejection for an unknown send", async () => {
       const result = await dispatchCampaign({
         ...SEND, decision: many(1),
