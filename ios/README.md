@@ -4,7 +4,7 @@
 
 ## Build
 
-Install Xcode and the open-source XcodeGen tool on a macOS development machine. From `ios/` run:
+Install Xcode and the third-party XcodeGen project generator on a macOS development machine. XcodeGen's own license does not apply to or grant rights over SONARA source code. From `ios/` run:
 
 ```bash
 xcodegen generate
