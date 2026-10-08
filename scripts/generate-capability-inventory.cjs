@@ -1920,25 +1920,26 @@ function buildInventory() {
             // the same read as its JSON endpoint. Make that indirection an
             // explicit, falsifiable review instead of inventing a direct call.
             let viaRenderer = false;
-            if (!direct && label === "the page" && entry.evidence.viaPageRenderer) {
-              const renderer = entry.evidence.viaPageRenderer;
-              const kind = entry.evidence.rendererKind;
+            if (!direct && label === "the page" && entry.evidence?.function) {
               const file = subject.source?.file;
-              // Prevent claims against an unrelated file, route or rendering mode.
-              if (/^[A-Za-z_$][\w$]*$/.test(renderer)
-                  && /^[a-z_]+$/.test(String(kind || ""))
-                  && typeof file === "string" && file.startsWith("routes/")
+              const handler = String(subject.handlerSource || "");
+              // Infer real page->renderer calls from source rather than
+              // writing extra unverified metadata into the review registry.
+              // The canonical capability inventory output therefore stays
+              // stable while the evidence checker gets more stringent.
+              if (typeof file === "string" && file.startsWith("routes/")
                   && file === raw.source?.file) {
-                const callSite = new RegExp(`\\b${escapeRegExp(renderer)}\\s*\\(\\s*req\\s*,\\s*res\\s*,\\s*["']${escapeRegExp(kind)}["']`);
-                const handler = String(subject.handlerSource || "");
                 const sourceText = fs.readFileSync(path.join(ROOT, file), "utf8");
-                const declaration = new RegExp(`\\b(?:async\\s+)?function\\s+${escapeRegExp(renderer)}\\s*\\(`);
-                const found = declaration.exec(sourceText);
-                if (found && callSite.test(handler)) {
+                const invocations = handler.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(\s*req\s*,\s*res\s*,\s*["']([a-z_]+)["']/g);
+                for (const invocation of invocations) {
+                  const renderer = invocation[1];
+                  const declaration = new RegExp("\\b(?:async\\s+)?function\\s+" + escapeRegExp(renderer) + "\\s*\\(");
+                  const found = declaration.exec(sourceText);
+                  if (!found) continue;
                   const rest = sourceText.slice(found.index + found[0].length);
                   const nextFunction = /\n  (?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/.exec(rest);
                   const rendererBody = nextFunction ? rest.slice(0, nextFunction.index) : rest;
-                  viaRenderer = call.test(rendererBody);
+                  if (call.test(rendererBody)) { viaRenderer = true; break; }
                 }
               }
             }
