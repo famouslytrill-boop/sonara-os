@@ -95,25 +95,35 @@ BEGIN
       missing_count, left(coalesce(unmatched, '?'), 800);
   END IF;
 
-  -- Both historical subscription SELECT policies remain until the
-  -- separately reviewed forward-only deduplication change. Pre-migration
-  -- rolled-back proof verified they have the same role/predicate/command.
+  -- Source history and active remote data are separate evidence sets.
+  -- The historical two user-only policies may be absent from an exact
+  -- source-controlled replay, which still has subscriptions_select_member.
   IF (SELECT count(*) FROM pg_policies
       WHERE schemaname='public' AND tablename='subscriptions'
         AND policyname IN ('Users can view own subscriptions',
-                           'Users can view their own subscription')
-        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 2 THEN
-    RAISE EXCEPTION 'subscription policies require review; observed=%', (
-       SELECT left(coalesce(jsonb_agg(jsonb_build_object(
-         'policy',policyname,'permissive',permissive,'roles',roles,
-         'command',cmd,'using',qual,'check',with_check
-       ) ORDER BY policyname)::text, 'none'), 1900)
-       FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
-         AND policyname IN ('Users can view own subscriptions',
-                            'Users can view their own subscription')
-     );
+                           'Users can view their own subscription')) = 0 THEN
+    IF (SELECT count(*) FROM pg_policies
+        WHERE schemaname='public' AND tablename='subscriptions'
+          AND policyname='subscriptions_select_member'
+          AND permissive='PERMISSIVE'
+          AND roles=ARRAY['authenticated']::name[] AND cmd='SELECT'
+          AND with_check IS NULL
+          AND regexp_replace(lower(qual), '[[:space:]()"]', '', 'g')
+              IN ('is_org_memberorganization_idoris_admin_or_founder',
+                  'public.is_org_memberorganization_idorpublic.is_admin_or_founder')
+      ) <> 1 THEN
+      RAISE EXCEPTION 'hardened replay lacks canonical authenticated organization-scoped subscription SELECT';
+    END IF;
+  ELSIF (SELECT count(*) FROM pg_policies
+          WHERE schemaname='public' AND tablename='subscriptions'
+            AND policyname IN ('Users can view own subscriptions',
+                               'Users can view their own subscription')
+            AND permissive='PERMISSIVE'
+            AND roles=ARRAY['authenticated']::name[]
+            AND cmd='SELECT'
+            AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+            AND with_check IS NULL) <> 2 THEN
+    RAISE EXCEPTION 'postmigration subscription policy lineage differs from reviewed exact state';
   END IF;
 END
 $verify_postmigration$;
