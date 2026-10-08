@@ -1,8 +1,18 @@
 name: dependency-scan
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   push:
   pull_request:
+
+concurrency:
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Named "frontend-dependencies" and there is no frontend.
