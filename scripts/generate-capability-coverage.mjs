@@ -137,8 +137,26 @@ const content = `${lines.join("\n").trimEnd()}\n`;
 if (process.argv.includes("--check")) {
   const current = fs.existsSync(output) ? fs.readFileSync(output, "utf8") : "";
   if (current !== content) {
-    const currentLines = current.split("\n");
-    const expectedLines = content.split("\n");
+    const currentLines = current.split("\\n");
+    const expectedLines = content.split("\\n");
+    // This is strictly diagnostic; drift still fails the release gate.
+    // A first mismatch hides the actual set difference when route totals tie.
+    const routeRows = (rows) => new Map(rows.flatMap((line) => {
+      const match = /^\\| (\\/[^|]+) \\| /.exec(line);
+      return match ? [[match[1], line]] : [];
+    }));
+    const checkedRoutes = routeRows(currentLines);
+    const observedRoutes = routeRows(expectedLines);
+    const checkedOnly = [...checkedRoutes.keys()].filter((name) => !observedRoutes.has(name));
+    const observedOnly = [...observedRoutes.keys()].filter((name) => !checkedRoutes.has(name));
+    const changed = [...observedRoutes].filter(([name, value]) =>
+      checkedRoutes.has(name) && checkedRoutes.get(name) !== value)
+      .map(([name]) => name);
+    console.error("Coverage set difference (source document vs current checkout):", {
+      checkedCount: checkedRoutes.size, observedCount: observedRoutes.size,
+      checkedOnly: checkedOnly.slice(0, 25), observedOnly: observedOnly.slice(0, 25),
+      changed: changed.slice(0, 25)
+    });
     let index = 0;
     while (index < currentLines.length && index < expectedLines.length && currentLines[index] === expectedLines[index]) index += 1;
     const start = Math.max(0, index - 2);
