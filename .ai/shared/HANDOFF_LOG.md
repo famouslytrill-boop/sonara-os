@@ -1,5 +1,21 @@
 # Handoff Log
 
+## 2026-10-08 - Claude - A campaign's return on what its customers paid (PR #446)
+
+- The campaign page adds "What the customers it brought in have paid":
+  `growth_leads.customer_id` → `customer_invoices` → `customer_invoice_payments`,
+  summarised in `lib/sonara-campaign-payments.cjs`.
+- First campaign wins (first touch; a tie goes to the lower id). Only payments
+  and open invoices from the day the person came in count. Figures stay per
+  currency and signed.
+- It is never added to `growth_conversions`. If you add a path that writes a
+  conversion for an invoice payment, this page will count that sale twice:
+  change one or the other.
+- A cut-short read withholds a return on both bases. It is no longer labelled
+  "at least", because corrections make it no bound in either direction.
+- `nextStep` may now return `collect_unpaid` and `too_many_records`, and its
+  money steps carry `basis: "payments" | "recorded"`.
+
 ## 2026-10-07 - Claude - Campaign link attribution (PR #446)
 
 - `?c=<campaign id>` on `/chat/:slug` credits the resulting lead to the

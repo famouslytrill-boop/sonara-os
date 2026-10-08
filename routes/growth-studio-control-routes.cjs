@@ -18,6 +18,7 @@ const { getGoogleSearchConsoleReadContract } = require("../lib/sonara-google-sea
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 const campaignResults = require("../lib/sonara-campaign-results.cjs");
 const campaignResultsPages = require("../lib/sonara-campaign-results-pages.cjs");
+const campaignPayments = require("../lib/sonara-campaign-payments.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
 const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
@@ -1332,6 +1333,51 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     return found.ok ? { ok: true, campaign: found.rows[0] || null } : { ok: false };
   }
 
+  // What the customers a campaign brought in have paid. Three reads, each keyed
+  // by the one before: every campaign-credited enquiry of those customers (to
+  // decide which campaign found each one first), their invoices, and the
+  // payments against those. The ids ride in the address as in.(...), so they
+  // go a hundred at a time. Organization on every read: the ids came from this
+  // workspace's rows, and the filter is still what keeps them there. Each read
+  // names its own columns, so scripts/report-unused-selected-columns.mjs can
+  // see them.
+  const BATCH = 100;
+  async function readInBatches(ids, limit, readBatch) {
+    const batches = [];
+    for (let start = 0; start < ids.length; start += BATCH) batches.push(ids.slice(start, start + BATCH).map(encodeURIComponent).join(","));
+    const results = await Promise.all(batches.map(readBatch));
+    if (!results.every((result) => result.ok)) return { ok: false, rows: [] };
+    return { ok: true, rows: results.flatMap((result) => result.rows), truncated: results.some((result) => result.rows.length >= limit) };
+  }
+  async function readWhatCustomersPaid(config, context, campaignId, leads) {
+    const nothingToRead = { ok: true, rows: [] };
+    if (!leads.ok) return { campaignId, customerLeads: nothingToRead, invoices: nothingToRead, payments: nothingToRead };
+    const { ids, truncated } = campaignPayments.customersToRead(leads.rows);
+    if (!ids.length) return { campaignId, customerLeads: nothingToRead, invoices: nothingToRead, payments: nothingToRead, customersTruncated: truncated };
+    const [customerLeads, invoices] = await Promise.all([
+      readInBatches(ids, 1000, (list) => rest(config, TABLES.leads, `select=customer_id,campaign_id,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&customer_id=in.(${list})&limit=1000`))
+        // Only enquiries a campaign brought in can decide which campaign was first.
+        .then((result) => (result.ok ? { ...result, rows: result.rows.filter((row) => row.campaign_id) } : result)),
+      readInBatches(ids, 1000, (list) => rest(config, "customer_invoices", `select=id,customer_id,currency,status,total_cents,issued_on,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&customer_id=in.(${list})&limit=1000`))
+    ]);
+    // At most this many invoices' payments are read for one page. Beyond it the
+    // figures are marked cut short, which withholds the return anyway, so
+    // reading further would cost requests and change nothing shown.
+    const MAX_INVOICES = 1000;
+    const allInvoiceIds = invoices.ok ? invoices.rows.map((row) => row.id).filter(validUuid) : [];
+    const invoiceIds = allInvoiceIds.slice(0, MAX_INVOICES);
+    const payments = !invoices.ok ? { ok: false, rows: [] }
+      : invoiceIds.length ? await readInBatches(invoiceIds, 2000, (list) => rest(config, "customer_invoice_payments", `select=invoice_id,amount_cents,received_on&organization_id=eq.${encodeURIComponent(context.organizationId)}&invoice_id=in.(${list})&limit=2000`))
+        : nothingToRead;
+    // Only invoices whose payments were read go on: one whose payments were not
+    // would show its whole total as still owed.
+    const paymentsReadFor = new Set(invoiceIds);
+    const invoicesRead = invoices.ok && allInvoiceIds.length > MAX_INVOICES
+      ? { ...invoices, rows: invoices.rows.filter((row) => paymentsReadFor.has(row.id)), truncated: true }
+      : invoices;
+    return { campaignId, customerLeads, invoices: invoicesRead, payments, customersTruncated: truncated };
+  }
+
   app.get(`${CAMPAIGN_PAGE}/:campaignId`, access, async (req, res) => {
     const context = await resolveContext(req, deps);
     const config = getConfig(deps);
@@ -1343,7 +1389,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const [spend, conversions, leads, sends, deliveryEvents, chatPage] = await Promise.all([
       rest(config, TABLES.spend, `select=id,kind,amount_cents,currency,spent_on,description,reference&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=spent_on.desc&limit=500`).then((result) => capped(result, 500)),
       rest(config, TABLES.conversions, `select=id,value,currency,attribution_confidence,occurred_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=occurred_at.desc&limit=1000`).then((result) => capped(result, 1000)),
-      rest(config, TABLES.leads, `select=id,status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=2000`).then((result) => capped(result, 2000)),
+      rest(config, TABLES.leads, `select=id,status,customer_id,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=2000`).then((result) => capped(result, 2000)),
       rest(config, TABLES.sends, `select=status,provider_message_id&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=5000`).then((result) => capped(result, 5000)),
       // What the provider reported after accepting each email. Written by
       // POST /api/webhooks/resend (routes/sonara-email-receipt-routes.cjs).
@@ -1351,13 +1397,15 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // The business's chat page, where a campaign link sends people.
       rest(config, "lead_capture_pages", `select=slug,enabled&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`)
     ]);
-    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends, deliveryEvents });
+    const paid = await readWhatCustomersPaid(config, context, found.campaign.id, leads);
+    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends, deliveryEvents, paid });
     const today = new Date().toISOString().slice(0, 10);
     const defaultCurrency = (spend.ok && spend.rows[0]?.currency) || (conversions.ok && conversions.rows.find((row) => row.currency)?.currency) || "usd";
     const sections = [
       campaignResultsPages.notice(req.query, ui.escape),
       campaignResultsPages.campaignCard(found.campaign, ui.escape),
       summary.ok ? campaignResultsPages.returnCard(summary, ui.escape) : campaignResultsPages.unreadableCard(summary, ui.escape),
+      summary.ok ? campaignResultsPages.paidCard(summary, ui.escape) : "",
       campaignResultsPages.nextStepCard(summary, ui.escape),
       summary.ok ? campaignResultsPages.activityCard(summary) : "",
       summary.ok ? campaignResultsPages.deliveryCard(summary) : "",

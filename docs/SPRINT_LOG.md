@@ -2,6 +2,84 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-08 - A campaign is judged on what its customers paid
+
+The Growth chain's attribution → ROI link rested on typed-in numbers. A
+campaign's return came from `growth_conversions`, and every row there is entered
+by hand. Meanwhile the same business invoices the customers its campaigns find
+and records what they pay. Three columns already said which campaign found
+whom: `growth_leads.campaign_id`, `growth_leads.customer_id`, and the
+customer's invoices. Nothing joined them, so a campaign whose customers had paid
+thousands showed whatever somebody had remembered to record.
+
+The campaign page now has a second basis, "What the customers it brought in
+have paid" (`lib/sonara-campaign-payments.cjs`). Its rules are each a way the
+figure could claim more than happened:
+- **The first campaign wins.** A customer found by two campaigns counts under
+  the earlier one only, so no payment is claimed twice. A tie goes to the lower
+  campaign id. This is the `first_touch` model `growth_conversions` already
+  names.
+- **Counted from the day they came in.** What somebody paid before this
+  campaign found them is not this campaign's. The same holds for invoices still
+  owed.
+- **Per currency, with signs.** A payment's currency is its invoice's, and a
+  negative correction subtracts.
+- **Withheld rather than guessed.** An unreadable row is counted apart. A failed
+  read withholds the whole figure, and so does a list too long to be sure which
+  campaign was first.
+- **Never added to the recorded results.** The same sale may be in both, so the
+  page shows the two side by side.
+
+The first two rules can't be triggered through the product today, and that was
+checked rather than assumed. The only writer of `growth_leads.customer_id` is
+the conversion route, which creates a new customer from the lead and refuses
+when one with that email exists. So a customer never predates their lead, and
+two leads never share one. The rules hold for rows that arrive any other way:
+an import, a database edit, or the "link the lead to them" step the conversion
+refusal asks for and nothing yet performs. My first draft of the module's
+comment stated the reason as if linking already happened; it was corrected
+before commit.
+
+Where it can be worked out, the next step rests on what was paid, since nobody
+typed it in. A campaign that is behind while its customers have invoices
+outstanding is told to collect those before judging it.
+
+A defect fixed on the way. A cut-short spend read labelled the return "at
+least" the figure shown. More spend means less return, so that overstated it.
+Spend, conversions and payments all carry negative corrections, so a row that
+was not read could move the return either way. A cut-short read now withholds
+the return, on both bases.
+
+Falsified fourteen ways, each failing a test in
+`tests/a-campaign-is-judged-on-what-its-customers-paid.test.js`:
+- first campaign ignored;
+- payments from before they came in counted;
+- corrections dropped;
+- owed counted on any invoice status;
+- owed counted from before they came in;
+- next step ignoring payments;
+- the old "at least";
+- a payments return from a cut-short read;
+- cut-short customer leads trusted;
+- the payments read without the organization;
+- the leads read without `customer_id`;
+- an unreadable amount read as zero;
+- past the 1,000-invoice cap, invoices whose payments were not read kept, so
+  their whole totals showed as owed;
+- the cap not marked as cut short.
+
+One page reads the payments of at most 1,000 invoices. Beyond that the figures
+are cut short, which withholds the return anyway, so reading further would cost
+requests and change nothing shown.
+
+`report-unused-selected-columns.mjs` first counted the new reads among the
+selects built at run time (30 against 29 recorded). They now name their
+columns, and the four read one or two files along are ruled on with the lines
+that read them.
+`verify-postgrest-filter-encoding.mjs` refused the next version. It encoded
+the organization once into a variable, and the gate cannot see encoding done
+upstream. Each query now encodes it where it is used.
+
 ### 2026-10-07 - A campaign link is tagged only where it stands alone
 
 CodeQL flagged `js/incomplete-url-substring-sanitization` on the test for

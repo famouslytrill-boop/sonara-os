@@ -197,14 +197,21 @@ const ACCOUNTED = Object.freeze({
     ].join(" ")
   },
   "routes/growth-studio-control-routes.cjs": {
-    columns: ["bounce_type", "provider_message_id", "slug"],
+    columns: ["bounce_type", "provider_message_id", "slug", "created_at", "issued_on", "received_on", "total_cents"],
     reason: [
       "The campaign page hands its sends and the provider's delivery events to summarizeCampaign in lib/sonara-campaign-results.cjs,",
       "which passes both to summarizeDelivery in lib/sonara-email-delivery-receipts.cjs. That reads provider_message_id from both",
       "(counting each email once, and only accepted sends that carry one as reportable) and bounce_type from the events (permanent",
       "bounces, which set the next step). Checked 7 October 2026. Fetched to be used, two files along.",
       "slug: the campaign page reads the business's chat page and hands the row to campaignLinkCard in lib/sonara-campaign-results-pages.cjs,",
-      "which builds the tracked link from it (`campaignLink({ origin, slug: page.slug, campaignId })`, checked 7 October 2026)."
+      "which builds the tracked link from it (`campaignLink({ origin, slug: page.slug, campaignId })`, checked 7 October 2026).",
+      "created_at, issued_on, received_on and total_cents: readWhatCustomersPaid reads the campaign's leads, its customers' other leads,",
+      "their invoices and the payments against those, and summarizeCampaign hands them to summarizeCampaignPayments in",
+      "lib/sonara-campaign-payments.cjs. Checked 8 October 2026 against that file: a lead's created_at is the day the person came in",
+      "and decides which campaign found them first (lines 115 and 127, `instant(row?.created_at)`); received_on is when a payment",
+      "counts from (line 172, `dayOf(row?.received_on)`); issued_on, falling back to the invoice's created_at, decides whether an open",
+      "invoice was sent after they came in (line 185); and total_cents is the invoice total settle() in lib/sonara-invoice-settlement.cjs",
+      "works the balance from (line 108, `finiteNumber(invoice?.total_cents)`). Fetched to be used, one and two files along."
     ].join(" ")
   },
   "routes/sonara-formula-routes.cjs": {

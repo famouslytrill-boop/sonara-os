@@ -477,15 +477,21 @@ chains the owner named:
 - **Creator Marketplace:** asset → version → approval → rights/consent → listing
   → buyer → checkout → settlement → licence grant → private delivery → receipt →
   seller reporting → reconciliation → refund/dispute → audit trail. *Built in PR
-  #436.*
+  #436. #446 makes a dispute the seller wins give the sale back.*
 - **Business Builder:** lead → estimate → customer → booking/job → employee →
   inventory → work completion → invoice → payment → receipt → repeat job →
-  profitability. *Storefront payment and reconciliation are the payment →
-  receipt → reconciliation part, in progress on PR #436. Invoice settlement is
-  Codex's (#428–#430).*
+  profitability. *Storefront payment and reconciliation came in #436, and invoice
+  settlement is Codex's (#428–#430). #444 put money received, per currency, and
+  the profit of the jobs finished in a period on the operations page. #446 lets a
+  finished job be booked again.*
 - **Growth:** lead/source → campaign → channel → outbound connector → delivery
-  receipt → engagement → conversion → attribution → ROI → next action. *Not
-  started.*
+  receipt → engagement → conversion → attribution → ROI → next action. *#444
+  recorded what a campaign cost, worked out its return per currency and named
+  the next step. #446 adds the provider's delivery receipts and the campaign link
+  that credits an enquiry. It also judges the return on what the customers a
+  campaign found actually paid against their invoices, not only on conversions
+  typed in by hand. Email through Resend is the only channel a campaign is sent
+  on.*
 
 Before starting a chain, take a lock in `.ai/shared/LOCKS.md` naming the files,
 and write the entry in `.ai/shared/HANDOFF_LOG.md`. Two agents converging the same
