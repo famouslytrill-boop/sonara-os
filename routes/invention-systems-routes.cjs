@@ -6,6 +6,7 @@ const {
   getInventionSystemsIntelligence
 } = require("../lib/sonara-invention-systems-2026.cjs");
 const { getStudioSimulationCatalog, evaluateInternalSimulation } = require("../lib/sonara-simulation-integration.cjs");
+const { renderResearchWorkbench } = require("../lib/sonara-research-workbench.cjs");
 
 module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
@@ -41,6 +42,7 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
       parameters: { matrix: [[1, -1], [-1, 1]] }
     }).result;
     const sections = [
+      renderResearchWorkbench(req && req.query),
       ui.card(
         "System foundry",
         String(catalog.counts.inventionSystems) + " SONARA-owned system concepts map " + String(catalog.counts.domainCoverage) + " requested domain families into reusable platform primitives. None are marked live or granted runtime authority by this catalog."
@@ -51,10 +53,10 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
       ),
       ui.card(
         "Read-only mathematical examples",
-        "Research demonstrations using fixed inputs only: a 4-by-3 rectangle has area " +
+        "Fixed-input reference examples: a 4-by-3 rectangle has area " +
         String(area) + " square units; a C major triad has MIDI notes " + chord +
         "; the matching-pennies game has a mixed-strategy row probability " +
-        String(game.rowProbabilities[0]) + ". These examples do not accept customer input or execute real operations."
+        String(game.rowProbabilities[0]) + ". Separate small educational forms accept bounded input but never change records, money or production workflows."
       ),
       ui.card(
         "Promotion model",
