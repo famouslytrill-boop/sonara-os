@@ -11,6 +11,12 @@ INSERT INTO auth.users (id,email) VALUES
  ('a1111111-1111-4111-8111-111111111111','rls-fixture-a@example.invalid'),
  ('b2222222-2222-4222-8222-222222222222','rls-fixture-b@example.invalid');
 
+-- Migration 010 owns the original membership FK to public.profiles, not
+-- auth.users. Create matching profile records in the same rollback fixture.
+INSERT INTO public.profiles(id,email) VALUES
+ ('a1111111-1111-4111-8111-111111111111','rls-fixture-a@example.invalid'),
+ ('b2222222-2222-4222-8222-222222222222','rls-fixture-b@example.invalid');
+
 -- Live project has additional legacy organization fields absent in a clean
 -- replay. Use the shared minimum schema to keep this test meaningful in both.
 INSERT INTO public.organizations (id,name,owner_id) VALUES
