@@ -123,4 +123,28 @@ describe("trust and customer guidance across all SONARA companies", function () 
     }
   });
 
+  it("fails both public support routes closed in production if durable limits cannot be configured", async () => {
+    const keys = ["NODE_ENV", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+    const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    const base = {
+      name: "Example Customer", email: "customer@example.com", subject: "Help needed",
+      category: "support", message: "This is a valid support request.", consent: "yes"
+    };
+    try {
+      process.env.NODE_ENV = "production";
+      for (const key of keys.filter((x) => x !== "NODE_ENV")) delete process.env[key];
+      for (const path of ["/contact", "/support/request"]) {
+        const response = await request(app).post(path).set("Accept", "application/json").send(base);
+        assert.equal(response.status, 503, `${path} must not send email without a distributed limiter`);
+        assert.equal(response.body.code, "rate_limit_unavailable");
+        assert.match(response.body.message, /No request was recorded or sent/);
+      }
+    } finally {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  });
+
 });
