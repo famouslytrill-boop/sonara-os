@@ -11,7 +11,10 @@ async function mountLocalComponent(page, markup, scriptPath) {
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  await page.setContent(inertMarkup);
+  // Preserve the real /tools document origin, CSP and network context.
+  // WebKit creates a fresh about:blank-like document for setContent(), which
+  // can block same-origin application scripts even when the app serves them.
+  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
   await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
