@@ -91,6 +91,9 @@
   // public/sonara-offline-queue.js, when it loaded. Without it a check-in
   // with no signal is lost, as it always was, and the page says so.
   var queue = window.SonaraOfflineQueue || null;
+  // Both identifiers came from the authenticated server-rendered page. The
+  // queue also enforces the scope; the server independently rechecks it.
+  var offlineScope = String(config.organizationId || "") + ":" + String(config.userId || "");
 
   // No answer at all -- no signal, a timeout -- or the server failing comes
   // back as `unreachable`, which is the case worth keeping and retrying. A 4xx
@@ -110,13 +113,16 @@
   }
 
   function sendKept() {
-    if (!queue || !queue.pending()) return;
-    queue.flush().then(function (result) {
+    if (!queue) return;
+    queue.flush({ scope: offlineScope }).then(function (result) {
       var delivered = result.sent + result.duplicates;
       if (delivered && !result.waiting) say(delivered === 1 ? "Your check-in from earlier has now been recorded, at the time you made it." : delivered + " check-ins from earlier have now been recorded, at the times you made them.");
       else if (result.waiting) say(result.waiting === 1 ? "One check-in is still waiting on this device to be sent." : result.waiting + " check-ins are still waiting on this device to be sent.");
       if (result.refused) say("A check-in kept on this device was refused when it was sent, so it was not recorded.");
-      if (result.expired) say("A check-in kept on this device was more than a week old and was not sent.");
+      if (result.expired) say("A check-in kept on this device expired or was invalid and was not sent.");
+      if (result.authRequired) say("Saved check-ins are waiting. Sign back into the original account before trying again.");
+      if (result.legacy) say("Some older check-ins on this device have no account binding and cannot be sent automatically. They will expire without being sent.");
+      if (result.scopeRequired) say("This page could not identify your account for safe offline delivery. Saved check-ins will not be sent.");
     });
   }
   window.addEventListener("online", sendKept);
@@ -163,6 +169,8 @@
           // browser gets to make freely, and the endpoint refuses one that is
           // not the caller's own.
           employee_id: config.employeeId || null,
+          origin_user_id: config.userId || null,
+          origin_organization_id: config.organizationId || null,
           privacy_mode: reduced.mode,
           latitude: reduced.latitude,
           longitude: reduced.longitude,
@@ -179,11 +187,11 @@
       .then(function (outcome) {
         if (!outcome) return;
         if (outcome.answer && outcome.answer.code === "unreachable" && queue && outcome.body.client_event_id) {
-          var kept = queue.keep(config.endpoint, outcome.body);
+          var kept = queue.keep(config.endpoint, outcome.body, { scope: offlineScope });
           if (kept.kept) {
             say("No connection. Your check-in is saved on this device and will be sent when you are back online, recorded at the time you pressed the button.");
           } else {
-            say(kept.reason === "full" ? "No connection, and this device is already holding as many check-ins as it can. Nothing new was kept." : "No connection, and this browser would not let us keep the check-in. Nothing was recorded.");
+            say(kept.reason === "full" ? "No connection, and this device is already holding as many check-ins as it can. Nothing new was kept." : "No connection, and your check-in could not be kept safely on this device. Nothing was recorded.");
           }
           if (button) button.disabled = false;
           return;
