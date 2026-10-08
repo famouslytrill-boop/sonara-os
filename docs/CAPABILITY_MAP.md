@@ -86,16 +86,16 @@ These operations still resolve to workspace homes. Each needs a real destination
 | `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1539` |
 | `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1563` |
 | `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:93` |
-| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2253` |
+| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2259` |
 | `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1999` |
 | `GET /api/invention-systems/catalog` | sonara_shared_api | `/dashboard` | `routes/invention-systems-routes.cjs:17` |
-| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2241` |
+| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2247` |
 | `GET /api/prompt-library/discovery` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:97` |
 | `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
 | `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:511` |
 | `POST /api/creator/workflows/plan` | sonara_shared_api | `/dashboard` | `routes/creator-music-system-readonly.cjs:128` |
-| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2268` |
-| `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2217` |
+| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2274` |
+| `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2223` |
 
 ### Research-only repositories
 
