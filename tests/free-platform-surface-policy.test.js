@@ -35,7 +35,9 @@ describe("free login-based SONARA platform surface policy", () => {
     const x = { product: "creator_studio", service: "marketplace", action: "publish",
       userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true };
     assert.equal(surfacePolicy(x).code, "moderation_check_required");
-    const approved = surfacePolicy({ ...x, moderationApproved: true });
+    const withoutRights = surfacePolicy({ ...x, moderationApproved: true });
+    assert.equal(withoutRights.code, "marketplace_rights_review_required");
+    const approved = surfacePolicy({ ...x, moderationApproved: true, rightsCleared: true });
     assert.equal(approved.ok, true);
     assert.equal(approved.subscriptionRequired, false);
     assert.equal(approved.checkoutAuthorized, false);
@@ -51,6 +53,53 @@ describe("free login-based SONARA platform surface policy", () => {
     assert.equal(allowed.ok, true);
     assert.equal(allowed.sideEffectExecuted, false);
   });
+  it("keeps basic usage free while requiring a separate trusted grant for owner-only administration", () => {
+    for (const item of CATALOG) {
+      const base = { product: item.product, service: item.service, action: "manage",
+        userId: U, organizationId: A, serverOrganizationId: A,
+        actorHasPermission: true, paidEntitlement: false };
+      assert.equal(surfacePolicy(base).code, "business_manager_permission_required", item.key);
+      assert.equal(surfacePolicy({ ...base, actorCanManage: "true" }).code,
+        "business_manager_permission_required", item.key);
+      const permitted = surfacePolicy({ ...base, actorCanManage: true });
+      assert.equal(permitted.ok, true, item.key);
+      assert.equal(permitted.subscriptionRequired, false, item.key);
+      assert.equal(permitted.sideEffectExecuted, false, item.key);
+      assert.equal(permitted.checkoutAuthorized, false, item.key);
+      assert.equal(surfacePolicy({ ...base, actorCanManage: true,
+        serverOrganizationId: B }).code, "tenant_scope_unverified", item.key);
+    }
+  });
+
+  it("requires rights clearance for marketplace publication under every company brand", () => {
+    for (const item of CATALOG.filter(x => x.service === "marketplace")) {
+      const base = { product: item.product, service: item.service, action: "publish",
+        userId: U, organizationId: A, serverOrganizationId: A, actorHasPermission: true };
+      assert.equal(surfacePolicy({ ...base, moderationApproved: true }).code,
+        "marketplace_rights_review_required", item.key);
+      assert.equal(surfacePolicy({ ...base, moderationApproved: true, rightsCleared: "true" }).code,
+        "marketplace_rights_review_required", item.key);
+      assert.equal(surfacePolicy({ ...base, rightsCleared: true }).code,
+        "moderation_check_required", item.key);
+      const result = surfacePolicy({ ...base, moderationApproved: true, rightsCleared: true });
+      assert.equal(result.ok, true, item.key);
+      assert.equal(result.subscriptionRequired, false, item.key);
+      assert.equal(result.feeCents, 0, item.key);
+      assert.equal(result.checkoutAuthorized, false, item.key);
+    }
+  });
+
+  it("does not impose marketplace rights review on normal moderated social posts or free storefront setup", () => {
+    const base = { userId: U, organizationId: A, serverOrganizationId: A,
+      actorHasPermission: true, moderationApproved: true, paidEntitlement: false };
+    assert.equal(surfacePolicy({ ...base, product: "growth_studio", service: "social",
+      action: "publish" }).ok, true);
+    assert.equal(surfacePolicy({ ...base, product: "business_builder", service: "storefront",
+      action: "create" }).ok, true);
+    assert.equal(surfacePolicy({ ...base, product: "creator_studio", service: "marketplace",
+      action: "create" }).ok, true);
+  });
+
   it("refuses malformed user UUIDs, tenant UUIDs and scope spoofing on every free write", () => {
     const base = { product: "sonara_industries", service: "social", action: "create",
       userId: U, organizationId: A, serverOrganizationId: A,
