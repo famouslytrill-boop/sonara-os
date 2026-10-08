@@ -42,6 +42,23 @@ describe("free login-based SONARA platform surface policy", () => {
     assert.equal(approved.sideEffectExecuted, false);
     assert.equal(surfacePolicy({ ...x, action: "comment", moderationApproved: false }).ok, false);
   });
+  it("refuses malformed user UUIDs, tenant UUIDs and scope spoofing on every free write", () => {
+    const base = { product: "sonara_industries", service: "social", action: "create",
+      userId: U, organizationId: A, serverOrganizationId: A,
+      actorHasPermission: true, paidEntitlement: false };
+    assert.equal(surfacePolicy(base).ok, true);
+    for (const userId of ["x".repeat(36), "1".repeat(36), "11111111--111-4111-8111-111111111111", null]) {
+      assert.equal(surfacePolicy({ ...base, userId }).code, "login_required");
+    }
+    for (const organizationId of ["x".repeat(36), "1".repeat(36), "11111111--111-4111-8111-111111111111", null]) {
+      assert.equal(surfacePolicy({ ...base, organizationId, serverOrganizationId: organizationId }).code,
+        "tenant_scope_unverified");
+    }
+    assert.equal(surfacePolicy({ ...base, organizationId: B }).code, "tenant_scope_unverified");
+    assert.equal(surfacePolicy({ ...base, actorHasPermission: "true" }).code, "surface_permission_required");
+    assert.equal(surfacePolicy({ ...base, action: "publish", moderationApproved: "true" }).code,
+      "moderation_check_required");
+  });
   it("uses the shared policy in Growth Studio's real authenticated channel screen", () => {
     const code = fs.readFileSync(path.join(__dirname, "..", "routes",
       "sonara-growth-channel-routes.cjs"), "utf8");
