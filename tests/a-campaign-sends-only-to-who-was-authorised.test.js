@@ -590,6 +590,44 @@ describe("a campaign sends only to who was authorised", () => {
       }
     });
 
+    it("refuses to count an empty HTTP 200 single response as a verified send", async () => {
+      const ledgerWrites = [];
+      const sendRows = [];
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(1), report: () => {},
+        appendLedger: async (row) => { ledgerWrites.push(row); return { ok: true }; },
+        recordSends: async (rows) => { sendRows.push(...rows); return { ok: true }; },
+        fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) })
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.sent, 0);
+      assert.equal(result.uncertain.length, 1);
+      assert.equal(ledgerWrites.length, 0, "unknown sends are not billable as accepted");
+      assert.equal(sendRows.length, 1);
+      assert.equal(sendRows[0].reason, "provider_outcome_unknown");
+    });
+
+    it("halts later sends after an individual accepted-looking response has no receipt", async () => {
+      // A suppressed or invalid-address recipient can leave a single first
+      // message followed by many later messages; the missing provider ID
+      // must stop all later batches, even when the first HTTP status is 200.
+      const calls = [];
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(101), report: () => {},
+        fetchImpl: async (url, options) => {
+          calls.push({ url: String(url), body: JSON.parse(options.body) });
+          return { ok: true, status: 200, json: async () => ({ data: [] }) };
+        }
+      });
+      // With 101 recipients the first 100 form a batch and the 101st remains
+      // unattempted; a missing batch receipt must halt before the singleton.
+      assert.equal(calls.length, 1);
+      assert.equal(result.uncertain.length, 100);
+      assert.equal(result.notAttempted.length, 1);
+      assert.equal(result.sent, 0);
+    });
+
     it("does not mistake an individual definitive 422 rejection for an unknown send", async () => {
       const result = await dispatchCampaign({
         ...SEND, decision: many(1),
