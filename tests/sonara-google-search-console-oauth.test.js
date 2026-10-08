@@ -164,6 +164,29 @@ describe("Google Search Console customer-owned OAuth lifecycle", () => {
     assert.equal(JSON.stringify(out).includes(CLIENT_SECRET), false);
   });
 
+  it("accepts an omitted token-response scope only because this flow requested one exact scope", async () => {
+    const tx = start();
+    const out = await completeGoogleSearchConsoleAuthorization(completionInput(tx, {
+      fetchImpl: async (url) => {
+        if (String(url) === GOOGLE_TOKEN_ENDPOINT) {
+          return response(200, {
+            access_token: "ephemeral-access-token",
+            refresh_token: "durable-refresh-token",
+            expires_in: 3600,
+            token_type: "Bearer"
+          });
+        }
+        return response(200, { siteEntry: [] });
+      },
+      storeRefreshToken: async () => ({
+        ok: true,
+        credentialReference: "vault://customer-providers/gsc-no-scope"
+      })
+    }));
+    assert.equal(out.ok, true);
+    assert.deepEqual(out.grantedScopes, [READONLY_SCOPE]);
+  });
+
   it("refuses a write or broader Google scope before property discovery or secret storage", async () => {
     const tx = start();
     let calls = 0;
