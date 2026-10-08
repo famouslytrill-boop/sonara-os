@@ -2,6 +2,8 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
+const { CATALOG: FREE_SURFACE_CATALOG } = require("../lib/sonara-free-platform-surface-policy.cjs");
+
 // Channels: a public page a business posts to, and a directory to find them by.
 //
 //   GET  /growth-studio/owner/channels          the business's channels, posts and reports
@@ -155,6 +157,18 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
 
     const sections = [];
+    // A Growth channel is a basic free login-based SONARA social surface.
+    // The subscription policy is shared across parent, Business Builder,
+    // Creator Studio and Growth Studio; it is NOT a payment or publish grant.
+    const channelSurface = FREE_SURFACE_CATALOG.find((item) =>
+      item.product === "growth_studio" && item.service === "social");
+    if (channelSurface && channelSurface.platformSubscriptionRequired === false
+      && channelSurface.platformPostingFeeCents === 0) {
+      sections.push(brandCard("Your channel is free",
+        "Create a channel and publish approved posts without a SONARA subscription or posting fee. " +
+        "Your login, business permissions, moderation rules and published-content rights still apply. " +
+        "Buying another product or using an independent provider is a separate choice."));
+    }
     const notice = noticeFor(req.query);
     if (notice) sections.push(brandCard("What just happened", escapeHtml(notice)));
     if (reports.rows.length > REPORT_CAP) {
