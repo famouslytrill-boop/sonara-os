@@ -81,4 +81,73 @@ describe("canonical SONARA origin for all company products", () => {
     assert.doesNotMatch(factory, /x-forwarded-(?:host|proto)/i);
     assert.doesNotMatch(factory, /sonaraindustries\.com/);
   });
+  it("refuses to create a checkout session before Stripe is called when the site origin is missing", async () => {
+    const { createBilling } = require("../lib/sonara-billing.cjs");
+    const previousFetch = global.fetch;
+    const calls = [];
+    global.fetch = async (url) => {
+      calls.push(String(url));
+      if (String(url).includes("/v1/prices/")) {
+        return { ok: true, json: async () => ({ unit_amount: 2900, active: true, product: { active: true } }) };
+      }
+      throw new Error("External checkout session creation must never be called");
+    };
+    try {
+      const billing = createBilling({
+        STRIPE_PLANS: { workspace_monthly: { name: "One workspace", amountCents: 2900, mode: "subscription" } },
+        getEnv: () => "sk_test_placeholder",
+        getPublicAppUrl: () => "",
+        getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+        getSupabaseServerConfig: () => ({ ok: false }),
+        supabaseHeaders: () => ({}),
+        safeCountTable: async () => ({ ok: true, count: 0 }),
+        formatMetric: String,
+        insertActivityEvent: async () => ({ ok: true })
+      });
+      const response = await billing.createStripeCheckoutSession(
+        { body: { workspace: "business_builder" } }, "workspace_monthly",
+        "price_test_123", "org_test", { id: "user_test" }, "cus_test"
+      );
+      assert.equal(response.ok, false);
+      assert.equal(response.code, "site_origin_not_configured");
+      assert.equal(calls.filter((url) => url.includes("/v1/checkout/sessions")).length, 0);
+    } finally {
+      global.fetch = previousFetch;
+    }
+  });
+
+  it("does not persist or email a bearer employee invitation without a public origin", async () => {
+    const { createBusinessEmployeeInvites } = require("../lib/sonara-business-employee-invites.cjs");
+    const previousFetch = global.fetch;
+    let callCount = 0;
+    global.fetch = async () => { callCount += 1; throw new Error("Invite must not be written"); };
+    try {
+      const invites = createBusinessEmployeeInvites({
+        getSupabaseAdminClient: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "test" }),
+        supabaseHeaders: () => ({}),
+        hashInviteToken: () => "hash",
+        getPublicAppUrl: () => "",
+        recordAdminAuditEvent: async () => {},
+        isSupabaseConfigured: () => true,
+        createEmployeeAuthUser: async () => ({ ok: true }),
+        splitList: () => [],
+        getReadiness: () => ({ services: { emailDelivery: "enabled" } }),
+        getEnv: () => "",
+        escapeHtml: String
+      });
+      const organizationId = "a1a1a1a1-0000-4000-8000-00000000001a";
+      const workspaceId = "b2b2b2b2-0000-4000-8000-00000000002b";
+      const result = await invites.createBusinessEmployeeInvite({
+        body: { organizationId, workspaceId, email: "person@example.com", name: "Employee", role: "employee" },
+        sonaraUser: { id: "c3c3c3c3-0000-4000-8000-00000000003c" },
+        sonaraBusinessMembership: { organization_id: organizationId, workspace_id: workspaceId }
+      });
+      assert.equal(result.status, 503);
+      assert.equal(result.body.code, "site_origin_not_configured");
+      assert.equal(callCount, 0);
+    } finally {
+      global.fetch = previousFetch;
+    }
+  });
+
 });
