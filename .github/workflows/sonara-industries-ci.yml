@@ -1,6 +1,9 @@
 name: SONARA Industries CI
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
   push:
     branches: [main]
@@ -18,6 +21,13 @@ on:
   # "Build, test, and security" among them. An absent check reads as an absent
   # problem, which is this repository's recurring defect wearing a CI badge.
   workflow_dispatch:
+
+concurrency:
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   sonara-industries:
