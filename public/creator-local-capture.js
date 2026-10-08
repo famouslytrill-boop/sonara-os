@@ -118,7 +118,11 @@
         status.textContent = "Recording your microphone locally. Stop to keep a download. Limit: 60 seconds and 8 MB.";
       }
     } catch (error) {
-      if (revision === sequence) abort(error.name === "NotAllowedError" ? "Your browser refused capture. You can still open your own files." : error.message);
+      if (revision === sequence) abort(error.name === "NotAllowedError"
+        ? "Your browser refused capture. You can still open your own files."
+        : kind === "camera" && stream
+          ? "Camera preview is unavailable in this browser. You can still open your own files."
+          : error.message);
     }
   }
   camera.addEventListener("click", () => start("camera"));
