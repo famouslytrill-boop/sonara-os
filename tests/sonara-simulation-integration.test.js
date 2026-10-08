@@ -100,6 +100,45 @@ describe("cross-studio research simulation integration", () => {
     assert.equal(out.exact, 9);
     assert.ok(Math.abs(out.approximate - 9) < 1e-9);
   });
+  it("publishes per-operation input contracts without execution code", () => {
+    const c = getStudioSimulationCatalog();
+    assert.ok(c.capabilities.every(x => Array.isArray(x.inputFields.required)));
+    assert.ok(c.capabilities.every(x => Array.isArray(x.inputFields.optional)));
+    assert.ok(c.capabilities.every(x => Object.isFrozen(x.inputFields)));
+    const pitch = c.capabilities.find(x =>
+      x.studio === "creator_studio" && x.key === "music_pitch");
+    assert.deepEqual(pitch.inputFields.required, ["midi"]);
+    assert.deepEqual(pitch.inputFields.optional, []);
+  });
+  it("rejects unexpected research fields rather than silently ignoring values", () => {
+    assert.throws(() => run("creator_studio", "music_pitch", {
+      midi: 69, liveProvider: "example"
+    }), RangeError);
+    assert.throws(() => run("growth_studio", "strategy_payoffs", {
+      matrix: [[1, -1], [-1, 1]], providerCredential: "ignored"
+    }), RangeError);
+    assert.throws(() => run("business_builder", "layout_area", {
+      vertices: [[0,0],[3,0],[3,2],[0,2]], priceCents: 500
+    }), RangeError);
+  });
+  it("rejects missing mandatory fields even when optional values are present", () => {
+    assert.throws(() => run("business_builder", "incident_scenario", {
+      impactCents: 1200, trials: 5
+    }), TypeError);
+    assert.throws(() => run("sonara_one", "card_probability", {
+      successCards: 4, exactSuccesses: 1
+    }), TypeError);
+    assert.throws(() => run("creator_studio", "chord_harmony", { quality: "minor" }), TypeError);
+  });
+  it("preserves valid optional parameters and no-input board-game defaults", () => {
+    assert.equal(run("creator_studio", "board_minimax", {}).result.scoreForX, 0);
+    assert.deepEqual(run("creator_studio", "chord_harmony", {
+      rootMidi: 60
+    }).result.notes.map(x => x.midi), [60, 64, 67]);
+    assert.equal(run("sonara_one", "card_probability", {
+      successCards: 4, drawCount: 5, exactSuccesses: 1
+    }).result.totalOutcomes, "2598960");
+  });
   it("rejects unlisted action keys or studio escape", () => {
     assert.throws(() => run("business_builder", "trend_rehearsal", {}), RangeError);
     assert.throws(() => run("creator_studio", "card_probability", {}), RangeError);
