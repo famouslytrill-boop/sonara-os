@@ -115,4 +115,37 @@ describe("private PostgreSQL delayed retry boundary",()=>{
       authorize:async()=>({authorized:true}),perform:async()=>{effects++;},verify:async()=>({healthy:true})});
     assert.equal(effects,0);assert.equal(r.reason,"deadline_and_terminal_audit_failed");
   });
+  it("rechecks the deadline after authorization, before any provider effect",async()=>{
+    let effects=0;let terminal;
+    const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+10_000}),
+      complete:async ({outcome})=>{terminal=outcome;return true;}};
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,clock:()=>NOW+11_000,worker,
+      authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
+      perform:async()=>{effects++;},verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
+    assert.equal(r.reason,"deadline_expired_during_authorization");
+    assert.equal(effects,0);assert.equal(terminal,"unverified");
+  });
+  it("honors a late operator pause before reaching the provider",async()=>{
+    let effects=0;let terminal;
+    const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+60_000}),
+      complete:async ({outcome})=>{terminal=outcome;return true;}};
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,clock:()=>NOW,worker,
+      authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
+      isPaused:async()=>true,
+      perform:async()=>{effects++;},verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
+    assert.equal(r.reason,"recovery_paused");
+    assert.equal(effects,0);assert.equal(terminal,"unverified");
+  });
+  it("does not misclassify an unavailable kill switch as provider execution",async()=>{
+    let effects=0;let terminal;
+    const worker={claimDue:async()=>({jobId:JOB,claimToken:TOKEN,deadlineAtMs:NOW+60_000}),
+      complete:async ({outcome})=>{terminal=outcome;return true;}};
+    const r=await runOneDueRecovery({enabled:true,nowMs:NOW,clock:()=>NOW,worker,
+      authorize:async()=>({authorized:true,tenantVerified:true,idempotencyVerified:true,fencingVerified:true,operationRetryable:true}),
+      isPaused:async()=>{throw Error("offline");},
+      perform:async()=>{effects++;},verify:async()=>({healthy:true,tenantVerified:true,operationVerified:true})});
+    assert.equal(r.reason,"pre_effect_evidence_unavailable");
+    assert.equal(effects,0);assert.equal(terminal,"unverified");
+  });
+
 });
