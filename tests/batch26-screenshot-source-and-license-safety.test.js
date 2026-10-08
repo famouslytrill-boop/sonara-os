@@ -4,6 +4,8 @@
 
 const assert = require("node:assert/strict");
 const batch = require("../lib/sonara-screenshot-tool-radar-batch26.cjs");
+const request = require("supertest");
+const app = require("../server");
 
 describe("Batch 26 governed screenshot intake", () => {
   it("has 80 source leads and twenty newly verified, permanently disabled repository records", () => {
@@ -66,4 +68,29 @@ describe("Batch 26 governed screenshot intake", () => {
     assert.ok(!second[0].productFit.includes("injected"));
     assert.notEqual(second[0].safety[0], "tampered");
   });
+  it("exposes all new records, non-repository references and exact screenshot count through the live catalog API", async () => {
+    const response = await request(app)
+      .get("/api/ecosystem/requested-repositories")
+      .set("Accept", "application/json");
+    assert.equal(response.status, 200);
+    const keys = new Set(response.body.repositories.map((r) => r.key));
+    const records = batch.getPublicScreenshotToolCatalogBatch26();
+    assert.equal(records.length, 20);
+    for (const record of records) {
+      assert.ok(keys.has(record.key), `Batch 26 record missing from published route: ${record.key}`);
+      const actual = response.body.repositories.find((r) => r.key === record.key);
+      assert.equal(actual.enabledInProduction, false);
+      assert.equal(actual.canExecute, false);
+    }
+    const unverified = new Set(response.body.nonRepositoryReferences.map((r) => r.key));
+    for (const record of batch.getNonRepositoryReferencesBatch26()) {
+      assert.ok(unverified.has(record.key), `Missing unresolved reference: ${record.key}`);
+    }
+    assert.ok(response.body.screenshotResearchCount >= 20);
+    assert.ok(response.body.confirmedExistingRecords.some((r) => r.key === "existing_h3_batch22"));
+    const page = await request(app).get("/research-lab/latest-screenshot-intake");
+    assert.equal(page.status, 200);
+    assert.match(page.text, /Batch 26|through Batch 26/);
+  });
+
 });
