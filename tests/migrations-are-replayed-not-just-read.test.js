@@ -69,6 +69,24 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(lane, /postgres-\$\{\{ matrix\.postgres \}\}/);
     });
 
+    it("runs guarded P1 rollback proof before hardening and verifies roles afterward", () => {
+      const hardened = "20261008100000_tighten_service_role_rls_policies.sql";
+      assert.ok(migrations.includes(hardened), "the hardening migration is missing");
+      const before = source.indexOf('if (name === "' + hardened + '")');
+      const apply = source.indexOf("const applied = psql(null, { file:", before);
+      const after = source.indexOf("P1 service-role hardening post-migration proof", apply);
+      assert.ok(before >= 0 && apply > before && after > apply,
+        "the legacy P1 test must run BEFORE hardening, and the hardened proof AFTER replay");
+      assert.match(source, /p1LegacyProbeRuns !== 1/);
+      const legacy = fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
+      const current = fs.readFileSync(path.join(root, "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8");
+      assert.match(legacy, /P1 policy definition drift on % policies/);
+      assert.match(legacy, /ROLLBACK;\s*$/);
+      assert.match(current, /roles IS DISTINCT FROM '\\{service_role\\}'/);
+      assert.match(current, /P1 post-migration policy definition drift/);
+      assert.match(current, /ROLLBACK;\s*$/);
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);
