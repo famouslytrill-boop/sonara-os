@@ -113,6 +113,18 @@ describe("canonical PWA contract", () => {
     assert.equal(executeExperience("/", { secure: false, hostname: "localhost" }), 1);
   });
 
+  it("caches only the anonymous offline fallback, not regular HTML pages", async function() {
+    const fallback = await request(app).get("/offline");
+    assert.equal(fallback.status, 200);
+    assert.match(fallback.headers["cache-control"] || "", /^public, max-age=60$/);
+    assert.equal(fallback.headers["set-cookie"], undefined);
+    assert.match(fallback.text, /You are offline/);
+
+    const pricing = await request(app).get("/pricing");
+    assert.equal(pricing.status, 200);
+    assert.match(pricing.headers["cache-control"] || "", /no-store/);
+  });
+
   it("keeps authenticated navigation outside the service-worker response path", function() {
     const worker = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
     assert.match(worker, /sonara-public-/);
