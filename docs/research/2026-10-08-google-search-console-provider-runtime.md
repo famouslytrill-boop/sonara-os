@@ -73,13 +73,16 @@ Google's current web-server OAuth guidance says:
 - redirect URI must exactly match a configured URI;
 - offline access is recommended when the server needs to refresh tokens without user interaction;
 - state is recommended;
-- incremental authorization is recommended;
+- incremental authorization is generally recommended;
+- when `include_granted_scopes=true`, Google can roll previously granted scopes for the same API project into the combined authorization, including grants from different clients;
 - `prompt=consent` can be used when consent must be forced;
 - a refresh token may be returned only on the first authorization.
 
 Source: https://developers.google.com/identity/protocols/oauth2/web-server
 
 SONARA therefore does **not** force `prompt=consent` on every authorization. A future route should request fresh consent only when no durable refresh credential exists or when explicit reauthorization requires one.
+
+For this connector, SONARA also deliberately **does not** set `include_granted_scopes=true`. Search Console is being used as an isolated least-privilege canary, and combining unrelated prior Google grants would violate the connector's exact-scope authority model. The callback still verifies that the granted scope is exactly `webmasters.readonly`. A future multi-Google product integration may use incremental authorization behind a different reviewed authority boundary.
 
 ## Scope policy
 
