@@ -20,10 +20,13 @@ The production job still performs read-only checks and **never** applies migrati
 
 ## Proof and controls
 
-- `scripts/verify-production-dry-run-boundary.cjs --self-test` statically audits all workflow jobs, rejecting a production secret reference or environment on a PR job, a missing exact-ref/approval/`needs` guard, or an unprotected-main admission path. Seven negative mutations must fail.
+- `scripts/verify-production-dry-run-boundary.cjs --self-test` statically audits all workflow jobs, rejecting a production secret reference or environment on a PR job, a missing exact-ref/approval/`needs` guard, an unprotected-main admission path, or provider credentials in job-level environment variables. **Nine negative mutations must fail.**
 - The GitHub API lookup of `branches/main` uses read-only `github.token` before the credential-bearing job can start, and fails on `protected !== true` or `commit.sha !== GITHUB_SHA`.
 - The production job has `needs: [verify-current-main]` and independently requires manual event, `refs/heads/main`, the explicit boolean, and successful preflight.
 - The production environment job calls the existing `scripts/verify-production-environment-governance.cjs` before running any dependencies.
+- **Least privilege after approval:** Vercel and Supabase tokens are removed from the production job-level `env`; no provider credential is available to dependency installation, build, lint, static tests or smoke tests. The credential-presence check receives only its needed secret inputs; the migration preview gets Supabase connection credentials; the Vercel read-only environment pull gets the Vercel token; Stripe/service-role checkers receive only their specific keys.
+- A manual-main dry run has no pull-request migration allowance. Its database verifier receives an empty `SONARA_ALLOWED_PENDING_MIGRATIONS` so that un-applied migrations cannot be waved through as a PR exception.
+
 - Branch protection and production-environment required reviewers must still be configured by a GitHub administrator. Main was reported unprotected in the audit, so the credential-bearing job must remain blocked until governance is enabled.
 
 ## Verification
