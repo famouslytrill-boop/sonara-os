@@ -155,3 +155,31 @@ Evidence:
 - https://developer.samsung.com/one-ui/largescreen-and-foldable/intro.html
 
 **Next release gate:** exact-head Browser Quality must execute Chromium, Firefox and WebKit tests, and the broader CI matrix must pass; physical-device and old-service-worker upgrade evidence remain separate requirements. GitHub queue/pending status is not a pass. Preserve draft status; do not auto-merge or deploy.
+
+## Phase 5: offline cache and private-route isolation
+
+**Finding from the real service worker:** Prior to this pass, `public/sw.js` used only an extension-based runtime asset test: a same-origin `/api/.../file.png` or `/customer/.../file.js` could reach the cache handler. Cache-Control and Set-Cookie conditions helped, but a future route regression could still admit a tenant-specific asset. Login and signup were also intercepted as public navigations (network-first, not cached), adding unnecessary worker involvement to session setup.
+
+**Changes committed to PR #539:**
+- Runtime static caching now accepts flat public filenames and approved `/brand/`, `/fonts/` and `/icons/` asset directories, with the existing static extensions only.
+- The only permissible static asset query is the exact current `?v=` cache version. Unknown tokenized URLs and outdated version queries are left to the normal network path.
+- Login and signup navigation now bypasses the service worker completely. Existing protected application and API navigations already bypass it.
+- The installation precache manifest is verified against the same public-asset boundary. An unexpected private entry rejects worker installation rather than silently caching it.
+- `tests/service-worker-public-boundary.test.js` adds six cases for release precache assets, private paths, query-key isolation, navigation bypass, malicious precache rejection and private/no-store/set-cookie response handling.
+- The existing version-token equality check in `scripts/verify-customer-ready-production-experience.mjs` remains in place.
+
+**Limits:** Public assets and offline fallback are not equivalent to permission to cache authenticated business records or creator media. This change is layered defense, not a substitute for tenant-level authorization, correct server Cache-Control headers, upload/download access checks, encrypted on-device storage, or logout purge policy. No database, permission grant, native API or payment configuration was changed.
+
+**Acceptance criteria:**
+1. Exact-head test suite (including the six new worker cases) is green.
+2. In installed Chrome, Safari/WebKit and Firefox: no account, customer, API, export or private creator-media entry appears in the SONARA public CacheStorage namespace before or after sign-in.
+3. Public shell fonts, brand icons, CSS and JS can be restored offline without caching live private data.
+4. A returning PWA updates from the prior asset token to the new worker and does not serve mismatched old CSS/JS.
+5. Device focus, reflow and service-worker qualification are attached to the PR review; do not merge or deploy without the release gates.
+
+Research context:
+- https://developer.chrome.com/docs/workbox/modules/workbox-precaching
+- https://developer.chrome.com/docs/workbox/caching-resources-during-runtime
+- https://developer.chrome.com/docs/workbox/service-worker-lifecycle
+- https://www.w3.org/WAI/WCAG22/Techniques/css/C43
+
