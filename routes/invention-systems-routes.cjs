@@ -9,7 +9,9 @@ const { getStudioSimulationCatalog, evaluateInternalSimulation } = require("../l
 const { renderResearchWorkbench } = require("../lib/sonara-research-workbench.cjs");
 
 module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
-  const requireCustomer = deps.requireCustomer || passthrough;
+  // Fail closed when upstream authorization is missing or misconfigured.
+  const requireCustomer = typeof deps.requireCustomer === "function"
+    ? deps.requireCustomer : denyWhenCustomerGuardMissing;
   const ui = {
     layout: deps.layout || basicLayout,
     card: deps.brandCard || card,
@@ -96,7 +98,9 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
   });
 };
 
-function passthrough(req, res, next) { next(); }
+function denyWhenCustomerGuardMissing(req, res) {
+  return res.status(503).json({ ok: false, code: "customer_guard_unavailable" });
+}
 function basicLayout(data) {
   return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>' +
     escapeHtml(data.title) +
