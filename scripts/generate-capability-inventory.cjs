@@ -1915,7 +1915,34 @@ function buildInventory() {
         } else if (entry.evidence?.function) {
           const call = new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`);
           for (const [label, subject] of [["the route", raw], ["the page", page]]) {
-            if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.page}`);
+            const direct = call.test(String(subject.handlerSource || ""));
+            // A page may delegate to a shared renderer that actually performs
+            // the same read as its JSON endpoint. Make that indirection an
+            // explicit, falsifiable review instead of inventing a direct call.
+            let viaRenderer = false;
+            if (!direct && label === "the page" && entry.evidence.viaPageRenderer) {
+              const renderer = entry.evidence.viaPageRenderer;
+              const kind = entry.evidence.rendererKind;
+              const file = subject.source?.file;
+              // Prevent claims against an unrelated file, route or rendering mode.
+              if (/^[A-Za-z_$][\\w$]*$/.test(renderer)
+                  && /^[a-z_]+$/.test(String(kind || ""))
+                  && typeof file === "string" && file.startsWith("routes/")
+                  && file === raw.source?.file) {
+                const callSite = new RegExp(`\\b${escapeRegExp(renderer)}\\s*\\(\\s*req\\s*,\\s*res\\s*,\\s*["']${escapeRegExp(kind)}["']`);
+                const handler = String(subject.handlerSource || "");
+                const sourceText = fs.readFileSync(path.join(ROOT, file), "utf8");
+                const declaration = new RegExp(`\\b(?:async\\s+)?function\\s+${escapeRegExp(renderer)}\\s*\\(`);
+                const found = declaration.exec(sourceText);
+                if (found && callSite.test(handler)) {
+                  const rest = sourceText.slice(found.index + found[0].length);
+                  const nextFunction = /\\n  (?:async\\s+)?function\\s+[A-Za-z_$][\\w$]*\\s*\\(/.exec(rest);
+                  const rendererBody = nextFunction ? rest.slice(0, nextFunction.index) : rest;
+                  viaRenderer = call.test(rendererBody);
+                }
+              }
+            }
+            if (!direct && !viaRenderer) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function} (directly or by the reviewed renderer), so it is not the JSON form of ${entry.page}`);
           }
         } else problems.push(`${entry.route}: gives no evidence that it is the JSON form of ${entry.page}`);
       }
