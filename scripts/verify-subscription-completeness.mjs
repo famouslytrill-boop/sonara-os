@@ -102,6 +102,9 @@ const LIMITERS = Object.freeze({
   // Stripe's Connect webhook: nobody is signed in, and the signature is what
   // authenticates it.
   stripe_connect_webhook: "anonymous_surface",
+  // Resend's delivery receipts for campaign email: nobody is signed in, and the
+  // Svix signature is what authenticates it.
+  email_receipt_webhook: "anonymous_surface",
   // A signed-in buyer starting a marketplace checkout.
   marketplace_buy: "abuse_ceiling",
   // A storefront buyer has no account: the receipt and its pay button are opened

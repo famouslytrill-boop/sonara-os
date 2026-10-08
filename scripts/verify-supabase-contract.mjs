@@ -111,7 +111,10 @@ const growthStudioMigrationNames = [
   "20260916040000_growth_campaign_send_records.sql",
   // What a campaign cost, as the owner recorded it, so its return can be worked
   // out. Append-only like the send records above it.
-  "20261007090000_what_a_campaign_cost.sql"
+  "20261007090000_what_a_campaign_cost.sql",
+  // What the email provider reported after accepting a campaign message.
+  // Append-only, keyed on the provider's event id.
+  "20261007130000_what_happened_to_a_campaign_email.sql"
 ];
 const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
 // Connected payment accounts, added 26 August 2026 -- one connected Stripe
@@ -421,7 +424,12 @@ const GROWTH_STUDIO_TABLES = Object.freeze([
   // What a campaign cost, as the owner recorded it. Append-only; written and
   // read on the campaign's own page in routes/growth-studio-control-routes.cjs.
   // Migration 20261007090000_what_a_campaign_cost.sql.
-  "growth_campaign_spend"
+  "growth_campaign_spend",
+  // What the email provider reported after accepting a campaign message:
+  // delivered, bounced, complained, opened. Written by POST /api/webhooks/resend
+  // (routes/sonara-email-receipt-routes.cjs) and read on the campaign's page.
+  // Migration 20261007130000_what_happened_to_a_campaign_email.sql.
+  "growth_email_delivery_events"
 ]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",

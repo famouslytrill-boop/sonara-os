@@ -958,9 +958,12 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // exactly like a page reload -- including the case that matters most,
       // where the record already had the status asked for and nothing changed.
       const statusSaid = String(req.query.status_problem || req.query.status_done || req.query.edited || "").slice(0, 300);
+      // What a form on this page could not do. See PROBLEM_SENTENCES.
+      const problemSaid = String(req.query.problem ?? "") ? problemSentence(req.query.problem) : null;
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
+            ...(problemSaid ? [ui.card("That did not go through", problemSaid)] : []),
             ...(statusSaid ? [ui.card(req.query.edited ? "Saved" : "Status", statusSaid)] : []),
             filterCard(page, wanted, ui),
             recordsCard(page, rows, ui, loaded, wanted.term, { showingArchived, archivedCount }),
@@ -1217,6 +1220,41 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!id) return refuse(502, "invoice_id_missing", "The invoice action did not return an invoice reference.");
     if (!acceptsHtml(req)) return res.status(200).json({ ok: true, invoiceId: id, workOrderId });
     return res.redirect(303, `/business-builder/owner/receivables/${encodeURIComponent(String(id))}`);
+  });
+
+  // A finished job, booked again for the same customer. The rules for what
+  // carries over are workOrderLifecycle.repeatWorkOrder; this reads the job
+  // within the organization, writes the new draft, and opens it.
+  app.post("/api/business/work-orders/:workOrderId/repeat", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const found = await supabaseList(
+      config,
+      "business_work_orders",
+      `?select=id,organization_id,status,customer_id,location_id,vehicle_id,title,description,priority,agreed_amount_cents,currency&id=eq.${encodeURIComponent(workOrderId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return refuse(503, "work_order_unreadable", "We could not read the job to book it again. Nothing was created.");
+    if (!found.rows[0]) return refuse(404, "work_order_not_yours", "That work order is not in your business.");
+
+    const repeat = workOrderLifecycle.repeatWorkOrder(found.rows[0], { organizationId: org.organizationId, userId: org.userId || null });
+    if (!repeat.ok) return refuse(409, repeat.code, "Only a finished job can be booked again. Complete this one first.");
+
+    const created = await supabaseInsert(config, "business_work_orders", repeat.row);
+    const newId = created.ok ? created.rows?.[0]?.id : null;
+    if (!newId) return refuse(503, "work_order_not_saved", "The new job could not be saved. Nothing was created; try again shortly.");
+    if (!acceptsHtml(req)) return res.status(201).json({ ok: true, workOrderId: newId, repeatOf: workOrderId });
+    return res.redirect(303, `/business-builder/owner/work-orders/${encodeURIComponent(newId)}?work_done=${encodeURIComponent("Booked again as a new draft job. Set its date and crew, then schedule it.")}`);
   });
 
   // A record's own page.
@@ -1896,9 +1934,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         // pages, where it shipped.
         references = await loadReferences(config, org.organizationId, page);
       }
+      // What a form on this page could not do -- the page's own form, or an
+      // `also` block's. See PROBLEM_SENTENCES; these pages read no ?problem=
+      // either, so a refused save came back looking like nothing happened.
+      const problemSaid = String(req.query.problem ?? "") ? problemSentence(req.query.problem) : null;
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
+          ...(problemSaid ? [ui.card("That did not go through", problemSaid)] : []),
           recordsCard(page, rows, ui, loaded),
           // An `also` block renders its list and, when it declares one, its own
           // form directly under it.
@@ -1961,10 +2004,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   });
 
   app.post("/api/business/time-entries/start", requireCustomer, async (req, res) => {
+    // The clock-in form on /business-builder/owner/time posts here, and this
+    // answered a browser with the inserted row as JSON -- and with 200 when the
+    // insert failed, so a JSON caller was told a failed clock-in had worked.
+    // Same respond shape as clocking out, below, which already did this.
+    const back = "/business-builder/owner/time";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, back);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+    };
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
-    if (!org.ok) return res.status(403).json(org);
+    if (!org.ok) return respond(403, org);
     // Same check as the clock-out below. A manager legitimately clocks somebody
     // else in -- the form on /business-builder/owner/time asks "Who is
     // starting" -- so the employee is not forced to be the caller. It does have
@@ -1977,8 +2030,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const supplied = String(req.body[field] || "");
       if (!supplied) continue;
       const check = await belongsToOrganization(config, table, supplied, org.organizationId);
-      if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
-      if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
+      if (!check.ok) return respond(502, { ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return respond(403, { ok: false, code: `${field}_not_yours` });
     }
     const payload = {
       organization_id: org.organizationId,
@@ -1990,7 +2043,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       status: "open",
       notes: sanitizeText(req.body.notes)
     };
-    return res.status(200).json(await supabaseInsert(config, "employee_time_entries", payload));
+    const saved = await supabaseInsert(config, "employee_time_entries", payload);
+    return respond(saved?.ok === false ? 502 : 200, saved);
   });
 
   // Clocking somebody out.
@@ -2511,16 +2565,56 @@ function lineOutcome(query = {}) {
   }
   const problem = String(query.problem || "");
   if (!problem) return null;
+  return problemSentence(problem);
+}
+
+// What a refusal says, from its code alone -- never from text carried in the
+// address, which anybody can send. Shared by the line forms (lineOutcome above)
+// and by the owner list pages, which every create form, clock-in, quote
+// conversion and source approval returns to with ?problem=<code>.
+//
+// The list pages did not read ?problem= at all. Every one of the seventeen with
+// a create form came back from a refused save looking exactly as it had before
+// it, so a person had no way to tell "saved" from "not saved" but to search the
+// list for the row. tests/no-save-looks-like-it-worked.test.js was green the
+// whole time, because it checked that the redirect carried the problem and not
+// that anything read it; tests/every-form-answers-a-person.test.js follows the
+// redirect.
+const PROBLEM_SENTENCES = Object.freeze({
+  // Saving a record or a line.
+  missing_required: "That was not saved: something it needs was left empty.",
+  validation_failed: "That was not saved: something it needs was missing.",
+  parent_required: "That was not saved: it was not attached to a record.",
+  setup_required: "That did not go through: the database is not reachable just now.",
+  insert_failed: "That was not saved. Nothing changed -- try again shortly.",
+  not_saved: "That was not saved. Nothing changed -- try again shortly.",
+  plan_limit_reached: "That was not saved: your plan's limit for these is reached. The pricing page shows what each plan includes.",
+  limit_not_checked: "That was not saved: we could not check your plan's limit just now. Try again shortly.",
+  owner_access_required: "That did not go through: it needs the owner or a manager of the business.",
+  // Turning a quote into a work order or an invoice.
+  quote_required: "That did not go through: no quote was chosen.",
+  quote_not_yours: "That quote is not one of this business's, so nothing was done.",
+  cannot_read_quote: "We could not read that quote just now. Nothing changed -- try again shortly.",
+  work_order_not_started: "The work order was not started. Nothing changed -- try again shortly.",
+  work_order_id_missing: "The work order may have been started, but no reference came back. Check the work orders before trying again, so it is not started twice.",
+  cannot_check_existing: "We could not check whether that quote is already invoiced, so no invoice was raised. Try again shortly.",
+  not_convertible: "That quote cannot become an invoice yet. It has to be accepted, attached to a customer and have an amount, and not be invoiced already.",
+  invoice_id_missing: "The invoice may have been raised, but no reference came back. Check the invoices before trying again, so the customer is not billed twice.",
+  // Approving a research source.
+  source_required: "That did not go through: no source was chosen.",
+  source_not_yours: "That source is not one of this business's, so nothing was done.",
+  cannot_check_source: "We could not check that source just now. Nothing changed -- try again shortly.",
+  source_has_no_address: "That source has no address to check, so it cannot be approved. Add its address first.",
+  not_approved: "That source was not approved. Nothing changed -- try again shortly."
+});
+
+function problemSentence(code) {
+  const problem = String(code ?? "");
+  if (Object.prototype.hasOwnProperty.call(PROBLEM_SENTENCES, problem)) return PROBLEM_SENTENCES[problem];
   if (/_not_yours$/.test(problem)) return "That was not saved: it pointed at something that does not belong to this workspace.";
   if (/_invalid$/.test(problem)) return "That was not saved: one of the choices could not be read. Pick it again.";
   if (/_unreadable$/.test(problem)) return "That was not saved: we could not check one of the choices just now. Try again shortly.";
-  return ({
-    missing_required: "That was not saved: something it needs was left empty.",
-    parent_required: "That was not saved: it was not attached to a record.",
-    setup_required: "That was not saved: the database is not reachable just now.",
-    insert_failed: "That was not saved. Nothing changed -- try again shortly.",
-    not_saved: "That was not saved. Nothing changed -- try again shortly."
-  })[problem] || "That was not saved.";
+  return "That did not go through. Nothing changed.";
 }
 
 function acceptsHtml(req) {
@@ -3033,6 +3127,9 @@ function workOrderLifecycleCard(row, ui, problem, done) {
   const invoice = current === "completed"
     ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/invoice"><button class="action" type="submit">Raise draft invoice</button></form>`
     : "";
+  const repeat = workOrderLifecycle.REPEATABLE_STATES.includes(current)
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/repeat"><button type="submit">Book this job again</button></form><p class="fine">Makes a new draft job for the same customer, place and price. The date, crew, materials and recorded costs are set for the new visit.</p>`
+    : "";
   return [
     '<article class="card">',
     '<h2>Job stage</h2>',
@@ -3041,6 +3138,7 @@ function workOrderLifecycleCard(row, ui, problem, done) {
     outcome,
     transition,
     invoice,
+    repeat,
     '</article>'
   ].join("");
 }

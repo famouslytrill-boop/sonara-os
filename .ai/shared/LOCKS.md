@@ -1,13 +1,21 @@
 # Locks
 
 Active:
-- HELD: Creator marketplace reconciliation and delivery snapshot checks -- Codex,
-  PR #441, branch `codex/convergence-execution-contract-20261007`, taken 2026-10-07.
-  Covers the new seller report, buyer receipt/download guards and connected
-  checkout pagination. No schema, inventory or Growth changes. Release when
-  PR #441 merges or closes.
+- HELD: Growth campaign results, attribution and delivery receipts -- Claude,
+  PR #446, branch `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-08.
+  Covers `lib/sonara-campaign-results.cjs`, `lib/sonara-campaign-results-pages.cjs`,
+  `lib/sonara-campaign-payments.cjs`, `lib/sonara-campaign-links.cjs`,
+  `lib/sonara-email-delivery-receipts.cjs`, `routes/sonara-email-receipt-routes.cjs`,
+  the campaign page in `routes/growth-studio-control-routes.cjs`, and the chat
+  page's campaign claim in `routes/sonara-lead-capture-routes.cjs`. Reads
+  invoices and payments; does not change invoice settlement or billing. Release
+  when PR #446 merges or closes.
 
 History:
+- RELEASED: Creator marketplace reconciliation and delivery snapshot checks --
+  Codex, PR #441. PR #441 merged at `538fa5cd` on 2026-10-07; moved here by
+  Claude on 2026-10-08 on seeing the merge, as the lock's own release condition
+  says.
 - RELEASED: both Claude #439 tracer/data-review and stock-linkage locks below;
   PR #439 merged at `a8890755d8bdfdcf8f899f7ab1b235f8461d8840` on 2026-10-06.
 - RELEASED: capability inventory tracer and route data reviews -- Claude, branch

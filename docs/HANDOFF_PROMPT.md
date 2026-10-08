@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3099 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3114 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 160 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 495 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 504 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,574 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 37 most recent entries of 463 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 44 most recent entries of 475 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-08 - Main merged into #446: two fixes for one Android crash, both kept
+
+Main moved by #448 (release evidence integrity) and #450 (commerce amount
+integrity). The conflicts were generated files, regenerated, and the shared
+handoff log, where both sides' entries are kept.
+
+One overlap was real. The Docker image had died at startup because the
+`/.well-known/assetlinks.json` route read `android/twa/build-contract.json`,
+which the image did not ship. It was fixed twice, from two sides:
+- **This branch** moved the association into
+  `lib/sonara-android-app-association.cjs`, so the route reads nothing from
+  `android/`.
+- **Main (4d1b74a0)** began shipping `android/` in the image.
+
+Main's fix alone would still crash on Vercel. The function's `includeFiles` is
+`{public/**,routes/**,lib/**}` (`vercel.json`), which does not include
+`android/`. So both are kept.
+
+`tests/the-server-starts-from-what-is-shipped.test.js` asserted that the image
+does not ship `android/`. That was true when it was written and stopped being
+true with 4d1b74a0. It now holds the two properties that matter:
+- **Docker:** the server starts from exactly what the Dockerfile copies, and a
+  copy holding anything more fails.
+- **Vercel-shaped:** the server also starts without `android/`, and the test
+  re-reads `vercel.json` in case that changes.
+
+Falsified: a route reading `android/` again fails only the Vercel-shaped case,
+and a copy holding more than was shipped fails the guard.
+
+
+
+### 2026-10-08 - Every form answers a person with a page that says what happened
+
+The Growth forms answering in JSON were found by accident, so the whole product
+was crawled for the same defect. `tests/every-form-answers-a-person.test.js`
+renders every page as a signed-in owner (323 pages, 184 distinct POST forms).
+It posts each form the way a browser does, with the body read off the rendered
+form, twice: once with every write succeeding, and once with every write
+failing.
+- **No JSON:** no answer may be JSON.
+- **The landing page must speak:** a failed write that redirects must land on a
+  page that reads differently from the same page without the query. One that
+  renders identically has said nothing.
+
+It found two defects. Every existing check missed both.
+- **Two more forms answered in JSON.**
+  - **Clocking in** (`/api/business/time-entries/start`). It also answered 200
+    to a failed insert, which told a JSON caller a failed clock-in had worked.
+  - **Saving a voice permission** (`/api/creator/generation/voice-consents`).
+  - Both now redirect back to their page, as clocking out and withdrawing a
+    permission already did.
+- **Forty forms sent a failed save back to a page that never read it.** Each
+  redirected with `?problem=<code>`, and the page rendered exactly as before:
+  - all seventeen Business Builder owner pages with a create form, plus the
+    quote and research-source actions that return to them;
+  - the Creator record pages (artists, music projects, device cues);
+  - the seven Research Lab subsystem pages (32 forms);
+  - sub-apps (three pages);
+  - the scroll site list;
+  - the agent schedule;
+  - the voice permissions page, which read neither the withdrawal's
+    `?revoked=1` nor its `?problem=`.
+
+  `tests/no-save-looks-like-it-worked.test.js` was green throughout. It
+  checks that the redirect carries the problem, not that anything reads it.
+  Its header said "nothing needed fixing" and is corrected.
+
+Each page now puts the code into a sentence written in its own route file.
+`lineOutcome`'s wording became `problemSentence` in `sonara-last9-routes.cjs`,
+shared by line forms and list pages. Text is never taken from the address, and
+own keys only: the scroll editor's `said[problem]` would have printed
+`Object`'s constructor for `?problem=constructor`, and that is fixed too.
+
+Two sentences were checked rather than assumed:
+- **"New voice work that relies on it is refused."** `evaluatePolicy` turns
+  away a voice job whose permission has `revoked_at`, but only when the job is
+  created, so the sentence claims no more than that.
+- **The quote that cannot become an invoice.** Its sentence lists the four
+  rules in `lib/sonara-quote-conversion.cjs`.
+
+Falsified five ways, each failing the new test:
+- the owner list notice removed;
+- clock-in put back on JSON;
+- the sub-app refusals' `?problem=` dropped;
+- the voice permissions notice removed;
+- a copy whose crawl finds no pages, which trips its floors.
+
+Not covered, and stated in the test: forms rendered once per row, because the
+crawl runs in the empty state, and multipart uploads.
+
+
+
+### 2026-10-08 - A Growth form answers a person with a page
+
+The nine "Add a ..." forms on the Growth record pages post straight to
+`/api/growth/<key>`, and those handlers answered only in JSON. Nothing
+intercepted the forms: no client script, no server adapter. A person who
+pressed Save on an enquiry, a campaign or a conversion was shown
+`{"ok":true,...}` and had to press Back to find out what had happened. The
+form tests posted with `Accept: application/json`, so none of them saw it.
+
+`lib/sonara-growth-form-outcomes.cjs` puts a small middleware in front of each
+of the nine create routes, ahead of the access check:
+- **When it applies:** only when the request asks for HTML and not for JSON,
+  as a browser's form post does.
+- **What it does:** the handler's JSON answer becomes a 303 back to the form's
+  own page, as `?saved=1` or `?problem=<code>&form=create`. The page says what
+  happened in a sentence.
+- **Why the marker:** `?problem=` is the convention every other form here uses,
+  and `tests/no-save-looks-like-it-worked.test.js` holds them to it. My first
+  version used `?not_saved=` to stay clear of the campaigns page, which already
+  reads `?problem=` for a campaign that could not be sent, and that test failed
+  it. `&form=create` lets each card read only its own failure. Without it a
+  failed save would be announced as "Nothing was sent", and a failed send as
+  "Not saved".
+- **JSON callers:** unchanged.
+- **Wiring checked at start-up:** each route's page is resolved at
+  registration, so a create form with no page fails to start rather than
+  answering a person in JSON.
+
+The page prints only sentences written in that module. An unknown code gets
+the general "not saved" sentence and is never echoed, because the query string
+is in an address anybody can send. A name like `constructor` is not read as a
+code either.
+
+`tests/a-growth-form-answers-with-a-page.test.js` posts each form with the body
+read off its rendered page and follows the answer back. It also reads the nine
+handlers' source and fails in both directions: a refusal with no sentence, or a
+sentence for a refusal no handler gives any more. Falsified ten ways, each
+failing it:
+- one route left on JSON;
+- an unknown code echoed;
+- JSON callers redirected too;
+- the page saying nothing;
+- a refusal without a sentence;
+- a sentence for no refusal;
+- every answer called saved;
+- prototype names read as codes;
+- the send card reading a save's problem;
+- the save card reading a send's problem.
+
+
+
+### 2026-10-08 - A Growth record links only to its own workspace's records
+
+Nine Growth create endpoints took the ids a record links to from the request
+body: the campaign a lead came from, the lead a conversion belongs to, and the
+platform, segment, connection or content item. They checked only that each
+looked like a UUID. Every one of those seven tables is organization-scoped, and
+the foreign key behind each accepts a row from any organization.
+- **What that allowed:** a record could point across the tenant boundary. The
+  other workspace's deletes would then reach into this one through
+  `ON DELETE SET NULL`.
+- **What it didn't allow:** a read leak. Every read is organization-scoped, so
+  the pointed-at row was never shown.
+- **Found how:** the campaign-payments work above reasons about which campaign
+  found a lead, which raised the question of who could set that link.
+
+`ownedReferences` in `routes/growth-studio-control-routes.cjs` now checks every
+linked id against the caller's organization before the write. It uses the same
+three answers and codes as `belongsToOrganization` in
+`routes/sonara-last9-routes.cjs`:
+- not an id at all: 400, `<column>_invalid`;
+- not theirs: 403, `<column>_not_yours`;
+- could not check: 502, `<column>_unreadable`.
+
+Two behaviour changes. A value that isn't an id was dropped before, and the
+record saved without the link, which told the caller it had been saved as
+asked; it is now refused. An empty field still means "no link", because every
+form sends one.
+
+Each reference's read names its table at the call.
+`report-tenant-scoped-queries.mjs` refused the first version, whose shared
+read kept the table in a variable and grew its unresolved count from 40 to 41.
+
+Three tests changed to say what they mean rather than to pass:
+- **`every-growth-form-can-actually-save`:** its mock now answers the
+  ownership read "yours" for the sample id it puts in every `_id` box, in its
+  own organization only.
+- **`growth-studio-platform`:** two provider-job mocks answer it for their
+  campaign.
+- **`growth-create-forms`:** the static field check counts a column read
+  through `ownedReferences`, but only when the reference map reads the body
+  under that same name. Falsified: dropping `campaign_id` from the conversions
+  check fails it by name.
+
+`tests/a-growth-record-links-only-to-its-own-workspace.test.js` posts to the
+real routes against two workspaces. Its case table is checked against the
+handlers' `ownedReferences` calls in both directions: 17 links in nine
+handlers. Falsified seven ways, each failing it:
+- any id trusted;
+- the conversions handler unchecked;
+- a failed check read as yes;
+- a non-id silently dropped;
+- an empty field treated as supplied;
+- `lead_id` looked up in the wrong table;
+- the read without its organization filter.
+
+
+
+### 2026-10-08 - A campaign is judged on what its customers paid
+
+The Growth chain's attribution → ROI link rested on typed-in numbers. A
+campaign's return came from `growth_conversions`, and every row there is entered
+by hand. Meanwhile the same business invoices the customers its campaigns find
+and records what they pay. Three columns already said which campaign found
+whom: `growth_leads.campaign_id`, `growth_leads.customer_id`, and the
+customer's invoices. Nothing joined them, so a campaign whose customers had paid
+thousands showed whatever somebody had remembered to record.
+
+The campaign page now has a second basis, "What the customers it brought in
+have paid" (`lib/sonara-campaign-payments.cjs`). Its rules are each a way the
+figure could claim more than happened:
+- **The first campaign wins.** A customer found by two campaigns counts under
+  the earlier one only, so no payment is claimed twice. A tie goes to the lower
+  campaign id. This is the `first_touch` model `growth_conversions` already
+  names.
+- **Counted from the day they came in.** What somebody paid before this
+  campaign found them is not this campaign's. The same holds for invoices still
+  owed.
+- **Per currency, with signs.** A payment's currency is its invoice's, and a
+  negative correction subtracts.
+- **Withheld rather than guessed.** An unreadable row is counted apart. A failed
+  read withholds the whole figure, and so does a list too long to be sure which
+  campaign was first.
+- **Never added to the recorded results.** The same sale may be in both, so the
+  page shows the two side by side.
+
+The first two rules can't be triggered through the product today, and that was
+checked rather than assumed. The only writer of `growth_leads.customer_id` is
+the conversion route, which creates a new customer from the lead and refuses
+when one with that email exists. So a customer never predates their lead, and
+two leads never share one. The rules hold for rows that arrive any other way:
+an import, a database edit, or the "link the lead to them" step the conversion
+refusal asks for and nothing yet performs. My first draft of the module's
+comment stated the reason as if linking already happened; it was corrected
+before commit.
+
+Where it can be worked out, the next step rests on what was paid, since nobody
+typed it in. A campaign that is behind while its customers have invoices
+outstanding is told to collect those before judging it.
+
+A defect fixed on the way. A cut-short spend read labelled the return "at
+least" the figure shown. More spend means less return, so that overstated it.
+Spend, conversions and payments all carry negative corrections, so a row that
+was not read could move the return either way. A cut-short read now withholds
+the return, on both bases.
+
+Falsified fourteen ways, each failing a test in
+`tests/a-campaign-is-judged-on-what-its-customers-paid.test.js`:
+- first campaign ignored;
+- payments from before they came in counted;
+- corrections dropped;
+- owed counted on any invoice status;
+- owed counted from before they came in;
+- next step ignoring payments;
+- the old "at least";
+- a payments return from a cut-short read;
+- cut-short customer leads trusted;
+- the payments read without the organization;
+- the leads read without `customer_id`;
+- an unreadable amount read as zero;
+- past the 1,000-invoice cap, invoices whose payments were not read kept, so
+  their whole totals showed as owed;
+- the cap not marked as cut short.
+
+One page reads the payments of at most 1,000 invoices. Beyond that the figures
+are cut short, which withholds the return anyway, so reading further would cost
+requests and change nothing shown.
+
+`report-unused-selected-columns.mjs` first counted the new reads among the
+selects built at run time (30 against 29 recorded). They now name their
+columns, and the four read one or two files along are ruled on with the lines
+that read them.
+`verify-postgrest-filter-encoding.mjs` refused the next version. It encoded
+the organization once into a variable, and the gate cannot see encoding done
+upstream. Each query now encodes it where it is used.
+
+
+
+### 2026-10-07 - A campaign link is tagged only where it stands alone
+
+CodeQL flagged `js/incomplete-url-substring-sanitization` on the test for
+`tagCampaignLinks`. The flagged line is an assertion, not sanitization: it
+checked that one link survived by searching the output with `.includes()`.
+
+The search was also too weak to catch a real bug, and the bug was there. A
+search for a link passes when that text appears anywhere, including inside a
+longer address that was rewritten around it. Both of these were rewritten,
+although the function's own comment says links elsewhere are left as written:
+- **A chat link inside another site's address.** The redirect
+  `https://elsewhere.example/go?to=https://sonara.example/chat/bright-plumbing`
+  was given `?c=…`, which changes another site's link.
+- **A longer path on this site.** `…/chat/bright-plumbing.html` became
+  `…/chat/bright-plumbing?c=<id>.html`. That is a different address, and its
+  campaign id is no longer a valid one.
+
+The tagger now changes a link only where it stands alone:
+- **Before it:** the start of the message, a space, or an opening bracket or
+  quote.
+- **After it:** the end of the message or a space, perhaps after closing
+  punctuation.
+- **Curly quotes and guillemets count as quotes.** A phone keyboard types them
+  by default, so a link quoted on a phone would otherwise lose its credit
+  without anybody noticing.
+
+Anything else makes the link part of a longer address. Leaving that untagged
+costs only the credit; the enquiry is still taken.
+
+The test now compares the whole tagged message rather than searching it. It
+covers:
+- three standalone links: at the end of a sentence, in brackets, and in curly
+  quotes;
+- five that must not change: a query, another site, inside another site's
+  address, `/extra`, and `.html`.
+
+Falsified four ways, each failing the test:
+- the previous tagger;
+- the start boundary removed;
+- the end boundary put back to the old one;
+- straight quotes only before the link.
+
+
+
+### 2026-10-07 - An enquiry is credited to the campaign that brought it
+
+The Growth chain's conversion → attribution link had a hole in the middle. A
+campaign's page counts "people who came in through it" by
+`growth_leads.campaign_id`, and nothing set that column for somebody who arrived
+by following a campaign. The public chat page wrote every lead as
+`source: "chat_widget"` with no campaign. An emailed campaign that brought in
+five enquiries showed none, and its return was worked out against whatever
+conversions somebody remembered to record.
+
+The reference now rides on the link as `?c=<campaign id>`
+(`lib/sonara-campaign-links.cjs`):
+- **When a campaign sends,** links in its plain-text body to this site's own
+  chat pages are tagged. Other links, and chat links the owner already gave a
+  query, are sent exactly as written. The send form says so.
+- **The chat page** carries the reference to the first answer, which keeps it on
+  the conversation's `metadata` as a claim. Later forms cannot change it.
+- **When the conversation produces a lead,** the claim is checked against the
+  campaigns of the business that owns the page. Only then does it become
+  `campaign_id`. A campaign from another business, a deleted one, a failed read
+  or nonsense credits nothing.
+  - The lead is still saved, because `campaign_id` is a foreign key: an unchecked
+    id would make the insert fail and lose the enquiry.
+- **The campaign page** shows the tracked link and a QR code for print. If there
+  is no chat page, it is switched off, or no https address is known, the page
+  says so rather than showing a link that would not work.
+
+No migration. The conversation row already had `metadata`, and the lead
+already had `campaign_id`.
+
+Falsified five ways, each failing a named test:
+- the claim trusted without the check;
+- the email sent untagged;
+- a later form allowed to change the campaign;
+- the page dropping the reference;
+- an http origin trusted for the printed link.
+
+
+
+### 2026-10-07 - #446 CI: a scanner finding and two CodeQL alerts on the receipt webhook
+
+Three new reds on 50da60d4.
+
+**Gitleaks (`scanners`)** flagged the Svix test-vector secret quoted in
+`tests/a-campaign-email-says-what-happened-to-it.test.js`. It is the value Svix
+publishes in its own verification guide, not a credential.
+- It is added to `.github/security/gitleaks-reviewed-findings.json` with that
+  reason, the same treatment as the RFC Web Push vectors already there.
+- Splitting the string so the scanner cannot see it would have been hiding a
+  finding rather than reviewing it.
+- Reproduced locally with the workflow's own pinned binary (8.30.1, checksum
+  checked) and its baseline comparison: one unreviewed finding before, none
+  after, none stale.
+
+**CodeQL `js/missing-rate-limiting`, twice:** once on the route in `server.js`,
+once on the test harness. The route is limited by `createRateLimiter`, which
+CodeQL has no model for.
+- A new test drives the real route with the counter mocked. It shows the limiter
+  is first in the stack, and that a refused request answers 429 with
+  `Retry-After` before the signature is checked or anything is read.
+- Falsified: the limiter removed from the route fails it.
+- Recorded in `SECURITY_NOTES.md` and left open, on the terms of the three
+  earlier alerts of this kind.
+
+
+
+### 2026-10-07 - A finished job can be booked again
+
+The Business Builder chain ends invoice → payment → repeat job → profitability.
+Nothing turned a finished job into the next one. A regular customer's second
+visit was typed in from nothing, and nothing linked the two visits.
+
+What changed:
+- **The rule:** `workOrderLifecycle.repeatWorkOrder` decides what carries over.
+  - Carried over: the customer, place, vehicle, title, notes, priority and
+    agreed price.
+  - Not carried over: what belonged to the visit that happened. That means its
+    schedule, actual start and finish, recorded costs, booking, route session,
+    quote (one job per accepted quote is a unique index) and number.
+  - Crew and materials are not copied either. A copied material line would hold
+    stock for a job nobody has scheduled.
+  - Only a completed, invoiced or closed job repeats. The new job records
+    `metadata.repeat_of`.
+- **The action:** `POST /api/business/work-orders/:id/repeat` reads the job
+  within the organization, writes the draft and opens it.
+- **The button:** the job's page offers "Book this job again" on a finished job
+  only.
+
+Falsified four ways, each failing a named test:
+- an unfinished job repeated;
+- the first visit's labour cost copied;
+- the read unscoped by organization;
+- the button removed.
+
+
+
+### 2026-10-07 - A campaign email says what happened to it
+
+The Growth chain runs lead → campaign → channel → outbound connector → delivery
+receipt → engagement → conversion → ROI. It stopped at the connector:
+`growth_campaign_sends` records that Resend *accepted* a message, and nothing
+after that. Whether the message reached the inbox, bounced, was marked as spam,
+was opened or had a link followed was never recorded. A campaign's page said
+"Emails delivered to the provider", which is accurate and reads as "delivered".
+
+What changed:
+- **`POST /api/webhooks/resend`** (`routes/sonara-email-receipt-routes.cjs`):
+  - Verifies the Svix signature over the raw body, within five minutes.
+  - Finds the accepted send by the provider's message id. The organization and
+    campaign come from that row, never from the event.
+  - Records one row in the new append-only `growth_email_delivery_events`,
+    keyed on `svix-id`, so a resend is a duplicate.
+  - Acknowledges an email that is not a campaign send (a sign-in email, an
+    invoice) and records nothing.
+  - Is rate limited, and mounted raw before the body parsers.
+- **Tenant guard:** the webhook's one cross-tenant read is a pinned lookup
+  (exact keys, `status=eq.accepted`, `limit=1`, three columns).
+- **Campaign page:** a new "What happened to the emails" card.
+  - It counts each email once, so three opens of one email are one opened email.
+  - It is stated against the emails the provider can report on. An accepted
+    message sent through the single-message endpoint returns no id, so "40
+    delivered" means 40 of those reportable, which the page says.
+  - Opens are labelled as depending on tracking.
+- **Next step:** a spam complaint, then a permanent bounce, now set the next
+  step, after new leads and refused sends.
+
+Suppression was already handled: Resend suppresses bounced and complained
+addresses, and the send handler reads that list. So this records and reports
+rather than adding a second suppression.
+
+**A design mistake caught by a failing test.** The receipt read first went into
+the same readability gate as spend and conversions. An unreadable receipt table
+then withheld the campaign's return, and the table does not exist in production
+until its migration is applied. Receipts are now summarised on their own, with
+their own "could not be read" state.
+
+**The signature check is held to the vendor's value.** Svix publishes a test
+vector (docs.svix.com/receiving/verifying-payloads/how-manual), and the test
+reproduces it.
+
+Falsified six ways, each failing a named test:
+- no timestamp tolerance;
+- any signature version accepted;
+- a replay not deduplicated;
+- events counted instead of emails;
+- receipts gating the return;
+- every accepted send used as the denominator.
+
+**Owner steps** (OWNER-STEPS step 10):
+- Add the Resend webhook endpoint with its eight events.
+- Set `RESEND_WEBHOOK_SECRET`.
+- Apply `20261007130000`.
+
+
+
+### 2026-10-07 - A dispute the seller wins gives the sale back
+
+This closes the end of the refund-and-dispute link in two chains, the
+marketplace (... → refund/dispute → audit) and the shop (... → payment →
+receipt → profitability).
+
+A dispute takes effect the moment it opens. A marketplace licence is revoked and
+a shop order turns `disputed`, which takes it out of money received. Nothing
+handled `charge.dispute.closed`, so how the dispute ended never reached this
+application. When the seller won, and kept the money:
+- the buyer stayed locked out of something they had paid for;
+- the shop's sale stayed outside its figures;
+
+both for good.
+
+Both decisions now handle it:
+- `won` and `warning_closed` (an inquiry that never became a chargeback) put the
+  sale back.
+- `lost` changes nothing, but is recorded.
+- Any other status is ignored and recorded.
+
+Marketplace:
+- The licence is restored before the order. If the second write fails, Stripe
+  retries, the order is still disputed, and the repair runs again. Delivery
+  checks the order's state, so nothing downloads in between.
+- Written the other way round, a failed licence write would leave a paid order
+  that no retry reaches.
+- A licence revoked because the order was refunded stays revoked, and the order
+  returns to `refunded`.
+
+Shop: the order returns to `paid`, or to `refunded` if it had been refunded in
+full.
+
+The gap was possible partly because the list of events the Connect webhook must
+be subscribed to was written nowhere:
+- `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs` now holds it.
+- `docs/owner/OWNER-STEPS.md` step 7 now tells the owner to subscribe to each.
+- A test fails in two directions: on an event a dispatcher names that the list
+  does not hold, and on a listed event that nothing handles or the owner is not
+  told about.
+
+Falsified five ways, each failing a named test:
+- no marketplace reinstate;
+- the order written before the licence;
+- no shop reinstate;
+- `charge.dispute.closed` dropped from the list;
+- the refunded-before-dispute guard removed.
+
+The first draft of the retry test failed the order write, which is repaired in
+either write order, so falsification 2 passed it. The test now fails the
+licence write, which is the one that matters.
+
+**Owner step:** add `charge.dispute.closed` to the Connect webhook endpoint's
+events in the Stripe dashboard (step 7).
+
+
+
+### 2026-10-07 - The server starts from what is shipped
+
+Docker Image CI failed on 9c30834c, and the cause was mine. The route serving
+`/.well-known/assetlinks.json` read `android/twa/build-contract.json` when it
+was registered. Every test passed because every test runs from the repository
+root. The Dockerfile does not copy `android/`, so the image's `pnpm run build`
+died at startup with ENOENT. `vercel.json` bundles only `public`, `routes` and
+`lib` by declaration, so a production function could have done the same.
+
+The fix:
+- The package name, path, fingerprint variable and relations now live in
+  `lib/sonara-android-app-association.cjs`.
+- `verify-android-twa` fails when those values differ from the build contract,
+  and when the serving route reads anything under `android/` at runtime. The
+  rule that the built app and the vouched-for app cannot drift is now held by a
+  check, not by a runtime read of a file the server is not shipped with.
+- `tests/the-server-starts-from-what-is-shipped.test.js` copies exactly what the
+  Dockerfile's COPY lines name, reading the Dockerfile rather than a list of its
+  own, and starts the server from that copy.
+
+Falsified:
+- The previous route restored fails the new test with the same ENOENT CI saw.
+- A changed package name and a reintroduced `android/` path each fail
+  `verify-android-twa` by name.
+
+
 
 ### 2026-10-07 - Commerce evidence identity and staged governance convergence
 
@@ -1668,440 +2231,3 @@ literally. Recorded here and fixed in the next change, not this one.
 
 `pnpm test` 5845 passing; `verify:gates` 0; `verify:db`, lint, typecheck, build,
 smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
-
-
-
-
-### 2026-10-02 - My subscription gate could not see the limiter the next merge added
-
-Two things from merging `main` at 090b9904 (#417 and #418), both found because the
-merged tree was measured rather than trusted.
-
-**A count two branches each incremented, merged cleanly into a wrong number.**
-`tests/plain-language.test.js` records how many routes the signed-in crawl skips.
-Both branches started at 110 and both added four, so both wrote `114`. The lines were
-identical, git merged them without a conflict, and the result was wrong for both
-sides. The crawl measured 118. Nothing conflicted because nothing differed -- which is
-the whole hazard: a merge tool sees text, and two correct increments of the same
-number are the same text. Any count that more than one branch can bump is a count a
-clean merge can silently halve; this one now says so where it is recorded.
-
-**The gate I wrote a few hours earlier was blind to a limiter, and reported it whole.**
-#417 added a rate limiter on Creator generation submissions -- one a paying
-subscriber can hit -- built as
-
-    (deps.createRateLimiter || createRateLimiter)({ name: "creator.generation.submit", ... })
-
-`verify-subscription-completeness` matched `createRateLimiter({` and the auth
-factory's form, and this is neither. So on the merged tree it printed *"17 rate
-limiters, every one accounted for"* and exited 0. It did not fail on an unregistered
-limiter; it never saw one. Shape 2 exactly: a scan naming a smaller population than
-the one it claims, and printing the claim. The suite was green and the gate was green
-and the thing the gate exists to watch had just changed.
-
-It was caught by reading what #417 changed rather than by any check -- the commit
-message said it had "hardened generation submission bursts", and a sentence about
-bursts is a sentence about a limiter.
-
-Fixed by replacing two patterns with one that reads every call form, and by making
-the parser prove itself before its count is believed: `PARSER_FIXTURES` holds one of
-each form this repository uses -- direct, through `deps`, the either-or form that got
-through, and the auth factory -- plus a function definition it must not read as a
-limiter. The limiter is registered as a ceiling: 120 a minute, 7200 an hour, well
-over the floor.
-
-**What the gate still does not check, said in its header.** #417 also added a
-generation *allowance* -- a sum included each billing period that answers 429 once
-spent. That is a quota, not a rate limit, and it exists because each generation costs
-money at an upstream provider; its own page says "Provider limits still apply. No
-extra purchase required." That is the owner's stated exception in the owner's terms,
-and whether an included allowance is right is a pricing decision. What would be this
-gate's business is a page offering to sell more, and the copy check would catch that.
-
-| break | result |
-|---|---|
-| parser reverted to the form that missed `(a \|\| b)({...})` | red, *no longer reads the either-or form* |
-| the new limiter's registration removed | red, *does not know why it exists* |
-| generation submissions throttled to 5 a minute | red, *300 per hour ... below the 600/hour* |
-| the either-or fixture deleted from the gate | its test red, *tests its parser on every call form* |
-
-`pnpm test` and `verify:gates` both 0 on the merged tree -- each read from its own
-file.
-
-
-
-
-### 2026-10-02 - A floor that a realistic throttle sat exactly on
-
-The owner's instruction, three times over: "there are no rate limits once
-subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
-service"; "everything in that workspace becomes yours to do with and use as you
-please for that subscription length"; and -- the clause that is easy to lose and
-that changes what can honestly be promised -- "there are no provider quotes rate
-limits still stand but providing quotes and intake forms are out".
-
-So an **upstream provider's** limit still applies, because it is not ours to waive.
-What is forbidden is ours. `scripts/verify-subscription-completeness.mjs` holds the
-three parts of that which are actually checkable, and its output says it holds three
-rather than the whole promise, because a check implying it had verified "nothing else
-to buy" whole would be the defect this repository is about.
-
-**What the measurement found.** Seventeen rate limiters, and none of them throttles a
-subscriber's ordinary work: eight sit on surfaces with nobody signed in, five stand in
-front of a secret, and the four a signed-in person can hit are at 1800/hour
-(procurement), 2700/hour (work orders), 240/hour (scroll sites) and 20/hour (avatar
-uploads). No customer-facing string asks for a quote, an intake form, a demo or a word
-with sales -- 51,701 strings across 327 runtime files, zero findings. The promise holds
-today; what did not exist was anything to stop it quietly stopping.
-
-**The floor was badly chosen and the falsification is what showed it.** The first draft
-held subscriber-facing limiters to 300/hour. Throttling work orders from 45 a minute to
-5 -- a cap somebody meets during an ordinary afternoon -- lands on exactly 300/hour, and
-the comparison was `perHour < floor`, so the break passed. Not an undetected break: a
-*detected-as-fine* break, which is worse, because the number had been chosen to look
-reasonable rather than against anything. It is 600/hour now, five a minute fails by
-name, and the two limiters underneath it carry their own figure in `RATE_EXCEPTIONS`
-with the reason measured -- an exception with a number somebody has to look at is
-harder to erode than a floor quietly lowered to fit.
-
-**An escape hatch found by trying to use it.** Reclassifying every `abuse_ceiling` as
-an `anonymous_surface` leaves the floor applied to nothing and the gate green. It fails
-now: *"no limiter is registered as an abuse_ceiling, so the floor below was applied to
-nothing"*. This is shape 1 arriving through a category rather than through an empty
-list, and it is the shape to expect of any check that classifies before it measures.
-
-The registration is two-sided as usual: an unregistered limiter fails, a registration
-for a limiter that no longer exists fails, and an exception recorded for a limiter that
-has risen above the floor fails naming the figure.
-
-### Falsified, not assumed
-
-| break | result |
-|---|---|
-| work orders throttled to 5/minute | **green first time** -- 300/hour sat exactly on the floor; after the fix, red naming the figure |
-| work orders throttled to 2/minute | red, *120 per hour ... below the 600/hour* |
-| a limiter nobody registered | red, *this check does not know why it exists* |
-| a quote in customer copy | red, naming the file and quoting the string |
-| an exception for a limiter now above the floor | red, *has an exception recorded for being below* |
-| a registration for a limiter that no longer exists | red, naming it |
-| every ceiling reclassified as an anonymous surface | red, *the floor below was applied to nothing* |
-| the floor dropped back to 300 | its test red, *five writes a minute sits exactly on* |
-| the gate stops disclaiming what it does not check | its test red |
-| the detector stops looking for a quote | 4 red, including the gate's own fixture self-test |
-
-`pnpm test` 5763 passing, `verify:gates` 0 across 63 commands -- every exit code read
-from its own file.
-
-
-
-
-### 2026-10-02 - A bucket that existed without a feature, and a permission with two states
-
-The owner's brief asks for profiles with pictures and settings, and for camera,
-microphone and contacts permissions. The first thing to establish was what was
-already here, and the first answer was wrong.
-
-**A false finding of my own, corrected before it went anywhere.** I grepped for
-served profile routes with `grep -hoE 'app\.(get|post)\("/[^"]*(profile|account)[^"]*"'
-| sed 's/.*"//'`, and `sed` stripped to the *last* quote on each line, leaving empty
-output. I read that as "no profile route exists". `/account/profile`,
-`/account/preferences`, `/account/settings`, `/settings` and `/account/data` all
-exist and have for months. The lesson is the ordinary one and worth writing down
-anyway: an empty grep result and a grep that produced empty strings look identical,
-and the pipeline was mine.
-
-**What is actually true is narrower and more interesting.**
-
-`/account/profile` was served, signed in, and had **no form on it**. It printed the
-account's email beside a card reading *"This feature works, but saving needs your
-records connected by an administrator first."* `public.profiles.full_name` has
-existed since migration 011 and **no route in this repository has ever written it**
--- the `full_name` hits in `routes/` are all `business_employees`, a different table
-about a different person. The sentence read as "come back later" on a page where
-nothing was coming.
-
-And the storage side, which is this repository's recurring defect in its most
-convincing form:
-
-- `lib/sonara-ecosystem-manifest.cjs` declares an `avatars` bucket.
-- `20260716130000_launch_storage_buckets.sql` creates it, private.
-- `scripts/verify-production-schema.mjs` asserts it is present, and passes.
-- **Nothing had ever written a byte to it.**
-
-The gate was not broken and its statement was not false. *"The avatars bucket
-exists"* was true every release. It simply was not evidence for the thing a reader
-takes it as evidence for, and there was no check for the other half. That is the
-whole shape: not a lie, a true statement standing where a different one is needed.
-
-`scripts/verify-declared-buckets.mjs` is the other half, and writing it found four
-more: `business-assets`, `support-attachments`, `release-packages` and `exports` are
-all declared, all provisioned, and written by nothing. Each is now recorded with a
-reason I opened a file to confirm rather than one I reasoned to -- `business_assets`
-has no `storage_path`, `object_path` or `bucket_id` column; there is no attachment
-table at all; `creator_release_packages` is a plan (tracklist, checklist, status) with
-nowhere to record an archive; and every export here sets `Content-Disposition` and
-streams, so there is nothing to store.
-
-**My first draft of that gate had three guessed reasons and one was flatly wrong.**
-It said `music-stems` was written by an edge worker. `routes/creator-generation-routes.cjs`
-writes it from this process, picking between `music-stems` and `creator-assets` with a
-ternary and POSTing to `/storage/v1/object/` directly. The detector only knew the
-`bucket:` option shape, so it reported the bucket unwritten, my wrong reason matched,
-and the check passed. The two-sided design caught it the moment the detector widened --
-an entry claiming no writer for a bucket that has one now fails by name.
-
-**And then the gate failed its own falsification.** Deleting `{ bucket: AVATAR_BUCKET }`
-from the upload -- the original bug, reintroduced exactly -- left it green. It was
-asking two questions separately: does this file name the bucket, and does this file
-upload anything. A file naming the bucket in an unused constant answers yes to both.
-It now traces the name to the call, through the variable it was assigned to, so the
-ternary case works and the disconnected case fails.
-
-### Permissions: three states, and why not a boolean
-
-`public.device_capability_profiles` (migration 015) holds `supports_audio boolean
-default false` and five more of that shape, and nothing has ever read or written it
-from a route -- lucky, because the shape cannot express what it is about:
-
-    the person said no   ->  false
-    nobody ever asked    ->  false
-
-Different facts, opposite behaviour. "Never asked" is a prompt to show once; "said
-no" is a prompt never to show again, and showing it again is what makes somebody
-uninstall an application. It also has no camera, microphone or contacts column --
-three the owner named.
-
-`device_permission_grants` makes a decision a **row**, constrained to `granted` or
-`denied`, with **no default**. No row means nobody has been asked. That is the one
-encoding of three states that cannot decay into two when somebody later adds a
-column with a default, because there is no column and no default to add to. The
-table carries no `organization_id`: a person's microphone is not their employer's to
-decide, and the read policy is `user_id = auth.uid()` with no update or delete, so a
-change of mind is a new row and the history of consent survives.
-
-`mayAsk` is the deliberate name. A granted row means this person wants the feature;
-the browser still runs its own prompt. Anything called `mayUse` would be claiming
-something this cannot know.
-
-**A gate caught a real production bug.** `device_permission_grants` had no
-`service_role` grant, so after the July Data API hardening the server could not have
-read it at all -- every permission would have read as `not_recorded`, which is the
-absent-read-as-a-value defect arriving through the grant table instead of the column.
-`tests/a-table-created-after-the-data-api-hardening-declares-its-surface.test.js`
-named it.
-
-**A 404 on your own account page.** `/account/profile/picture` first answered 404 when
-you had no picture. Correct about the resource, a dead end for the person, and it made
-this the one route in the signed-in crawl that did not resolve. It redirects to the
-profile now, where the page says there is no picture yet and offers the form -- while
-an *unreadable* profile still answers 503 saying "this is not the same as having no
-picture", because a redirect there would be a definite statement about somebody's data
-on the strength of a request that did not happen.
-
-A profile picture is also stored against the person, not a workspace:
-`lib/sonara-file-storage.cjs` grew `personalPathFor` and an `ownerPrefix` that refuses
-a call naming both an organization and a user. Filing a face under an organization's
-folder would mean somebody leaving a workspace either takes it with them or loses it.
-Both ids are uuids, so the `person/` segment is what stops one addressing the other's
-folder.
-
-The avatar check delegates to `multipart.sniff` rather than the signature table I
-first wrote, which missed `GIF87a` and had no minimum-length guard. GIF87a is in the
-accepted set, so reintroducing a private table fails two assertions at once.
-
-### Falsified, not assumed
-
-Each failing by name, restored by copy-aside and `md5sum -c`.
-
-| break | result |
-|---|---|
-| a profile column becomes `not null default ''` | replay red: *profiles gained a non-nullable profile column (3 of 4 nullable)* |
-| `state` gets a default | replay red: *has default 'granted'::text. A grant with a default is a decision nobody made* |
-| an `organization_id` appears on the grants table | replay red: *a person's microphone is not their employer's to decide* |
-| the check admits `not_recorded` | replay red: *two encodings of the same fact and a reader that has to guess* |
-| the state check is removed | replay red: *no state check constraint, so state accepts anything* |
-| `not_recorded` collapses into `denied` | 5 red |
-| an unreadable read reported as never asked | 2 red |
-| a missing form field read as a no | 1 red |
-| the avatar check trusts the declared content type | 4 red |
-| an emptied box keeps the old value | 1 red |
-| a failed read draws the empty form | 1 red, *draws no empty form over a profile it could not read* |
-| a private signature table comes back | 2 red, including the GIF87a case |
-| the avatar writer disconnected from its bucket | **green first time** -- the gate was rewritten, then 1 red |
-| the creator bucket stops reaching its upload | 2 red, naming both buckets |
-| a new bucket declared with no writer | 1 red |
-| the manifest stops declaring buckets | 1 red, *this check cannot see it* |
-| the manifest trimmed to two buckets | 1 red, *this check has gone blind* |
-| an expired reason (a bucket recorded unwritten that has a writer) | 1 red, naming the file that writes it |
-
-`pnpm test` 5747 passing. `verify:gates` 0 across 62 commands, `verify:db` 0,
-`verify:migration-replay` 147 migrations, lint, typecheck, build, smoke:routes and
-`audit --audit-level moderate` 0 -- every exit code read from its own file.
-
-
-
-
-### 2026-10-02 - Two branches built the same two features, and one filename held both
-
-`main` moved to 48934ac8 while PR #415 was open. #416 had built the Creator Project
-Graph and the fifteen-tool free split independently, and merged first. The merge came
-back `dirty` with 22 conflicts, two of which were not conflicts in the ordinary sense.
-
-**`lib/sonara-creator-project-graph.cjs` existed on both sides and was two different
-modules.** #416's is the media timeline -- sources, clips, captions, and a
-JSON/WebVTT/CSV export. Mine is the permission chain over whatever a timeline
-produces: brief, version, approval, and whether a machine's part in it was recorded.
-An add/add conflict presents these as one file to pick between; picking either would
-have deleted a working feature. #416's keeps the name because it shipped; mine became
-`lib/sonara-creator-approval-graph.cjs`, with its route at
-`/creator-studio/owner/approval-graph` and its migration renamed to match. Both
-modules now open by saying which one they are not -- the one thing that stops an
-approval being read as an edit the next time somebody greps for "project graph".
-
-**The free split reached fifteen twice, by different routes.** Both sides promoted two
-more tools per studio and both added three at the parent company, and no two of those
-ten picks agreed. #416's shipped, so #416's are the fifteen. What did not survive is
-mine: `lib/sonara-industries-tools.cjs` and its three server-rendered calculators are
-deleted rather than added, because six at the parent company contradicts the owner's
-decision of three.
-
-That is the product half. The engineering half went the other way, because #416 left
-the count written down in words on five surfaces -- the home page's `<p class="fine">`
-and its FAQ, the free plan description, the tool directory body, and the
-`/free-tools` page, which also named individual free tools in prose. Every one was
-correct when written and every one would have been wrong the next time the split
-moved, which is a thing that has now happened twice in one day. They read
-`freeToolSentence()` now; the home page's markup became a template literal to carry
-it, and `scripts/verify-free-tool-count.mjs` fails the build on a page that states a
-different number. #416's three parent tools were also outside `FREE_TOOL_PATHS`,
-which made `freeToolCountByCompany()` report 0 at the parent company while three
-pages said three -- they are in the list now, which is what makes the count derivable
-rather than asserted.
-
-**A test retargeted rather than deleted.**
-`tests/the-parent-company-has-its-own-front-door.test.js` was written against my
-three. Everything in it that was about *which* three is gone; everything about the
-shape of a parent tool is kept and now runs against #416's. Three checks are new, and
-they exist because #416's design makes a promise mine did not: each page says the
-input is "processed locally and is not uploaded or saved". So the test asserts there
-is no POST route that could receive it, that the form names neither an action nor a
-method, and that the page ships the script and a `<noscript>` saying why nothing
-happened without it. A sentence about where somebody's data goes is the one kind of
-copy that must not be able to drift from the code.
-
-**And the gate I was relying on did not catch the thing I merged.**
-
-The last falsification was meant to be routine: put #416's sentence back on the home
-page and watch `verify:free-tool-count` refuse it. It did not. Exit 0, and the summary
-line said *0 literal counts found*.
-
-Two separate holes, found only because the break was actually run rather than
-reasoned about:
-
-1. **The patterns knew three sentence shapes and both of #416's were a fourth.**
-   `<count> free tools` and `<count> tools are free` do not match *"Four tools **in
-   each studio** are free"* or *"Four free tools **per studio**"* — the words in the
-   middle break the adjacency. So the check had been reporting zero while two stale
-   sentences sat in `server.js`, one of which it then caught the moment the shapes
-   were added: the pricing FAQ still said *"Four free tools per studio and three
-   SONARA tools"*. That one was real, and in the tree, and would have shipped.
-
-2. **It compared every number it found against the total.** These sentences state a
-   *per-studio* figure and a *parent* figure. A check that reads "four" and asks
-   whether it equals fifteen is wrong about the sentence it is reading, so getting
-   the shapes right required `CLAIMS` to carry which figure each shape asserts, with
-   the more specific patterns claiming their span first so `<count> free tools` does
-   not re-read "four free tools per studio" and demand fifteen.
-
-3. **It tolerated a count that was correct.** This is the one worth keeping. A literal
-   that agrees with the list passes, goes stale on the next change, and nothing is
-   watching when it does — which is not a hypothetical, it is this exact file's
-   previous two entries. The check now fails any literal count in customer-facing
-   copy, and the two cases differ only in what the message says: *"but 4 are free in
-   each studio"*, or *"which is right today and is still a figure written into a
-   page"*.
-
-Falsified, each failing by name and restored by copy-aside and `md5sum -c`:
-
-| break | result |
-|---|---|
-| a POST handler for a parent tool | 1 red, `/tools/data-formatter accepted a POST` |
-| an `action` on the form | 1 red, naming the destination it printed |
-| the three parent paths leave `FREE_TOOL_PATHS` | 3 red in the test, and the gate red twice, once by the message *no parent-company tool is free* |
-| #416's sentence back on the home page | **green, twice** — which is why the detector was rewritten |
-| the rewritten detector, same sentence | 2 red, both *right today and still a figure written into a page* |
-| the rewritten detector, "Nine tools in each studio" | 1 red, *but 4 are free in each studio* |
-
-The third row is a correction to something this entry claimed before the break was
-run: I had written "3 red" for the form `action`, and it is 1 — the assertion loops
-over three tools and the first failure ends the `it`. The fourth row is the one that
-matters. A check that has never failed is a check nobody has verified, and this one
-had passed every run since it was written four commits earlier.
-
-**Two more literals, both inside checks rather than pages.**
-`scripts/smoke-routes.cjs` asserted `FREE_TOOL_PATHS.length === 12` and failed for
-being right about the previous split; it now asserts the four per-company figures,
-and dropping one Creator Studio tool makes it say *"Creator Studio must expose four
-public tools"* rather than printing two numbers. `tests/a-locked-tool-is-never-advertised-as-free.test.js`
-was reading only `app.locals.sonaraFreeTools`, so it measured twelve of fifteen and
-reported it as all of them — shape 2, a scan naming a smaller population than it
-claims. It reads the union with `sonaraParentTools` now, and asserts the difference is
-exactly three so the union going back to one list fails by name.
-
-**One thing to know before regenerating anything mid-merge.**
-`scripts/verify-proprietary-notice.mjs` counts tracked files with `git ls-files`,
-which lists a conflicted path once per stage. Run with conflicts unresolved it read
-365 shipped files; on the resolved tree it reads 349. Neither is wrong — the first was
-counting the same files three times. Resolve the merge before pinning any derived
-count, or the figure that gets committed is an artefact of the conflict.
-
-
-
-
-### 2026-10-02 - A page that said a read had failed when there was nothing to read
-
-Found while testing something else, which is the only reason it was found at all.
-
-Hardening `groupBy` in `routes/sonara-creator-project-graph-routes.cjs` -- a dynamic
-property write of the same shape as the storefront's injection, though reached from
-the database rather than from a request -- needed a test, so one fed it a row whose
-`asset_id` was `__proto__`. The guard dropped the row, the asset ended up with no
-group, and the page said:
-
-> Cover art -- we could not read its versions just now. That is not the same as
-> having none.
-
-Which is itself false. The read had succeeded. The asset had no versions.
-
-**`graphForBrief` was inferring a failed read from a missing key**, and both cases
-produce a missing key: a read that failed, and an asset with no versions yet. The
-map cannot tell them apart, and guessing picked the alarming one -- so the page told
-a creator something definite and wrong about their own data on the strength of a
-request that had worked. That is this repository's recurring defect pointed the
-other way round: not a success reported falsely, but a failure.
-
-Worse, **my own earlier test had encoded the conflation**: "reports an asset whose
-versions could not be read as unreadable, not as empty", asserting exactly this
-behaviour with an empty map. It was written to guard the three-state discipline and
-instead froze a two-state guess.
-
-The fix is an explicit `versionsReadable`, passed by the caller, which is the only
-place that knows. A missing key now means the asset has no versions. The route
-passes `read.versions.ok` even though it already bails on a failed read -- being
-explicit there is the point, because the module must not guess it.
-
-Two tests now, where there was one: an unreadable read with `versionsReadable: false`
-reports unreadable, and an empty map with the default reports no versions. Falsified
-by restoring the inference: 2 red, by name.
-
-The `groupBy` guard that started this is covered too -- removing it leaves
-`out["__proto__"]` reading `Object.prototype`, and `.push` on it throws, so a
-malformed row takes the page down. 1 red. It had been green with the guard removed
-until this test existed, which made it an unverified check: exactly what
-`.claude/skills/checks-that-cannot-lie/SKILL.md` says to assume about any check that
-has never failed.
-
-`lib/sonara-industries-tools.cjs` has the same `values[key] = parsed` shape and is
-**not** a problem: `key` comes from a `spec` literal written a few lines below each
-call, and the request supplies the value, which is parsed as a number. Stated in the
-file, because the two look identical and only one of them is a bug.
