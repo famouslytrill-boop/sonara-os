@@ -64,7 +64,8 @@ function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId }
 
   for (const name of REQUIRED_WORKFLOW_NAMES) {
     const runs = workflowRuns
-      .filter(run => run?.name === name && run?.head_sha === exactSha && run?.event === "push")
+      .filter(run => run?.name === name && run?.head_sha === exactSha &&
+        run?.head_branch === "main" && run?.event === "push")
       .sort((a, b) => {
         const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
         return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
@@ -86,7 +87,10 @@ function assessExactShaJobMatrix({ exactSha, branch, workflowRuns, jobsByRunId }
     }
     const counts = new Map();
     for (const job of batch.jobs) {
-      if (!job || typeof job.name !== "string" || job.run_id !== run.id) {
+      // Require the job itself to attest the same exact main commit. A
+      // successful job on another ref cannot stand in for this release.
+      if (!job || typeof job.name !== "string" || job.run_id !== run.id ||
+          job.head_sha !== exactSha || job.head_branch !== "main") {
         failures.push(name + ":job_identity_mismatch");
         continue;
       }
@@ -155,7 +159,8 @@ async function verifyExactShaJobMatrix({
     const selected = [];
     for (const name of REQUIRED_WORKFLOW_NAMES) {
       const runs = listing.workflow_runs
-        .filter(run => run?.name === name && run?.head_sha === exactSha && run?.event === "push")
+        .filter(run => run?.name === name && run?.head_sha === exactSha &&
+        run?.head_branch === "main" && run?.event === "push")
         .sort((a, b) => {
           const date = String(b.created_at || "").localeCompare(String(a.created_at || ""));
           return date || Number(b.run_attempt || 0) - Number(a.run_attempt || 0);
