@@ -132,3 +132,26 @@ All three must agree. The earlier version must not remain in the affected asset 
 
 **Release gate:** Do not merge merely because the static tests pass. Require exact-head CI, updated-service-worker behavioral tests, browser screenshots and accessibility evidence, plus separately authorized native device/store evidence.
 
+
+## Phase 4: localized navigation and foldable continuity acceptance
+
+**Implementation in draft PR #539 (not deployed):**
+
+- The authenticated compact mobile dock now has short, translated labels for all five configured SONARA UI dictionaries (English, Spanish, French, German, Portuguese).
+- Exact shortcut pages retain `aria-current="page"`; related studio subpages use `aria-current="location"` through the existing same-origin navigation script. A sibling/unrelated path must not match on a loose substring.
+- The existing design-system colors, authenticated-workspace condition, server routes, font dependencies, and device-permission boundaries remain unchanged.
+- Additional source assertions and a Playwright test exercise Spanish labels and a nested Creator route. These do **not** prove a full multilingual accessibility audit or a production login.
+
+**New platform research:**
+
+- Apple's September 2026 iPhone Duo layout guidance treats dual displays, device poses, split-view windows, and asymmetric safe areas as normal resizing constraints. SONARA should retain task state and show more hierarchy only when there is available space; no unsupported device identification or hinge-permission requirement should be added.
+- Samsung recommends that scrolling, entered text, and the keyboard survive fold/unfold transitions. Viewport emulation tests only some of this; physical or platform-emulator validation remains a required qualification.
+- The most durable cross-platform abstraction remains responsive web components plus optional, separately governed native adapters—not a duplicated phone operating system.
+
+Evidence:
+- https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo
+- https://developer.apple.com/design/human-interface-guidelines/layout
+- https://developer.samsung.com/one-ui/largescreen-and-foldable/designing_for_foldable.html
+- https://developer.samsung.com/one-ui/largescreen-and-foldable/intro.html
+
+**Next release gate:** exact-head Browser Quality must execute Chromium, Firefox and WebKit tests, and the broader CI matrix must pass; physical-device and old-service-worker upgrade evidence remain separate requirements. GitHub queue/pending status is not a pass. Preserve draft status; do not auto-merge or deploy.
