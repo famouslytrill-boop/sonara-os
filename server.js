@@ -2914,11 +2914,9 @@ function sendSetupRequired(req, res, status, service, reason) {
 
 function getPublicAppUrl(req) {
   const configured = getEnv(["APP_URL", "PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SITE_URL"]);
-  if (isSafePublicUrl(configured)) return String(configured).replace(/\/$/, "");
-
-  const host = req.get("x-forwarded-host") || req.get("host") || "sonaraindustries.com";
-  const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
-  return `${protocol}://${host}`.replace(/\/$/, "");
+  // Payment return and employee invitation URLs use the same fail-closed,
+  // canonical origin policy as OAuth and the shared-result pages.
+  return siteOrigin(req, () => configured);
 }
 
 function getSafeAbsoluteUrl(value, fallback) {
