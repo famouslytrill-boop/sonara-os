@@ -209,6 +209,8 @@ describe("SONARA verified connector depth", () => {
     assert.ok(contract.verificationBlockers.includes("supabase_vault_runtime_adapter"));
     assert.ok(contract.verificationBlockers.includes("provider_oauth_route_and_cookie_wiring"));
     assert.equal(contract.auth.oauthTransaction, "signed_tenant_bound_pkce_s256");
+    assert.equal(contract.auth.incrementalAuthorization, false);
+    assert.equal(contract.auth.exactScopeGrantRequired, true);
     assert.equal(contract.auth.credentialBroker, "contract_implemented_backend_pending");
     assert.equal(contract.auth.authorizationRoute, "not_wired");
     assert.ok(contract.verificationBlockers.includes("one_tenant_production_canary"));
