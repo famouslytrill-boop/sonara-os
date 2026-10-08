@@ -91,6 +91,16 @@ describe("the migrations are executed somewhere, not only read", () => {
       const legacy = fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
       const post = fs.readFileSync(path.join(root, "tests/sql/p1-service-role-postmigration-proof.sql"), "utf8");
       // Active preview has both policies; fresh migration history has neither.
+      // Pin that lineage assumption: a new forward migration creating either
+      // policy must force an explicit review of the zero-policy postflight.
+      const names = ['"Users can view own subscriptions"',
+        '"Users can view their own subscription"'];
+      const definingMigrations = migrations.filter((name) => {
+        const migration = fs.readFileSync(path.join(migrationsDir, name), "utf8");
+        return names.some((policyName) => migration.includes(policyName));
+      });
+      assert.deepEqual(definingMigrations, [],
+        "subscription policy provenance changed; update guarded replay pre/postconditions");
       // One inherited policy must remain a hard failure, never a silent DROP.
       assert.ok(legacy.includes("subscription_pair_baseline"));
       assert.ok(legacy.includes("prior_count NOT IN (0, 2)"));
