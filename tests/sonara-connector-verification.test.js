@@ -325,6 +325,27 @@ describe("SONARA verified connector depth", () => {
     assert.equal(JSON.stringify(result).includes("secret-token"), false);
   });
 
+  it("preserves a meaningful provider Retry-After value for the durable queue", async () => {
+    const result = await readDailySearchPerformance({
+      organizationId: "org-1",
+      businessId: "biz-1",
+      connectionId: "connection-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-09-21",
+      accessToken: "secret-token",
+      fetchImpl: async () => providerResponse(
+        429,
+        { error: { status: "RESOURCE_EXHAUSTED" } },
+        { "retry-after": "120" }
+      ),
+      sleepImpl: async () => { throw new Error("quota deferral must not sleep in-request"); }
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.retryMode, "durable_deferred");
+    assert.equal(result.retryAfterSeconds, 120);
+  });
+
   it("still uses bounded in-request retries for transient Search Console 5xx failures", async () => {
     let call = 0;
     const delays = [];
