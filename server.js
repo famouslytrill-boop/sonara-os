@@ -391,6 +391,18 @@ app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  // Safari/WebKit upgrades loopback HTTP subresources to HTTPS under this
+  // directive, even when the browser is testing the isolated HTTP runtime.
+  // Keep the strict production policy. Exempt only an actual loopback socket,
+  // request host and the explicit test environment; never trust Host alone.
+  const loopbackTest = process.env.NODE_ENV === "test" &&
+    req.protocol === "http" &&
+    (req.hostname === "127.0.0.1" || req.hostname === "localhost") &&
+    ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket?.localAddress);
+  if (loopbackTest) {
+    res.setHeader("Content-Security-Policy",
+      String(res.getHeader("Content-Security-Policy")).replace("; upgrade-insecure-requests", ""));
+  }
   next();
 });
 
