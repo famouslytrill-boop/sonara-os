@@ -450,3 +450,65 @@ For extremely hot counters, evaluate a dedicated low-latency shared counter only
 - NIST SP 800-63B-4: https://pages.nist.gov/800-63-4/sp800-63b.html
 
 **None of these design artifacts authorizes an external side effect or establishes legal compliance.**
+
+
+## 22. 2026-10-08 continuation — durable resource budgets and AI governance
+
+### Implemented on the follow-up branch
+The pure deterministic automation preflight now composes the existing independent controls before a run becomes eligible for an executor:
+
+`customer pause -> trusted server time -> authorization -> per-run approval -> weighted operation cost -> token/daily budget -> concurrency -> verified residual risk -> proof packet where required`.
+
+The result still sets `externalSideEffectExecuted=false` and `runtimePermissionGranted=false`. This layer decides whether a request has sufficient evidence to proceed to a separately governed executor; it does not become the executor.
+
+A dedicated service-only durable resource-budget migration now adds:
+- SHA-256 bucket keys rather than raw IP/email/subject identifiers;
+- weighted token capacity and per-minute refill;
+- a separate daily-unit ceiling;
+- short-lived idempotent concurrency leases rather than a fragile integer “active jobs” counter;
+- automatic expiry so crashed workers self-release capacity;
+- service-role-only SECURITY DEFINER RPCs with an empty search path;
+- migration-time proofs for consumption, denial, idempotent lease reuse, saturation, release and recovery.
+
+The application adapter deliberately fails closed when durable shared state is unavailable. Expensive automation/media/provider work does **not** fall back to an unlimited serverless-local counter.
+
+Resource acquisition is ordered:
+`governance preflight -> concurrency lease -> durable weighted/daily budget -> executor -> finally release lease`.
+
+If the weighted/daily budget denies after the lease is acquired, the adapter releases the lease immediately. If that cleanup call itself fails, the lease expires automatically and the caller receives `cleanupPending=true`; no external side effect is authorized.
+
+### AI-generated content and agent behavior
+The current product rule remains:
+- AI may draft, summarize, classify, analyze and propose.
+- Deterministic code performs known arithmetic and policy calculations.
+- AI output does not establish identity, consent, legal approval, payment authority, customer authorship, review truth, provider verification or a trusted timestamp.
+- Sensitive actions remain approval-per-run.
+- High/critical residual risk cannot be hidden behind a model confidence score.
+- AI-assisted customer reviews require the real customer to approve the exact final text.
+
+This is aligned with NIST's lifecycle risk-management approach and its current work emphasizing tested/validated guardrails, auditable rationales, graceful degradation and human oversight for higher-impact AI systems. NIST's AI Resource Center also centers testing, evaluation, verification and validation rather than treating model output as self-proving.
+
+For generated media, C2PA 2.4 is now the current specification family reference. Content Credentials can provide tamper-evident provenance/history and signed assertions; they are **provenance evidence**, not a guarantee that the underlying statement or depicted event is true.
+
+For consumer reviews, FTC guidance remains especially important for SONARA's review tools: fake/false reviews include reviews attributed to nonexistent people (including AI-generated fake reviewers), sentiment-conditioned incentives are prohibited, and hosting a review is legally different from turning it into the business's own testimonial/advertising. Exact-author confirmation plus separate publication/moderation authority is therefore the correct product boundary.
+
+### Research references updated 2026-10-08
+- NIST AI Resource Center / AI RMF operationalization: https://airc.nist.gov/
+- NIST AI security and resilience research: https://www.nist.gov/artificial-intelligence/ai-research-security-and-resilience
+- NIST AI RMF Generative AI Profile: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+- NIST 2026 trustworthy AI in critical infrastructure profile work: https://www.nist.gov/programs-projects/concept-note-ai-rmf-profile-trustworthy-ai-critical-infrastructure
+- FTC Consumer Reviews and Testimonials Rule Q&A: https://www.ftc.gov/business-guidance/resources/consumer-reviews-testimonials-rule-questions-answers
+- C2PA specifications and current 2.4 Content Credentials specification: https://spec.c2pa.org/specifications/
+
+### Verification status
+Focused isolated checks on this continuation: **40 passing / 0 failing** across automation governance, durable resource-budget adapter and migration-contract suites.
+
+Not yet proven:
+- actual PostgreSQL migration replay;
+- exact-head full Node test suite;
+- CodeQL/security workflow outcome;
+- production Supabase application;
+- provider/load testing;
+- any customer-facing automation activation.
+
+Those remain release gates, not implied successes.
