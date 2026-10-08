@@ -38,6 +38,16 @@ describe("native page transitions leave normal navigation usable", () => {
       } }), (error) => error === failure);
     }
   });
+  it("preserves normal navigation in both authored and bundled styles", () => {
+    for (const relative of [
+      "ui/sonara/styles/99-sonara-cinematic-system.css",
+      "public/sonara-application-ui.css"
+    ]) {
+      const css = fs.readFileSync(path.join(__dirname, "..", relative), "utf8");
+      assert.ok(css.includes("@view-transition{navigation:none}"), relative);
+      assert.ok(!css.includes("@view-transition{navigation:auto}"), relative);
+    }
+  });
   it("keeps the same path working without a native transition", () => {
     const handlers = boot();
     for (const type of ["pageswap", "pagereveal"]) {
