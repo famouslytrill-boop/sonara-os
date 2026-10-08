@@ -1,6 +1,8 @@
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 "use strict";
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { CATALOG, surfacePolicy, freeSurfaceSummary } = require("../lib/sonara-free-platform-surface-policy.cjs");
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -39,6 +41,16 @@ describe("free login-based SONARA platform surface policy", () => {
     assert.equal(approved.checkoutAuthorized, false);
     assert.equal(approved.sideEffectExecuted, false);
     assert.equal(surfacePolicy({ ...x, action: "comment", moderationApproved: false }).ok, false);
+  });
+  it("uses the shared policy in Growth Studio's real authenticated channel screen", () => {
+    const code = fs.readFileSync(path.join(__dirname, "..", "routes",
+      "sonara-growth-channel-routes.cjs"), "utf8");
+    assert.ok(code.includes('require("../lib/sonara-free-platform-surface-policy.cjs")'));
+    assert.ok(code.includes('channelSurface.platformSubscriptionRequired === false'));
+    assert.ok(code.includes('channelSurface.platformPostingFeeCents === 0'));
+    assert.ok(code.includes('const guard = requireWorkspaceAccess("growth_studio")'));
+    assert.ok(code.includes("Your channel is free"));
+    assert.ok(!code.includes("requirePaidOrOwnerAccess"));
   });
   it("does not make seller charges into SONARA membership charges", () => {
     const summary = freeSurfaceSummary();
