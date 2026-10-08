@@ -66,6 +66,27 @@ describe("offline deterministic sync policy",()=>{
     assert.equal(out.applyCandidate,true);
     assert.equal(out.nextVersion,10);
   });
+  it("refuses a future device base revision even for append-only notes",()=>{
+    for(const operation of ["append_note","draft_task","inventory_count_observation"]){
+      const out=reconcileOfflineMutation({operation,baseVersion:9,serverVersion:3,
+        payloadHashMatchesQueued:true,serverEntityExists:true});
+      assert.equal(out.state,"client_version_ahead_of_server",operation);
+      assert.equal(out.applyCandidate,false,operation);
+      assert.equal(out.humanConflictReview,true,operation);
+      assert.deepEqual(out.issues,["client_version_ahead"]);
+    }
+  });
+  it("fails closed on malformed or unknown revisions before merge",()=>{
+    for(const versions of [{baseVersion:-1,serverVersion:3},
+      {baseVersion:Infinity,serverVersion:3},
+      {baseVersion:1.5,serverVersion:3},
+      {baseVersion:3,serverVersion:"3"}]){
+      const result=reconcileOfflineMutation({operation:"append_note",...versions,
+        payloadHashMatchesQueued:true,serverEntityExists:true});
+      assert.equal(result.state,"blocked_pending_review");
+      assert.equal(result.applyCandidate,false);
+    }
+  });
   it("idempotent mutation replay does nothing twice",()=>{
     const out=reconcileOfflineMutation({operation:"append_note",baseVersion:1,serverVersion:5,
       mutationAlreadyApplied:true});
