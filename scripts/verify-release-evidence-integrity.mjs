@@ -192,7 +192,8 @@ try {
     const sourceArg = argv.indexOf("--source");
     const commitArg = argv.indexOf("--commit");
     const source = path.resolve(sourceArg >= 0 ? argv[sourceArg + 1] : "artifacts");
-    const expectedCommit = commitArg >= 0 ? argv[commitArg + 1] : (process.env.GITHUB_SHA || null);
+    const expectedCommit = commitArg >= 0 ? argv[commitArg + 1] : null;
+    if (!expectedCommit) throw new Error("An explicit --commit <full_sha> is required when checking release evidence.");
     console.log(JSON.stringify(validate(manifest, source, expectedCommit)));
   } else {
     throw new Error("Use --self-test or --check <manifest> --source <artifacts> [--commit <sha>]");
