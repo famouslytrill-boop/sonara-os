@@ -50,6 +50,18 @@ const PUBLIC_STAGE = [
   "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261008-v24-cross-device"
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
+// Offline caching is limited to files served from the known public asset
+// namespace. A private API or user-file URL must never become cacheable just
+// because its last path segment happens to end in .png or .js.
+const PUBLIC_ASSET_PATH = /^\/(?:[a-z0-9][a-z0-9-]*\.(?:css|js|svg|png|ico|webmanifest|woff2)|(?:brand|fonts|icons)\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.(?:css|js|svg|png|ico|webmanifest|woff2))$/i;
+
+function isPublicStaticRequest(url) {
+  if (!STATIC_PATTERN.test(url.pathname) || !PUBLIC_ASSET_PATH.test(url.pathname)) return false;
+  // Versioned assets use exactly the current opaque release token. Do not
+  // persist unknown query parameters (including accidental one-time tokens).
+  if (!url.search) return true;
+  return url.searchParams.size === 1 && url.searchParams.get("v") === VERSION;
+}
 
 function isPublicNavigation(pathname) {
   return PUBLIC_NAVIGATION_PATHS.has(pathname) || pathname.startsWith("/legal/");
@@ -106,7 +118,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname === "/sw.js" || !STATIC_PATTERN.test(url.pathname)) return;
+  if (url.pathname === "/sw.js" || !isPublicStaticRequest(url)) return;
 
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
