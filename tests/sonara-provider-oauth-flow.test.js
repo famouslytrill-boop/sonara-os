@@ -81,6 +81,16 @@ describe("tenant-bound provider OAuth transactions", () => {
     assert.equal(result.tokenExchangeAuthorized, false);
   });
 
+  it("returns a structured denial for missing or malformed callback state", () => {
+    const tx = created();
+    for (const state of ["", "not-valid state"]) {
+      const result = verified(tx, { state });
+      assert.equal(result.ok, false);
+      assert.ok(result.blockers.includes("oauth_state_format_invalid"));
+      assert.equal(result.transaction, null);
+    }
+  });
+
   it("rejects state or signed-capsule tampering before token exchange", () => {
     const tx = created();
     const changedState = verified(tx, { state: tx.state.slice(0, -1) + "A" });
