@@ -39,7 +39,7 @@ describe("research simulation catalog at the existing invention-systems route", 
     assert.equal(res.payload.researchSimulations.maturity, "research");
     assert.equal(res.payload.researchSimulations.executionEnabled, false);
     assert.equal(res.payload.researchSimulations.externalActionsEnabled, false);
-    assert.equal(res.payload.researchSimulations.capabilities.length, 13);
+    assert.equal(res.payload.researchSimulations.capabilities.length, 15);
     assert.ok(res.payload.researchSimulations.capabilities.every(c => !Object.hasOwn(c, "runner")));
   });
 
