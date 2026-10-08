@@ -327,22 +327,110 @@ describe("event consumer activation readiness", () => {
   });
 
   it("makes the activation gate measurable instead of treating a green process exit as proof", () => {
-    const good = Array.from({ length: CANARY_ACTIVATION_GATE.minSamples }, () => ({
+    const good = Array.from({ length: CANARY_ACTIVATION_GATE.minSamples }, (_, index) => ({
       status: "delivered",
+      eventOutboxId: `canary-row-${index + 1}`,
       attemptCount: 1,
       queueAgeMs: 100,
       handlerDurationMs: 25
     }));
-    const passed = evaluateCanaryActivation(good);
+    const expectedEventOutboxIds = good.map((item) => item.eventOutboxId);
+    const passed = evaluateCanaryActivation(good, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds });
     assert.equal(passed.ok, true);
     assert.equal(passed.metrics.deliveryRatio, 1);
     assert.equal(passed.metrics.deadLetterRatio, 0);
+    assert.equal(passed.metrics.uniqueDelivered, expectedEventOutboxIds.length);
 
     const withRetry = good.slice();
     withRetry[0] = { ...withRetry[0], status: "retry" };
-    const failed = evaluateCanaryActivation(withRetry);
+    const failed = evaluateCanaryActivation(withRetry, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds });
     assert.equal(failed.ok, false);
     assert.equal(failed.checks.retryRatio, false);
+  });
+
+  it("refuses a green canary when the expected enqueue identities were not supplied", () => {
+    const delivered = Array.from({ length: 20 }, (_, i) => ({
+      status: "delivered", eventOutboxId: `row-${i}`, attemptCount: 1,
+      queueAgeMs: 10, handlerDurationMs: 20
+    }));
+    const result = evaluateCanaryActivation(delivered);
+    assert.equal(result.ok, false);
+    assert.equal(result.checks.expectedDelivery, false);
+  });
+
+  it("rejects duplicated, missing or substituted delivery IDs despite 100% delivered statuses", () => {
+    const delivered = Array.from({ length: 20 }, (_, i) => ({
+      status: "delivered", eventOutboxId: `row-${i}`, attemptCount: 1,
+      queueAgeMs: 10, handlerDurationMs: 20
+    }));
+    const expectedEventOutboxIds = delivered.map((item) => item.eventOutboxId);
+    const duplicate = delivered.map((item, i) => i === 19 ? { ...item, eventOutboxId: "row-0" } : item);
+    const missing = delivered.map((item, i) => i === 19 ? null : item);
+    const substituted = delivered.map((item, i) => i === 19 ? { ...item, eventOutboxId: "unrelated-row" } : item);
+    assert.equal(evaluateCanaryActivation(duplicate, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds }).ok, false);
+    assert.equal(evaluateCanaryActivation(missing, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds }).ok, false);
+    assert.equal(evaluateCanaryActivation(substituted, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds }).ok, false);
+    assert.equal(evaluateCanaryActivation(duplicate, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds }).checks.sampleIntegrity, false);
+  });
+
+  it("rejects missing/invalid latency and repeat attempts instead of counting 0ms and false reliability", () => {
+    const delivered = Array.from({ length: 20 }, (_, i) => ({
+      status: "delivered", eventOutboxId: `row-${i}`, attemptCount: 1,
+      queueAgeMs: 10, handlerDurationMs: 20
+    }));
+    const expectedEventOutboxIds = delivered.map((item) => item.eventOutboxId);
+    for (const patch of [
+      { handlerDurationMs: null },
+      { handlerDurationMs: -1 },
+      { handlerDurationMs: "0" },
+      { queueAgeMs: null },
+      { attemptCount: 2 }
+    ]) {
+      const corrupt = delivered.map((item, i) => i === 0 ? { ...item, ...patch } : item);
+      const result = evaluateCanaryActivation(corrupt, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds });
+      assert.equal(result.ok, false, JSON.stringify(patch));
+    }
+    const allMissing = delivered.map((item) => ({ ...item, handlerDurationMs: null }));
+    const missingResult = evaluateCanaryActivation(allMissing, CANARY_ACTIVATION_GATE, { expectedEventOutboxIds });
+    assert.equal(missingResult.metrics.p95HandlerDurationMs, null);
+  });
+
+  it("refuses a mismatched claimed tenant, kind or producer before any handler or settle call", async () => {
+    const mismatches = [
+      { organization_id: "00000000-0000-4000-8000-000000000999" },
+      { kind: "media.job.requested" },
+      { producer: "unapproved-producer" }
+    ];
+    for (const wrong of mismatches) {
+      let handled = 0;
+      let settled = 0;
+      const events = [];
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: row(wrong) }),
+          settle: async () => { settled += 1; return { ok: true, row: {} }; }
+        },
+        handlers: { [CANARY_KIND]: async () => { handled += 1; return { ok: true }; } },
+        emitEvent: (event) => events.push(event)
+      });
+      const result = await worker.runOnce({
+        enabled: true, organizationId: ORG, kinds: [CANARY_KIND],
+        producers: [`${CANARY_PRODUCER_PREFIX}:run-1`]
+      });
+      assert.equal(result.status, "claim_scope_mismatch");
+      assert.equal(result.ok, false);
+      assert.equal(result.sample, null);
+      assert.equal(handled, 0);
+      assert.equal(settled, 0);
+      assert.equal(events[0]?.reason, "claim_scope_mismatch");
+    }
+  });
+
+  it("requires the CLI canary to compare fresh enqueues to delivered identities", () => {
+    const source = fs.readFileSync(path.join(__dirname, "../scripts/run-event-consumer-canary.mjs"), "utf8");
+    assert.match(source, /result\.created !== true/);
+    assert.match(source, /new Set\(expectedEventOutboxIds\)\.size !== SAMPLE_COUNT/);
+    assert.match(source, /evaluateCanaryActivation\(results\.map\(\(result\) => result\?\.sample \?\? null\), CANARY_ACTIVATION_GATE, \{ expectedEventOutboxIds \}\)/);
   });
 
   it("adds an atomic filtered claim with stale-lease recovery and no browser-role execute grant", () => {
