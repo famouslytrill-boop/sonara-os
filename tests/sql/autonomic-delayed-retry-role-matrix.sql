@@ -40,7 +40,7 @@ BEGIN
   BEGIN
     PERFORM public.sonara_schedule_autonomic_retry(
       k, '11111111-1111-4111-8111-111111111111', 'operation-1','incident-other',
-      1, '["[\\"organization\\",\\"11111111-1111-4111-8111-111111111111\\",\\"retry_idempotent\\",\\"fixture-mail\\"]","operation-1",1]',
+      1, jsonb_build_array(k, 'operation-1', 1)::text,
       clock_timestamp()+interval '15 seconds',clock_timestamp()+interval '1 hour');
     RAISE EXCEPTION 'attempt-number bypass created concurrent job';
   EXCEPTION WHEN unique_violation THEN
