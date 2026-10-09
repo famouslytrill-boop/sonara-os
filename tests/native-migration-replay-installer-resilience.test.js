@@ -42,4 +42,17 @@ describe("native PostgreSQL replay infrastructure resilience", () => {
     assert.match(source, /node scripts\/verify-migration-replay\.mjs --postgres-bin "\$POSTGRES_BIN"/);
     assert.doesNotMatch(source, /continue-on-error:\s*true/);
   });
+
+  it("surfaces bounded P1 policy drift diagnostics without logging all replay query output", () => {
+    const replay = fs.readFileSync(
+      path.join(__dirname, "..", "scripts", "verify-migration-replay.mjs"), "utf8"
+    );
+    assert.match(replay, /const p1 = what === "P1 RLS initplan and policy-overlap guarded rollback proof"/);
+    assert.match(replay, /String\(result\.stdout \|\| ""\)\.split\(\/\\r\?\\n\/\)/);
+    assert.match(replay, /\.filter\(\(line\) => line\.includes\("\|"\) && line\.length <= 320\)/);
+    assert.match(replay, /\.slice\(0, 30\)\.join\("\\n"\)/);
+    assert.match(replay, /Policy attribute differences \(staging only\)/);
+    assert.match(replay, /String\(result\.stderr \|\| "SQL replay command failed without stderr\."\)/);
+    assert.doesNotMatch(replay, /continue-on-error:\\s*true/);
+  });
 });
