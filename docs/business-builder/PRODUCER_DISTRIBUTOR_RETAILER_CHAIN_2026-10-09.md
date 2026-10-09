@@ -116,6 +116,50 @@ controlled migration review, rollback evidence and a deliberately approved
 one-tenant pilot before activation. The SQL file's presence does not mean it
 has been applied.
 
+## Phase 4: supplier invoice three-way match, draft only
+
+Implemented `lib/sonara-procurement-three-way-match.cjs` and
+`tests/procurement-three-way-match.test.js`, with **no runtime payment authority**.
+One deterministic decision compares:
+
+1. **Approved PO:** same organization/vendor/currency, timestamped approver
+   and version, ordered quantities, units and agreed unit costs.
+2. **Accepted goods receipt:** same PO/line/tenant, unique receipt IDs and
+   accepted-only quantities; rejected/returned goods cannot be used to approve
+   billed quantities.
+3. **Supplier invoice:** explicit PO linkage, vendor/currency/unit agreement,
+   invoice quantities not exceeding either the PO or **unbilled accepted** stock,
+   line arithmetic, subtotal/total and controlled fee/tax review.
+4. **Previous approved/scheduled/paid invoices:** authoritative invoice
+   allocation history is mandatory, even when empty, and blocks the same
+   accepted goods being billed twice across separate invoices.
+
+Quantities use integer thousandths of each declared item unit; prices and
+subtotals are integer cents with BigInt interim multiplication, with half-up
+rounding per invoice line. For now only selected two-decimal currencies are
+supported; never infer tax, currency conversions or case/weight equivalence.
+Disagreements return `hold_for_review`. A clean result returns
+`ready_for_human_review` **not** approval or payment execution.
+
+**Required integrations still missing:** `vendor_invoices` and
+`vendor_invoice_lines` in the currently inspected schema do not establish a
+verified immutable PO-line allocation and complete invoice history. A trusted
+server-side source loader, invoice-to-PO mapping, vendor agreement grants,
+separate approvals, immutable allocation ledger and provider-settlement
+reconciliation are required before wiring this module into customer routes.
+
+**Live schema concern found in read-only review (October 9, 2026):**
+`authenticated` retains table-level `UPDATE` grants on
+`inventory_items`, and the inventory Business Builder resource still exposes
+quantity as an editable field. Tenant RLS limits who can change a row, but
+such edits can bypass a procurement-only receipt ledger. Do not call stock
+ledger authoritative until a reviewed stock-adjustment path exists and direct
+quantity mutations are blocked or journaled without breaking customer workflows.
+
+**Validation:** 16 focused matching-engine tests passed in an isolated JS
+execution harness. They are not proof of customer data provenance, full Mocha
+CI, database replay, multi-session concurrency, or external payment correctness.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
