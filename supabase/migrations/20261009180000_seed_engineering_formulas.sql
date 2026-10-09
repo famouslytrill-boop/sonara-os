@@ -1,6 +1,20 @@
 -- Copyright (c) 2026 SONARA Industries. All rights reserved.
 -- Schema migration required for FK-safe saving of the new formula results.
 -- No customer data, grants, policy changes or auto-generated business records.
+-- Formula groups must exist before definitions due to group_key FK.
+INSERT INTO public.sonara_formula_groups (group_key,label,product_area,description,status)
+VALUES
+  ('labor_economics','Labor and opportunity costs','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('building_economics','Construction investment economics','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('construction_trades','Construction and trade estimates','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('trade_electrical','Electrical estimates','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('trade_plumbing','Plumbing and pipe flow','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('measurement_science','Measurement and unit conversion','Business Builder','Deterministic engineering estimates; not engineering approval.','active'),
+  ('computing_engineering','Computing and processing costs','Creator Studio','Deterministic engineering estimates; not engineering approval.','active'),
+  ('space_science','Space and optical science','Creator Studio','Deterministic engineering estimates; not engineering approval.','active'),
+  ('quantum_research','Quantum measurement learning','Creator Studio','Deterministic engineering estimates; not engineering approval.','active')
+ON CONFLICT (group_key) DO NOTHING;
+
 INSERT INTO public.sonara_formula_definitions
   (formula_key,group_key,product_area,label,public_label,expression_text,required_inputs,target_tables,output_unit,role_visibility,status,notes)
 VALUES
