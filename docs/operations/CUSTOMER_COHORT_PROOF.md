@@ -123,6 +123,17 @@ The SQL fixture, which **must not be run against a live customer database**, per
 
 See PostgreSQL's documented behavior for [row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [transaction modes](https://www.postgresql.org/docs/current/sql-set-transaction.html), and [session authorization](https://www.postgresql.org/docs/current/sql-set-session-authorization.html).
 
+## Native replay defensive preflight and policy mutation probe (2026-10-09)
+
+To prevent the disposable SQL fixture from being confused with a production migration, `tests/sql/p0-cohort-reader-rls-snapshot.sql` now **fails before any write** unless the connected database is named `replay`, the effective and authenticated database users are `postgres`, the connection uses a local Unix-domain socket, and the replay owner has PostgreSQL superuser status. These are safety guardrails rather than authorization to operate on any customer system; the entire file must still run only under the repository's ephemeral native migration replay.
+
+The fixture now also includes a deliberately unsafe **transactional mutation probe**. After the normal two-tenant denial assertion succeeds, it creates temporary permissive `SELECT ... TO PUBLIC USING (true)` policies for both source tables. It then confirms that the restricted synthetic reporter would see tenant B through those policies, proving that the original negative check is sensitive to this particular permission regression. The containing transaction rolls back the deliberately insecure policies; fixture cleanup then removes temporary customer records and the reporting role. Neither a permissive policy nor a production grant is added by the branch.
+
+An existing Mocha regression in `tests/migrations-are-replayed-not-just-read.test.js` now asserts that the native test, database/superuser/socket preflight, exact positive/negative marker, mutation block, and role cleanup remain connected to the migration-replay release chain. This **static test does not establish real PostgreSQL execution**; exact-head native CI remains mandatory.
+
+The latest local attempt to install PostgreSQL into the isolated execution environment could not reach the system package repository because DNS was unavailable. Consequently, the native replay and its mutation probe were **not** executed locally, and no pass is claimed for them.
+
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
