@@ -103,6 +103,7 @@ function report(client, extra = {}) {
     classifyEligibility: () => true,
     approvedReportingRole: "sonara_cohort_reader",
     expectedOrganizationIds: [ID_A],
+    approvedSourceQuerySha256: "b".repeat(64),
     from, to, asOf, ...extra
   };
   if (options.sourceEvidenceBytes === undefined) {
@@ -252,7 +253,8 @@ describe("server-only customer cohort snapshot contract", () => {
     const connect = async () => { connections += 1; return client; };
     const base = { connect, classifyEligibility: () => true,
       approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A],
-      trustedRosterPublicKeys: trustStore, sourceEvidenceBytes: sourceManifest(), from, to, asOf };
+      trustedRosterPublicKeys: trustStore, sourceEvidenceBytes: sourceManifest(),
+      approvedSourceQuerySha256: "b".repeat(64), from, to, asOf };
     const valid = signedRoster();
     const corrupt = { ...valid, signatureB64: "A".repeat(86) };
     const forged = { ...valid, payloadB64: signedRoster({ ids: [ID_B] }).payloadB64 };
@@ -273,7 +275,8 @@ describe("server-only customer cohort snapshot contract", () => {
   it("verifies Ed25519 using public KeyObject or PEM but rejects private key custody", () => {
     const attestation = signedRoster();
     const base = { attestation, approvedReportingRole: "sonara_cohort_reader",
-      expectedOrganizationIds: [ID_A], sourceEvidenceBytes: sourceManifest(), from, to, asOf };
+      expectedOrganizationIds: [ID_A], sourceEvidenceBytes: sourceManifest(),
+      approvedSourceQuerySha256: "b".repeat(64), from, to, asOf };
     assert.equal(verifyCohortRosterAttestation({
       ...base, trustedKeys: { ops_test_key: rosterPublic }
     }).ok, true);
@@ -321,7 +324,8 @@ describe("server-only customer cohort snapshot contract", () => {
     const signed = signedRoster({ sourceEvidenceBytes: original });
     const options = { connect, classifyEligibility: () => true,
       approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A],
-      rosterAttestation: signed, trustedRosterPublicKeys: trustStore, from, to, asOf };
+      rosterAttestation: signed, trustedRosterPublicKeys: trustStore,
+      approvedSourceQuerySha256: "b".repeat(64), from, to, asOf };
     for (const evidence of [
       undefined, Buffer.alloc(0),
       Buffer.from(original.toString("utf8") + " "),
@@ -347,6 +351,55 @@ describe("server-only customer cohort snapshot contract", () => {
       const result = await report(fakeClient(), { sourceEvidenceBytes: evidence });
       assert.equal(result.code, "roster_attestation_invalid");
     }
+  });
+
+  it("rejects signed but unreviewed source-query hashes before the database connection", async () => {
+    let connections = 0;
+    const sourceEvidenceBytes = sourceManifest({ queryHash: "c".repeat(64) });
+    const opts = {
+      connect: async () => { connections++; return fakeClient(); },
+      classifyEligibility: () => true,
+      approvedReportingRole: "sonara_cohort_reader",
+      expectedOrganizationIds: [ID_A],
+      trustedRosterPublicKeys: trustStore,
+      rosterAttestation: signedRoster({ sourceEvidenceBytes }),
+      sourceEvidenceBytes, from, to, asOf
+    };
+    for (const reviewedHash of [undefined, "b".repeat(64), "INVALID"]) {
+      const result = await readCohortFromSnapshot({
+        ...opts, approvedSourceQuerySha256: reviewedHash
+      });
+      assert.equal(result.code, "roster_attestation_invalid");
+    }
+    assert.equal(connections, 0);
+  });
+
+  it("rejects noncanonical source and approval JSON even when correctly signed", async () => {
+    const original = sourceManifest().toString("utf8");
+    const signedManifest = (sourceEvidenceBytes) =>
+      signedRoster({ sourceEvidenceBytes });
+    for (const text of [
+      original.replace('"complete":true', '"complete":false,"complete":true'),
+      original.replace('"complete":true', '"complete" : true')
+    ]) {
+      const sourceEvidenceBytes = Buffer.from(text);
+      const result = await report(fakeClient(), {
+        sourceEvidenceBytes, rosterAttestation: signedManifest(sourceEvidenceBytes)
+      });
+      assert.equal(result.code, "roster_attestation_invalid");
+    }
+    const sourceEvidenceBytes = sourceManifest();
+    const approval = signedRoster({ sourceEvidenceBytes });
+    const decoded = Buffer.from(approval.payloadB64, "base64url").toString("utf8");
+    const bytes = Buffer.from(decoded.replace('"audience":', '"audience":"other","audience":'));
+    assert.equal(verifyCohortRosterAttestation({
+      attestation: { keyId: approval.keyId,
+        payloadB64: bytes.toString("base64url"),
+        signatureB64: sign(null, bytes, rosterPrivate).toString("base64url") },
+      trustedKeys: trustStore, approvedReportingRole: "sonara_cohort_reader",
+      approvedSourceQuerySha256: "b".repeat(64),
+      expectedOrganizationIds: [ID_A], sourceEvidenceBytes, from, to, asOf
+    }).ok, false);
   });
 
   it("refuses a read-write session and cleans up", async () => {
