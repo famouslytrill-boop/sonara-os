@@ -16,6 +16,9 @@ async function mountLocalComponent(page, markup, scriptPath) {
   // causing the actual served /creator-*.js script loads to fail.
   // The markup is still stripped of embedded scripts, and the component code
   // still loads over HTTP from the running SONARA application server.
+  if (new URL(page.url()).origin !== new URL(BASE_URL).origin) {
+    throw new Error("browser_component_origin_mismatch");
+  }
   await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
   await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
 }
