@@ -3,12 +3,12 @@
 
 ## Engineering approach
 
-New feature branch is based on \`main\` rather than stacked on the five
+New feature branch is based on `main` rather than stacked on the five
 pending STEM/CAD branches. This prevents outstanding migrations and CI jobs
 from blocking independent creator editorial review.
 
-Existing SONARA Storyboard Builder (\`lib/sonara-storyboard-tool.cjs\`) is
-reused for any selected video runtime. Existing \`module_outputs\` table is
+Existing SONARA Storyboard Builder (`lib/sonara-storyboard-tool.cjs`) is
+reused for any selected video runtime. Existing `module_outputs` table is
 reused for opt-in saved drafts and subsequent revisions. There is no new
 SQL migration, cloud AI model, image/video generator, external licence scan,
 geographic provider, booking, publisher or social media connection.
@@ -47,38 +47,38 @@ editor remains separate future work.
 ## Routes and privacy
 
 Server routes registered (disabled by default):
-- GET \`/creator-studio/editorial\` — actual accessible HTML draft form,
+- GET `/creator-studio/editorial` — actual accessible HTML draft form,
   with typed notes/blog/storyboard/vlog/gaming/travel fields and recent
   saved-draft links.
-- POST \`/creator-studio/editorial/preview\` — no-write HTML preview.
-- POST \`/creator-studio/editorial/save\` — explicit save and redirect only
+- POST `/creator-studio/editorial/preview` — no-write HTML preview.
+- POST `/creator-studio/editorial/save` — explicit save and redirect only
   after the database confirmed an inserted revision.
-- GET \`/creator-studio/editorial/drafts/:id\` — open one saved revision,
+- GET `/creator-studio/editorial/drafts/:id` — open one saved revision,
   scoped by server-resolved organization, creator product and editorial module.
-- POST \`/api/creator-studio/editorial/preview\` — JSON preview.
-- POST \`/api/creator-studio/editorial/save\` — explicit JSON write requiring
-  \`X-Sonara-Intent: save-editorial-draft\`; cross-site simple HTML forms
+- POST `/api/creator-studio/editorial/preview` — JSON preview.
+- POST `/api/creator-studio/editorial/save` — explicit JSON write requiring
+  `X-Sonara-Intent: save-editorial-draft`; cross-site simple HTML forms
   cannot provide this header.
-- GET \`/api/creator-studio/editorial/drafts\` — latest 20 scoped drafts
+- GET `/api/creator-studio/editorial/drafts` — latest 20 scoped drafts
   with explicit pagination/truncation notice.
 
-All routes require \`requireWorkspaceAccess("creator_studio")\`.
+All routes require `requireWorkspaceAccess("creator_studio")`.
 Write operations additionally require the existing durable-capable
 rate limiter (30 requests per hour by hashed IP and account subject).
-Browser form POST additionally requires \`Sec-Fetch-Site: same-origin\`;
+Browser form POST additionally requires `Sec-Fetch-Site: same-origin`;
 same-site-but-cross-origin and missing signal are refused rather than
 trusting the user's cookies alone. The existing global Express request-body
 limit is 1 MB, while editorial field caps are more restrictive (title 160
 characters, body/reference 12,000, asset count 20, stops 20).
 
-\`SONARA_EDITORIAL_WORKBENCH_ENABLED=true\` is a server-only operator
+`SONARA_EDITORIAL_WORKBENCH_ENABLED=true` is a server-only operator
 feature flag and defaults off. No user's form input can change that.
 Disabled routes return 404 without storage reads or writes. All routes
-set \`Cache-Control: no-store\`.
+set `Cache-Control: no-store`.
 
-The save contract inserts into \`public.module_outputs\` with
-\`organization_id\` resolved from the authenticated user, constant
-\`product_key=creator_studio\` and \`module_key=editorial_workbench\`.
+The save contract inserts into `public.module_outputs` with
+`organization_id` resolved from the authenticated user, constant
+`product_key=creator_studio` and `module_key=editorial_workbench`.
 List/open queries explicitly filter all three, plus UUID for single
 drafts. Existing service-role bypass of RLS is why *every* query must carry
 those server-derived filters. Drafts are **workspace-visible**, not
@@ -119,7 +119,7 @@ travel booking or external API side effect is wired.
 ## Verification and rollout
 
 Focused regression tests:
-\`\`\`sh
+```sh
 pnpm install --frozen-lockfile
 pnpm exec mocha tests/sonara-editorial-workbench.test.js tests/sonara-editorial-workbench-routes.test.js tests/a-storyboard-that-adds-up.test.js
 pnpm run verify:applied-migrations
@@ -127,7 +127,7 @@ pnpm run lint
 pnpm run typecheck
 pnpm test
 pnpm run build
-\`\`\`
+```
 
 A fast isolated V8 test harness is useful for bounded logic and route
 fixtures but **not** a substitute for Node/pnpm, live Supabase tenant
@@ -137,7 +137,7 @@ or full production deployment gates. Full exact-commit CI is mandatory.
 Operator acceptance sequence:
 1. Require code review, green full CI, known migration state and an up-to-date
    deployed commit matching the approved SHA.
-2. Deploy with \`SONARA_EDITORIAL_WORKBENCH_ENABLED\` unset/false.
+2. Deploy with `SONARA_EDITORIAL_WORKBENCH_ENABLED` unset/false.
    Verify all new routes return 404.
 3. In a consenting test workspace, enable only for canary testing, check
    unauthenticated, wrong workspace, same-site cross-origin, overlong,
@@ -165,3 +165,11 @@ Operator acceptance sequence:
   availability, costs or transit times.
 - Platform-specific livestream/vlog workflows verifying approved game and
   soundtrack usage terms before publication.
+
+## Security and export refinement
+
+- Added `GET /api/creator-studio/editorial/drafts/:id` for exactly one organization-scoped draft and `GET /creator-studio/editorial/drafts/:id/export.md` for a downloadable Markdown revision. Both require Creator Studio workspace authorization, a valid UUID, and server-derived organization, product and module filters.
+- A saved input now copies **only allowlisted fields**. Extra keys inside nested asset or travel objects are never stored, even if the client submits them; source comparison passages remain ephemeral.
+- JSON saves require both the explicit `X-Sonara-Intent` header and rejection of browser-reported `cross-site` and `same-site` origins. HTML forms require `Sec-Fetch-Site: same-origin`; cookie presence alone is insufficient.
+- Exports are returned as `text/markdown`, with a constant attachment filename and `Cache-Control: no-store`. This is an owner-selected download, not an externally published article or website.
+- New regression tests cover missing/other-tenant export, intentional draft save, source minimization and cross-origin write attempts.
