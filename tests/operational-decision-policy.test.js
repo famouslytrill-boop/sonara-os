@@ -14,7 +14,7 @@ const option = (key, overrides = {}) => ({ key, organizationId: "org1",
   metrics: { costCents: 1000, durationMinutes: 30, riskBasisPoints: 100, qualityBasisPoints: 8500 },
   ...overrides });
 const ranking = (overrides = {}) => rankOperationalAlternatives({
-  organizationId: "org1", domain: "restaurant", evidence: proof,
+  organizationId: "org1", domain: "restaurant", taskClass: "capacity_planning", evidence: proof,
   nowUtc: NOW, limits, weights, alternatives: [option("a"), option("b", {
     metrics: { costCents: 5000, durationMinutes: 50, riskBasisPoints: 1000, qualityBasisPoints: 7000 }
   })], ...overrides
@@ -81,6 +81,12 @@ describe("cross-suite evidence-gated decision and communication previews", () =>
     assert.equal(ranking({ weights: { ...weights, cost: 9999 } }).code, "invalid_decision_weights");
     assert.equal(ranking({ domain: "employment" }).code, "specialist_human_decision_required");
     assert.equal(ranking({ domain: "medical" }).code, "specialist_human_decision_required");
+  });
+  it("refuses to disguise hiring or safety decisions as restaurant planning", () => {
+    assert.equal(ranking({ taskClass: "hire_employee" }).code, "unsupported_operational_task");
+    assert.equal(ranking({ taskClass: "approve_payment" }).code, "unsupported_operational_task");
+    assert.equal(ranking({ domain: "media", taskClass: "capacity_planning" }).code,
+      "unsupported_operational_task");
   });
   it("does not treat missing metrics as zero or negative costs as useful savings", () => {
     assert.equal(ranking({ alternatives: [option("x", {
