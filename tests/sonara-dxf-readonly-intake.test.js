@@ -80,8 +80,8 @@ describe("strict read-only ASCII DXF subset",()=>{
     refused(dxf(4,flat(...line,[67,1])),"unsupported_space");
     refused(dxf(4,flat(...line,[210,1])),"unsupported_transform");
     refused(dxf(4,flat(...line,[410,"Layout1"])),"unsupported_space");
-    refused(dxf(4,flat(...line)).replace("0\\nEOF\\n",""),"malformed_structure");
-    refused(dxf(4,flat(...line))+"0\\nLINE\\n","malformed_structure");
-    refused("Binary\\u0000DXF","invalid_payload");
+    refused(dxf(4,flat(...line)).replace("0\nEOF\n",""),"malformed_structure");
+    refused(dxf(4,flat(...line))+"0\nLINE\n","malformed_structure");
+    refused("Binary\u0000DXF","invalid_payload");
   });
 });
