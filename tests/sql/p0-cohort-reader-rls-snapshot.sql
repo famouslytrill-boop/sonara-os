@@ -104,6 +104,10 @@ DROP POLICY sonara_cohort_fixture_events ON public.activity_events;
 DROP POLICY sonara_cohort_fixture_org ON public.organizations;
 REVOKE SELECT ON public.organizations, public.activity_events FROM sonara_cohort_reader;
 REVOKE USAGE ON SCHEMA public, auth FROM sonara_cohort_reader;
+-- Older migrations define the activity FK without ON DELETE CASCADE.
+-- Delete dependent rows first so this fixture cleans up on every replay.
+DELETE FROM public.activity_events WHERE organization_id IN
+  ('c3333333-3333-4333-8333-333333333333','c4444444-4444-4444-8444-444444444444');
 DELETE FROM public.organizations WHERE id IN
   ('c3333333-3333-4333-8333-333333333333','c4444444-4444-4444-8444-444444444444');
 DELETE FROM public.profiles WHERE id IN
