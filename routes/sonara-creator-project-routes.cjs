@@ -5,6 +5,8 @@ const { createCreatorProjectStore } = require("../lib/sonara-creator-project-sto
 const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
+const { renderNarrativeDot, renderFountainBeatOutline, renderQuestPrerequisiteJson,
+  renderNarrativeAuditJson } = require("../lib/sonara-world-bible-narrative.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 // Defense in depth for new World Bible writes. Ordinary cross-origin forms can
@@ -91,6 +93,11 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
       ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/markdown">Download World Bible Markdown</a></p>`] : []),
       ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/csv">Download cue sheet (CSV)</a></p>`] : []),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/audit">Download narrative consistency report (JSON)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/dot">Download scene dependency graph (DOT)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/fountain">Download screenplay beat outline (Fountain)</a></p>`] : []),
+      ...(current && ["game", "interactive"].includes(current.draft.medium) ?
+        [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/quest">Download game design prerequisites (JSON)</a></p>`] : []),
       ...(timelineReady ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
         `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
       ...(current && !timelineReady ? [brandCard("Timed exports not available",
@@ -188,7 +195,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   app.get(`${api}/:id/world-bible/export/:format`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
     if (!worldStore) return res.status(503).json(worldUnavailable());
-    if (!["csv", "otio", "midi"].includes(req.params.format)) {
+    if (!["csv", "otio", "midi", "audit", "dot", "fountain", "quest"].includes(req.params.format)) {
       return res.status(400).json({ ok: false, code: "unsupported_world_bible_export" });
     }
     const result = await worldStore.get(req, req.params.id);
@@ -206,6 +213,15 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
         output = renderWorldBibleOtio(result.worldBible, Number(value ?? 24));
       }
       if (format === "midi") output = renderWorldBibleMidi(result.worldBible);
+      if (format === "audit") output = renderNarrativeAuditJson(result.worldBible);
+      if (format === "dot") output = renderNarrativeDot(result.worldBible);
+      if (format === "fountain") output = renderFountainBeatOutline(result.worldBible);
+      if (format === "quest") {
+        if (!["game", "interactive"].includes(result.worldBible.draft.medium)) {
+          return res.status(422).json({ ok: false, code: "world_bible_export_requires_interactive_medium" });
+        }
+        output = renderQuestPrerequisiteJson(result.worldBible);
+      }
       return res.set("Content-Disposition", `attachment; filename="world-bible-${req.params.id}.${output.extension}"`)
         .type(output.type).send(output.data);
     } catch (error) {
