@@ -148,9 +148,10 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
       paid_hours,hourly_wage:20,benefits_per_hour:5,
       payroll_taxes_per_hour:2,overhead_per_hour:3
     });
-    for (const invalid of ["0x10", "0b10", "0o10", "Infinity", "2_000", "1,000", " ".repeat(80), {toString:null}]) {
+    for (const invalid of ["0x10", "0b10", "0o10", "Infinity", "2_000", "1,000", {toString:null}]) {
       assert.equal(check(invalid).code, "invalid_input",String(invalid?.constructor?.name));
     }
+    assert.equal(check(" ".repeat(80)).code, "missing_inputs");
     assert.equal(check("1e-3").ok,true);
     assert.equal(check(".25").resultValue,7.5);
   });
