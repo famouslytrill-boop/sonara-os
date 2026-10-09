@@ -569,7 +569,7 @@ describe("billing webhook HTTP retry contract", () => {
   it("returns 503 for persistence failure, then 200 after a successful retry", async () => {
     const request = require("supertest");
     const app = require("../server");
-    const keys = ["STRIPE_WEBHOOK_SECRET", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+    const keys = ["STRIPE_WEBHOOK_SECRET", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "STRIPE_PRICE_WORKSPACE_MONTHLY"];
     const saved = keys.map((key) => process.env[key]);
     const previousFetch = global.fetch;
     try {
@@ -577,6 +577,7 @@ describe("billing webhook HTTP retry contract", () => {
       process.env.STRIPE_WEBHOOK_SECRET = ["whsec", "delivery", "regression", "1234567890"].join("_");
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
+      process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_fixture_workspace";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", created: 1780000000, data: { object: {
         id: "sub_retry", customer: "cus_retry", status: "active", items: validStripeItems(), metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
