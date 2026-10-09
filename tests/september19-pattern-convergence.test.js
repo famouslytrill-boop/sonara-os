@@ -709,6 +709,11 @@ describe("September 19 platform pattern convergence", () => {
         };
         if (options.omitAuditWriter) delete tx.appendAuditEvent;
         const result = await work(tx);
+        if (options.transactionReject) {
+          const failure = new Error("PRIVATE_DB_INTERNAL_DETAILS");
+          failure.operationalDenial = "PRIVATE_DB_INTERNAL_DETAILS";
+          throw failure;
+        }
         committed = draft;
         return result;
       }
@@ -736,10 +741,10 @@ describe("September 19 platform pattern convergence", () => {
     const f = operationalCoordinatorFixture();
     let result = await f.coordinator.transition({ session: "server_validated", command: f.command });
     assert.equal(result.applied, true);
-    assert.equal(result.reason, "transaction_commit_requested");
+    assert.equal(result.reason, "transaction_committed");
     assert.equal(result.revision, 8);
-    assert.equal(result.transitionExecuted, false);
-    assert.equal(result.commitResultRequiresDatabaseProof, true);
+    assert.equal(result.transitionExecuted, true);
+    assert.equal(result.auditCommitted, true);
     assert.equal(f.view().state.mode, "paused");
     assert.equal(f.view().state.revision, 8);
     assert.equal(f.view().events.length, 1);
@@ -800,6 +805,26 @@ describe("September 19 platform pattern convergence", () => {
       assert.equal(f.view().state.revision, 7);
       assert.equal(f.view().approval.consumedAtMs, null);
       assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("fails closed when the transaction engine cannot commit or supply a trusted clock", async () => {
+    const failed = operationalCoordinatorFixture({ transactionReject: true });
+    const result = await failed.coordinator.transition({
+      session: "server_validated", command: failed.command
+    });
+    assert.equal(result.applied, false);
+    assert.equal(result.reason, "operational_transaction_failed");
+    assert.equal(failed.view().state.mode, "active");
+    assert.equal(failed.view().events.length, 0);
+    assert.equal(failed.view().approval.consumedAtMs, null);
+    for (const nowMs of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const f = operationalCoordinatorFixture({ nowMs });
+      const rejected = await f.coordinator.transition({
+        session: "server_validated", command: f.command
+      });
+      assert.equal(rejected.reason, "trusted_clock_unverified");
+      assert.equal(f.view().state.revision, 7);
     }
   });
 
