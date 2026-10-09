@@ -326,6 +326,14 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
+    // Real PostgreSQL P0 cohort reporting evidence: native, disposable
+    // two-tenant fixture with dedicated non-BYPASSRLS login, RLS allow/deny,
+    // and a REPEATABLE READ READ ONLY transaction. Never run against a
+    // customer project; this check reuses the ephemeral migration replay.
+    behaves(psql, "P0 cohort reporter readonly snapshot and RLS tenant isolation",
+      fs.readFileSync(path.join(root, "tests/sql/p0-cohort-reader-rls-snapshot.sql"), "utf8"),
+      ["p0_cohort_reader_rls_snapshot_passed"]);
+
     // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
     // remove one rigorously identical subscriptions policy in a single
     // rolled-back transaction. No production DDL is performed by replay.
