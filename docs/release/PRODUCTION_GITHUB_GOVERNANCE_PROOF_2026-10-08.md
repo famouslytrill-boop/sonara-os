@@ -29,6 +29,27 @@ Uses GitHub's read-only GET /repos/OWNER/REPO/branches/main and GET /repos/OWNER
 
 A network error, GitHub 403, an absent setting or uncertain metadata is NOT interpreted as a safe deployment. Nothing here modifies GitHub settings or deploys the application.
 
+## Additional enforced rules verification — 9 October 2026, draft PR #563
+
+The previous implementation proved `main.protected === true` and production environment reviewer policy but **did not prove which branch rules caused the protected flag**. This pass extends the existing release gate, `scripts/verify-production-environment-governance.cjs`, instead of adding a second conflicting release script.
+
+After reading `/branches/main`, the gate now reads GitHub's read-only `/rules/branches/main?per_page=100` endpoint to inspect the rules **actually enforced on main** (repository and inherited organization rules). Evaluate-only and disabled rules are not returned by this GitHub API. The script then reads `/environments/production`; all three requests must succeed. The policy denies the release when any of these requirements is unverified:
+
+1. An effective `pull_request` rule requiring one or more approvals, dismissal of stale reviews on new pushes, and an independent last-push approval.
+2. Effective `non_fast_forward` and `deletion` rules.
+3. Strict `required_status_checks` rules that include at least these **actual observed job names**, not guessed workflow titles: `sonara-industries`, `Node 24 blocking compatibility`, `Node 26 blocking compatibility`, `Node 24 / PostgreSQL 16 replay`, `scanners`, and `Architecture, SAST, tenant isolation, and release evidence`.
+4. All original requirements: current head SHA, `main.protected`, production environment reviewer, no self-review, environment admin bypass disabled, and protected-branches-only deployment.
+
+**These six are a minimum**, not the full required CI matrix. The exact-release chain still requires other mandatory checks including the complete nine-lane database replay matrix, Docker, dependency scan, browser/accessibility and relevant security checks. GitHub check contexts must be verified with the job/check-run API before administration changes.
+
+**Evidence limitation:** GitHub's effective branch-rules API does *not* expose ruleset `bypass_actors` metadata, so the new gate cannot independently prove there are no exemptions. The repository owner must inspect and attest that all applicable rulesets are actively enforced, have acceptable bypass actor lists, and do not permit an unreviewed push. Any protected classic-branch configuration without sufficiently strong effective rules is intentionally classified as unverified by this new gate. If GitHub denies access to the rules endpoint, production promotion fails closed; never silently fall back to the boolean `protected` flag.
+
+**Current connected snapshot:** GitHub still reports `main.protected=false`, and the repository-level ruleset listing is empty. No owner/admin settings were modified. The connected GitHub resource reader cannot request `/rules/branches/main` through its approved fetch surface, so live effective rule contents could not be independently read in this session. The new production script instead performs that read at approved workflow execution time, with explicit fail-closed handling.
+
+**Focused verification:** 10 existing/added governance test cases and 45 assertions passed with mock GitHub responses. Exact-commit pnpm, full CI, and a genuinely protected GitHub branch are still **not** verified.
+
+Source: https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch ; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+
 ## Owner/admin changes that remain mandatory
 
 ### Settings → Rules → Rulesets (or Branches)
