@@ -21,7 +21,7 @@ function fixture() {
 }
 describe("Creator proposal-only database contract (unapplied and default-off)", () => {
   it("checks the three named proposals against real source, flags, RLS, and grants", () => {
-    assert.deepEqual(PENDING_CREATOR_SCHEMA.map(x=>x.table),
+    assert.deepEqual(PENDING_CREATOR_SCHEMA.map(x=>x.proposalTable),
       ["creator_world_bibles", "creator_story_drafts", "creator_story_draft_revisions"]);
     assert.deepEqual(inspectPendingCreatorSchema(fixture()), []);
   });
