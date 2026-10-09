@@ -140,6 +140,11 @@ begin
   end if;
 
   if v_profile.user_id is null then return 'no_account_owner'; end if;
+  -- Serialise each person's block cap against their other blocks, rather than
+  -- relying solely on the target-pair lock. Concurrent distinct targets must
+  -- not evade the account cap.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(p_actor_user_id::text, 74531));
   perform public.sonara_social_lock_pair(p_actor_user_id, v_profile.user_id);
   if p_action = 'block' then
     if v_profile.status <> 'active' or v_profile.public_handle is null then return 'denied'; end if;
@@ -208,7 +213,7 @@ set search_path = ''
 as $$
   select case
     when p.user_id is null then 'no_owner'
-    when p.user_id = p_actor_user_id then 'allowed'
+    when p.user_id = p_actor_user_id then 'self'
     when exists (select 1 from public.sonara_social_user_blocks b
       where b.blocker_user_id = p_actor_user_id and b.blocked_user_id = p.user_id) then 'blocked_by_me'
     when exists (select 1 from public.sonara_social_user_blocks b
