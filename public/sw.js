@@ -8,7 +8,7 @@ const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
 // Separate cache namespace to evict previously stored extension-matched URLs
 // when this tighter public-asset policy activates.
-const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v5";
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v6";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -126,6 +126,15 @@ function isPublicOfflineResponse(response) {
   return mediaType === "text/html" && /(?:^|,)\s*public\s*(?:,|$)/i.test(policy);
 }
 
+// A current public asset can become private, be removed or stop serving the
+// advertised MIME type. A no-store header does not evict older Cache API data.
+// Purge only on an authoritative response, never on a transient 5xx/429,
+// partial (206) revalidation or an offline network exception.
+function mustRevokePublicAsset(response, url) {
+  if (!response || isCacheableResponse(response, url)) return false;
+  return response.redirected || [200, 401, 403, 404, 410, 451].includes(response.status);
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -195,6 +204,14 @@ self.addEventListener("fetch", (event) => {
             if (isCacheableResponse(response, url)) {
               // Cache failures must not hide a valid network response.
               await cache.put(publicRequest, response.clone()).catch(() => {});
+            } else if (mustRevokePublicAsset(response, url)) {
+              // Do not continue serving an older public copy after a definite
+              // authorization, removal or MIME/cache-policy change.
+              await cache.delete(publicRequest).catch(async () => {
+                // If per-entry removal fails, evict the worker's own cache.
+                // Never touch other application-owned CacheStorage entries.
+                await caches.delete(CACHE_NAME).catch(() => {});
+              });
             }
             return response;
           })
