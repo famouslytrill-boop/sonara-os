@@ -114,3 +114,28 @@ Ambiguous labels (e.g., 'Angel Music') remain unresolved until identity/license 
 8. **P2** qualify Android/iOS/TV/desktop with real-device/performance/accessibility tests; provider licenses, rights, approved games/content and regional legal review before broader shipping.
 
 Never merge or deploy a draft merely because the number of modules or internal tests increased. This PR should remain review-only, with the live website untouched.
+
+
+## Next engineering increment — connected manager training view (same draft PR)
+
+A real protected customer-facing **read-only** route now reuses existing `GET /business-builder/owner/operations?view=training`; the normal Business Builder operations dashboard links to it. This avoids additional API/schema paths, duplicating tenant identity, editing server startup registration, and adding more public free tools. Its gate is the existing `requireBusinessManager` middleware used by the canonical operations route.
+
+Implemented in:
+- `lib/sonara-training-lab-pages.cjs`: server-rendered accessible labeled form (GET, no script), exact allowlisted fictional industry/actions, bounded decimal parsing, one-turn result and meaningful error state, escaped output, reset by opening the same training page without `run=1`.
+- `routes/sonara-operations-expansion-routes.cjs`: one route branch for `view=training` ahead of DB reads. The operation summary's ordinary path and analytics APIs remain unchanged. The training response sets `Cache-Control: private, no-store`. Since the request contains only fictional integers, there is no need to read customer, payment or employee information.
+- `tests/training-lab-pages.test.js`: manager middleware preserved, unauthorized request denied in harness, no DB/config read, all fields labeled, deterministic calculation, XSS-shaped inputs not reflected, array/exponent/negative/oversized values rejected and explicit non-recorded output.
+
+The page is intentionally **one turn at a time**, not an account-linked persistent game, and is not a casino or cashable product. It does not include stored scores, ranking users, prizes, gambling, QR payments, refunds, chips or wagering. Live operational inputs remain outside the training engine.
+
+**Verification scope:** 8 targeted training page/route cases passed using a dependency-stubbed JavaScript harness; the 12 payment and 9 base simulation cases also passed in a separate V8 harness. These cases are not proof of exact Node 24 + pnpm 12 CI or real browser accessibility qualification. The HTML is server-generated and needs full browser keyboard/screen-reader/reflow testing before release.
+
+### Why this is the next correct increment
+
+The gap after a pure calculation library was **discoverability and real use without autonomous mutations**. This integrates one customer-visible affordance in a guarded existing destination while the harder merchant payment provider eligibility and signed callback tasks await credentials, provider terms and full release evidence.
+
+Before merge:
+1. Ensure `main` is protected and required GitHub checks really complete on the head commit.
+2. Run Node 24 and pinned pnpm full lockfile install, audit, typecheck, lint, test/build, accessibility and tenant/adversarial checks; repair exact-head failures without deleting existing guards.
+3. Reconcile PR #574 restaurant capacity, #576 shared decisions and this draft, one safe dependency at a time.
+4. Approve and test only one payment provider sandbox with a *server-derived* merchant/provider snapshot; never render Cash App Pay or Venmo based on client-supplied eligibility flags.
+5. Preserve the site's current offline/paused deployment state pending authorized release.
