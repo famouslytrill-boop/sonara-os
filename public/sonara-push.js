@@ -57,9 +57,9 @@
               say("This browser has no active SONARA push subscription.");
               return null;
             }
-            // Remove the server record before the browser endpoint disappears.
-            // If the request fails, preserve the browser subscription so the
-            // customer can retry rather than silently retaining a server record.
+            // Withdraw browser permission regardless of temporary server
+            // availability: revocation must not depend on an online backend.
+            // Report server cleanup separately so a failed DELETE isn't hidden.
             return fetch(config.unsubscribeEndpoint, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -67,17 +67,23 @@
               body: JSON.stringify({ endpoint: subscription.endpoint })
             })
               .then(function (response) {
-                if (!response.ok) throw new Error("server_revocation_failed");
-                return response.json();
+                return response.ok
+                  ? response.json().then(function (answer) { return Boolean(answer && answer.ok); }).catch(function () { return false; })
+                  : false;
               })
-              .then(function (answer) {
-                if (!answer || !answer.ok) throw new Error("server_revocation_failed");
-                return subscription.unsubscribe();
-              })
-              .then(function (unsubscribed) {
-                say(unsubscribed
-                  ? "Notifications are off for this browser. You can turn them on again here."
-                  : "The browser could not finish removing this subscription. Reload and try again.");
+              .catch(function () { return false; })
+              .then(function (serverRemoved) {
+                return subscription.unsubscribe().then(function (unsubscribed) {
+                  if (!unsubscribed) {
+                    say(serverRemoved
+                      ? "SONARA stopped sending, but the browser could not finish removing the subscription. Review browser settings."
+                      : "The server could not confirm removal, and this browser could not unsubscribe. Check browser notification settings.");
+                    return;
+                  }
+                  say(serverRemoved
+                    ? "Notifications are off for this browser. You can turn them on again here."
+                    : "Browser notifications are off. Server cleanup is unconfirmed; you can contact support if needed.");
+                });
               });
           })
           .catch(function () {
@@ -143,7 +149,9 @@
           if (button) button.disabled = false;
           return null;
         }
-        return navigator.serviceWorker.ready;
+        // The account settings page can be the visitor's first PWA page.
+        // Register on the explicit click, otherwise ready can wait forever.
+        return navigator.serviceWorker.register("/sw.js", { scope: "/" });
       })
       .then(function (registration) {
         if (!registration) return null;
@@ -175,7 +183,9 @@
           // The browser now holds a subscription this application did not
           // record. Said plainly, because the recovery is to press the button
           // again rather than to wonder why nothing arrives.
-          say("Your browser agreed, but we could not save it. Press the button again.");
+          say(answer.code === "subscription_owned_elsewhere"
+            ? "This browser subscription belongs to another account or workspace. Turn off notifications here, then try again."
+            : "Your browser agreed, but we could not save it. Press the button again.");
           if (button) button.disabled = false;
           return;
         }
