@@ -10,10 +10,18 @@ const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 // removes a second-tab Firefox load race without replacing the shipped JS.
 async function primeComponentOrigin(page) {
   const url = `${BASE_URL}/tools`;
-  const fixture = (route) => route.fulfill({
-    status: 200, contentType: "text/html",
-    body: "<!doctype html><html><head><title>Browser component fixture</title></head><body></body></html>"
-  });
+  const fixture = async (route) => {
+    // Keep the real route's security headers, notably script-src 'self'.
+    // Only the large page body is replaced; shipped JS still comes from HTTP.
+    const response = await route.fetch();
+    if (response.status() !== 200 || !response.headers()["content-security-policy"]) {
+      throw new Error("The browser fixture cannot bypass a failed route or missing CSP.");
+    }
+    await route.fulfill({
+      response, contentType: "text/html",
+      body: "<!doctype html><html><head><title>Browser component fixture</title></head><body></body></html>"
+    });
+  };
   await page.route(url, fixture);
   try { await page.goto(url, { waitUntil: "domcontentloaded" }); }
   finally { await page.unroute(url, fixture); }
