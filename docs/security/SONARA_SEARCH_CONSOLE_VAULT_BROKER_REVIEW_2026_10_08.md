@@ -67,12 +67,11 @@ The request carries:
 
 The shared broker secret itself is not transmitted.
 
-The Edge Function rejects:
+Supabase's pinned `@supabase/server@1.9.1` middleware first authenticates the caller with `auth: 'secret'` using the `apikey` header. After that, SONARA's handler rejects:
 
 - non-POST requests;
 - requests with a browser `Origin` header;
 - any `Authorization` header;
-- invalid server API keys;
 - stale signatures outside a 120-second clock-skew window;
 - malformed signatures;
 - payloads larger than 32 KiB;
@@ -83,16 +82,18 @@ This is defense in depth. It is not a substitute for network/service isolation, 
 
 ### Supabase API-key migration decision
 
-Supabase's current Edge Function authorization documentation distinguishes JWTs from the newer API keys. The platform `verify_jwt` check validates JWTs; `sb_secret_…` keys are API keys and are not JWTs. Supabase's migration guidance says legacy `service_role` JWT keys continue through the end of 2026 but recommends secret keys for backend services and supports named keys for independent rotation.
+Supabase's current Edge Function authorization documentation distinguishes JWTs from the newer API keys. The platform `verify_jwt` check validates JWTs; `sb_secret_…` keys are API keys and are not JWTs. Supabase's migration guidance deprecates legacy `service_role` keys by the end of 2026 and recommends secret keys for backend services.
 
-Because this broker is service-to-service rather than user-JWT-driven:
+Because this broker is a new service-to-service component rather than a user-JWT endpoint:
 
 - `verify_jwt = false` is explicit for this function;
-- the handler validates the `apikey` value against the function's server-only Supabase secret-key set;
-- a new secret key is preferred;
-- the legacy service-role key is only a compatibility fallback;
-- the independent SONARA HMAC is still required;
-- browser-origin requests remain blocked.
+- the Edge entrypoint is wrapped with pinned `@supabase/server@1.9.1` and `auth: 'secret'`;
+- callers must send the current Supabase secret key in `apikey`;
+- the broker client refuses legacy service-role fallback;
+- the independent SONARA HMAC is still required after Supabase secret authentication;
+- browser-origin and Authorization-header requests remain blocked.
+
+The current project already exposes the new `default` publishable key family, confirming the new API-key system is enabled. No secret value was read or copied during this review.
 
 References:
 
@@ -242,7 +243,7 @@ This branch deliberately does not add DPoP before key custody is proven. A corre
 
 - `lib/sonara-provider-broker-client.cjs`
 - `supabase/functions/google-search-console-broker/index.ts`
-- `supabase/config.toml` explicitly sets `verify_jwt = false` for this service-to-service function; the handler validates the server API key and SONARA HMAC itself.
+- `supabase/config.toml` explicitly sets `verify_jwt = false` for this service-to-service function; pinned `@supabase/server@1.9.1` validates `auth: 'secret'`, then the handler validates SONARA's HMAC.
 - `tests/sonara-provider-broker-client.test.js`
 - `tests/sonara-google-search-console-broker-source.test.js`
 
