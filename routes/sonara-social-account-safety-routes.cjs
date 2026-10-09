@@ -99,6 +99,88 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
       return res.redirect(303, "/account/social-safety?done=unblocked");
     });
 
+
+  // Cross-tenant reports are NOT business-owner records. Only a separate
+  // platform-moderator roster can authorize this privileged database RPC.
+  app.get("/owner/social-moderation", requireCustomer, async (req, res) => {
+    if (!active()) return fail(res, 503, "Platform moderation is not active yet.");
+    if (!safety.isUuid(req.sonaraUser?.id)) return fail(res, 401, "Sign in required.");
+    res.setHeader("Cache-Control", "private, no-store");
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return fail(res, 503, "Moderation queue unavailable.");
+    const result = await rpc(config, "sonara_social_moderation_queue", {
+      p_reviewer_user_id: req.sonaraUser.id, p_limit: 40
+    });
+    if (!result.ok) return fail(res, 503, "Moderation queue unavailable.");
+    if (result.value?.authorized !== true) return fail(res, 403, "Moderator access required.");
+    const reports = result.value.reports;
+    if (!Array.isArray(reports) || reports.length > 40 ||
+      reports.some((r) => !safety.isUuid(r?.id) || !safety.isUuid(r?.profile_id) ||
+        !safety.REASONS.includes(r.reason) ||
+        !["open", "under_review", "escalated"].includes(r.state) ||
+        (r.detail !== null && r.detail !== undefined && typeof r.detail !== "string"))) {
+      return fail(res, 503, "Moderation queue is unreadable.");
+    }
+    const sections = reports.map((item) => {
+      const uri = "/api/social/moderation/reports/" + encodeURIComponent(item.id) + "/decision";
+      const label = escapeHtml(item.reason) + " / " + escapeHtml(item.state);
+      const note = escapeHtml(String(item.detail || "").slice(0, 500));
+      const body = '<p>Report ID: ' + escapeHtml(item.id) +
+        ' | Profile ID: ' + escapeHtml(item.profile_id) +
+        '</p><p>' + note + '</p>' +
+        '<form method="post" action="' + escapeHtml(uri) + '">' +
+        '<label for="decision-' + escapeHtml(item.id) + '">Decision</label>' +
+        '<select id="decision-' + escapeHtml(item.id) + '" name="decision" required>' +
+        '<option value="escalate">Escalate for further review</option>' +
+        '<option value="dismiss">Dismiss after review</option>' +
+        (item.state === "escalated" ? '<option value="reopen">Reopen</option>' : '') +
+        '</select>' +
+        '<label for="explanation-' + escapeHtml(item.id) + '">Reason for the decision</label>' +
+        '<textarea id="explanation-' + escapeHtml(item.id) +
+        '" name="explanation" maxlength="500" rows="3" required></textarea>' +
+        '<button type="submit">Record reviewed decision</button></form>';
+      return brandCard(label, body);
+    });
+    return res.status(200).type("html").send(layout({
+      title: "Platform moderation",
+      eyebrow: "SONARA Trust & Safety",
+      heading: "Platform moderation",
+      body: "Independent reviewer queue. Decisions are audited. Reports never automatically ban anyone.",
+      sections: sections.length ? sections : [brandCard("Review queue", "No open reports in this result.")],
+      actions: [linkAction("/account/social-safety", "Personal safety settings")]
+    }));
+  });
+
+  app.post("/api/social/moderation/reports/:id/decision", requireCustomer, limiter,
+    async (req, res) => {
+      if (!active()) return fail(res, 503, "Platform moderation is not active yet.");
+      if (!safety.sameOrigin(req, getEnv)) return fail(res, 403, "This action needs a verified same-origin request.");
+      if (!safety.isUuid(req.sonaraUser?.id) || !safety.isUuid(req.params?.id)) {
+        return fail(res, 400, "Invalid report or reviewer.");
+      }
+      const action = req.body?.decision;
+      const explanation = typeof req.body?.explanation === "string"
+        ? req.body.explanation.trim() : "";
+      if (!["dismiss", "escalate", "reopen"].includes(action) ||
+        !explanation || explanation.length > 500 ||
+        /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(explanation)) {
+        return fail(res, 400, "Choose a decision and explain why.");
+      }
+      const config = getSupabaseServerConfig();
+      if (!config?.ok) return fail(res, 503, "Moderation decision cannot be saved.");
+      const result = await rpc(config, "sonara_social_decide_report", {
+        p_reviewer_user_id: req.sonaraUser.id,
+        p_report_id: req.params.id,
+        p_decision: action, p_explanation: explanation
+      });
+      if (!result.ok) return fail(res, 503, "Moderation decision cannot be saved.");
+      if (!["reviewed", "already_done"].includes(result.value)) {
+        return fail(res, 403, "Moderation decision not authorized.");
+      }
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.redirect(303, "/owner/social-moderation");
+    });
+
   app.get("/account/social-safety", requireCustomer, async (req, res) => {
     res.setHeader("Cache-Control", "private, no-store");
     const back = [linkAction("/account", "Your account"), linkAction("/support", "Get help")];
