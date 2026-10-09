@@ -179,14 +179,28 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
     const config = getSupabaseServerConfig();
     if (!config?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
-    const result = blocking
-      ? await write(config, `${BLOCK_TABLE}?on_conflict=viewer_user_id,channel_id`,
-          { viewer_user_id: req.sonaraUser.id, channel_id: id }, "POST",
-          "resolution=ignore-duplicates,return=minimal")
-      : await write(config,
-          `${BLOCK_TABLE}?viewer_user_id=eq.${enc(req.sonaraUser.id)}&channel_id=eq.${enc(id)}`,
-          undefined, "DELETE");
-    if (!result.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    // One server-only PostgreSQL transaction enforces a shared 500-block
+    // ceiling even when requests arrive concurrently from multiple devices.
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_growth_channel_block_action`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_actor_user_id: req.sonaraUser.id,
+        p_channel_id: id,
+        p_action: blocking ? "block" : "unblock"
+      })
+    }).catch(() => undefined);
+    if (!response?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    const result = await response.json().catch(() => null);
+    if (result === "block_limit_reached") {
+      return res.status(409).type("text/plain").send("You have reached the limit of 500 blocked channels. Unblock one to add another.");
+    }
+    if (result === "unknown_channel" || result === "denied") {
+      return res.status(404).type("text/plain").send("This channel is not available.");
+    }
+    if (result !== (blocking ? "blocked" : "unblocked")) {
+      return res.status(503).type("text/plain").send("Your block could not be saved.");
+    }
     return res.redirect(303, "/account/blocked-channels");
   }
 
