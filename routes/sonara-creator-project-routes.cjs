@@ -118,7 +118,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
         `<section class="card">
 <h2>Preview interactive story choices (unsaved)</h2>
 <p>Author prose, dialogue, and choices as a separate JSON draft. This preview simulates only your explicit decisions; nothing is uploaded to third parties, permanently stored, compiled, generated, or published. Copy the JSON somewhere safe before leaving this page.</p>
-<form data-sonara-interactive-preview data-project-id="${esc(req.params.id)}" data-world-revision="${current.revision}">
+<form data-sonara-interactive-preview data-project-id="${esc(req.params.id)}" data-world-revision="${current.revision}" data-story-persistence="${storyStore ? "on" : "off"}">
 <label>Interactive story JSON
 <textarea name="story" rows="18" maxlength="65536" spellcheck="false" required>${esc(JSON.stringify({
   version: 1, startSceneId: current.draft.scenes[0].id, state: [],
@@ -127,6 +127,9 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
 <label>Choice IDs to simulate, separated by commas (optional)
 <input name="decisions" type="text" maxlength="1000" placeholder="enter-door, talk-friend"></label>
 <button type="submit">Preview my choices</button>
+${storyStore ? `<button type="button" data-story-load>Load last saved draft</button>
+<button type="button" data-story-save>Save my authored draft</button>
+<p>Saving creates a new private revision; it never publishes or generates media. Loading replaces text currently in this editor after confirmation.</p>` : ""}
 <p role="status" data-preview-status aria-live="polite">Not saved. Add your prose and choices, then preview.</p>
 <pre data-preview-output></pre>
 </form></section><script src="/sonara-interactive-story-preview.js" defer></script>`
