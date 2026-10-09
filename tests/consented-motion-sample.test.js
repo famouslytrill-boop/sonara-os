@@ -77,6 +77,7 @@ describe("consented bounded motion capture", () => {
     assert.match(client, /sampleIntervalMs = Math\.min\(1000, Math\.max\(100/);
     assert.match(client, /maxSamples = Math\.min\(50/);
     assert.ok(client.includes('if (raw === null || raw === undefined || raw === "") continue;'));
+    assert.match(client, /config\.applicationPermissionAllowed !== true/);
     assert.doesNotMatch(client, /setInterval\(/);
   });
 
@@ -96,12 +97,20 @@ describe("consented bounded motion capture", () => {
     const end = routes.indexOf('app.get("/api/last9/readiness"', start);
     assert.ok(start >= 0 && end > start, "motion API block moved");
     const api = routes.slice(start, end);
-    assert.match(api, /normalizeMotionSample\(req\.body \|\| \{\}\)/);
+    const permissionCheck = api.indexOf("accountMotionPermission(config, org.userId)");
+    const normalization = api.indexOf("normalizeMotionSample(req.body || {})");
+    assert.ok(permissionCheck >= 0 && normalization > permissionCheck, "account motion permission must be checked before reading the sample");
+    assert.match(api, /motion_permission_required/);
+    assert.match(api, /motion_permission_denied/);
+    assert.match(api, /motion_permission_unreadable/);
     assert.match(api, /organization_id: org\.organizationId/);
     assert.match(api, /user_id: org\.userId \|\| null/);
     assert.doesNotMatch(api, /req\.body\.organization_id/);
     assert.doesNotMatch(api, /req\.body\.user_id/);
     assert.match(api, /sample_count: boundedInteger\(incomingMetadata\.sample_count, 1, 50\)/);
+    assert.match(routes, /device\.motion_sample/);
+    assert.match(routes, /maxAttempts: 12/);
+    assert.match(routes, /device_permission_grants/);
   });
 
   it("records the browser runtime as the intentional no-form consumer", () => {
