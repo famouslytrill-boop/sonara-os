@@ -99,6 +99,19 @@ The existing `public.platform_jobs` table in `007_platform_infrastructure_ops.sq
 
 Official references: [PostgreSQL locking and SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html), [W3C Trace Context security](https://www.w3.org/TR/trace-context/#security-considerations), [Temporal workflow deterministic constraints](https://docs.temporal.io/workflow-definition).
 
+## Immutable definition fingerprint and replay pinning (pass 4)
+
+SONARA's DAG planner now computes `definitionHash` for its **normalized** workflow definition. This is SHA-256 of the domain-separated prefix `sonara.workflow.definition.v1:` concatenated with JSON of the canonical steps (sorted by ID, with dependency IDs sorted and default estimates/attempt budgets explicitly normalized).
+
+- Reordering input steps or dependency declaration order does **not** change the hash.
+- Changing a dependency, estimate, step, or attempt budget changes the hash.
+- Every scoped replay now requires an explicit `input.definitionHash` and the *same* `definitionHash` on each event. It rejects mismatches against the freshly calculated canonical plan before state reconstruction.
+- The scoped result includes the validated definition hash, enabling tracing from an immutable run definition to its event history.
+- The legacy unscoped `replayWorkflowTrace` and `evaluateWorkflowRetry` APIs remain **advisory only** and do not enforce definition pinning. Callers requiring a durable execution guarantee must use the scoped validator and later a single atomic database transition, not two separate untrusted client-side checks.
+- A bare hash is **not a signature or identity proof**. A malicious caller could change both the definition and hash. The run definition must be stored server-side behind trusted authorization, the run row must be immutable/versioned, and every event writer must be authorized.
+
+**Storage contract to implement only in a separately approved migration:** persist `definition_hash` (lowercase 64-hex), `definition_version`, `organization_id`, `run_id` on the immutable run record. In the same transaction that allocates each event sequence, derive its definition hash from the locked parent run row rather than trusting a request field. Reject appends for historical runs if the active definition differs; continue replaying them using their original definition snapshot. A code deployment changing DAG shape must either retain an old worker definition or deliberately migrate/restart runs under a new version with explicit review. See [Temporal workflow versioning](https://docs.temporal.io/workflow-definition) and [replay testing guidance](https://docs.temporal.io/develop/safe-deployments).
+
 ## Proof requirements before connecting to live jobs
 
 1. Independently validate run identity, organization/workspace authorization and owner approvals before each production side effect.
