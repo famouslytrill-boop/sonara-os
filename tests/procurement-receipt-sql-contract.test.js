@@ -46,6 +46,14 @@ describe("Physical goods: staged procurement SQL contract", () => {
     const boundaries = sql.match(/language plpgsql\s+security invoker\s+set search_path = ''/g) || [];
     assert.equal(functions.length, 3);
     assert.equal(boundaries.length, functions.length);
+    // Regression: trigger bodies were once committed as "as $" / "end; $;",
+    // which passes a keyword-only check but fails PostgreSQL parsing.
+    const openQuotes = (sql.match(/\\bas \\$\\$/g) || []).length;
+    const closedQuotes = (sql.match(/\\$\\$;/g) || []).length;
+    assert.equal(openQuotes, functions.length, "every PL/pgSQL body must use $");
+    assert.equal(closedQuotes, functions.length, "every PL/pgSQL body must close $");
+    assert.doesNotMatch(sql, /\\bas \\$\\s*\\n/i);
+    assert.doesNotMatch(sql, /\\n\\$;/);
     assert.match(sql, /create trigger procurement_receipt_enforce_tenant/i);
     assert.match(sql, /create trigger procurement_ledger_enforce_receipt/i);
   });
