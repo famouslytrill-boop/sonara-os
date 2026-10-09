@@ -14,6 +14,7 @@ function parseForm(body) {
     kind:raw.kind,title:raw.title,body:raw.body||"",topic:raw.topic||"",
     language:raw.language||"en",platform:raw.platform||"",style:raw.style||""
   };
+  if(typeof raw.comparisonText==="string" && raw.comparisonText.trim())input.comparisonText=raw.comparisonText;
   if(typeof raw.durationSeconds==="string" && raw.durationSeconds.trim()!=="")input.durationSeconds=Number(raw.durationSeconds);
   if(typeof raw.sceneCount==="string" && raw.sceneCount.trim()!=="")input.sceneCount=Number(raw.sceneCount);
   if(raw.assetName){
@@ -70,6 +71,9 @@ function form(input={}) {
     field("sceneCount","Number of storyboard shots (3–8)",input.sceneCount??"","number",'min="3" max="8" step="1"')+
     field("platform","Platform",input.platform||"","text",'maxlength="80"')+
     field("style","Style or visual reference (your words)",input.style||"","text",'maxlength="160"')+
+    '<label for="editorial-comparisonText">Optional passage comparison — text you supply, not a web copyright scan</label>'+
+    '<textarea id="editorial-comparisonText" name="comparisonText" rows="3" maxlength="12000">'+esc(input.comparisonText||"")+'</textarea>'+
+    '<p>Comparison text is used for this preview only; it is not saved in draft history.</p>'+
     '<fieldset><legend>Optional rights record — human review required</legend>'+
     field("assetName","Asset name",asset.name||"","text",'maxlength="160"')+
     '<label for="editorial-assetStatus">Rights position</label><select id="editorial-assetStatus" name="assetStatus">'+
