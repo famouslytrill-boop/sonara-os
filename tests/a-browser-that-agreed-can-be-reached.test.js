@@ -231,6 +231,24 @@ describe("keeping the browsers that agreed", () => {
       assert.equal(result.failures[0].code, "retry_later");
     });
 
+    it("reports unsuccessful cleanup of a permanently gone push endpoint", async () => {
+      const result = await store.notify(deps(), {
+        organizationId: "org-1", topic: "invoice_paid", payload: "x"
+      }, {
+        fetchImpl: async (url, options) => {
+          if (String(url).includes("supabase.co")) {
+            if (options?.method === "DELETE") return jsonResponse(null, { ok: false, status: 503 });
+            return jsonResponse(subscribers);
+          }
+          return { ok: false, status: 410 };
+        }
+      });
+      assert.equal(result.ok, true);
+      assert.equal(result.removed, 0);
+      assert.equal(result.failures.length, 2);
+      assert.equal(result.failures.every((entry) => entry.code === "cleanup_unwritable"), true);
+    });
+
     it("does not delete when the push service could not be reached at all", async () => {
       const deleted = [];
       const fetchImpl = async (url, options) => {
