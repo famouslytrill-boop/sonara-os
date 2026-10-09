@@ -5,6 +5,24 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
+// setContent() installs isolated fixture markup. WebKit can refuse an
+// absolute URL script injected into a synthetic document. Retrieve the exact
+// asset served by this candidate server and inject its bytes; missing assets
+// and HTML fallbacks fail instead of masquerading as a passing browser test.
+async function mountShippedScript(page, scriptPath) {
+  if (typeof scriptPath !== "string" || !scriptPath.startsWith("/") ||
+      !scriptPath.endsWith(".js") || !/^[a-z0-9/._-]+$/i.test(scriptPath) ||
+      scriptPath.includes("..")) {
+    throw new Error("Invalid browser fixture script path");
+  }
+  const response = await page.request.get(`${BASE_URL}${scriptPath}`);
+  expect(response.status(), `${scriptPath} must be served from the app`).toBe(200);
+  expect(response.headers()["content-type"] || "", `${scriptPath} must be JavaScript`).toMatch(/(?:java|ecma)script/i);
+  const source = await response.text();
+  expect(source.trim().length, `${scriptPath} must not be empty`).toBeGreaterThan(0);
+  await page.addScriptTag({ content: source });
+}
+
 async function mountLocalComponent(page, markup, scriptPath) {
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -12,7 +30,7 @@ async function mountLocalComponent(page, markup, scriptPath) {
     return doc.body.innerHTML;
   }, markup);
   await page.setContent(inertMarkup);
-  await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
+  await mountShippedScript(page, scriptPath);
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const draftProject = () => ({ id: projectId(100), title: "My original film", medium: "video", revision: 1, graph: { version: 1, nodes: [] }, archived_at: null });
@@ -21,8 +39,8 @@ async function mountDraft(page, project = draftProject(), scope = `${projectId(1
   const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   await page.goto(`${BASE_URL}/tools`);
   await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js");
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-device-store.js` });
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-draft.js` });
+  await mountShippedScript(page, "/creator-project-device-store.js");
+  await mountShippedScript(page, "/creator-project-draft.js");
 }
 async function addDraftCaption(page, text) {
   const form = page.locator("[data-draft-caption]");
@@ -230,8 +248,8 @@ test.describe("public experience browser contract", () => {
     const userId = "33333333-3333-4333-8333-333333333333";
     await page.route("**/api/account/device-permissions", (route) => route.fulfill({ json: { ok: true, userId, permissions: [{ key: "local_compute", state: "granted", allowed: true }] } }));
     await mountLocalComponent(page, LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${userId}"`), "/creator-image-core.js");
-    await page.addScriptTag({ url: `${BASE_URL}/creator-device-access.js` });
-    await page.addScriptTag({ url: `${BASE_URL}/creator-local-image.js` });
+    await mountShippedScript(page, "/creator-device-access.js");
+    await mountShippedScript(page, "/creator-local-image.js");
     const pixels = await page.evaluate(async () => {
       const canvas = document.createElement("canvas"); canvas.width = 2; canvas.height = 1;
       canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray([100, 50, 20, 255, 0, 255, 10, 255]), 2, 1), 0, 0);
@@ -432,7 +450,7 @@ test.describe("device media and bounded image processing", () => {
     const markup = media.LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${USER}"`)
       + media.LOCAL_CAPTURE_FORM.replace("data-local-capture", `data-local-capture data-user-id="${USER}"`);
     await mountLocalComponent(page, markup, "/creator-image-core.js");
-    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await page.addScriptTag({ url: `${BASE_URL}/${file}` });
+    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await mountShippedScript(page, `/${file}`);
     await page.evaluate(() => {
       Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
       window.captureCalls = 0; window.stoppedTracks = 0;
