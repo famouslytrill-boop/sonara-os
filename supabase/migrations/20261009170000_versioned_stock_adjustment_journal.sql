@@ -59,6 +59,8 @@ create table public.inventory_stock_adjustment_approvals (
   idempotency_key text not null check (char_length(idempotency_key) between 8 and 128 and idempotency_key=btrim(idempotency_key)),
   reason text not null check (reason in ('cycle_count','damaged','expired','shrinkage','customer_return','supplier_correction')),
   expected_stock_version bigint not null check (expected_stock_version>=0),
+  expected_unit text not null check (char_length(btrim(expected_unit)) between 1 and 32 and expected_unit=btrim(expected_unit)),
+  expected_location_id uuid,
   counted_quantity numeric not null check (counted_quantity>=0 and counted_quantity<=999999999.999
     and counted_quantity=trunc(counted_quantity,3) and counted_quantity::text not in ('NaN','Infinity','-Infinity')),
   decision text not null check (decision='approved'),
@@ -244,6 +246,14 @@ begin
        and a.idempotency_key = new.idempotency_key
        and a.reason = new.reason
        and a.expected_stock_version = new.stock_version_before
+       and a.expected_unit = (
+          select lower(btrim(i.unit)) from public.inventory_items i
+           where i.id = new.inventory_item_id
+       )
+       and a.expected_location_id is not distinct from (
+          select i.location_id from public.inventory_items i
+           where i.id = new.inventory_item_id
+       )
        and a.counted_quantity = new.balance_after
        and a.decision = 'approved'
        and a.approved_at <= (
@@ -343,6 +353,13 @@ begin
     where id = p_inventory_item_id and organization_id = p_organization_id
     for update;
   if not found then raise exception 'inventory_item_not_found'; end if;
+  -- Unit/location can change without a stock quantity version update. An
+  -- approval for another physical unit or warehouse must never be reused.
+  if v_item.unit is null
+     or lower(btrim(v_item.unit)) <> lower(v_approval.expected_unit)
+     or v_item.location_id is distinct from v_approval.expected_location_id then
+    raise exception 'stock_adjustment_item_identity_changed';
+  end if;
 
   -- Retrying a committed identical request returns its earlier proof without
   -- incrementing a version or consuming the stock change a second time.
@@ -365,7 +382,9 @@ begin
   if v_item.status <> 'active'
      or v_item.quantity is null
      or v_item.quantity::text in ('NaN','Infinity','-Infinity')
-     or v_item.quantity < 0 then
+     or v_item.quantity < 0
+     or v_item.quantity > 999999999.999
+     or v_item.quantity <> trunc(v_item.quantity,3) then
     raise exception 'inventory_stock_reconciliation_required';
   end if;
   if v_item.stock_version <> p_expected_version then
