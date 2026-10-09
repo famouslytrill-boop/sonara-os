@@ -55,7 +55,7 @@ describe("restaurant and event SEO preview safety", () => {
     assert.equal(result.schema["@type"], "Restaurant");
     assert.equal(result.schema.name, "A Test Kitchen");
     assert.equal(result.schema.address.addressLocality, "Columbus");
-    assert.equal(result.schema.hasMenu, "https://example.com/menu");
+    assert.equal(result.schema.menu, "https://example.com/menu");
     assert.equal(result.schema.aggregateRating, undefined);
     assert.equal(result.schema.reviews, undefined);
     assert.equal(result.schema.celebrityEndorsed, undefined);
