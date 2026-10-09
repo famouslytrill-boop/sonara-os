@@ -11,6 +11,8 @@ The code in this branch begins at `main` commit `9d141e68d1ec14c037f92d1eebb3c27
 ### Bounded alternative ranking
 Inputs: tenant identity; limited domain; timestamped complete source revision; owner-configured hard limits and nonnegative weights that sum to 10,000 basis points; at most 64 unique source-verified alternatives. Each alternative carries cost in **cents**, duration in **minutes**, risk index in **basis points**, and an independently measured quality index in **basis points**.
 
+**Typed-task boundary:** The caller must also supply a server-selected `taskClass`. The strict allowlist is restaurant (capacity, menu cost, service resources), field service (dispatch resources, materials), retail (replenishment, fulfillment resources), delivery (route resources), media (render budget, asset delivery), growth (experiment budget, content processing), or internal operations (infrastructure capacity). Wrong domain/task combinations, applicant scoring, payouts and security/medical/safety clearance are refused. Neither a browser-supplied `domain` nor `taskClass` may be trusted without deriving it from an authorized route policy.
+
 Hard filter: `cost <= maxCost` and `duration <= maxDuration` and `riskIndex <= maxRisk` and `qualityIndex >= minQuality`. No false zero for missing data. If an input is malformed, the entire evaluation fails closed.
 
 For each eligible candidate:
