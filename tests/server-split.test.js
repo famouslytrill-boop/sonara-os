@@ -947,13 +947,13 @@ describe("the billing module stands on its own", () => {
 
   const STRIPE_PLANS = {
     free: { name: "Free", price: "$0", description: "Free.", mode: undefined },
-    workspace_monthly: { name: "One workspace", price: "$29/mo", description: "One workspace.", mode: "subscription" }
+    workspace_monthly: { name: "One workspace", price: "$29/mo", description: "One workspace.", env: "STRIPE_PRICE_WORKSPACE_MONTHLY", mode: "subscription" }
   };
 
   function deps(overrides = {}) {
     return {
       STRIPE_PLANS,
-      getEnv: () => "",
+      getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_fixture_workspace" : "",
       getPublicAppUrl: () => "https://app.example.com",
       getSafeAbsoluteUrl: (value, fallback) => value || fallback,
       getSupabaseServerConfig: () => ({ ok: false }),
@@ -1115,6 +1115,7 @@ describe("the billing module stands on its own", () => {
             id: "sub_workspace",
             customer: "cus_workspace",
             status: "active",
+            items: { data: [{ price: { id: "price_fixture_workspace" }, quantity: 1 }], has_more: false },
             metadata: {
               organization_id: "org-1",
               plan: "workspace_monthly",
