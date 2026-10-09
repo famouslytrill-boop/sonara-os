@@ -87,7 +87,7 @@ function simulateWorkerInstall(overrides = {}) {
   };
 }
 
-function simulateRuntimeFetch({ cacheHit = true, cacheControl = "public, max-age=60", contentType = "application/javascript", networkFails = false } = {}) {
+function simulateRuntimeFetch({ cacheHit = true, cacheControl = "public, max-age=60", vary = "", contentType = "application/javascript", networkFails = false } = {}) {
   const requests = [];
   const writes = [];
   const events = {};
@@ -97,6 +97,7 @@ function simulateRuntimeFetch({ cacheHit = true, cacheControl = "public, max-age
     url: origin + "/sonara-one.js?v=" + VERSION,
     headers: {
       get: (name) => name === "cache-control" ? cacheControl :
+        name === "vary" ? vary :
         name === "content-type" ? contentType : null,
       has: () => false
     },
@@ -139,6 +140,9 @@ describe("cross-device service-worker cache boundary", () => {
       assert.equal(allowed(asset), true, asset);
     }
     assert.equal(allowed("/icons/icon-192.png"), true);
+    for (const known of ["/sonara-prepaint.js", "/sonara-experience-controls.js", "/sonara-product-entry.css"]) {
+      assert.equal(allowed(known), true, known);
+    }
   });
 
   it("rejects arbitrary tenant, API and nested user-file paths even when they look static", () => {
@@ -151,7 +155,11 @@ describe("cross-device service-worker cache boundary", () => {
       "/media/private/camera-image.png",
       "/uploads/tenant/file.js",
       "/creator-studio/projects/private.js",
-      "/release/private/asset.png"
+      "/release/private/asset.png",
+      "/customer-export.js",
+      "/account-session.css",
+      "/tenant-receipt.svg",
+      "/arbitrary-plugin.js"
     ]) {
       assert.equal(allowed(name), false, name);
     }
@@ -251,7 +259,12 @@ describe("cross-device service-worker cache boundary", () => {
   });
 
   it("does not save private or HTML responses as offline JavaScript", async () => {
-    for (const options of [{ cacheControl: "private" }, { contentType: "text/html" }, { contentType: "application/json" }]) {
+    for (const options of [
+      { cacheControl: "private" }, { cacheControl: "" }, { cacheControl: "max-age=60" },
+      { cacheControl: "public, no-cache" }, { cacheControl: "public, must-revalidate" },
+      { vary: "Accept-Encoding, Cookie" }, { vary: "Authorization" },
+      { contentType: "text/html" }, { contentType: "application/json" }
+    ]) {
       const task = simulateRuntimeFetch(options);
       assert.equal(await task.handled, task.existing);
       await task.lifetime();
@@ -342,6 +355,23 @@ describe("cross-device service-worker cache boundary", () => {
     assert.equal(job.deletions.length, 1);
   });
 
+  it("rejects non-public stylesheet responses and cleans failed install", async () => {
+    const job = simulateWorkerInstall({ noPublicAt: "/sonara-design-system.css" });
+    await assert.rejects(job.installation, /anonymous public response/);
+    assert.equal(job.deletions.length, 1);
+  });
+
+  it("never intercepts unknown root-level code or user file endpoints", () => {
+    for (const endpoint of ["/user-records.js", "/tenant-theme.css", "/statement.svg"]) {
+      let intercepted = false;
+      handlers.fetch({
+        request: { method: "GET", mode: "no-cors", url: origin + endpoint },
+        respondWith: () => { intercepted = true; }
+      });
+      assert.equal(intercepted, false, endpoint);
+    }
+  });
+
   it("rejects responses marked private, no-store or set-cookie", () => {
     function response(headers) {
       const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
@@ -351,6 +381,14 @@ describe("cross-device service-worker cache boundary", () => {
       } };
     }
     assert.equal(isCacheableResponse(response({ "Cache-Control": "public, max-age=60" })), true);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "PUBLIC, max-age=60" })), true);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "max-age=60" })), false);
+    assert.equal(isCacheableResponse(response({})), false);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "not-public, max-age=60" })), false);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "public, no-cache" })), false);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "public, must-revalidate" })), false);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "public", Vary: "Accept-Encoding, Cookie" })), false);
+    assert.equal(isCacheableResponse(response({ "Cache-Control": "public", Vary: "Authorization" })), false);
     assert.equal(isCacheableResponse(response({ "Cache-Control": "private" })), false);
     assert.equal(isCacheableResponse(response({ "Cache-Control": "no-store" })), false);
     assert.equal(isCacheableResponse(response({ "Set-Cookie": "session=1" })), false);

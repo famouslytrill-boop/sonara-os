@@ -261,3 +261,12 @@ Official references:
 Sources:
 - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
 - https://web.dev/learn/pwa/update
+
+## Phase 13: explicit public-only worker cache policy
+
+- Service-worker CacheStorage persists only assets with a positive `Cache-Control: public` directive. The worker rejects private, no-store, no-cache, must-revalidate, identity-dependent Vary: Cookie/Authorization and Set-Cookie responses even when they are HTTP 200 and have the right MIME type.
+- Root-level interception now requires a known shipped public asset pathname; arbitrary root `.js` / `.css` URL patterns, which could belong to dynamic customer routes, pass directly to the network.
+- The server already labels static files with explicit public short/immutable Cache-Control, while the offline fallback uses public max-age=60. Core precache remains fail-closed with rollback on failed policy checks.
+- Rotated the page, service-worker, font and regression-test asset token together to `sonara-ui-20261009-v26-public-cache-boundary` to avoid sharing the prior active worker cache.
+- Added negative regression checks for unknown root-level URLs, missing cache policy, identity-varying responses and failed core installation. These are source-level changes, not release authorization.
+- Sources: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching and https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching

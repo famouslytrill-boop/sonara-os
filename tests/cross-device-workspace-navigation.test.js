@@ -128,11 +128,11 @@ describe("cross-device workspace navigation", () => {
     const html = render({ authenticated: true });
     const sources = [html, workerSource, fontSource];
     for (const source of sources) {
-      assert.match(source, /sonara-ui-20261009-v25-cross-device/);
+      assert.match(source, /sonara-ui-20261009-v26-public-cache-boundary/);
       assert.doesNotMatch(source, /sonara-ui-20261007-v23-native-navigation/);
     }
-    assert.match(workerSource, /const VERSION = "sonara-ui-20261009-v25-cross-device";/);
-    assert.match(html, /\/sonara-application-ui\.css\?v=sonara-ui-20261009-v25-cross-device/);
+    assert.match(workerSource, /const VERSION = "sonara-ui-20261009-v26-public-cache-boundary";/);
+    assert.match(html, /\/sonara-application-ui\.css\?v=sonara-ui-20261009-v26-public-cache-boundary/);
   });
 
   it("cannot trigger a device permission or network call through the dock", () => {

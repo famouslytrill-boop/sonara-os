@@ -4,7 +4,7 @@
 // The cache version stays aligned with the rendered asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.
 // Static assets use stale-while-revalidate; public navigations use network-first.
-const VERSION = "sonara-ui-20261009-v25-cross-device";
+const VERSION = "sonara-ui-20261009-v26-public-cache-boundary";
 const CACHE_PREFIX = "sonara-public-";
 const CACHE_NAME = CACHE_PREFIX + VERSION;
 const OFFLINE_URL = "/offline";
@@ -38,15 +38,15 @@ const PUBLIC_STAGE = [
   "/brand/business-builder-mark-v3.svg",
   "/brand/creator-studio-mark-v3.svg",
   "/brand/growth-studio-mark-v3.svg",
-  "/sonara-application-ui.css?v=sonara-ui-20261009-v25-cross-device",
-  "/sonara-one.js?v=sonara-ui-20261009-v25-cross-device",
-  "/sonara-design-system.css?v=sonara-ui-20261009-v25-cross-device",
-  "/sonara-depth.js?v=sonara-ui-20261009-v25-cross-device",
+  "/sonara-application-ui.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-one.js?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-design-system.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-depth.js?v=sonara-ui-20261009-v26-public-cache-boundary",
   // Fonts are first-party now, so they are cacheable here. While they came from
   // fonts.gstatic.com they were cross-origin and this worker never saw them.
-  "/sonara-fonts.css?v=sonara-ui-20261009-v25-cross-device",
-  "/fonts/geist-latin.woff2?v=sonara-ui-20261009-v25-cross-device",
-  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261009-v25-cross-device"
+  "/sonara-fonts.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/fonts/geist-latin.woff2?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261009-v26-public-cache-boundary"
 ];
 const ESSENTIAL_PUBLIC_STAGE = [
   OFFLINE_URL,
@@ -59,9 +59,18 @@ const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
 // namespace. A private API or user-file URL must never become cacheable just
 // because its last path segment happens to end in .png or .js.
 const PUBLIC_ASSET_PATH = /^\/(?:[a-z0-9][a-z0-9-]*\.(?:css|js|svg|png|ico|webmanifest|woff2)|(?:brand|fonts|icons)\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.(?:css|js|svg|png|ico|webmanifest|woff2))$/i;
+const PUBLIC_ROOT_ASSETS = new Set([
+  ...PUBLIC_STAGE.map((asset) => new URL(asset, self.location.origin).pathname),
+  "/sonara-prepaint.js",
+  "/sonara-experience-controls.js",
+  "/sonara-product-entry.css"
+]);
 
 function isPublicStaticRequest(url) {
   if (!STATIC_PATTERN.test(url.pathname) || !PUBLIC_ASSET_PATH.test(url.pathname)) return false;
+  // Unknown root-level .js/.css URLs may be generated or customer-specific.
+  // Treat only positively enumerated public asset files as reusable.
+  if (url.pathname.lastIndexOf("/") === 0 && !PUBLIC_ROOT_ASSETS.has(url.pathname)) return false;
   // Versioned assets use exactly the current opaque release token. Do not
   // persist unknown query parameters (including accidental one-time tokens).
   if (!url.search) return true;
@@ -74,8 +83,15 @@ function isPublicNavigation(pathname) {
 
 function isCacheableResponse(response) {
   if (!response || !response.ok || response.type === "opaque") return false;
-  const cacheControl = response.headers.get("cache-control") || "";
-  return !/(private|no-store)/i.test(cacheControl) && !response.headers.has("set-cookie");
+  // CacheStorage is managed by the application; HTTP cache directives are not
+  // automatically enforced for cache.put(). Require explicit public consent.
+  const directives = (response.headers.get("cache-control") || "").split(",")
+    .map((part) => part.trim().toLowerCase());
+  if (!directives.includes("public") || directives.some((part) =>
+      /^(?:private|no-store|no-cache|must-revalidate)(?:$|=)/.test(part))) return false;
+  const vary = response.headers.get("vary") || "";
+  if (/(?:^|,)\s*(?:cookie|authorization|\*)(?:\s|,|$)/i.test(vary)) return false;
+  return !response.headers.has("set-cookie");
 }
 
 // Fail closed when a CDN returns a JSON error or an HTML login page with
@@ -112,16 +128,16 @@ async function precachePublicResource(cache, relativeUrl) {
     redirect: "error"
   });
   const response = await fetch(request);
+  if (relativeUrl === OFFLINE_URL &&
+      !/(?:^|,)\s*public(?:\s*,|\s*$)/i.test(response.headers.get("cache-control") || "")) {
+    throw new Error("Offline fallback requires explicit public cache policy");
+  }
   if (!isCacheableResponse(response) || response.redirected ||
       (response.url && new URL(response.url).origin !== self.location.origin)) {
     throw new Error("Offline resource must be an anonymous public response");
   }
   if (!isExpectedPublicMime(relativeUrl, response)) {
     throw new Error("Offline resource returned an unexpected content type");
-  }
-  if (relativeUrl === OFFLINE_URL &&
-      !/\bpublic\b/i.test(response.headers.get("cache-control") || "")) {
-    throw new Error("Offline fallback requires explicit public cache policy");
   }
   await cache.put(target.href, response);
 }
