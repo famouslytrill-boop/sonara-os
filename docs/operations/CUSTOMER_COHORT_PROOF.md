@@ -193,6 +193,18 @@ The manifest's `exportedAt` must be a strict UTC timestamp with milliseconds **a
 **Verification:** Updated cohort and snapshot cases passed **27/27** in a source-backed JavaScript compatibility harness using *simulated* crypto and Buffer. An independent native Node v22.16.0 smoke test of real Ed25519 public KeyObject/PEM signature verification and SHA-256 manifest-byte mismatch passed. Neither proves this entire module passed Node/Mocha CI. Full exact-head checks and native PostgreSQL/RLS role tests remain pending; do not deploy, create a production database role or claim paid conversion.
 
 
+## Reviewed extraction-query and unambiguous signed JSON (2026-10-09)
+
+**New requirement:** The snapshot verifier now requires an independently pinned server-side `approvedSourceQuerySha256` in addition to the signed roster, the evidence manifest, `sourceEvidenceBytes`, and the database role. The value must be a full 64-character lowercase SHA-256. A manifest whose `sourceQuerySha256` does not exactly equal the server-approved value is rejected **before opening a database connection**, even if its Ed25519 signature and evidence checksum are otherwise valid.
+
+Only an explicitly reviewed, stable source-of-record cohort-extraction query may supply this digest. The trusted caller MUST load the approved hash from a separately secured deployment policy/configuration that is not writable by an end user or by arbitrary report-request parameters. **Never set `approvedSourceQuerySha256 = manifest.sourceQuerySha256` merely to make verification pass.** This would render the independent query-review gate ineffective. Changing the query must trigger policy/code review and test regeneration, not an implicit approval.
+
+For both the signature-bearing JSON approval and the hash-bound evidence manifest, the verifier now checks that the **original UTF-8 bytes exactly equal** `Buffer.from(JSON.stringify(JSON.parse(bytes)))`. This intentionally rejects duplicate JSON object keys, alternative whitespace/escaping, and other syntactically valid but noncanonical representations where different systems might disagree about the content. Approval producers must produce compact `JSON.stringify`-equivalent JSON with the documented key ordering and no UTF-8 byte-order marker, then hash/sign the **original bytes**.
+
+**Replay limitation:** A still-valid signed approval for the same role, exact time window, source query and roster remains reusable until expiry; this module does **not** implement one-time use or a durable nonce-revocation store. Revoke/rotate trust anchors or add an independently durable claim-consumption ledger before treating these approvals as single-use. A 24-hour maximum signing lifetime is not replay prevention.
+
+**Execution evidence:** A focused source-backed JavaScript harness passed **29/29** cohort and reader regression cases, using simulated Buffer/hash/Ed25519 primitives; this is a source-level check, **not** native Node/Mocha, real PostgreSQL or complete signing-KMS integration. On the exact PR head, GitHub Actions remain queued. The repository currently has a substantial queue across PR branches; CI results must be observed and retained rather than assumed.
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
