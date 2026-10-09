@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const migration = fs.readFileSync(path.join(__dirname,"..","supabase","migrations","20261009170000_versioned_stock_adjustment_journal.sql"),"utf8");
 const replay = fs.readFileSync(path.join(__dirname,"..","scripts","verify-migration-replay.mjs"),"utf8");
+const behavior = fs.readFileSync(path.join(__dirname,"..","tests","sql","stock-adjustment-journal.sql"),"utf8");
 
 describe("Staged inventory stock version and journal SQL contract", () => {
   it("uses a transactional non-destructive, versioned migration", () => {
@@ -106,6 +107,18 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.ok(replay.includes("tests/sql/stock-adjustment-cross-tx-check.sql"));
     assert.ok(replay.includes("cross_tx_seeded_1"));
     assert.ok(replay.includes("cross_tx_spoof_blocked_2"));
+  });
+  it("has balanced, fully delimited PostgreSQL function bodies", () => {
+    const openings = migration.split("as $function$").length - 1;
+    const closings = migration.split("$function$;").length - 1;
+    assert.equal(openings, 5);
+    assert.equal(openings, closings);
+  });
+  it("never routes custody, expiry, returns or supplier disputes through plain cycle-count stock posting", () => {
+    assert.ok(migration.includes("if p_reason <> 'cycle_count' then"));
+    assert.ok(migration.includes("stock_custody_evidence_required"));
+    assert.ok(behavior.includes("'stock_custody_evidence_required'"));
+    assert.ok(behavior.includes("'unaudited damage must not move sellable stock'"));
   });
   it("executes fixtures plus independent-connection races in the required database replay", () => {
     assert.match(replay,/tests\/sql\/stock-adjustment-journal\.sql/);
