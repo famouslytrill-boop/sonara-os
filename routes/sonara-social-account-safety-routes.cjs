@@ -33,7 +33,17 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
   function fail(res, status, message) {
     return res.status(status).type("text/plain").send(message);
   }
-  async function rpc(config, procedure, payload) {
+  // These are reviewed, server-only SECURITY INVOKER procedures, not
+  // arbitrary REST table reads. Never allow a caller to supply an RPC name.
+  const PROCEDURES = new Set([
+    "sonara_social_profile_action",
+    "sonara_unblock_social_user",
+    "sonara_social_moderation_queue",
+    "sonara_social_decide_report",
+    "sonara_my_social_blocks"
+  ]);
+  async function rpc({ config, procedure, payload }) {
+    if (!PROCEDURES.has(procedure)) return { ok: false };
     const response = await fetch(config.url + "/rest/v1/rpc/" + procedure, {
       method: "POST",
       headers: { ...supabaseHeaders(config), "Content-Type": "application/json",
@@ -54,13 +64,13 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
     if (!input.ok) return fail(res, 400, "Check the profile, reason and report details.");
     const config = getSupabaseServerConfig();
     if (!config?.ok) return fail(res, 503, "Your request cannot be saved right now.");
-    const result = await rpc(config, "sonara_social_profile_action", {
+    const result = await rpc({ config, procedure: "sonara_social_profile_action", payload: {
       p_actor_user_id: input.actorId, p_profile_id: input.profileId,
       p_action: action,
       p_reason: action === "report" ? input.reason : null,
       p_detail: action === "report" ? input.detail : null,
       p_request_id: action === "report" ? input.requestId : null
-    });
+    } });
     if (!result.ok) return fail(res, 503, "Your request cannot be saved right now.");
     if (result.value === "rate_limited") return fail(res, 429, "Too many requests. Try again later.");
     if (result.value === "idempotency_conflict") {
@@ -94,9 +104,9 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
       }
       const config = getSupabaseServerConfig();
       if (!config?.ok) return fail(res, 503, "Your request cannot be saved right now.");
-      const result = await rpc(config, "sonara_unblock_social_user", {
+      const result = await rpc({ config, procedure: "sonara_unblock_social_user", payload: {
         p_actor_user_id: req.sonaraUser.id, p_target_user_id: req.params.id
-      });
+      } });
       if (!result.ok || result.value !== true) return fail(res, 503, "Your request cannot be saved right now.");
       res.setHeader("Cache-Control", "private, no-store");
       return res.redirect(303, "/account/social-safety?done=unblocked");
@@ -106,14 +116,24 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
   // Cross-tenant reports are NOT business-owner records. Only a separate
   // platform-moderator roster can authorize this privileged database RPC.
   app.get("/owner/social-moderation", requireCustomer, async (req, res) => {
-    if (!active()) return fail(res, 503, "Platform moderation is not active yet.");
+    if (!active()) {
+      // An unfinished reviewer tool is not a server outage. Render a readable
+      // explanation without querying the unpublished moderator roster.
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(200).type("html").send(layout({
+        title: "Platform moderation", eyebrow: "SONARA Trust & Safety",
+        heading: "Platform moderation",
+        body: "Platform moderation is not active yet. Reports and staff review are not available here.",
+        sections: [], actions: [linkAction("/account/social-safety", "Your safety settings")]
+      }));
+    }
     if (!safety.isUuid(req.sonaraUser?.id)) return fail(res, 401, "Sign in required.");
     res.setHeader("Cache-Control", "private, no-store");
     const config = getSupabaseServerConfig();
     if (!config?.ok) return fail(res, 503, "Moderation queue unavailable.");
-    const result = await rpc(config, "sonara_social_moderation_queue", {
+    const result = await rpc({ config, procedure: "sonara_social_moderation_queue", payload: {
       p_reviewer_user_id: req.sonaraUser.id, p_limit: 40
-    });
+    } });
     if (!result.ok) return fail(res, 503, "Moderation queue unavailable.");
     if (result.value?.authorized !== true) return fail(res, 403, "Moderator access required.");
     const reports = result.value.reports;
@@ -171,11 +191,11 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
       }
       const config = getSupabaseServerConfig();
       if (!config?.ok) return fail(res, 503, "Moderation decision cannot be saved.");
-      const result = await rpc(config, "sonara_social_decide_report", {
+      const result = await rpc({ config, procedure: "sonara_social_decide_report", payload: {
         p_reviewer_user_id: req.sonaraUser.id,
         p_report_id: req.params.id,
         p_decision: action, p_explanation: explanation
-      });
+      } });
       if (!result.ok) return fail(res, 503, "Moderation decision cannot be saved.");
       if (!["reviewed", "already_done"].includes(result.value)) {
         return fail(res, 403, "Moderation decision not authorized.");
@@ -195,7 +215,7 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
     if (!safety.isUuid(req.sonaraUser?.id)) return fail(res, 401, "Sign in required.");
     const config = getSupabaseServerConfig();
     if (!config?.ok) return fail(res, 503, "Cannot load your safety settings.");
-    const response = await rpc(config, "sonara_my_social_blocks", { p_actor_user_id: req.sonaraUser.id });
+    const response = await rpc({ config, procedure: "sonara_my_social_blocks", payload: { p_actor_user_id: req.sonaraUser.id } });
     const blocks = response.value;
     if (!response.ok || !Array.isArray(blocks) || blocks.length > 200 ||
       blocks.some((block) => !safety.isUuid(block?.blocked_user_id) ||
