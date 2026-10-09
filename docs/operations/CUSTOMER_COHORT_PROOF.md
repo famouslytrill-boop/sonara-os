@@ -105,6 +105,24 @@ The snapshot reader now requires `expectedOrganizationIds` (a nonempty, case-ded
 **Next P0 gate:** Capture an independently authorized and auditable roster, then run the bounded adapter under a dedicated reviewed PostgreSQL reporting identity in staging. Prove two-tenant negative cases, missing IDs, snapshots under concurrent writes, timeouts and RLS policy selectivity before promotion. `READ ONLY`, an RLS-active flag and the roster predicate together are still not a substitute for a reviewed authorization policy.
 
 
+## Native PostgreSQL integration proof added (2026-10-09)
+
+**Implementation:** `tests/sql/p0-cohort-reader-rls-snapshot.sql` is now invoked by `scripts/verify-migration-replay.mjs` after the existing P0 native two-tenant replay fixture. The existing `.github/workflows/native-migration-replay.yml` runs that script against disposable PostgreSQL 16/17/18 with supported Node matrices, so no new CI runner, database dependency, production migration or server credential was introduced.
+
+The SQL fixture, which **must not be run against a live customer database**, performs all of the following against the throwaway replay database:
+
+1. Creates synthetic tenant A/B user, profile, organization and activity rows, plus a temporary `sonara_cohort_reader` login with `NOSUPERUSER NOBYPASSRLS NOINHERIT`.
+2. Grants only the two reporting tables' SELECT permission, creates role-specific policies allowing the A fixture, and leaves all existing schema policies unchanged; a broad applicable existing policy that leaks B makes the probe fail rather than be ignored.
+3. Changes both `session_user` and `current_user` to the synthetic reporter with PostgreSQL `SET SESSION AUTHORIZATION`; begins a new `REPEATABLE READ READ ONLY` transaction.
+4. Asserts the reporter's role flags, active RLS on both tables, read-only state and isolation level. Verifies that A's organization and two events are accessible while B's organization and event remain invisible, **even when explicitly requested through typed UUID-array cohort filters**.
+5. Asserts the time-bounded organizations/activity join sees only tenant A, emits the unique `p0_cohort_reader_rls_snapshot_passed` marker, and explicitly cleans up temporary grants, policies, synthetic rows and role. The disposable cluster is destroyed by the runner even if a check fails.
+
+**Meaning of the evidence:** This is actual RLS SQL behavior when the native replay completes, not an assertion that an existing production reporting role has been provisioned, that the entire JavaScript adapter has connected to PostgreSQL, or that real customer tenant-isolation has been certified. The fixture specifically tests a *controlled synthetic policy* against the replayed schema. Independent testing of production policies with an owner-approved staging reporting account, and trusted signed roster provenance, remains mandatory.
+
+**Execution status:** The fixture and replay hook have been committed and statically reviewed. The current working container has Node but no PostgreSQL `psql`, `initdb` or `pg_ctl`; **no live native replay success is claimed**. The GitHub native replay check must finish successfully on the PR's exact final head before this can satisfy its P0 gate.
+
+See PostgreSQL's documented behavior for [row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [transaction modes](https://www.postgresql.org/docs/current/sql-set-transaction.html), and [session authorization](https://www.postgresql.org/docs/current/sql-set-session-authorization.html).
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
