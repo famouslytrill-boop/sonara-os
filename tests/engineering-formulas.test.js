@@ -133,6 +133,40 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     assert.match(after,/Save to my records/);
     assert.match(pages.formatResult(0.0000003,"percent"),/e-7%/);
   });
+  it("treats non-object API input values as a bounded validation error", () => {
+    for (const bad of [null, [], [1,2], "42", 42, false]) {
+      const result = evaluateFormula("fully_burdened_labor_cost", bad);
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "invalid_input");
+    }
+    for (const key of [null, {}, {toString: null}, ["trade_bid_price"]]) {
+      assert.equal(evaluateFormula(key,{}).code, "unknown_formula");
+    }
+  });
+  it("rejects ambiguous decimal formats without rejecting scientific notation", () => {
+    const check = (paid_hours) => evaluateFormula("fully_burdened_labor_cost", {
+      paid_hours,hourly_wage:20,benefits_per_hour:5,
+      payroll_taxes_per_hour:2,overhead_per_hour:3
+    });
+    for (const invalid of ["0x10", "0b10", "0o10", "Infinity", "2_000", "1,000", " ".repeat(80), {toString:null}]) {
+      assert.equal(check(invalid).code, "invalid_input",String(invalid?.constructor?.name));
+    }
+    assert.equal(check("1e-3").ok,true);
+    assert.equal(check(".25").resultValue,7.5);
+  });
+  it("does not convert structured form field values into server errors", () => {
+    const pages = require("../lib/sonara-formula-pages.cjs");
+    const definition = listFormulaDefinitions().find(x=>x.formulaKey==="fully_burdened_labor_cost");
+    const result = pages.valuesFromForm(definition,{
+      input_paid_hours:{toString:null},
+      input_hourly_wage:"20",input_benefits_per_hour:"5",
+      input_payroll_taxes_per_hour:"2",input_overhead_per_hour:"3"
+    });
+    assert.equal(result.paid_hours, "");
+    assert.equal(evaluateFormula(definition.formulaKey,result).code, "missing_inputs");
+    const valid = pages.valuesFromForm(definition,{input_paid_hours: "1e-3"});
+    assert.equal(valid.paid_hours, "1e-3");
+  });
   it("does not assume actual QPU noise or engineering certification",()=> {
     assert.equal(evaluateFormula("quantum_ideal_one_probability",{rotation_radians:0}).resultValue,0);
     assert.equal(evaluateFormula("quantum_sampling_standard_error",{probability_one:0.5,shots:10000}).resultValue,0.005);
