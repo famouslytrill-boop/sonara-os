@@ -1594,6 +1594,39 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
       responses:
         "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/{id}/block:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: blockGrowthChannelForAccount
+      tags: [Growth Studio]
+      summary: Hide a channel from this signed-in member's SONARA views.
+      description: Requires an authenticated member and same-origin request; a block is personal, not a platform ban.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Redirect to manage blocked channels after a stored block." }
+        "400": { description: "Invalid channel identifier." }
+        "403": { description: "Cross-origin state change denied." }
+        "503": { description: "Persistence not available or failed." }
+  /api/growth/channels/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockGrowthChannelForAccount
+      tags: [Growth Studio]
+      summary: Stop hiding one channel in the member's SONARA views.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Redirect to saved blocked-channel controls." }
+        "400": { description: "Invalid channel identifier." }
+        "403": { description: "Cross-origin state change denied." }
+        "503": { description: "Persistence not available or failed." }
   /api/business/storefront:
     post:
       operationId: saveMerchantStorefront
