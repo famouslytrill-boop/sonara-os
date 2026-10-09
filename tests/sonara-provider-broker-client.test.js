@@ -5,6 +5,7 @@ const {
   BROKER_FUNCTION,
   MAX_REQUEST_BYTES,
   brokerContext,
+  brokerRequestSignature,
   responseContainsSecretKey,
   invokeGoogleSearchConsoleBroker,
   getProviderBrokerClientContract
@@ -41,6 +42,7 @@ function configured(overrides = {}) {
       serviceRoleKey: SERVICE
     }),
     getBrokerToken: () => BROKER,
+    nowImpl: () => Date.parse("2026-10-08T21:30:00.000Z"),
     ...overrides
   };
 }
@@ -54,7 +56,7 @@ describe("server-only provider broker client", () => {
     );
   });
 
-  it("calls only the fixed Edge Function with dual server authentication", async () => {
+  it("calls only the fixed Edge Function with service JWT plus a body-bound HMAC signature", async () => {
     let call = null;
     const out = await invokeGoogleSearchConsoleBroker({
       operation: "read_daily",
@@ -79,11 +81,42 @@ describe("server-only provider broker client", () => {
     assert.equal(call.options.redirect, "error");
     assert.equal(call.options.headers.authorization, `Bearer ${SERVICE}`);
     assert.equal(call.options.headers.apikey, SERVICE);
-    assert.equal(call.options.headers["x-sonara-provider-broker-token"], BROKER);
+    assert.equal(call.options.headers["x-sonara-provider-broker-token"], undefined);
+    assert.equal(call.options.headers["x-sonara-provider-broker-timestamp"], "1791495000");
+    assert.equal(
+      call.options.headers["x-sonara-provider-broker-signature"],
+      brokerRequestSignature({
+        timestamp: "1791495000",
+        body: call.options.body,
+        brokerToken: BROKER
+      })
+    );
     const body = JSON.parse(call.options.body);
     assert.equal(body.operation, "read_daily");
     assert.deepEqual(body.context, CONTEXT);
     assert.equal(body.payload.date, "2026-10-07");
+  });
+
+  it("binds the HMAC to timestamp, method, fixed path and exact request body", () => {
+    const first = brokerRequestSignature({
+      timestamp: "1791495000",
+      body: '{"a":1}',
+      brokerToken: BROKER
+    });
+    const second = brokerRequestSignature({
+      timestamp: "1791495001",
+      body: '{"a":1}',
+      brokerToken: BROKER
+    });
+    const third = brokerRequestSignature({
+      timestamp: "1791495000",
+      body: '{"a":2}',
+      brokerToken: BROKER
+    });
+    assert.match(first, /^v1=[A-Za-z0-9_-]{43}$/);
+    assert.notEqual(first, second);
+    assert.notEqual(first, third);
+    assert.equal(first.includes(BROKER), false);
   });
 
   it("refuses arbitrary operations before network access", async () => {
@@ -274,7 +307,9 @@ describe("server-only provider broker client", () => {
     const contract = getProviderBrokerClientContract();
     assert.equal(contract.transport, "supabase_edge_function");
     assert.equal(contract.auth.browserCallable, false);
-    assert.equal(contract.auth.dedicatedBrokerToken, true);
+    assert.equal(contract.auth.requestHmac, "v1");
+    assert.equal(contract.auth.sharedSecretTransmitted, false);
+    assert.equal(contract.auth.maximumClockSkewSeconds, 120);
     assert.equal(contract.retries.complete_authorization, "never_automatic");
     assert.equal(contract.retries.disconnect, "never_automatic");
     assert.equal(contract.rawProviderSecretInputAllowed, false);
