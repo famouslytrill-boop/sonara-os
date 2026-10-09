@@ -3,7 +3,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { generateKeyPairSync, sign } = require("node:crypto");
+const { createHash, generateKeyPairSync, sign } = require("node:crypto");
 const { readCohortFromSnapshot } = require("../lib/sonara-cohort-snapshot-reader.cjs");
 const { verifyCohortRosterAttestation } = require("../lib/sonara-cohort-roster-attestation.cjs");
 
@@ -16,13 +16,30 @@ const create = "2026-09-01T10:00:00.000Z";
 const { publicKey: rosterPublic, privateKey: rosterPrivate } = generateKeyPairSync("ed25519");
 const trustStore = { "ops_test_key": rosterPublic };
 
+function sourceManifest({
+  ids = [ID_A], role = "sonara_cohort_reader", start = from, end = to,
+  cutoff = asOf, exportedAt = "2026-10-01T00:00:00.000Z",
+  complete = true, totalOrganizations = ids.length,
+  queryHash = "b".repeat(64)
+} = {}) {
+  return Buffer.from(JSON.stringify({
+    asOf: cutoff, audience: "sonara.cohort.snapshot.v1", complete,
+    exportedAt, from: start, organizationIds: ids.map((id) => id.toLowerCase()).sort(),
+    reportingRole: role, scope: "eligible-organization-creation-cohort-v1",
+    sourceQuerySha256: queryHash, to: end, totalOrganizations
+  }));
+}
+
 function signedRoster({ ids = [ID_A], role = "sonara_cohort_reader",
-  start = from, end = to, cutoff = asOf,
+  start = from, end = to, cutoff = asOf, sourceEvidenceBytes,
   issuedAt = new Date(Date.now() - 60_000).toISOString(),
   expiresAt = new Date(Date.now() + 3_600_000).toISOString() } = {}) {
+  const evidence = sourceEvidenceBytes || sourceManifest({
+    ids, role, start, end, cutoff
+  });
   const payload = {
     asOf: cutoff, audience: "sonara.cohort.snapshot.v1",
-    evidenceSha256: "a".repeat(64),
+    evidenceSha256: createHash("sha256").update(evidence).digest("hex"),
     expiresAt, from: start, issuedAt,
     organizationIds: ids.map((id) => id.toLowerCase()).sort(),
     reportingRole: role, to: end
@@ -88,8 +105,15 @@ function report(client, extra = {}) {
     expectedOrganizationIds: [ID_A],
     from, to, asOf, ...extra
   };
+  if (options.sourceEvidenceBytes === undefined) {
+    options.sourceEvidenceBytes = sourceManifest({
+      ids: options.expectedOrganizationIds, role: options.approvedReportingRole,
+      start: options.from, end: options.to, cutoff: options.asOf
+    });
+  }
   if (options.rosterAttestation === undefined) {
     options.rosterAttestation = signedRoster({
+      sourceEvidenceBytes: options.sourceEvidenceBytes,
       ids: options.expectedOrganizationIds,
       role: options.approvedReportingRole,
       start: options.from, end: options.to, cutoff: options.asOf
@@ -111,7 +135,8 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.sourceConsistency, "dedicated_repeatable_read_read_only_transaction");
     assert.equal(result.snapshotCapturedAt, "2026-10-08T22:00:00.000Z");
     assert.equal(result.authorizedRosterSize, 1);
-    assert.equal(result.rosterEvidenceSha256, "a".repeat(64));
+    assert.equal(result.rosterEvidenceSha256,
+      createHash("sha256").update(sourceManifest()).digest("hex"));
     assert.equal(result.rosterApprovalKeyId, "ops_test_key");
     assert.equal(client.calls[0].sql, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.organizations'")));
@@ -139,7 +164,7 @@ describe("server-only customer cohort snapshot contract", () => {
   it("does not connect with invalid windows or missing trusted policy", async () => {
     let connections = 0;
     const connect = async () => { connections += 1; return fakeClient(); };
-    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], rosterAttestation: signedRoster({ cutoff: from }), trustedRosterPublicKeys: trustStore, from, to, asOf: from });
+    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], rosterAttestation: signedRoster({ cutoff: from }), sourceEvidenceBytes: sourceManifest({ cutoff: from }), trustedRosterPublicKeys: trustStore, from, to, asOf: from });
     assert.equal(invalid.code, "observation_window_invalid");
     assert.equal(connections, 0);
     const missing = await readCohortFromSnapshot({ connect, from, to, asOf });
@@ -218,7 +243,7 @@ describe("server-only customer cohort snapshot contract", () => {
     const connect = async () => { connections += 1; return client; };
     const base = { connect, classifyEligibility: () => true,
       approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A],
-      trustedRosterPublicKeys: trustStore, from, to, asOf };
+      trustedRosterPublicKeys: trustStore, sourceEvidenceBytes: sourceManifest(), from, to, asOf };
     const valid = signedRoster();
     const corrupt = { ...valid, signatureB64: "A".repeat(86) };
     const forged = { ...valid, payloadB64: signedRoster({ ids: [ID_B] }).payloadB64 };
@@ -239,7 +264,7 @@ describe("server-only customer cohort snapshot contract", () => {
   it("verifies Ed25519 using public KeyObject or PEM but rejects private key custody", () => {
     const attestation = signedRoster();
     const base = { attestation, approvedReportingRole: "sonara_cohort_reader",
-      expectedOrganizationIds: [ID_A], from, to, asOf };
+      expectedOrganizationIds: [ID_A], sourceEvidenceBytes: sourceManifest(), from, to, asOf };
     assert.equal(verifyCohortRosterAttestation({
       ...base, trustedKeys: { ops_test_key: rosterPublic }
     }).ok, true);
@@ -262,7 +287,7 @@ describe("server-only customer cohort snapshot contract", () => {
       organizationIds: [ID_A], reportingRole: "sonara_cohort_reader", to
     };
     const opts = { trustedKeys: trustStore, approvedReportingRole: "sonara_cohort_reader",
-      expectedOrganizationIds: [ID_A], from, to, asOf };
+      expectedOrganizationIds: [ID_A], sourceEvidenceBytes: sourceManifest(), from, to, asOf };
     const seal = (claims) => {
       const bytes = Buffer.from(JSON.stringify(claims));
       return { keyId: "ops_test_key", payloadB64: bytes.toString("base64url"),
@@ -277,6 +302,41 @@ describe("server-only customer cohort snapshot contract", () => {
     ]) {
       assert.equal(verifyCohortRosterAttestation({ ...opts,
         attestation: seal(edited) }).ok, false);
+    }
+  });
+
+  it("requires the actual evidence bytes matching the signed SHA-256 before connecting", async () => {
+    let connections = 0;
+    const connect = async () => { connections += 1; return fakeClient(); };
+    const original = sourceManifest();
+    const signed = signedRoster({ sourceEvidenceBytes: original });
+    const options = { connect, classifyEligibility: () => true,
+      approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A],
+      rosterAttestation: signed, trustedRosterPublicKeys: trustStore, from, to, asOf };
+    for (const evidence of [
+      undefined, Buffer.alloc(0),
+      Buffer.from(original.toString("utf8") + " "),
+      sourceManifest({ complete: false }),
+      sourceManifest({ totalOrganizations: 2 }),
+      sourceManifest({ queryHash: "wrong" }),
+      sourceManifest({ ids: [ID_B] })
+    ]) {
+      const result = await readCohortFromSnapshot({ ...options, sourceEvidenceBytes: evidence });
+      assert.equal(result.code, "roster_attestation_invalid");
+    }
+    assert.equal(connections, 0);
+  });
+
+  it("rejects internally inconsistent evidence even with its own valid matching signature", async () => {
+    for (const evidence of [
+      sourceManifest({ complete: false }),
+      sourceManifest({ totalOrganizations: 5 }),
+      sourceManifest({ queryHash: "invalid" }),
+      sourceManifest({ exportedAt: "2026-08-01T00:00:00.000Z" }),
+      sourceManifest({ exportedAt: "2040-10-01T00:00:00.000Z" })
+    ]) {
+      const result = await report(fakeClient(), { sourceEvidenceBytes: evidence });
+      assert.equal(result.code, "roster_attestation_invalid");
     }
   });
 
