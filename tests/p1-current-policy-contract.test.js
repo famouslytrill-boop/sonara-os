@@ -28,11 +28,16 @@ describe("Current P1 policy replay contract",()=>{
     assert.match(sql,/p\.cmd='ALL'/);
     assert.match(sql,/safe IS DISTINCT FROM true/);
   });
-  it("preserves the subscription duplicate-policy baseline as a detectable contract",()=>{
+  it("allows only owner-scoped subscription SELECT, even when a replay has deduped the legacy pair",()=>{
     assert.match(sql,/Users can view own subscriptions/);
     assert.match(sql,/Users can view their own subscription/);
     assert.match(sql,/subscription policy baseline drift/);
-    assert.match(sql,/\) <> 2 THEN/);
+    assert.match(sql,/subscription_count NOT BETWEEN 1 AND 2/);
+    assert.match(sql,/subscription_invalid <> 0/);
+    assert.match(sql,/roles=ARRAY\['authenticated'\]::name\[\]/);
+    assert.match(sql,/qual IN \(/);
+    assert.match(sql,/auth\.uid\(\) = user_id/);
+    assert.match(sql,/with_check IS NULL/);
   });
   it("does not rewrite or disable policies merely to make a replay green",()=>{
     assert.doesNotMatch(sql,/\bALTER POLICY\b|\bDROP POLICY\b|\bCREATE POLICY\b|\bDISABLE ROW LEVEL SECURITY\b/i);
