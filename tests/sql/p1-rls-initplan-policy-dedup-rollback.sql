@@ -41,7 +41,7 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
 DO $drift$
-DECLARE bad int;
+DECLARE bad int; difference record;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -53,6 +53,37 @@ BEGIN
     OR p.qual IS DISTINCT FROM e.qualifier
     OR p.with_check IS DISTINCT FROM e.check_expr;
  IF bad <> 0 THEN
+   -- Preserve fail-closed behavior, but print a bounded diagnostic sample so
+   -- CI can distinguish a missing policy, a role change, or deparser drift.
+   -- Expressions are policy definitions only; there are no user rows here.
+   FOR difference IN
+     SELECT e.tbl, e.policy_name,
+       CASE WHEN p.policyname IS NULL THEN 'missing'
+            WHEN p.permissive IS DISTINCT FROM e.permissive THEN 'permissive'
+            WHEN p.roles::text IS DISTINCT FROM e.roles THEN 'roles'
+            WHEN p.cmd IS DISTINCT FROM e.cmd THEN 'command'
+            WHEN p.qual IS DISTINCT FROM e.qualifier THEN 'qualifier'
+            WHEN p.with_check IS DISTINCT FROM e.check_expr THEN 'with_check'
+            ELSE 'unknown' END AS dimension,
+       e.qualifier AS expected_qual, p.qual AS actual_qual,
+       e.check_expr AS expected_check, p.with_check AS actual_check,
+       e.roles AS expected_roles, p.roles::text AS actual_roles
+     FROM expected_rls_p1 e LEFT JOIN pg_policies p
+       ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL
+        OR p.permissive IS DISTINCT FROM e.permissive
+        OR p.roles::text IS DISTINCT FROM e.roles
+        OR p.cmd IS DISTINCT FROM e.cmd
+        OR p.qual IS DISTINCT FROM e.qualifier
+        OR p.with_check IS DISTINCT FROM e.check_expr
+     ORDER BY e.tbl, e.policy_name LIMIT 5
+   LOOP
+     RAISE NOTICE 'P1 drift %.% dimension=% roles[% -> %] qualifier[% -> %] check[% -> %]',
+       difference.tbl, difference.policy_name, difference.dimension,
+       difference.expected_roles, difference.actual_roles,
+       difference.expected_qual, difference.actual_qual,
+       difference.expected_check, difference.actual_check;
+   END LOOP;
    RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad;
  END IF;
  IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
