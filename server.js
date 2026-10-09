@@ -785,7 +785,7 @@ registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responseP
 registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, createRateLimiter });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
-registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, requireCustomer, resolveCustomerSession });
+registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, requireCustomer, resolveCustomerSession, getEnv });
 
 registerMerchantStoreRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, getEnv });
 // A storefront order's receipt, paying it on the shop's own Stripe account, and the
