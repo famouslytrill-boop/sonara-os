@@ -49,6 +49,23 @@ The estimator never treats a page view, unknown event, billing-only day-7 event,
 - CI may require regeneration of its generated test-file count and handoff before merge. Do not hand-edit the generated handoff, weaken gates, or mark skipped checks as passing.
 - Before a production-read adapter is added: construct a server-authorized, count-checked, snapshot-consistent export with explicit pagination and reconciliation; define the export security/retention and immutable proof packet; then run two-tenant adversarial tests and operator signoff.
 
+
+## Read-only snapshot adapter (2026-10-08 follow-up)
+
+The reviewed draft now also includes `lib/sonara-cohort-snapshot-reader.cjs` with `readCohortFromSnapshot({connect, from, to, asOf, classifyEligibility})` and `tests/cohort-snapshot-reader.test.js`.
+
+- `connect` **must** return one dedicated, operator-approved database connection that supports `query` and `release`; a connection pool's individual `query` method is not sufficient.
+- The adapter begins one PostgreSQL `REPEATABLE READ READ ONLY` transaction, enforces a 5-second statement timeout, checks `transaction_read_only=on`, records the database's transaction timestamp, and refuses cutoffs later than that timestamp.
+- It reads a bounded, deterministic, minimal-column set from `public.organizations` and `public.activity_events` through parameterized queries; cap-plus-one overflow, driver row-count mismatch and out-of-roster events cause a fail-closed result.
+- Every organization is processed through an **externally approved synchronous eligibility policy**. Neither the function nor an operator-supplied boolean is independent proof of a legitimate customer.
+- Rollback is attempted even after ambiguous BEGIN errors. A rollback/release failure suppresses an otherwise successful result. No raw SQL error, organization ID or event row is returned to the caller.
+- These source contracts were checked against the live project's read-only `information_schema.columns` response: `organizations(id, created_at)` and `activity_events(id, organization_id, event_type, created_at)` exist with the assumed PostgreSQL types.
+- Ten focused in-isolate source-backed tests passed, including read-only enforcement, transaction-clock cutoff, truncation, classification, cross-scope, ambiguous BEGIN, rollback error and raw-error redaction. These are **not** full repository Mocha or live PostgreSQL tests.
+
+**Not yet wired or authorized:** No production connection string, reporting role, pg driver, scheduled task, web route, migration, or customer-facing dashboard was added. A trusted operator must independently provision a least-privilege reporting role, verify table/RLS permissions, and run a real database transaction and adversarial test under approved nonproduction conditions before this adapter is used with real data. Never pass customer-owned caller data as `connect`, `classifyEligibility` or `source.authorized` without the server-side authority boundary.
+
+**Important historical limitation:** `asOf` is an event-time cutoff, *not* a reconstruction of database state at an earlier historical time. Events inserted after that timestamp with backdated `created_at` may be observed by the current database snapshot. Independent immutable ingestion-time provenance is needed for historical reproducibility.
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
@@ -56,4 +73,4 @@ The estimator never treats a page view, unknown event, billing-only day-7 event,
 - Stripe webhooks require raw-body signature verification and asynchronous handling; activity events alone are not payment proof: https://docs.stripe.com/webhooks
 - Supabase RLS must restrict rows by tenant, not just a broad authenticated role: https://supabase.com/docs/guides/database/postgres/row-level-security
 
-**Next owned step:** Implement a server-only, reviewed, snapshot-consistent extraction adapter and independent Stripe entitlement reconciliation; do not broaden marketing or unpause production until exact-head CI, security and live evidence gates are green.
+**Next owned step:** Wire the unconnected snapshot adapter to an independently approved, least-privilege PostgreSQL reporting role in a nonproduction environment, with evidence-backed eligibility and pagination/bounds validation; then separately implement Stripe entitlement reconciliation. Do not broaden marketing or unpause production until exact-head CI, security and live evidence gates are green.
