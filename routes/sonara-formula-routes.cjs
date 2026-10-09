@@ -41,7 +41,12 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
+  const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function"
+    ? deps.requireWorkspaceAccess
+    : () => (_req, res) => res.status(503).json({
+        ok: false, code: "workspace_guard_not_configured",
+        message: "Private formula records are not available."
+      });
   const getSupabaseServerConfig = typeof deps.getSupabaseServerConfig === "function" ? deps.getSupabaseServerConfig : undefined;
   const getCustomerPrimaryOrganization = typeof deps.getCustomerPrimaryOrganization === "function" ? deps.getCustomerPrimaryOrganization : undefined;
   const supabaseHeaders = typeof deps.supabaseHeaders === "function" ? deps.supabaseHeaders : undefined;
@@ -183,6 +188,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   }
 
   async function readSavedResults(definition, req) {
+    if (!req.sonaraUser?.id) return { ok: false, rows: [] };
     if (!getSupabaseServerConfig || !supabaseHeaders || !getCustomerPrimaryOrganization) return { ok: false, rows: [] };
     const config = getSupabaseServerConfig();
     if (!config.ok) return { ok: false, rows: [] };
@@ -199,6 +205,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
 
 const SAVE_REFUSALS = {
   setup_required: "Saving is not set up for this site yet, so nothing was kept.",
+  workspace_guard_not_configured: "Saving is unavailable because a signed-in workspace was not verified. Nothing was kept.",
   formula_not_in_database: "This formula is not yet recorded in the database, so a result for it cannot be kept. Nothing was saved.",
   database_unavailable: "The records could not be reached, so nothing was kept. Try again shortly."
 };
@@ -226,6 +233,7 @@ function getStaticFormulaReadiness() {
 }
 
 async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders, insertActivityEvent }) {
+  if (!req.sonaraUser?.id) return { ok: false, code: "workspace_guard_not_configured", status: 403 };
   if (!getSupabaseServerConfig || !supabaseHeaders) return { ok: false, code: "setup_required", service: "supabase" };
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false, code: "setup_required", service: "supabase" };
@@ -286,7 +294,6 @@ function formatLabel(value) {
   return FORMULA_GROUP_LABELS[value] || String(value || "").replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
