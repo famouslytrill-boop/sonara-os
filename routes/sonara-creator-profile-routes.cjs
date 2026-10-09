@@ -164,14 +164,19 @@ function registerCreatorProfileRoutes(app, deps = {}) {
       }
       socialState = status.rows;
       res.setHeader("Cache-Control", "private, no-store");
-      if (socialState === "unavailable") return res.status(404).type("html").send(noProfilePage());
+      if (socialState === "unavailable") return res.status(404).type("html").send(publicPage({
+        heading: "That profile is unavailable",
+        body: "The profile cannot be shown in this account.",
+        sections: [brandCard("Report a safety concern", reportCreatorForm(found.rows[0].id))]
+      }));
       if (socialState === "blocked_by_me") return res.status(200).type("html").send(publicPage({
         heading: "You blocked this creator",
         body: "This person's public profile is hidden while you are signed in.",
         sections: [brandCard("Your safety settings",
           `<form method="post" action="/api/social/creator-profiles/${enc(found.rows[0].id)}/unblock">
             <button type="submit">Unblock creator</button></form>
-            <p><a href="/account/social-safety">Manage blocked people</a></p>`)]
+            <p><a href="/account/social-safety">Manage blocked people</a></p>`),
+          brandCard("Report a safety concern", reportCreatorForm(found.rows[0].id))]
       }));
     }
 
@@ -205,27 +210,30 @@ function registerCreatorProfileRoutes(app, deps = {}) {
 
   // Shown only after the viewer's server-authenticated session and
   // database safety state have been verified. No public author UUID is exposed.
+  function reportCreatorForm(profileId) {
+    const base = "/api/social/creator-profiles/" + enc(profileId);
+    const reasons = socialSafety.REASONS.map((reason) =>
+      '<option value="' + escapeHtml(reason) + '">' + escapeHtml(reason) + '</option>').join("");
+    const nonce = randomUUID();
+    return '<details><summary>Report this creator</summary>' +
+      '<form method="post" action="' + escapeHtml(base + "/report") + '">' +
+      '<input type="hidden" name="request_id" value="' + escapeHtml(nonce) + '">' +
+      '<label for="creator-report-reason-' + escapeHtml(profileId) + '">Reason</label>' +
+      '<select id="creator-report-reason-' + escapeHtml(profileId) + '" name="reason" required>' +
+      '<option value="">Choose a reason</option>' + reasons + '</select>' +
+      '<label for="creator-report-detail-' + escapeHtml(profileId) + '">Details (optional)</label>' +
+      '<textarea id="creator-report-detail-' + escapeHtml(profileId) +
+      '" name="detail" maxlength="' + socialSafety.MAX_DETAIL + '" rows="3"></textarea>' +
+      '<button type="submit">Submit report</button></form></details>';
+  }
+
   function socialSafetyCard(profileId, state) {
     const base = "/api/social/creator-profiles/" + enc(profileId);
     const block = state === "no_owner"
       ? "<p>Blocking is unavailable for this profile because it has no verified account owner.</p>"
-      : `<form method="post" action="${escapeHtml(base + "/block")}">
-          <button type="submit">Block this creator</button></form>`;
-    const reasons = socialSafety.REASONS.map((reason) =>
-      `<option value="${escapeHtml(reason)}">${escapeHtml(reason)}</option>`).join("");
-    const nonce = randomUUID();
-    const report = `<details><summary>Report this creator</summary>
-      <form method="post" action="${escapeHtml(base + "/report")}">
-      <input type="hidden" name="request_id" value="${escapeHtml(nonce)}">
-      <label for="creator-report-reason-${escapeHtml(profileId)}">Reason</label>
-      <select id="creator-report-reason-${escapeHtml(profileId)}" name="reason" required>
-        <option value="">Choose a reason</option>${reasons}</select>
-      <label for="creator-report-detail-${escapeHtml(profileId)}">Details (optional)</label>
-      <textarea id="creator-report-detail-${escapeHtml(profileId)}" name="detail"
-        maxlength="${socialSafety.MAX_DETAIL}" rows="3"></textarea>
-      <button type="submit">Submit report</button>
-      </form></details>`;
-    return brandCard("Safety controls", block + report +
+      : '<form method="post" action="' + escapeHtml(base + "/block") +
+        '"><button type="submit">Block this creator</button></form>';
+    return brandCard("Safety controls", block + reportCreatorForm(profileId) +
       '<p>Reports are reviewed separately. Reporting does not automatically remove a profile.</p>');
   }
 
