@@ -68,7 +68,20 @@ describe("strict read-only ASCII DXF subset",()=>{
     refused(dxf(4,flat(...poly,[38,1])),"unsupported_geometry");
     refused(dxf(4,flat(...poly,[70,4])),"ambiguous_geometry");
   });
-  it("rejects ambiguous vertex counts, Y-before-X and repeated XY coordinates",()=>{
-    refused(dxf(4,flat(...poly).map(x=>Array.isArray(x)?x:[x])),"invalid_pairs");
+  it("rejects ambiguous vertex counts, Y-before-X and repeated geometry codes",()=>{
+    const badCount=poly.map(x=>x[0]===90?[90,4]:x);
+    refused(dxf(4,flat(...badCount)),"invalid_vertices");
+    refused(dxf(4,flat(
+      [0,"LWPOLYLINE"],[90,2],[20,0],[10,0],[10,1],[20,1]
+    )),"ambiguous_geometry");
+    refused(dxf(4,flat(...line,[10,100])),"ambiguous_geometry");
+  });
+  it("rejects paper-space geometry, nonstandard extrusions and malformed file structure",()=>{
+    refused(dxf(4,flat(...line,[67,1])),"unsupported_space");
+    refused(dxf(4,flat(...line,[210,1])),"unsupported_transform");
+    refused(dxf(4,flat(...line,[410,"Layout1"])),"unsupported_space");
+    refused(dxf(4,flat(...line)).replace("0\\nEOF\\n",""),"malformed_structure");
+    refused(dxf(4,flat(...line))+"0\\nLINE\\n","malformed_structure");
+    refused("Binary\\u0000DXF","invalid_payload");
   });
 });
