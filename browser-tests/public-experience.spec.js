@@ -483,14 +483,21 @@ test.describe("device media and bounded image processing", () => {
   // assert the product's safe fallback, while the browser with a working
   // stream must still complete the full photo and revocation workflow.
   async function startFixtureCamera(page, browserName) {
+    // A foreground page is the only valid starting state for user-initiated
+    // device capture. On Linux headless WebKit it can remain hidden; the
+    // product must then explicitly refuse capture rather than stall.
+    await page.bringToFront();
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
     const photoButton = page.getByRole("button", { name: "Take photo", exact: true });
     try { await expect(photoButton).toBeVisible({ timeout: 2500 }); return true; }
     catch (error) {
       if (browserName !== "webkit") throw error;
       await expect(page.locator("[data-local-capture] [role=status]"))
-        .toContainText(/Camera preview is unavailable|Capture is unavailable in this browser/);
-      expect(await page.evaluate(() => window.captureCalls)).toBe(1);
+        .toContainText(/Camera preview is unavailable|Capture is unavailable in this browser|Capture stopped because this page is no longer visible/);
+      const status = await page.locator("[data-local-capture] [role=status]").innerText();
+      const calls = await page.evaluate(() => window.captureCalls);
+      if (status.includes("no longer visible")) expect(calls).toBe(0);
+      else expect(calls).toBe(1);
       await expect(page.locator("[data-local-capture] video")).toBeHidden();
       await expect(page.locator("[data-capture-download]")).toBeHidden();
       return false;
@@ -505,6 +512,16 @@ test.describe("device media and bounded image processing", () => {
     }, { width, height });
     await page.locator("[data-local-image] input[type=file]").setInputFiles({ name: "owned-4k-image.png", mimeType: "image/png", buffer: Buffer.from(bytes) });
   }
+  test("hidden page refuses capture without getting stuck checking permissions", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => Object.defineProperty(document, "hidden", { configurable: true, value: true }));
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]"))
+      .toContainText("Capture stopped because this page is no longer visible.");
+    expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
+  });
   test("capture is off by default and denied account access never opens a device", async ({ page }) => {
     await mountMedia(page, { allowed: false });
     expect(await page.evaluate(() => window.captureCalls)).toBe(0);
