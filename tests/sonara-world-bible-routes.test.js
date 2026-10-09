@@ -167,4 +167,57 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.equal((await request(app).get(`${base}/export/unknown`).set("x-paid", "yes")).status, 400);
   });
 
+  it("exports a private narrative audit, DOT diagram and editable Fountain scene outline", async () => {
+    const { app } = setup(true);
+    const root = `/api/creator-studio/projects/${PID}/world-bible`;
+    const story = { ...draft, entities: [{ id: "person", kind: "character", name: "Lead" }],
+      scenes: [{ id: "opening", title: "Begin", durationSeconds: 8, entityIds: ["person"] },
+        { id: "ending", title: "Finish", durationSeconds: 6, dependsOn: ["opening"] }] };
+    assert.equal((await request(app).post(root).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft: story })).status, 200);
+    const audit = await request(app).get(`${root}/export/audit`).set("x-paid", "yes");
+    assert.equal(audit.status, 200);
+    const parsed = audit.body?.schema ? audit.body : JSON.parse(audit.text);
+    assert.equal(parsed.schema, "sonara.narrative-integrity.v1");
+    assert.equal(parsed.counts.dependencyEdges, 1);
+    assert.equal(parsed.criticalPathPlannedSeconds, 14);
+    assert.equal(parsed.semantics.runtimeExecution, false);
+    const dot = await request(app).get(`${root}/export/dot`).set("x-paid", "yes");
+    assert.equal(dot.status, 200);
+    const dotText = dot.text ?? Buffer.from(dot.body).toString("utf8");
+    assert.match(dotText, /"opening" -> "ending"/);
+    const fountain = await request(app).get(`${root}/export/fountain`).set("x-paid", "yes");
+    assert.equal(fountain.status, 200);
+    assert.match(fountain.text, /\.SCENE 1 - BEGIN/);
+    assert.match(fountain.text, /not a completed screenplay/);
+    for (const result of [audit, dot, fountain]) {
+      assert.match(result.headers["cache-control"], /no-store/);
+      assert.match(result.headers["content-disposition"], /attachment/);
+    }
+    assert.equal((await request(app).get(`${root}/export/audit`)).status, 403);
+    assert.equal((await request(app).get(`${root}/export/dot`)
+      .set("x-paid", "yes").set("x-workspace", "other")).status, 404);
+    assert.equal((await request(app).get(`${root}/export/quest`).set("x-paid", "yes")).status, 422);
+  });
+  it("exports only non-executable game prerequisite JSON for game World Bibles", async () => {
+    const { app } = setup(true);
+    const root = `/api/creator-studio/projects/${PID}/world-bible`;
+    const game = { ...draft, medium: "game",
+      scenes: [{ id: "intro", title: "Intro" },
+        { id: "mission", title: "Mission", dependsOn: ["intro"] }] };
+    assert.equal((await request(app).post(root).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft: game })).status, 200);
+    const quest = await request(app).get(`${root}/export/quest`).set("x-paid", "yes");
+    assert.equal(quest.status, 200);
+    const parsed = quest.body?.schema ? quest.body : JSON.parse(quest.text);
+    assert.equal(parsed.schema, "sonara.game.quest-prerequisites.v1");
+    assert.equal(parsed.nodes[1].plannedDurationSeconds, null);
+    assert.deepEqual(parsed.nodes[1].designPrerequisiteIds, ["intro"]);
+    assert.equal(parsed.choices.length, 0);
+    assert.equal(parsed.executable, false);
+    assert.equal(parsed.externalAssetsIncluded, false);
+    const world = await request(app).get(`/creator-studio/projects/${PID}/world-bible`).set("x-paid", "yes");
+    assert.match(world.text, /world-bible\/export\/quest/);
+  });
+
 });
