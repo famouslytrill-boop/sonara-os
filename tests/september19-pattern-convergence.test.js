@@ -18,6 +18,7 @@ const {
   boundedLoopStatus,
   planWorkflowSequence,
   replayWorkflowTrace,
+  evaluateWorkflowRetry,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
 const {
@@ -237,6 +238,73 @@ describe("September 19 platform pattern convergence", () => {
     assert.throws(() => replayWorkflowTrace(singleAttempt, [
       ...failed, { eventId: "retry", stepId: "once", action: "started", attempt: 2 }
     ]), /Out-of-sequence/);
+  });
+
+  it("schedules bounded deterministic retries only after explicit safety checks", () => {
+    const plan = planWorkflowSequence([
+      { id: "ingest", maxAttempts: 3 },
+      { id: "publish", dependsOn: ["ingest"], maxAttempts: 2 }
+    ]);
+    const events = [
+      { eventId: "a", stepId: "ingest", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "ingest", action: "failed", attempt: 1 }
+    ];
+    const input = {
+      plan, events, stepId: "ingest", runId: "run:001",
+      startedAtMs: 1000, nowMs: 1100, maxElapsedMs: 20000,
+      baseDelayMs: 100, capDelayMs: 1000, failureKind: "transient",
+      authorizationConfirmed: true, effectReplaySafe: true, budgetApproved: true
+    };
+    const scheduled = evaluateWorkflowRetry(input);
+    assert.equal(scheduled.action, "schedule");
+    assert.equal(scheduled.nextAttempt, 2);
+    assert.equal(scheduled.remainingAttempts, 1);
+    assert.equal(scheduled.notBeforeMs, 1100 + scheduled.delayMs);
+    assert.ok(scheduled.delayMs >= 1 && scheduled.delayMs <= 100);
+    assert.deepEqual(evaluateWorkflowRetry(input), scheduled);
+    assert.deepEqual(evaluateWorkflowRetry({ ...input, events: [...events, events[1]] }), scheduled);
+
+    const refusals = [
+      ["cancellationRequested", true, "cancel_requested"],
+      ["failureKind", "permanent", "non_retryable_failure"],
+      ["failureKind", undefined, "non_retryable_failure"],
+      ["authorizationConfirmed", false, "authorization_unconfirmed"],
+      ["effectReplaySafe", false, "idempotency_unconfirmed"],
+      ["budgetApproved", false, "resource_budget_unconfirmed"]
+    ];
+    for (const [field, value, reason] of refusals) {
+      assert.equal(evaluateWorkflowRetry({ ...input, [field]: value }).reason, reason);
+    }
+    assert.equal(evaluateWorkflowRetry({ ...input, nowMs: 21001 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, maxElapsedMs: 101 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, events: [] }).reason, "step_not_failed");
+    assert.equal(evaluateWorkflowRetry({ ...input, plan: planWorkflowSequence([{ id: "ingest", maxAttempts: 1 }]) }).reason, "attempt_budget_exhausted");
+
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited" }).reason, "provider_backoff_unverified");
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 3000 }).reason, "provider_backoff_exceeds_cap");
+    const throttled = evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 800 });
+    assert.equal(throttled.action, "schedule");
+    assert.equal(throttled.delayMs, 800);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, runId: "PII leaked /token" }), /runId/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, baseDelayMs: 0 }), /baseDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, capDelayMs: 3, baseDelayMs: 4 }), /capDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, nowMs: 999 }), /precedes/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, stepId: "unknown" }), /Unknown/);
+
+    const secondAttempt = [
+      ...events,
+      { eventId: "c", stepId: "ingest", action: "started", attempt: 2 },
+      { eventId: "d", stepId: "ingest", action: "failed", attempt: 2 }
+    ];
+    const next = evaluateWorkflowRetry({ ...input, events: secondAttempt });
+    assert.equal(next.nextAttempt, 3);
+    assert.ok(next.delayMs <= 200);
+    const exhausted = [
+      ...secondAttempt,
+      { eventId: "e", stepId: "ingest", action: "started", attempt: 3 },
+      { eventId: "f", stepId: "ingest", action: "failed", attempt: 3 }
+    ];
+    assert.equal(evaluateWorkflowRetry({ ...input, events: exhausted }).reason, "attempt_budget_exhausted");
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
