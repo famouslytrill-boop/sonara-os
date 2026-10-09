@@ -92,6 +92,15 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.ok(migration.includes("a.approved_at <= ("));
     assert.ok(migration.includes("e.recorded_at"));
   });
+  it("stamps approvals using database time and forbids backdating within a transaction", () => {
+    assert.ok(migration.includes("recorded_at timestamptz not null default clock_timestamp()"));
+    assert.ok(migration.includes("approved_at timestamptz not null default clock_timestamp()"));
+    assert.ok(migration.includes("create trigger inventory_stock_approval_stamped"));
+    assert.ok(migration.includes("new.approved_at := clock_timestamp()"));
+    assert.ok(migration.includes("a.approved_at <= ("));
+    assert.ok(migration.includes("select e.recorded_at"));
+    assert.ok(replay.includes("tests/sql/stock-adjustment-journal.sql"));
+  });
   it("runs a committed two-connection historical-event forgery scenario", () => {
     assert.ok(replay.includes("tests/sql/stock-adjustment-cross-tx-prep.sql"));
     assert.ok(replay.includes("tests/sql/stock-adjustment-cross-tx-check.sql"));
