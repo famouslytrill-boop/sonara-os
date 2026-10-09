@@ -103,7 +103,7 @@
         // display engine exception text or pretend that capture succeeded.
         const denied = error?.name === "NotAllowedError";
         const unsupportedCamera = kind === "camera" && !denied &&
-          !String(error?.message || "").startsWith("Capture is unavailable in this browser.");
+          ["TypeError", "NotSupportedError"].includes(error?.name);
         abort(denied
           ? "Your browser refused capture. You can still open your own files."
           : unsupportedCamera
