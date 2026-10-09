@@ -65,6 +65,12 @@ test.describe("SONARA shared service worker: browser privacy and offline proof",
   });
 
   test("offline public navigation uses the generic fallback; restored network returns to real pages", async ({ page, context }) => {
+    const offline = await page.request.get(BASE_URL + "/offline");
+    expect(offline.status()).toBe(200);
+    expect(offline.headers()["cache-control"]).toMatch(/(?:^|,)\s*public\s*(?:,|$)/i);
+    const pricing = await page.request.get(BASE_URL + "/pricing");
+    expect(pricing.status()).toBe(200);
+    expect(pricing.headers()["cache-control"]).toMatch(/no-store/i);
     await activateWorker(page);
     await context.setOffline(true);
     try {
@@ -72,11 +78,13 @@ test.describe("SONARA shared service worker: browser privacy and offline proof",
       expect(response, "offline navigation should resolve to the public fallback").not.toBeNull();
       expect(response.status()).toBe(200);
       await expect(page.locator("main")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "You are offline." })).toBeVisible();
     } finally {
       await context.setOffline(false);
     }
     const online = await page.goto(BASE_URL + "/growth-studio", { waitUntil: "domcontentloaded" });
     expect(online.status()).toBe(200);
     await expect(page.locator("body")).toContainText("Growth Studio");
+    await expect(page.getByRole("heading", { name: "You are offline." })).toHaveCount(0);
   });
 });
