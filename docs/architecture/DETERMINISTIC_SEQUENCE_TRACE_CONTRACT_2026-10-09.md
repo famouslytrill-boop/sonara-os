@@ -72,6 +72,33 @@ The function stops for any non-failed step, exhausted attempt budget, requested 
 
 **Execution contract:** Persist the scheduled retry transactionally with a database uniqueness constraint for `(tenant, run, step, next_attempt)`, original event versions and lease ownership. Re-check authorization, cancellation, provider state and idempotency at claim time; a precomputed recommendation alone cannot be an execution permit.
 
+## Scoped event replay decision (pass 3)
+
+`replayScopedWorkflowTrace({ plan, organizationId, runId, events })` enforces the *shape and replay consistency* of a complete proposed event stream before passing its canonical events to the existing deterministic state machine. It is still advisory and performs no I/O.
+
+- `organizationId` is a canonical lowercase UUID; `runId` is an opaque, syntax-constrained identifier. Neither is a proof of identity or authorization. The trusted database/provider must establish their ownership.
+- Every event carries **both** organization and run IDs. A cross-organization or cross-run event is refused rather than silently filtered.
+- A non-duplicate event has a contiguous, 1-based integer `sequence` within its run. Reordering or missing sequence numbers is rejected rather than producing a silently incomplete replay.
+- Repeated deliveries of the same `eventId` and `sequence` must have identical replay-relevant fields, including optional `traceId`; otherwise the replay is refused. Genuine repeat deliveries are deduplicated.
+- Optional trace IDs must be nonzero, lowercase, 32-character hex strings. The trace ID is **correlation metadata, never an authorization credential**. W3C Trace Context explicitly calls out privacy and adversarial input concerns.
+- Total presented delivery records and sequences are limited to 4,096. Real production histories longer than this require a *separately proven* snapshot/checkpoint system; this prototype rejects them.
+- Output includes `organizationId`, `runId`, `lastSequence`, `acceptedEvents` and `replayedEvents`, alongside the underlying workflow state.
+
+**Database reconciliation blocker (observed from repository migrations):**
+
+The existing `public.platform_jobs` table in `007_platform_infrastructure_ops.sql` is a general operational job table without a declared organization ID. The `20260926025411_durable_worker_contract.sql` migration adds a globally unique `idempotency_key`, an atomic `claim_platform_job` using `FOR UPDATE SKIP LOCKED`, and `platform_job_events` containing job ID, attempt, event type, optional trace ID and creation timestamp. Neither table currently declares an enforceable per-run sequence or organization-scoped workflow event uniqueness. Therefore do **not** attach tenant-owned business automations directly to the shared global queue or claim that the scoped replay validator is already backed by these records.
+
+**Separate future migration proposal (not included or applied here):**
+
+1. Decide whether to extend the existing general operational queue or create a dedicated tenant workflow run/event family. Prefer the latter if legacy system jobs intentionally remain unscoped.
+2. Store tenant ID, run ID, immutable event ID, consecutive `bigint` sequence, step ID, action and attempt with unique constraints for `(organization_id, run_id, sequence)` and `(organization_id, run_id, event_id)`. Enforce validated foreign keys, minimal grants and hostile-tenant RLS tests.
+3. Serialize new event assignment by locking the **run row in one transaction** and allocating its next sequence. Do not compute the next sequence via an unsafe read-then-insert pattern.
+4. Claim with row locking and `SKIP LOCKED` only as queue coordination, not as isolation proof. Introduce bounded lease expiry and a **monotonic fencing epoch**, and accept completion only when expected tenant, run, worker and epoch still match.
+5. Persist retry suggestions with transactional uniqueness on tenant, run, step and next attempt. Recheck cancellation, rights, provider scopes, credits and idempotency at execution claim time.
+6. Verify duplicate webhooks, two-worker races, stale-worker completion after lease recovery, missing sequence, rejected cross-tenant writes, crash/replay, expired retries and rollback. Prove provider-side reconciliation separately before activation.
+
+Official references: [PostgreSQL locking and SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html), [W3C Trace Context security](https://www.w3.org/TR/trace-context/#security-considerations), [Temporal workflow deterministic constraints](https://docs.temporal.io/workflow-definition).
+
 ## Proof requirements before connecting to live jobs
 
 1. Independently validate run identity, organization/workspace authorization and owner approvals before each production side effect.
