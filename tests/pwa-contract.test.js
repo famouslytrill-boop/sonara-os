@@ -133,7 +133,13 @@ describe("canonical PWA contract", () => {
     assert.match(worker, /PUBLIC_NAVIGATION_PATHS/);
     assert.match(worker, /if \(!isPublicNavigation\(url\.pathname\)\) return;/);
     assert.match(worker, /cache: "no-store"/);
-    assert.match(worker, /private\|no-store/);
+    // The worker now requires explicit public permission; the previous
+    // private|no-store substring test went stale after the stricter policy.
+    assert.match(worker, /directives\.includes\("public"\)/);
+    assert.match(worker, /private\|no-store\|no-cache\|must-revalidate/);
+    assert.match(worker, /headers\.get\("vary"\)/);
+    assert.match(worker, /cookie\|authorization/);
+    assert.match(worker, /PUBLIC_ROOT_ASSETS\.has\(url\.pathname\)/);
     assert.match(worker, /set-cookie/);
     assert.match(worker, /url\.pathname === "\/sw\.js"/);
     assert.match(worker, /keys\.filter|\.filter\(\(key\) => key\.startsWith\(CACHE_PREFIX\)/);
