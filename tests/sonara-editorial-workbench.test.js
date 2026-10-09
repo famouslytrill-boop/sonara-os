@@ -1,7 +1,7 @@
 "use strict";
 
 const assert=require("node:assert/strict");
-const { KINDS, draft, editorialSuggestions, overlapSignals, travelPlan, wordCount }=
+const { KINDS, draft, overlapSignals, wordCount }=
   require("../lib/sonara-editorial-workbench.cjs");
 
 const input=(kind="note",extra={})=>({kind,title:"Planning journal",body:"Teh first first idea  matters.",language:"en",...extra});
