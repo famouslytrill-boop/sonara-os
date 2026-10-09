@@ -47,6 +47,7 @@ const {
   OPERATIONAL_MODES,
   operationalTransitionDecision,
   maintenanceActionDecision,
+  operationalAlertDecision,
   ragQualityScore,
   evaluateProductWorkflowTransition,
   getBackendOperationsIntelligence
@@ -269,6 +270,39 @@ describe("September 19 platform pattern convergence", () => {
       .reason, "isolated_restore_environment_missing");
     assert.equal(maintenanceActionDecision({ ...maintain, action: "isolated_restore_drill",
       isolatedEnvironmentVerified: true }).candidate, true);
+  });
+
+  it("classifies trusted operational alerts without auto-lockdown or duplicate notifications", () => {
+    const base = {
+      signal: "security_bypass_attempt", scopeVerified: true, evidenceVerified: true,
+      consecutiveFailures: 3, threshold: 2, nowMs: 300000, cooldownMs: 60000,
+      lastAlertAtMs: null
+    };
+    let decision = operationalAlertDecision(base);
+    assert.equal(decision.notifyCandidate, true);
+    assert.equal(decision.severity, "critical");
+    assert.equal(decision.alertSent, false);
+    assert.equal(decision.lockdownExecuted, false);
+    assert.equal(decision.shutdownExecuted, false);
+    assert.equal(decision.nextEligibleAlertAtMs, 360000);
+    assert.equal(operationalAlertDecision({ ...base, signal: "nonsense" }).reason, "unknown_alert_signal");
+    assert.equal(operationalAlertDecision({ ...base, evidenceVerified: false }).reason, "unverified_alert_evidence");
+    assert.equal(operationalAlertDecision({ ...base, scopeVerified: false }).notifyCandidate, false);
+    assert.equal(operationalAlertDecision({ ...base, consecutiveFailures: 1 }).reason, "below_alert_threshold");
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 250000 }).reason, "alert_cooldown_active");
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 240000 }).notifyCandidate, true);
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 300001 }).reason, "invalid_last_alert_clock");
+    assert.equal(operationalAlertDecision({ ...base, cooldownMs: 0 }).reason, "invalid_alert_budget");
+    assert.equal(operationalAlertDecision({ ...base, threshold: 21 }).notifyCandidate, false);
+    assert.equal(operationalAlertDecision({ ...base, nowMs: Number.MAX_SAFE_INTEGER })
+      .reason, "invalid_alert_budget");
+    assert.equal(operationalAlertDecision(null).notifyCandidate, false);
+    decision = operationalAlertDecision({ ...base, signal: "backup_evidence_missing" });
+    assert.equal(decision.severity, "high");
+    assert.equal(decision.notifyCandidate, true);
+    decision = operationalAlertDecision({ ...base, signal: "job_queue_stalled" });
+    assert.equal(decision.severity, "warning");
+    assert.equal(decision.notifyCandidate, true);
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
