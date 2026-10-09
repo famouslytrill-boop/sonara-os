@@ -247,3 +247,5 @@ Official references:
 - Do not bypass this guard to obtain green CI. Use the next exact-head Node/PostgreSQL matrix results to decide whether the mismatch reflects representation differences or actual RLS changes; require owner/security review before any policy modification.
 - PostgreSQL pg_policies docs: https://www.postgresql.org/docs/current/view-pg-policies.html
 - Supabase RLS guidance: https://supabase.com/docs/guides/database/postgres/row-level-security
+
+- Additional completed SONARA One Validation evidence from the previous exact head: 7,114 passing tests and one failing asset-version assertion caused by an obsolete hardcoded release token in a `server.js` comment. Replaced the historical literal example with a version-agnostic description; the existing asset-version test remains unchanged. Await the exact-head rerun.
