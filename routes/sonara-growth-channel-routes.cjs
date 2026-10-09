@@ -158,6 +158,11 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   });
 
   async function changeBlock(req, res, blocking) {
+    // Cookie-backed mutation: reject forged cross-origin form submissions.
+    const origin = String(req.headers?.origin || "");
+    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
+      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    }
     const id = String(req.params.id || "");
     if (!safety.isUuid(id) || !safety.isUuid(req.sonaraUser?.id)) {
       return res.status(400).type("text/plain").send("Invalid channel.");
@@ -183,6 +188,10 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   // One database RPC changes the post/reports AND inserts the audit event in
   // one transaction. It checks the current organization membership itself.
   async function moderatePost(req, res, action) {
+    const origin = String(req.headers?.origin || "");
+    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
+      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    }
     const scope = await scopeFor(req);
     if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
     const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
@@ -239,16 +248,17 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       return failedPage(res, "We could not reach your workspace just now. This is a problem on our side, and it is not telling you that you have no channels.", 503);
     }
     const org = `organization_id=eq.${enc(scope.organizationId)}`;
-    const [list, posts, reports, events] = await Promise.all([
+    const [list, posts, reports, events, audit] = await Promise.all([
       rest(scope.config, `${CHANNEL_TABLE}?select=id,handle,title,about,state,published_at&${org}&order=created_at.desc&limit=${CHANNEL_CAP + 1}`),
       rest(scope.config, `${POST_TABLE}?select=id,channel_id,kind,body,event_id,state,created_at&${org}&order=created_at.desc&limit=${POST_CAP + 1}`),
       rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`),
-      rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`)
+      rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`),
+      rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`)
     ]);
 
     // A failed read renders as a failed read. An empty page here is a sentence:
     // it says you have no channels, or nobody has flagged anything.
-    if (!list.ok || !posts.ok || !reports.ok || !events.ok) {
+    if (!list.ok || !posts.ok || !reports.ok || !events.ok || !audit.ok) {
       return failedPage(res, "We could not read part of your channels just now. Nothing has changed, and this is not a list of them -- try again shortly.");
     }
 
@@ -260,6 +270,13 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
 
     const sections = [];
+    sections.push(brandCard("Moderation decision history",
+      audit.rows.length
+        ? "<ul>" + audit.rows.slice(0, 20).map((decision) =>
+          `<li>${escapeHtml(decision.action)} on post ${escapeHtml(decision.post_id)} by ${escapeHtml(decision.actor_user_id)}
+          at ${escapeHtml(String(decision.created_at))}</li>`).join("") + "</ul>"
+        : "No moderation decisions have been recorded."));
+    if (audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
     // A Growth channel is a basic free login-based SONARA social surface.
     // The subscription policy is shared across parent, Business Builder,
     // Creator Studio and Growth Studio; it is NOT a payment or publish grant.
@@ -551,6 +568,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       });
     }
     const blockRead = await viewerBlocks(req, res, config);
+    if (blockRead.viewer) res.setHeader("Cache-Control", "private, no-store");
     if (!blockRead.ok) return publicPage(res, {
       heading: "Channels unavailable", body: "We could not verify your blocked-channel settings, so we are not showing the directory.",
       sections: [], status: 503
@@ -637,6 +655,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     if (!found.channel) return notFound(res);
 
     const blocked = await viewerBlocks(req, res, config);
+    if (blocked.viewer) res.setHeader("Cache-Control", "private, no-store");
     if (!blocked.ok) return unavailable(res);
     const decision = safety.blockState(blocked.rows, found.channel.id);
     if (!decision.ok) return unavailable(res);
