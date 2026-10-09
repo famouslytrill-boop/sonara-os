@@ -56,12 +56,16 @@ async function invoke(handlers,method,path,request){
   for(const handler of list) await handler(request,res,()=>{});
   return res;
 }
-function mockFetch(calls,result=true){
+function mockFetch(calls,result=true,role="owner"){
   return async function(input,init={}){
     const url=new URL(String(input)),method=init.method||"GET";
     calls.push({url:url.pathname,query:url.search,method,body:init.body});
     let data=[];
-    if(url.pathname.endsWith("/growth_channel_blocks")){
+    if(url.pathname.endsWith("/organization_memberships")){
+      data=[{role,status:"active"}];
+    }else if(url.pathname.endsWith("/growth_channel_moderation_events")){
+      data=[{post_id:POST,actor_user_id:USER,action:"remove",created_at:"2026-10-09T01:00:00Z"}];
+    }else if(url.pathname.endsWith("/growth_channel_blocks")){
       data=method==="GET"?[{channel_id:BLOCKED}]:[];
     }else if(url.pathname.endsWith("/growth_channel_directory")){
       data=[{channel_id:BLOCKED,handle:"blocked-news",title:"Hidden from me"},
@@ -132,5 +136,33 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
     const res=await invoke(setup(),"POST","/api/growth/channels/reports/dismiss",
       req({},{body:{post_id:POST}}));
     assert.equal(res.statusCode,303);assert.match(res.redirectTo,/problem=save_failed/);
+  });
+});
+
+describe("moderation audit privacy and reviewer permissions",()=>{
+  const originalFetch=global.fetch;
+  after(()=>{global.fetch=originalFetch;});
+
+  it("denies a signed-in member moderation without calling the privileged RPC",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,true,"member");
+    const res=await invoke(setup(),"POST","/api/growth/channels/posts/remove",
+      req({},{body:{post_id:POST}}));
+    assert.equal(res.statusCode,403);
+    assert.equal(calls.some(c=>c.url.endsWith("/rpc/sonara_moderate_growth_post")),false);
+  });
+
+  it("never reads or displays reviewer identity to an ordinary workspace member",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,true,"member");
+    const res=await invoke(setup(),"GET","/growth-studio/owner/channels",req());
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_moderation_events")),false);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_post_reports")),false);
+    assert.doesNotMatch(res.body,/Moderation decision history/);
+  });
+
+  it("allows a verified owner to read the bounded audit history",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,true,"owner");
+    const res=await invoke(setup(),"GET","/growth-studio/owner/channels",req());
+    assert.match(res.body,/Moderation decision history/);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_moderation_events")),true);
   });
 });
