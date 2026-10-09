@@ -35,6 +35,9 @@ describe("consented bounded motion capture", () => {
   it("fails closed on unknown event types, non-finite/out-of-range values and empty samples", () => {
     assert.equal(normalizeMotionSample({ event_type: "made_up", acceleration_x: 1 }).code, "unknown_event_type");
     assert.equal(normalizeMotionSample({ acceleration_x: "not-a-number" }).code, "invalid_sensor_value");
+    assert.equal(normalizeMotionSample({ acceleration_x: true }).code, "invalid_sensor_value");
+    assert.equal(normalizeMotionSample({ acceleration_x: {} }).code, "invalid_sensor_value");
+    assert.equal(normalizeMotionSample({ acceleration_x: "   " }).code, "motion_sample_empty");
     assert.equal(normalizeMotionSample({ acceleration_x: 1000000 }).code, "invalid_sensor_value");
     assert.equal(normalizeMotionSample({}).code, "motion_sample_empty");
   });
