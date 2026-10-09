@@ -27,15 +27,8 @@ begin
     raise exception 'device_permission_grants_capability_check is missing; refusing to invent a replacement over unknown schema';
   end if;
 
-  -- Idempotent when this exact capability has already been added, while still
-  -- requiring all six earlier capabilities to remain present.
-  if position('motion' in current_definition) > 0 then
-    foreach current_definition in array array['camera','microphone','contacts','location','local_compute','local_storage'] loop
-      null;
-    end loop;
-    return;
-  end if;
-
+  -- Whether motion is already present or not, refuse to proceed if any earlier
+  -- capability disappeared. Idempotency must not become a way to accept drift.
   if position('camera' in current_definition) = 0
      or position('microphone' in current_definition) = 0
      or position('contacts' in current_definition) = 0
@@ -43,6 +36,10 @@ begin
      or position('local_compute' in current_definition) = 0
      or position('local_storage' in current_definition) = 0 then
     raise exception 'device permission capability constraint drifted: %', current_definition;
+  end if;
+
+  if position('motion' in current_definition) > 0 then
+    return;
   end if;
 
   alter table public.device_permission_grants
