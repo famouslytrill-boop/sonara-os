@@ -2177,6 +2177,38 @@ paths:
       summary: List deterministic media workflow templates and execution safeguards.
       security: [{ bearerAuth: [] }]
       responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator-studio/projects/{id}/world:
+    get:
+      operationId: readCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Read a versioned World Bible attached to a tenant-authorized Creator Project.
+      description: Feature disabled until the reviewed migration is applied and tenant authorization is verified. Only returns source and deterministic planning estimates; no media is rendered.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    put:
+      operationId: saveCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Save a validated World Bible with compare-and-swap revision protection.
+      description: Requires Creator Studio membership and JSON Content-Type plus x-sonara-intent header. expectedRevision 0 creates once; positive revision atomically replaces only that version. No publishing or generation authority.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: x-sonara-intent, in: header, required: true, schema: { type: string, enum: [world-bible-save] } }
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/creator/worldbuilding/plan:
     post:
       operationId: planCreatorWorldbuilding
