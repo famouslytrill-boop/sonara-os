@@ -204,7 +204,7 @@ describe("billing delivery reliability", () => {
     }
   });
 
-  it("will not acknowledge a paid event if the customer mapping query is unavailable", async () => {
+  it("does not acknowledge cancellation when the saved subscription cannot be read", async () => {
     const ev = {
       type: "customer.subscription.deleted",
       data: { object: {
@@ -216,9 +216,102 @@ describe("billing delivery reliability", () => {
       const urls = [];
       global.fetch = async (url) => { urls.push(String(url)); return response; };
       assert.deepEqual(await billing().synchronizeBillingFromStripeEvent(ev),
-        { ok: false, code: "stripe_webhook_customer_unreadable" });
+        { ok: false, code: "stripe_cancellation_subscription_unreadable" });
       assert.equal(urls.length, 1);
+      assert.match(urls[0], /\/billing_subscriptions\?/);
     }
+  });
+
+  it("revokes a previously recorded canceled subscription without a remaining Stripe customer map", async () => {
+    const calls = [];
+    global.fetch = async (url, options) => {
+      calls.push({ url: String(url), body: options?.body ? JSON.parse(options.body) : null });
+      if (String(url).includes("billing_subscriptions?select=")) return {
+        ok: true, json: async () => [{
+          provider_subscription_ref: "sub_cancel", provider_customer_ref: "cus_original",
+          organization_id: "org_original", plan_slug: "workspace_monthly",
+          metadata: { workspace: "creator_studio" }
+        }]
+      };
+      if (String(url).includes("/stripe_customers?")) throw new Error("deleted mapping must not be consulted for cancellation");
+      return { ok: true };
+    };
+    const event = { type: "customer.subscription.deleted", created: 1780000000, data: { object: {
+      id: "sub_cancel", customer: "cus_original", status: "canceled",
+      metadata: {}
+    } } };
+    const outcome = await billing().synchronizeBillingFromStripeEvent(event);
+    assert.equal(outcome.ok, true);
+    assert.equal(calls.length, 3, "one historical verification plus two upserts");
+    assert.match(calls[0].url, /provider_subscription_ref=eq.sub_cancel/);
+    assert.equal(calls[1].body.organization_id, "org_original");
+    assert.equal(calls[1].body.status, "canceled");
+    assert.equal(calls[1].body.provider_customer_ref, "cus_original");
+    assert.equal(calls[2].body.organization_id, "org_original");
+    assert.equal(calls[2].body.status, "disabled");
+    assert.equal(calls[2].body.entitlement_key, "workspace_monthly");
+    assert.equal(calls[2].body.metadata.workspace, "creator_studio");
+  });
+
+  it("does not reassign a cancellation to an unrelated tenant or provider customer", async () => {
+    const cases = [
+      { organization_id: "org_attacker" },
+      { plan: "all_three_monthly" },
+      { workspace: "growth_studio" }
+    ];
+    const persisted = {
+      provider_subscription_ref: "sub_cancel", provider_customer_ref: "cus_original",
+      organization_id: "org_original", plan_slug: "workspace_monthly",
+      metadata: { workspace: "creator_studio" }
+    };
+    for (const metadata of cases) {
+      const calls = [];
+      global.fetch = async (url) => {
+        calls.push(String(url));
+        return { ok: true, json: async () => [persisted] };
+      };
+      const response = await billing().synchronizeBillingFromStripeEvent({
+        type: "customer.subscription.deleted", data: { object: {
+          id: "sub_cancel", customer: "cus_original", status: "canceled", metadata
+        } }
+      });
+      assert.deepEqual(response, { ok: false, code: "stripe_cancellation_subscription_mismatch" });
+      assert.equal(calls.length, 1, "no writes after a conflicting metadata claim");
+    }
+    for (const mismatch of [
+      { provider_customer_ref: "cus_another" },
+      { provider_subscription_ref: "sub_other" },
+      { organization_id: null },
+      { plan_slug: "unrecognized_plan" }
+    ]) {
+      let calls = 0;
+      global.fetch = async () => {
+        calls += 1;
+        return { ok: true, json: async () => [{ ...persisted, ...mismatch }] };
+      };
+      const result = await billing().synchronizeBillingFromStripeEvent({
+        type: "customer.subscription.deleted", data: { object: {
+          id: "sub_cancel", customer: "cus_original", status: "canceled"
+        } }
+      });
+      assert.equal(result.code, "stripe_cancellation_subscription_mismatch");
+      assert.equal(calls, 1);
+    }
+  });
+
+  it("never treats a mislabeled deletion as an authorized cancellation", async () => {
+    let count = 0;
+    global.fetch = async () => { count += 1; throw Error("unverified cancellation caused I/O"); };
+    for (const bad of [
+      { id: "sub_cancel", customer: "cus_original", status: "active" },
+      { id: "sub_cancel", customer: "not-a-customer", status: "canceled" }
+    ]) {
+      const result = await billing().synchronizeBillingFromStripeEvent({
+        type: "customer.subscription.deleted", data: { object: bad }
+      });
+      assert.deepEqual(result, { ok: false, code: "stripe_cancellation_invalid" });
+    }
+    assert.equal(count, 0);
   });
 
   it("never creates a provider customer when the tenant mapping cannot be read", async () => {
