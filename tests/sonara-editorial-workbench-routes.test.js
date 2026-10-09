@@ -89,6 +89,7 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
     const h=makeHarness();
     for(const k of ["GET "+ROUTE,"GET "+ROUTE+"/drafts/:id","GET "+API+"/drafts",
       "POST "+API+"/preview","POST "+API+"/save",
+      "GET "+API+"/drafts/:id","GET "+ROUTE+"/drafts/:id/export.md",
       "POST "+ROUTE+"/preview","POST "+ROUTE+"/save"]) {
       assert.ok(h.routes.has(k),k);
     }
@@ -176,6 +177,40 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
     assert.equal(foreign.statusCode,404);
     assert.match(h.calls[0].url,/organization_id=eq.org-001/);
     assert.match(h.calls[0].url,/id=eq.00000000/);
+  });
+  it("exports only the authenticated tenant's saved Markdown, without a publish side effect",async()=>{
+    const h=makeHarness({records:[{id:OWN_ID,created_at:"2026-10-09",
+      input_payload:doc({kind:"blog",title:"Road Notes",body:"First draft only"}),
+      output_payload:{kind:"blog",publication:{status:"not_published"}}}]});
+    const r=await h.call("GET",ROUTE+"/drafts/:id/export.md",{}, {params:{id:OWN_ID}});
+    assert.equal(r.statusCode,200);
+    assert.match(r.headers["content-type"],/text\\/markdown/);
+    assert.match(r.body,/# Road Notes/);
+    assert.match(r.body,/First draft only/);
+    assert.equal(r.headers["Cache-Control"],"no-store");
+    assert.match(h.calls[0].url,/organization_id=eq.org-001/);
+    assert.match(h.calls[0].url,/module_key=eq.editorial_workbench/);
+    const blocked=await h.call("GET",ROUTE+"/drafts/:id/export.md",{}, {params:{id:FOREIGN_ID}});
+    assert.equal(blocked.statusCode,404);
+    assert.equal(h.saved.length,0);
+  });
+  it("exposes saved revision through guarded JSON resource lookup",async()=>{
+    const h=makeHarness({records:[{id:OWN_ID,input_payload:doc(),output_payload:{ok:true}}]});
+    const r=await h.call("GET",API+"/drafts/:id",{}, {params:{id:OWN_ID}});
+    assert.equal(r.statusCode,200);
+    assert.equal(r.body.record.input_payload.title,"Production notes");
+  });
+  it("cannot persist arbitrary nested client fields or reference comparisons",async()=>{
+    const h=makeHarness();
+    const docRequest=doc({
+      comparisonText:"classified editorial source",
+      assets:[{name:"track",status:"unknown",evidence:"",privateToken:"secret-key"}],
+      travel:{privateToken:"secret-value"}
+    });
+    const r=await h.call("POST",API+"/save",docRequest,{intent:"save-editorial-draft"});
+    assert.equal(r.statusCode,201);
+    assert.equal(JSON.stringify(h.saved[0]).includes("secret-key"),false);
+    assert.equal(JSON.stringify(h.saved[0]).includes("classified editorial source"),false);
   });
   it("renders real HTML input fields with both wired preview and save destinations",async()=>{
     const h=makeHarness();
