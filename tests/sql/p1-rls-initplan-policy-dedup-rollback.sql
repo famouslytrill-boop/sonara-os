@@ -71,18 +71,35 @@ BEGIN
 
   -- The two customer-visible SELECT policies must be identical before
   -- removal of the duplicate can be staged. No broadening is permitted.
+  -- Fresh replay and active preview may spell the SAME owner predicate
+  -- differently (direct auth.uid() vs scalar initplan). Require an exact
+  -- equivalence between the two actual policies AND an allow-listed strict
+  -- owner equality: never accept a tautology, a broader role or a mixed OR.
   IF (SELECT count(*) FROM pg_policies
       WHERE schemaname='public' AND tablename='subscriptions'
         AND policyname IN ('Users can view own subscriptions',
                            'Users can view their own subscription')
         AND permissive='PERMISSIVE'
         AND roles=ARRAY['authenticated']::name[]
-        AND cmd='SELECT'
-        AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 2
+        AND cmd='SELECT' AND with_check IS NULL
+        AND regexp_replace(lower(qual),'[[:space:]()]','','g') IN
+          ('auth.uid=user_id', 'user_id=auth.uid',
+           'selectauth.uidasuid=user_id','user_id=selectauth.uidasuid')
+     ) <> 2
+     OR (SELECT count(DISTINCT qual) FROM pg_policies
+         WHERE schemaname='public' AND tablename='subscriptions'
+         AND policyname IN ('Users can view own subscriptions',
+                            'Users can view their own subscription')) <> 1
   THEN RAISE EXCEPTION 'subscriptions policy definitions drifted; abort'; END IF;
 END
 $drift$;
+
+-- Preserve the original canonical predicate byte-for-byte across staging.
+CREATE TEMP TABLE subscription_select_baseline ON COMMIT DROP AS
+  SELECT permissive, roles::text AS roles, cmd, qual, with_check
+  FROM pg_policies
+  WHERE schemaname='public' AND tablename='subscriptions'
+    AND policyname='Users can view own subscriptions';
 
 -- This is a staging-only proof; no permanent policy is modified.
 DROP POLICY "Users can view their own subscription" ON public.subscriptions;
@@ -110,8 +127,9 @@ BEGIN
         AND permissive='PERMISSIVE'
         AND roles=ARRAY['authenticated']::name[]
         AND cmd='SELECT'
-        AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-        AND with_check IS NULL) <> 1
+        AND (permissive, roles::text, cmd, qual, with_check) IS NOT DISTINCT FROM
+            (SELECT permissive, roles, cmd, qual, with_check FROM subscription_select_baseline)
+       ) <> 1
     OR (SELECT count(*) FROM pg_policies
       WHERE schemaname='public' AND tablename='subscriptions'
         AND policyname='Users can view their own subscription') <> 0
