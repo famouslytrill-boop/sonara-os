@@ -88,6 +88,9 @@ const LIMITERS = Object.freeze({
   "business.procurement_mutation": "abuse_ceiling",
   "business.work_order_mutation": "abuse_ceiling",
   "scroll_site_write": "abuse_ceiling",
+  // User-initiated drafts and previews; 1,200 per hour is above normal editing
+  // throughput and exists only to bound abusive automation or runaway clients.
+  "creator_editorial_workbench": "abuse_ceiling",
   // Added by #417. 120 a minute per subscriber, 7200 an hour -- a ceiling over a
   // runaway client, well clear of anybody pressing a button. Separate from the
   // generation allowance in lib/sonara-generation-allowance.cjs, which is a quota
