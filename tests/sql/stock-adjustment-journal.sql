@@ -63,8 +63,10 @@ insert into public.inventory_stock_adjustment_approvals(
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-req-001','cycle_count',0,'each',null,8,'approved');
 
--- Changing only the catalog unit must invalidate an old physical count
--- approval even though the stock quantity and stock_version have not moved.
+-- Even a unit-only change invalidates the approved snapshot, increments
+-- the inventory revision and writes a zero-delta catalog-identity event.
+-- Roll back this adversarial probe so the approved count can be posted next.
+savepoint identity_probe;
 update public.inventory_items set unit='kg'
   where id='25000000-0000-4000-8000-000000000010';
 select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
@@ -73,11 +75,18 @@ select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment
   'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')$q$,
   'stock_adjustment_item_identity_changed');
 select pg_temp.require_true(
-  (select quantity=10 and stock_version=0 from public.inventory_items
+  (select quantity=10 and stock_version=1 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_events
+   where inventory_item_id='25000000-0000-4000-8000-000000000010'
+     and source='catalog_identity_change' and delta_quantity=0 and version_after=1),
+  'unit-only change increments version and records no fictitious stock delta');
+rollback to savepoint identity_probe;
+release savepoint identity_probe;
+select pg_temp.require_true(
+  (select unit='each' and quantity=10 and stock_version=0 from public.inventory_items
    where id='25000000-0000-4000-8000-000000000010'),
-  'changed unit did not mutate stock before owner reconciliation');
-update public.inventory_items set unit='each'
-  where id='25000000-0000-4000-8000-000000000010';
+  'reverting the adversarial catalog edit restores the original snapshot');
 
 select pg_temp.require_true(
   (public.sonara_apply_stock_count_adjustment(
