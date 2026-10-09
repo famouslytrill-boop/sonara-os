@@ -5,6 +5,7 @@
 const { estimateCatering } = require("../lib/sonara-catering-estimator.cjs");
 const { simulateMicrotransaction, reviewNonprofitContribution } = require("../lib/sonara-business-transaction-review.cjs");
 const { assessEventResourceScenario } = require("../lib/sonara-event-resource-scenario.cjs");
+const { previewRestaurant, previewPublicEvent } = require("../lib/sonara-restaurant-seo-previews.cjs");
 const PAGE = "/business-builder/owner/catering";
 const fields = [
   ["guests", "Guests", "number", "1"],
@@ -118,7 +119,9 @@ function registerCateringRoutes(app, deps = {}) {
   for (const [route, evaluate] of [
     ["/api/business/finance/microtransaction-scenario", simulateMicrotransaction],
     ["/api/business/nonprofits/contribution-review", reviewNonprofitContribution],
-    ["/api/business/events/resource-scenario", assessEventResourceScenario]
+    ["/api/business/events/resource-scenario", assessEventResourceScenario],
+    ["/api/business/marketing/restaurant-seo-preview", previewRestaurant],
+    ["/api/business/marketing/event-seo-preview", previewPublicEvent]
   ]) {
     app.post(route, requireBusinessManager, scope, (req, res) => {
       res.set("Cache-Control", "private, no-store");
