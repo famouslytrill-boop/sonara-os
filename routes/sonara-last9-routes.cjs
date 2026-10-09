@@ -1073,7 +1073,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const count = String(req.body?.counted_quantity ?? "");
       if (!isUuid(itemId) || !/^[A-Za-z0-9._:-]{8,128}$/.test(requestKey)
         || !/^(0|[1-9][0-9]{0,17})$/.test(version)
-        || !/^(0|[1-9][0-9]{0,8})(?:\\.[0-9]{1,3})?$/.test(count)
+        || !/^(0|[1-9][0-9]{0,8})(?:\.[0-9]{1,3})?$/.test(count)
         || Number(count) > 999999999.999) {
         return res.status(400).json({ok:false,code:"stock_count_input_invalid"});
       }
