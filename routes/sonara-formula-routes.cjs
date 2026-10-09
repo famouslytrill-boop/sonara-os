@@ -104,6 +104,10 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
     if (!definition) return res.status(404).type("html").send(unknownFormulaPage());
     return requireWorkspaceAccess(productAreaToWorkspace(definition.productArea))(req, res, next);
   }, async (req, res) => {
+    if (!req.sonaraUser?.id) return res.status(403).json({
+      ok: false, code: "workspace_identity_missing",
+      message: "Sign in to view private formula results."
+    });
     const definition = pages.definitionFor(req.params.formulaKey);
     const outcome = await readSavedResults(definition, req);
     const saved = req.query?.saved === "1" ? brandCard("Saved", "The answer and the figures it came from are kept with your business.") : "";
