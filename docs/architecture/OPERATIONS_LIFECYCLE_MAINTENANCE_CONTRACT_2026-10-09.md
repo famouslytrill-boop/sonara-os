@@ -43,6 +43,44 @@ paused or maintenance -> active only (fresh health and exact-head release gates)
 - A security incident must be independently confirmed before a lockdown candidate. Leaving lockdown/offline is a two-step process: reviewed recovery to paused, then health/CI-gated activation.
 - Restart or startup of the website is not granted by a health check or an alert. Kubernetes distinguishes startup, readiness and liveness probes; a readiness failure is not itself proof that restarting will help.
 
+## Revision-bound operational receipts (pass 6)
+
+The pure **reviewOperationalTransitionLedger** function validates an ordered stream of *proposed* lifecycle receipts against the existing lifecycle state machine. It has NO database adapter, signed-approval verification, or runtime execution authority.
+
+**Input contract:** scope (platform/tenant), canonical organization ID where tenant-scoped, known initial mode and nonnegative integer revision, plus at most 512 event deliveries. Events contain a safe event ID, canonical actor UUID, exact scope, from/to modes, exact next revision, a timestamp, evidence flags and a structured approval.
+
+**Approval binding:** Each approval identifies its approver, scope/tenant, exact from/to transition, expected prior revision and issued/expiry timestamps, with a validity interval capped at 15 minutes. The receipt must still be valid at transition time. One approval ID cannot be reused across distinct transitions. Duplicate event IDs are accepted only if their replay-relevant fields match exactly. The function rejects cross-tenant scope, changed approval data, event revision gaps, timestamp reversal and forbidden mode transitions. The existing lockdown and resume gates are re-evaluated for every unique event.
+
+**Output:** current reconstructed mode and revision, unique/duplicate event counts, and explicit false values for transitionExecuted, authorizationVerified and durableConsistencyProven. The result describes proposed history consistency, **not** the current database or production state. Unsigned caller-provided flags or receipt objects are not trustworthy evidence of authentication or owner consent.
+
+### Database consistency contract (planned, not applied)
+
+Before creating tables, inspect the existing SONARA control-plane checks, tenant audit events, incident records and RLS policy inventory. A single canonical control state row must be associated with its exact environment, tenant scope, immutable incident/owner-approved action and revision.
+
+The trusted transaction must validate the actual actor and tenant permission, independently fetch/verify the approval and release evidence, check the incident/recovery state, and then conditionally update the state only if mode and revision still match the observed values. Insert a unique immutable audit receipt inside that same transaction. If the conditional update matches zero rows, rollback and reread: **never reuse the stale approval to blindly retry**.
+
+Illustrative SQL pattern (not runnable until canonical schema/role review):
+
+~~~sql
+UPDATE authorized_control_state
+SET mode = :next_mode, revision = revision + 1
+WHERE scope_key = :scope_key
+  AND mode = :expected_mode
+  AND revision = :expected_revision
+RETURNING revision;
+-- Require exactly one row and append the audit receipt
+-- in this transaction; otherwise rollback.
+~~~
+
+PostgreSQL conditional UPDATE/RETURNING is a suitable atomic compare-and-swap foundation (https://www.postgresql.org/docs/current/sql-update.html). NIST SP 800-61 Revision 3 (https://csrc.nist.gov/pubs/sp/800/61/r3/final) informs incident containment and verified recovery. Neither reference establishes that SONARA has deployed this storage contract.
+
+### Adversarial proof requirements
+
+- Verify scope and actor from the *server session*, not JSON booleans.
+- Verify authenticated owner approval, approved action, revision binding, source and expiry using durable signed or authorization-controlled records.
+- Test two conflicting operators, duplicate delivery, reused approval, cross-tenant writes, stale incident clearance, altered audit evidence, long-duration maintenance, missed audit insert and transaction rollback.
+- Reject any direct path from lockdown/offline to active. Keep intentional offline deployment and customer data untouched until owner-approved exact-head release proof and one reversible canary pass.
+
 ## Detection, scanning, alerts and bypass resistance
 
 Keep existing SONARA security pipeline: code scanning and dependency/secret checks, tenant adversarial tests, CI release evidence and owner review. New `security_scan` and `debug_diagnostics` are **bounded classification labels**, not subprocess commands.
