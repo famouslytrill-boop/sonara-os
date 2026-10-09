@@ -889,7 +889,7 @@ describe("September 19 platform pattern convergence", () => {
             organization_id: org, from_mode: "active", to_mode: "paused",
             expected_revision: "7", approved_by: "22222222-2222-4222-8222-222222222222",
             issued_ms: "1900", expires_ms: "2600" }] };
-        if (/^(update|insert) sonara_operations/.test(sql))
+        if (/^(update sonara_operations|insert into sonara_operations)/.test(sql))
           return { rowCount: 1, rows: [{ id: "fixture_id" }] };
         return { rowCount: 0, rows: [] };
       },
