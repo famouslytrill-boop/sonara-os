@@ -74,6 +74,8 @@ function mockFetch(calls,result=true,role="owner"){
       data=[{id:BLOCKED,organization_id:ORG,handle:"blocked-news",state:"public",title:"Blocked News"}];
     }else if(url.pathname.endsWith("/growth_channel_posts")){
       data=[{id:POST,channel_id:BLOCKED,organization_id:ORG,state:"published"}];
+    }else if(url.pathname.endsWith("/rpc/sonara_growth_channel_block_action")){
+      data=typeof result === "string" ? result : "blocked";
     }else if(url.pathname.endsWith("/rpc/sonara_moderate_growth_post")){
       data=result;
     }
@@ -108,8 +110,27 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
       req({id:VISIBLE},{body:{viewer_user_id:BLOCKED}}));
     assert.equal(res.statusCode,303);
     assert.equal(res.redirectTo,"/account/blocked-channels");
-    const post=calls.find(c=>c.url.endsWith("/growth_channel_blocks")&&c.method==="POST");
-    assert.deepEqual(JSON.parse(post.body),{viewer_user_id:USER,channel_id:VISIBLE});
+    const post=calls.find(c=>c.url.endsWith("/rpc/sonara_growth_channel_block_action") && c.method==="POST");
+    assert.ok(post);
+    assert.deepEqual(JSON.parse(post.body),{
+      p_actor_user_id:USER,p_channel_id:VISIBLE,p_action:"block"
+    });
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_blocks")&&c.method!=="GET"),false);
+  });
+
+  it("returns an honest limit error when the atomic block quota is exhausted",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,"block_limit_reached");
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,409);
+    assert.match(res.body,/500 blocked channels/);
+    assert.equal(calls.filter(c=>c.url.endsWith("/rpc/sonara_growth_channel_block_action")).length,1);
+  });
+
+  it("fails closed if the block database RPC refuses the operation",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,"denied");
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,404);
+    assert.equal(res.redirectTo,undefined);
   });
 
   it("rejects cross-origin block attempts without writes",async()=>{
