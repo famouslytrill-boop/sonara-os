@@ -174,7 +174,7 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
   const on=(req,res,next)=>enabled()===true?next():res.status(404).json({ok:false,code:"not_found"});
   const creator=deps.requireWorkspaceAccess(PRODUCT);
   const limiter=deps.createRateLimiter({
-    name:"creator_editorial_workbench",windowSeconds:3600,maxAttempts:30,
+    name:"creator_editorial_workbench",windowSeconds:3600,maxAttempts:1200,
     degradedMaxAttempts:30,scopes:["ip","subject"],
     subjectFrom:req=>req.sonaraUser?.id||req.sonaraAccess?.user?.id,
     getSupabaseServerConfig:deps.getSupabaseServerConfig
