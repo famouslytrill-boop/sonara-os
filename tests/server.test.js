@@ -1912,7 +1912,7 @@ describe("pricing and checkout", () => {
 
   it("POST /api/webhooks/stripe records active subscription state from valid subscription events", async function() {
     const originalWorkspacePrice = process.env.STRIPE_PRICE_WORKSPACE_MONTHLY;
-    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_fixture_workspace";
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_FixtureWorkspace";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_webhook_status_key_1234567890";
@@ -1929,7 +1929,7 @@ describe("pricing and checkout", () => {
           status: "active",
           current_period_end: 1893456000,
           cancel_at_period_end: false,
-          items: { data: [{ price: { id: "price_fixture_workspace" }, quantity: 1 }], has_more: false },
+          items: { data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false },
           metadata: { organization_id: organizationId, plan: "workspace_monthly" }
         }
       }
