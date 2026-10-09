@@ -391,6 +391,17 @@ app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  // CI browser matrix uses an isolated HTTP listener at 127.0.0.1. WebKit
+  // upgrades even loopback script/style URLs when the upgrade directive is
+  // active, reaching a nonexistent HTTPS test listener and rendering the page
+  // unstyled. The production response above remains byte-for-byte unchanged.
+  // Do not relax script-src, connect-src, or any policy for a remote host.
+  // Both NODE_ENV=test and an exact loopback Host are required.
+  if (process.env.NODE_ENV === "test" && !req.secure &&
+      /^127[.]0[.]0[.]1(?::[0-9]+)?$/.test(req.get("host") || "")) {
+    res.setHeader("Content-Security-Policy",
+      res.getHeader("Content-Security-Policy").replace(/; upgrade-insecure-requests$/, ""));
+  }
   next();
 });
 
