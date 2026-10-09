@@ -57,7 +57,7 @@ The Express/server-side client calls only:
 
 The request carries:
 
-1. the existing server-only Supabase service-role JWT;
+1. a server-only Supabase API key in the `apikey` header, preferring a current `sb_secret_…` key and allowing the legacy service-role key only as a transitional fallback;
 2. a timestamp;
 3. an HMAC-SHA256 signature over:
    - timestamp;
@@ -71,7 +71,8 @@ The Edge Function rejects:
 
 - non-POST requests;
 - requests with a browser `Origin` header;
-- invalid service identity;
+- any `Authorization` header;
+- invalid server API keys;
 - stale signatures outside a 120-second clock-skew window;
 - malformed signatures;
 - payloads larger than 32 KiB;
@@ -79,6 +80,25 @@ The Edge Function rejects:
 - operations outside the four-item allowlist.
 
 This is defense in depth. It is not a substitute for network/service isolation, and a total compromise of all backend secrets remains a high-impact event.
+
+### Supabase API-key migration decision
+
+Supabase's current Edge Function authorization documentation distinguishes JWTs from the newer API keys. The platform `verify_jwt` check validates JWTs; `sb_secret_…` keys are API keys and are not JWTs. Supabase's migration guidance says legacy `service_role` JWT keys continue through the end of 2026 but recommends secret keys for backend services and supports named keys for independent rotation.
+
+Because this broker is service-to-service rather than user-JWT-driven:
+
+- `verify_jwt = false` is explicit for this function;
+- the handler validates the `apikey` value against the function's server-only Supabase secret-key set;
+- a new secret key is preferred;
+- the legacy service-role key is only a compatibility fallback;
+- the independent SONARA HMAC is still required;
+- browser-origin requests remain blocked.
+
+References:
+
+- https://supabase.com/docs/guides/functions/auth-headers
+- https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
+- https://supabase.com/docs/guides/functions/secrets
 
 ## Exactly four operations
 
@@ -222,7 +242,7 @@ This branch deliberately does not add DPoP before key custody is proven. A corre
 
 - `lib/sonara-provider-broker-client.cjs`
 - `supabase/functions/google-search-console-broker/index.ts`
-- `supabase/config.toml` explicitly sets `verify_jwt = true` for the function.
+- `supabase/config.toml` explicitly sets `verify_jwt = false` for this service-to-service function; the handler validates the server API key and SONARA HMAC itself.
 - `tests/sonara-provider-broker-client.test.js`
 - `tests/sonara-google-search-console-broker-source.test.js`
 
