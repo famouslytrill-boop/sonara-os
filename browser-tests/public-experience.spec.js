@@ -758,5 +758,86 @@ test.describe("cross-device adaptive workspace browser contract", () => {
       return { narrow, wide };
     });
     expect(result).toEqual({ narrow: "grid", wide: "flex" });
+  });  // This runs in an actual Playwright browser with a real service worker,
+  // unlike the VM-only unit tests. No live sign-in or user data is involved.
+  test("installed public worker isolates retired caches and private responses", async ({ browser }) => {
+    const context = await browser.newContext({ serviceWorkers: "allow" });
+    try {
+      const page = await context.newPage();
+      // The registration code deliberately excludes sign-in routes. Prepare
+      // a retired namespace before triggering the real worker installation.
+      await page.goto(BASE_URL + "/login");
+      const oldCache = "sonara-public-synthetic-previous-release";
+      await page.evaluate(async (name) => {
+        const cache = await caches.open(name);
+        await cache.put("/old-public-resource.js", new Response("retired", {
+          headers: { "Content-Type": "text/javascript", "Cache-Control": "public, max-age=60" }
+        }));
+      }, oldCache);
+
+      await page.goto(BASE_URL + "/pricing");
+      await page.evaluate(() =>
+        navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }));
+      await expect.poll(() => page.evaluate(async () =>
+        Boolean((await navigator.serviceWorker.getRegistration("/"))?.active)
+      )).toBe(true);
+      // A newly installed worker controls navigations beginning with the next
+      // page load, not retroactively taking over an existing tab.
+      await page.reload();
+      await expect.poll(() => page.evaluate(() =>
+        Boolean(navigator.serviceWorker.controller)
+      )).toBe(true);
+
+      const initial = await page.evaluate(async () => {
+        const names = (await caches.keys()).filter((key) => key.startsWith("sonara-public-"));
+        const entries = await Promise.all(names.map(async (name) => ({
+          name,
+          urls: (await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)
+        })));
+        return { names, entries };
+      });
+      expect(initial.names).not.toContain(oldCache);
+      expect(initial.names).toHaveLength(1);
+      expect(initial.entries[0].urls).toContain("/offline");
+      expect(initial.entries[0].urls).toContain("/sonara-one.js");
+      expect(initial.entries[0].urls.every((url) =>
+        !url.startsWith("/api/") && !url.startsWith("/account/"))).toBe(true);
+
+      // The fixture intentionally says "public" even for account-specific
+      // content, proving that a permissive header alone cannot authorize the
+      // worker to intercept or retain a forbidden URL.
+      await page.route("**/api/account/tenant-summary.js", (route) =>
+        route.fulfill({
+          status: 200, contentType: "application/javascript",
+          headers: { "Cache-Control": "public, max-age=60" },
+          body: route.request().headers()["x-tenant-fixture"] === "A" ? "tenant-A" : "tenant-B"
+        }));
+      const observed = await page.evaluate(async () => {
+        const fetchRecord = async (tenant) => {
+          const reply = await fetch("/api/account/tenant-summary.js", {
+            headers: { "X-Tenant-Fixture": tenant },
+            cache: "no-store"
+          });
+          return reply.text();
+        };
+        const results = [await fetchRecord("A"), await fetchRecord("B")];
+        const retained = await caches.match("/api/account/tenant-summary.js");
+        return { results, retained: Boolean(retained) };
+      });
+      expect(observed).toEqual({ results: ["tenant-A", "tenant-B"], retained: false });
+
+      // The current worker's anonymous offline fallback must remain usable
+      // without making any authenticated or private page available offline.
+      await context.setOffline(true);
+      await page.goto(BASE_URL + "/pricing");
+      await expect(page.getByText("You are offline")).toBeVisible();
+      await context.setOffline(false);
+      const live = await page.goto(BASE_URL + "/pricing");
+      expect(live.status()).toBe(200);
+    } finally {
+      await context.setOffline(false);
+      await context.close();
+    }
   });
+
 });
