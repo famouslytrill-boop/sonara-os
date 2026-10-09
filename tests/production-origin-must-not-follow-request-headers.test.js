@@ -95,7 +95,7 @@ describe("canonical SONARA origin for all company products", () => {
     try {
       const billing = createBilling({
         STRIPE_PLANS: { workspace_monthly: { name: "One workspace", amountCents: 2900, mode: "subscription" } },
-        getEnv: () => "sk_test_placeholder",
+        getEnv: () => "fixture-key-only-not-a-provider-credential",
         getPublicAppUrl: () => "",
         getSafeAbsoluteUrl: (value, fallback) => value || fallback,
         getSupabaseServerConfig: () => ({ ok: false }),
