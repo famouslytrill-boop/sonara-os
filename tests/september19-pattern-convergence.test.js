@@ -44,6 +44,9 @@ const {
   retryDelayMs,
   sloBudgetState,
   repairAuthorityDecision,
+  OPERATIONAL_MODES,
+  operationalTransitionDecision,
+  maintenanceActionDecision,
   ragQualityScore,
   evaluateProductWorkflowTransition,
   getBackendOperationsIntelligence
@@ -170,6 +173,95 @@ describe("September 19 platform pattern convergence", () => {
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, verified: true }), { continue: false, reason: "verified" });
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, blocked: true }), { continue: false, reason: "policy_blocked" });
     assert.deepEqual(boundedLoopStatus({ attempt: 3, maxIterations: 3 }), { continue: false, reason: "iteration_budget_exhausted" });
+  });
+
+  it("governs pause, resume, maintenance, lockdown, shutdown and startup without bypass", () => {
+    const base = {
+      from: "active", to: "paused", expectedRevision: 4, observedRevision: 4,
+      scope: "platform", scopeVerified: true, actorAuthorized: true, ownerApproved: true
+    };
+    assert.deepEqual(OPERATIONAL_MODES, ["active", "paused", "maintenance", "lockdown", "offline"]);
+    let out = operationalTransitionDecision(base);
+    assert.equal(out.candidate, true);
+    assert.equal(out.nextRevision, 5);
+    assert.equal(out.transitionExecuted, false);
+    assert.equal(out.releaseAuthorized, false);
+    assert.equal(out.requiresDurableCompareAndSwap, true);
+    assert.equal(operationalTransitionDecision({ ...base, expectedRevision: 3 }).reason, "stale_or_missing_revision");
+    assert.equal(operationalTransitionDecision({ ...base, observedRevision: 3 }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, ownerApproved: false }).reason, "owner_approval_required");
+    assert.equal(operationalTransitionDecision({ ...base, actorAuthorized: false }).reason, "operator_authority_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, scopeVerified: false }).reason, "scope_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, bypassRequested: true }).reason, "policy_bypass_refused");
+    assert.equal(operationalTransitionDecision({ ...base, overrideReleaseGate: true }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "paused" }).reason, "no_op_transition");
+    assert.equal(operationalTransitionDecision({ ...base, from: "offline", to: "active" }).reason, "transition_not_allowed");
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "active" }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, to: "nonsense" }).reason, "unknown_operational_mode");
+    assert.equal(operationalTransitionDecision({ ...base, to: "lockdown" }).reason, "incident_evidence_missing");
+    out = operationalTransitionDecision({ ...base, to: "lockdown", verifiedSecurityIncident: true });
+    assert.equal(out.candidate, true);
+    out = operationalTransitionDecision({ ...base, to: "maintenance" });
+    assert.equal(out.reason, "in_flight_jobs_not_drained");
+    assert.equal(operationalTransitionDecision({ ...base, to: "maintenance", inFlightJobsDrained: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "paused" }).reason, "recovery_evidence_missing");
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "paused",
+      incidentClearedVerified: true, recoveryVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "offline", to: "paused",
+      incidentClearedVerified: true, recoveryVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "active",
+      healthVerified: true, releaseGatesVerified: true }).reason, "startup_release_or_health_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "active",
+      healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline" }).reason, "shutdown_plan_unreviewed");
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true }).candidate, true);
+  });
+
+  it("proposes bounded scans and maintenance but never executes cleanup or defragmentation", () => {
+    const base = { action: "security_scan", mode: "active", scopeVerified: true,
+      actorAuthorized: true, maxItems: 20, maxDurationMs: 3000 };
+    let out = maintenanceActionDecision(base);
+    assert.equal(out.candidate, true);
+    assert.equal(out.executed, false);
+    assert.equal(out.dataDeleted, false);
+    assert.equal(out.commandIssued, false);
+    assert.equal(maintenanceActionDecision({ ...base, command: "rm -rf /" }).reason, "arbitrary_command_or_bypass_refused");
+    assert.equal(maintenanceActionDecision({ ...base, path: "/customer/private" }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, force: true }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, bypassRequested: true }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, maxItems: 1001 }).reason, "unbounded_maintenance_budget");
+    assert.equal(maintenanceActionDecision({ ...base, maxDurationMs: 0 }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, actorAuthorized: false }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, action: "service_restart" }).ownerReviewRequired, true);
+    assert.equal(maintenanceActionDecision({ ...base, action: "disk_defragmentation" }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, action: "retention_purge_review",
+      mode: "maintenance", ownerApproved: true, inFlightJobsDrained: true,
+      backupVerified: true }).reason, "retention_policy_and_storage_authority_review_required");
+    const maintain = { ...base, mode: "maintenance", ownerApproved: true,
+      inFlightJobsDrained: true, backupVerified: true };
+    assert.equal(maintenanceActionDecision({ ...base, action: "cache_cleanup_review" }).reason, "maintenance_mode_required");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review", legalHold: true })
+      .reason, "legal_or_incident_hold");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review" })
+      .reason, "cache_scope_or_retention_protection_unverified");
+    out = maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review",
+      cacheOnlyTargetsVerified: true, retentionProtectedTargetsExcluded: true });
+    assert.equal(out.candidate, true);
+    assert.equal(out.dataDeleted, false);
+    assert.equal(out.ownerReviewRequired, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "vacuum_analyze_review" })
+      .reason, "database_metrics_or_window_missing");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "vacuum_analyze_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true }).candidate, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "reindex_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true }).reason, "database_lock_impact_unreviewed");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "reindex_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true,
+      lockImpactReviewed: true }).candidate, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "isolated_restore_drill" })
+      .reason, "isolated_restore_environment_missing");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "isolated_restore_drill",
+      isolatedEnvironmentVerified: true }).candidate, true);
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
