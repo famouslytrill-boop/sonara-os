@@ -282,7 +282,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       title: "How the business is doing", eyebrow: "Business Builder", heading: "How the business is doing",
       body: "Money received, bookings, hours worked and stock, from what you have recorded.",
       sections,
-      actions: [linkAction("/business-builder/owner/catering", "Plan a catering event"), linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/owner/work-orders", "Work orders"), linkAction("/business-builder/dashboard", "Back to your workspace")]
+      actions: [linkAction("/business-builder/owner/catering", "Plan a catering event"), linkAction("/business-builder/owner/financial-scenarios", "Financial planning tools"), linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/owner/work-orders", "Work orders"), linkAction("/business-builder/dashboard", "Back to your workspace")]
     }));
     const scope = await context(req);
     if (!scope.ok) return page([operationsPages.unreadableCard(["workspace"], escapeHtml)], scope.status);
