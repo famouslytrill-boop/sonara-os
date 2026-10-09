@@ -3,6 +3,7 @@
 "use strict";
 
 const { estimateCatering } = require("../lib/sonara-catering-estimator.cjs");
+const { draftQuoteHandoff } = require("../lib/sonara-catering-quote-handoff.cjs");
 const { simulateMicrotransaction, reviewNonprofitContribution } = require("../lib/sonara-business-transaction-review.cjs");
 const { assessEventResourceScenario } = require("../lib/sonara-event-resource-scenario.cjs");
 const { previewRestaurant, previewPublicEvent } = require("../lib/sonara-restaurant-seo-previews.cjs");
@@ -98,14 +99,29 @@ function registerCateringRoutes(app, deps = {}) {
       '</ul><p>Nothing was saved, charged, sent, or reserved.</p></article>'
       : '<article role="alert"><h2>Please correct the estimate</h2><ul>' +
         estimate.issues.map((s) => '<li>' + escapeHtml(s.replace(/_/g, " ")) + '</li>').join("") + '</ul></article>';
+    // The calculator creates no database record by itself. An owner must
+    // deliberately save a draft summary using the existing quotes endpoint.
+    // The generic quote API rechecks manager authorization and tenant scope.
+    // Only the supported summary fields are submitted, not a fake booking
+    // or a claimed customer approval. The line-item math is not yet persisted.
+    const handoff = estimate?.ok ? draftQuoteHandoff(estimate, values.menu_name) : null;
+    const quoteAction = handoff?.ok
+      ? '<section><h2>Save your estimate</h2><p>' + escapeHtml(handoff.note) +
+        '</p><form method="post" action="' + handoff.destination + '">' +
+        '<input type="hidden" name="title" value="' + escapeHtml(handoff.fields.title) + '">' +
+        '<input type="hidden" name="amount_cents" value="' + handoff.fields.amount_cents + '">' +
+        '<input type="hidden" name="status" value="draft">' +
+        '<button type="submit">Save draft quote summary</button></form></section>'
+      : handoff ? '<p role="status">The calculated total cannot be saved in the existing quotes table: ' +
+        escapeHtml(handoff.code.replace(/_/g, " ")) + '.</p>' : "";
     res.set("Cache-Control", "private, no-store");
     return res.status(status).type("html").send(layout({
       title: "Catering and event planning",
       eyebrow: "Business Builder",
       heading: "Plan a catering event",
       body: "Calculate portions, sales, food costs, operating costs and a proposed deposit. No payment or booking occurs.",
-      sections: [form, detail],
-      actions: [linkAction("/business-builder/owner/menu", "Manage menu"), linkAction("/business-builder/owner/recipes", "Manage recipes"), linkAction("/business-builder/owner/bookings", "Manage bookings"), linkAction("/business-builder/owner/schedules/week", "Check staffing"), linkAction("/growth-studio/owner/events", "Plan event promotion"), linkAction("/creator-studio/dashboard", "Create event artwork"), linkAction("/business-builder/owner/operations", "View operations")]
+      sections: [form, detail, quoteAction],
+      actions: [linkAction("/business-builder/owner/quotes", "View saved quotes"), linkAction("/business-builder/owner/menu", "Manage menu"), linkAction("/business-builder/owner/recipes", "Manage recipes"), linkAction("/business-builder/owner/bookings", "Manage bookings"), linkAction("/business-builder/owner/schedules/week", "Check staffing"), linkAction("/growth-studio/owner/events", "Plan event promotion"), linkAction("/creator-studio/dashboard", "Create event artwork"), linkAction("/business-builder/owner/operations", "View operations")]
     }));
   }
 
