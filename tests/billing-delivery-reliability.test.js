@@ -408,7 +408,7 @@ describe("billing delivery reliability", () => {
 
   it("leaves canceled subscription reconciliation retryable when entitlement persistence fails", async () => {
     const calls = [];
-    global.fetch = async (url, options) => {
+    global.fetch = async (url) => {
       calls.push(String(url));
       if (String(url).includes("billing_subscriptions?select=")) return {
         ok: true, json: async () => [{
