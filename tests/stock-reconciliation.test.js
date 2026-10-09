@@ -54,6 +54,13 @@ describe("Producer/distributor/retailer stock reconciliation preflight", () => {
     assert.equal(result.status,"blocked");
     assert.ok(result.issues.includes("count_below_existing_holds"));
   });
+  it("does not hide reservation corruption behind an unchanged count", () => {
+    const p=fixture();p.count.physicalCountMilli=12000;p.reservations.heldMilli=13000;
+    const r=proposeCycleCountAdjustment(p);
+    assert.equal(r.deltaMilli,0);
+    assert.equal(r.status,"blocked");
+    assert.ok(r.issues.includes("reservation_exceeds_on_hand"));
+  });
   it("blocks adjusting stock that already has more holds than on-hand", () => {
     const p=fixture();p.reservations.heldMilli=13000;
     const result=proposeCycleCountAdjustment(p);
