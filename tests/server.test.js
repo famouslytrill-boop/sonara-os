@@ -1918,7 +1918,7 @@ describe("pricing and checkout", () => {
     const organizationId = "00000000-0000-0000-0000-000000000051";
     const payload = JSON.stringify({
       id: "evt_subscription_updated",
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       livemode: false,
       data: {
         object: {
