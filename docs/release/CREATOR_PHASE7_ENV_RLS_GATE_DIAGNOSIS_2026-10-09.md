@@ -19,13 +19,17 @@ The classification check must remain bidirectional. Do not whitelist unknown env
 
 `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` aborts at its **preflight** with `P1 policy definition drift on 25 policies`. Native migration history replay reached that staging-only probe. This result does **not** show that the proposed Creator tables were migrated — they reside in `docs/sql-proposals` only. A single unexpected definition could change access rights; a 25-row mismatch needs exact row-by-row evidence.
 
-In this branch, the P1 probe retains its equality checks and exception/rollback. On any mismatch it now prints each policy's name, differing dimensions (roles, command, USING, WITH CHECK, permissiveness) and both expected and observed expressions. It **does not** rewrite, skip, loosen or approve any policy. Rerun native PG16/17/18 and examine these details to decide whether the expected fixture is stale, the applied migration authority changed, or the PostgreSQL catalog formatting changed. Only then adjust the fixture or create a reviewed forward migration, preserving tenant-denial checks and a real rollback.
+The diagnostic replay supplied the exact answer: migration `supabase/migrations/20261008100000_tighten_service_role_rls_policies.sql` has **already** hardened the target policies. Native pg_policies reports 21 service-only policies using `TO service_role USING true WITH CHECK true` and four authenticated ownership SELECT policies using `(( SELECT auth.uid() AS uid) = user_id)`. The old P1 test targeted their pre-migration scalar `auth.role()` and `auth.uid()` forms, making it obsolete after the approved migration history executes.
+
+The updated P1 probe now requires those **exact post-hardening definitions for all 25 policies** (21 + 4). It keeps the strict role, command, permissive, USING and WITH CHECK comparisons; confirms the categories again after the approved subscription-duplicate drop, and still ends `ROLLBACK`. It no longer re-applies legacy `ALTER POLICY` commands that would conflict with the already-hardened state. A dedicated regression test pins these 25 expected roles/predicates and proves the rollback cannot disappear. The existing P0 two-tenant role matrix still runs first.
+
+This is a *test-fixture reconciliation*, not a production migration, bypass of tenant access, approval to merge, or proof that the next native replay has passed.
 
 ## Release gates
 
 1. Prove `pnpm run verify:env`, `pnpm run lint`, `pnpm test`, typecheck and Node compatibility pass on the exact head.
-2. Preserve `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` fail-closed preflight and its `ROLLBACK`. Never weaken expected count = 25 or the subscription duplicate proof simply to make CI green.
-3. Compare the actual catalog fields reported by native Postgres across all tested versions with the migration authority, and reconcile before proposing any database modification.
+2. Preserve `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` fail-closed preflight, 21 service-role and 4 ownership definitions, strict expression equality, P0 two-tenant role matrix, subscription duplicate proof, and mandatory `ROLLBACK`.
+3. Confirm the updated P1 expected values on native PostgreSQL 16, 17, and 18. Any version-specific policy output divergence must fail until separately explained; do not relax equality.
 4. Re-run P0 tenant role tests, P1 protected RLS pre/postflight, and independent story-save double-writer/archiving/rollback tests before applying any Creator story or World Bible migrations.
 5. Preserve default-off `SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED`, `SONARA_INTERACTIVE_DRAFT_PREVIEW_ENABLED`, `SONARA_STORY_REVISION_PERSISTENCE_ENABLED`. Require owner-approved staging + tenant canary before activation.
 
