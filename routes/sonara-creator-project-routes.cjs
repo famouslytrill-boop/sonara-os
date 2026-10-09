@@ -62,7 +62,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     }
     const fields = [
       ["bpm", "Tempo (beats per minute)", grid.bpm, 20, 320],
-      ["beatsPerBar", "Beats per bar", grid.beatsPerBar, 2, 12],
+      ["beatsPerBar", "Tempo pulses per bar (for 6/8 with dotted-quarter BPM use 2)", grid.beatsPerBar, 2, 12],
       ["bars", "Number of bars", grid.bars, 1, 128],
       ["offsetFrames", "Start frame offset", grid.offsetFrames, 0, 2000000]
     ].map(([key, label, value, min, max]) => `<label>${esc(label)}<input name="${key}" type="number" min="${min}" max="${max}" step="1" value="${value}" required></label>`).join("");
@@ -70,7 +70,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const params = new URLSearchParams({ bpm: String(grid.bpm), beatsPerBar: String(grid.beatsPerBar), bars: String(grid.bars), offsetFrames: String(grid.offsetFrames), frameRate: grid.frameRate });
     const rows = grid.markers.map((row) => `<tr><th scope="row">${row.bar}</th><td>${row.beat}</td><td>${row.frame}</td><td>${row.seconds.toFixed(3)}</td></tr>`).join("");
     return page(res, "Film and music beat grid", [
-      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter a tempo, time signature and film frame rate. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
+      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter tempo pulses per minute, how many of those pulses are in each bar, and a film frame rate. A 6/8 measure often uses two dotted-quarter pulses. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
       `<section class="card"><h2>Marker results</h2><p>${grid.bars} bars · ${grid.approximateDurationSeconds} seconds of music · ${grid.durationFrames} frames of picture after the offset.</p><p>${esc(grid.note)}</p><p><a class="action" href="${base}/beat-grid?${params.toString()}&format=csv">Download beat-marker CSV</a></p><div class="table-scroll"><table><thead><tr><th scope="col">Bar</th><th scope="col">Beat index</th><th scope="col">Absolute frame</th><th scope="col">Timeline seconds</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
       `<p><a href="${base}">Return to your projects</a> · <a href="/creator-studio/tools/storyboard">Storyboard builder</a> · <a href="/business-builder/tools/reorder-point">Reorder-point calculator</a></p>`
     ]);
