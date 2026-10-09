@@ -63,6 +63,22 @@ insert into public.inventory_stock_adjustment_approvals(
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-req-001','cycle_count',0,'each',null,8,'approved');
 
+-- Changing only the catalog unit must invalidate an old physical count
+-- approval even though the stock quantity and stock_version have not moved.
+update public.inventory_items set unit='kg'
+  where id='25000000-0000-4000-8000-000000000010';
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')$q$,
+  'stock_adjustment_item_identity_changed');
+select pg_temp.require_true(
+  (select quantity=10 and stock_version=0 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010'),
+  'changed unit did not mutate stock before owner reconciliation');
+update public.inventory_items set unit='each'
+  where id='25000000-0000-4000-8000-000000000010';
+
 select pg_temp.require_true(
   (public.sonara_apply_stock_count_adjustment(
     '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
