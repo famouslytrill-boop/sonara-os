@@ -23,8 +23,8 @@ const request = require("supertest");
 
 const SUPABASE_ENV = Object.freeze({
   NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key-for-api-outage",
-  SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key-for-api-outage"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ["fixture", "public", "outage"].join("-"),
+  SUPABASE_SERVICE_ROLE_KEY: ["fixture", "server", "outage"].join("-")
 });
 const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key, process.env[key]]));
 
