@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const precision = require("../public/sonara-location-precision.js");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
 
 // The `create table ... location_events` block, and only that block.
 //
@@ -197,17 +198,14 @@ describe("the page and the header that let it work at all", () => {
   // geolocation=() denies the feature to this origin too, so every part of this
   // -- the table, the endpoint, the page, the helpers -- could never run.
   it("permits this origin to ask for a position, and no embedded third party", () => {
-    const header = server.match(/setHeader\("Permissions-Policy", "([^"]+)"\)/);
-    assert.ok(header, "the Permissions-Policy header has moved; this check has gone blind");
-    assert.match(header[1], /geolocation=\(self\)/);
-    assert.doesNotMatch(header[1], /geolocation=\*/);
-    // The camera is asserted here so that widening one permission does not
-    // quietly widen the others beside it. The microphone is no longer `()` --
-    // calling opened it to `(self)` on 27 August, recorded in SECURITY_NOTES.md
-    // and asserted in tests/a-call-never-passes-through-us.test.js. This
-    // assertion is narrowed rather than deleted: something must still fail when
-    // the camera is opened, and it is this.
-    assert.match(header[1], /camera=\(\)/);
+    const header = permissionsPolicyFor("default");
+    assert.match(header, /geolocation=\(self\)/);
+    assert.doesNotMatch(header, /geolocation=\*/);
+    // Geolocation is deliberately available to this origin for explicit
+    // check-ins, while unrelated high-entropy sensors stay denied by default.
+    assert.match(header, /camera=\(\)/);
+    assert.match(header, /accelerometer=\(\)/);
+    assert.match(header, /gyroscope=\(\)/);
   });
 
   it("records the reason for the header change where AGENTS.md requires it", () => {
