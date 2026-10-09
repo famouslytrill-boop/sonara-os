@@ -255,15 +255,25 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
   }
   // Catalogued parent for parameterized revision and export pages. It shows
   // the same tenant-scoped saved drafts, never a synthetic "not found" index.
-  app.get(ROUTE+"/drafts",on,creator,noCache,async(req,res)=>{
+  // The registered landing pages render an honest unavailable state even
+  // before activation. They never attempt storage or display editable forms
+  // while the editor itself remains disabled. Every write/export/API stays off.
+  const landing = async(req,res,isIndex)=>{
+    if(enabled()!==true){
+      return res.status(200).type("html").send(deps.layout({
+        title:"Editorial Workbench",eyebrow:"Creator Studio",
+        heading:"Writing workspace not enabled",
+        body:"This optional feature is not active. Notes, scripts, drafts and exports are not available here yet.",
+        sections:['<section class="card"><h2>Not available</h2><p>No draft was opened, generated, saved or published. Return to Creator Projects for tools that are currently available.</p></section>'],
+        actions:[deps.linkAction("/creator-studio/projects","Creator Projects")]
+      }));
+    }
     const recent=await list(req);
-    res.status(recent.ok?200:recent.status).type("html")
-      .send(htmlPage({},null,recent.ok?"Saved workspace draft revisions":"Draft storage is currently unavailable.",recent));
-  });
-  app.get(ROUTE,on,creator,noCache,async(req,res)=>{
-    const recent=await list(req);
-    res.status(200).type("html").send(htmlPage({},null,null,recent));
-  });
+    return res.status(isIndex && !recent.ok ? recent.status : 200).type("html")
+      .send(htmlPage({},null,isIndex ? (recent.ok?"Saved workspace draft revisions":"Draft storage is currently unavailable.") : null,recent));
+  };
+  app.get(ROUTE+"/drafts",creator,noCache,(req,res)=>landing(req,res,true));
+  app.get(ROUTE,creator,noCache,(req,res)=>landing(req,res,false));
   app.get(ROUTE+"/drafts/:id",on,creator,noCache,async(req,res)=>{
     const found=await readOne(req,req.params.id);
     if(!found.ok)return res.status(found.status).type("html").send(htmlPage({},null,"Draft not available.",null));
