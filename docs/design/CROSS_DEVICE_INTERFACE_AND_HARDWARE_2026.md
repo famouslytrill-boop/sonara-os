@@ -249,3 +249,15 @@ Official references:
 - Supabase RLS guidance: https://supabase.com/docs/guides/database/postgres/row-level-security
 
 - Additional completed SONARA One Validation evidence from the previous exact head: 7,114 passing tests and one failing asset-version assertion caused by an obsolete hardcoded release token in a `server.js` comment. Replaced the historical literal example with a version-agnostic description; the existing asset-version test remains unchanged. Await the exact-head rerun.
+
+## Phase 11: immutable public-asset cache-busting
+
+**Verified risk:** SONARA serves query-versioned static CSS and JavaScript with one-year immutable HTTP caching. Workspace navigation, locale behavior, and public cache policy changed after the prior v24 token was assigned, while the displayed URLs stayed at v24. Returning browser installations could therefore keep running incompatible cached scripts or styles.
+
+**Implementation:** Advance the common release token to `sonara-ui-20261009-v25-cross-device` across the server-side page frame, worker version and precache URL list, font-face asset references, and navigation contract assertions in the same exact-head commit. The backend's dynamic asset-version and handoff contract tests are deliberately unchanged. An unchanged URL must never be relied upon to refresh immutable resources; after any further shipped JS/CSS changes, bump the token again or replace this convention with content-hashed asset filenames.
+
+**Acceptance:** The complete unit suite, asset-version contract, worker fallback/upgrade tests, all browser engines, and live proof of release SHA plus asset URL must be green. No production rollout or client cache purges were carried out here.
+
+Sources:
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+- https://web.dev/learn/pwa/update
