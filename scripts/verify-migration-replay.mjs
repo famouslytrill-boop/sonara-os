@@ -720,6 +720,32 @@ function main() {
         where schemaname = 'public' and tablename = 'customers' and policyname = 'customers_select_member';
     `, ["customers_policy_1"]);
 
+    // Phase 9: SQL proposals are NOT in the migration ledger. Test their
+    // behavior only in a distinct throwaway DATABASE CLONED from the freshly
+    // replayed canonical schema. This avoids mutating the canonical fixture,
+    // the counted migration tables, and all production resources.
+    // Never call this against a hosted or non-disposable PostgreSQL cluster.
+    const creatorDb = "replay_creator_proposals";
+    const cloned = psql(`CREATE DATABASE ${creatorDb} TEMPLATE replay;`, { db: "postgres" });
+    if (cloned.status !== 0) stop(
+      `Cannot create isolated Creator SQL-proposal fixture: ${cloned.stderr || cloned.stdout}`);
+    for (const filename of [
+      "creator-world-bibles-2026-10-09.sql",
+      "creator-story-draft-revisions-2026-10-09.sql"
+    ]) {
+      const proposed = psql(null, {
+        file: path.join(root, "docs/sql-proposals", filename), db: creatorDb
+      });
+      if (proposed.status !== 0) stop(
+        `Creator SQL proposal ${filename} cannot apply to an isolated replay clone:\n${proposed.stderr || proposed.stdout}`);
+    }
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator SQL proposals enforce RLS, grants, revision history and archive refusal",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-proposal-proof.sql"), "utf8"),
+      ["creator_story_proposal_privileges_rls_cas_archive_passed"]);
+    console.log("Creator draft SQL proposals validated in a separate disposable clone; " +
+      "they are still NOT canonical migrations or deployed production tables.");
+
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
     // What this sentence must not be read as, and the reason is not hypothetical.
     //
