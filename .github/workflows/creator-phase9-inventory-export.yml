@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/creator-phase9-route-data-contracts-20261009
+  pull_request:
+    branches:
+      - fix/creator-phase8-proposal-contract-20261009
 
 permissions:
   contents: read
