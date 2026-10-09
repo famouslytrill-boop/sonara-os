@@ -108,6 +108,24 @@ For a work rate `lambda` jobs/hour, mean service time `t` milliseconds, `c` jobs
 
 Trace the sequence: monitor -> incident evidence -> proposed lifecycle state -> human review -> compare-and-swap transition -> durable audit receipt -> bounded scan/repair -> verification -> restoration evidence -> resume. Preserve `trace_id`, a non-PII correlation ID and per-run event sequence. One missed step blocks the next.
 
+## Read-only Supabase schema reconciliation — 2026-10-09
+
+The connected Supabase project is an **active preview-channel database**, not independently established as SONARA's canonical production database. I inspected table metadata, migration history and security advisors **read-only**. Do not equate a connected/healthy preview project with a production authorization.
+
+The preview schema listed 418 `public` tables and 163 applied migrations, through `20261008100000` at the inspection. Existing relevant tables are:
+- `public.sonara_control_plane_checks`: check definitions/status metadata (`check_key`, `check_type`, `target_key`, `expected_result`, `status`) but **no scoped mode revision or append-only authorized transition history**. This table is a registry; it must not be repurposed as an operational state lock.
+- `public.platform_jobs` and `public.platform_job_events`: general-purpose worker records and events; their inspected columns do not expose a tenant-scoped workflow-run version, immutable operation revision or fencing epoch. Their current global idempotency key is insufficient for tenant-specific lifecycle authorization.
+- `public.system_audit_events`: audit records with `actor_id` and flexible metadata, but not a canonical `(environment, scope, tenant, revision)` uniqueness/transaction contract.
+- `public.entity_incidents`: incident records tied to an entity and status, not necessarily the authorized platform shutdown/restore state.
+
+The security advisor reported informational findings for 66 RLS-enabled tables without policies (which may be intentionally private/deny-all), warnings involving eight callable security-definer functions, one public extension location and leaked-password protection. These are **review candidates**, not proof of exploitable access. Follow the advisor remediation guides, least-privilege grant review and adversarial tests before changing access policies.
+
+**Migration decision:** no live DDL was applied; no SQL migration was committed in this pass because the repository-local Supabase CLI and an approved isolated replay database were not available to run `supabase migration new`, security advisers, and `supabase test db` in the prescribed order. This prevents inventing a migration filename, diverging preview/production history or silently mutating an unapproved project.
+
+**Next verified database deliverable:** an additive, migration-replay-tested tenant/platform state record and immutable transition receipts, with RLS enabled, explicit grants revoked for `anon`/`authenticated`, trusted server-derived scope, atomic CAS state+audit writes, one-use approval identity, tenant isolation and historical recovery tests. Keep the connection's production target unconfirmed until an operator independently reconciles Vercel/Supabase environment identity and backup recovery.
+
+Relevant guidance: https://supabase.com/docs/guides/database/postgres/row-level-security and https://www.postgresql.org/docs/current/sql-update.html .
+
 ## Production readiness and release order
 
 1. **P0:** Resolve existing GitHub runner congestion and obtain all exact-head CI checks on the changed commit, without weakening gates.
