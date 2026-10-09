@@ -9,6 +9,7 @@ on:
       - codex/business-management-scope-20261007
       - codex/reservation-workflows-20261007
       - codex/provider-runtime-gsc-20261008
+      - codex/provider-broker-vault-gsc-20261008
 
 permissions:
   contents: write
