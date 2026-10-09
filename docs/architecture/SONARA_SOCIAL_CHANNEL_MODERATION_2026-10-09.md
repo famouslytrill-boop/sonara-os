@@ -41,3 +41,15 @@ Apple App Review Guideline 1.2 requires filtering objectionable content, reporti
 https://developer.apple.com/app-store/review/guidelines/
 
 Next wave: account-level block graph across DMs/follows/mentions, independent abuse queues, escalations and appeals with accessibility, evidence retention and privacy review.
+
+## October 9 subsequent hardening — no-schema deploy safety
+
+The runtime is now **disabled by default** through the exact environment variable `SONARA_GROWTH_CHANNEL_SAFETY_ENABLED=true`. If it is missing/false, existing public channel pages, anonymous reports and tenant-scoped owner report moderation continue through the pre-existing persistence path. No request in the disabled state accesses the proposed new block or moderation-audit tables. The legacy owner moderation path is **not atomic** and does **not** create new audit events; that is why the verified SQL activation still matters.
+
+After an **isolated versioned migration** is applied, the new flag enables account-specific saved channel blocks, bounded RPC writes, moderation audit reads and atomic owner review decisions. Only a verified operator may enable it in the approved environment; a feature flag does not itself apply database changes.
+
+The reviewed SQL proposal now contains an account-serialized `sonara_growth_channel_block_action` with a **500-channel hard cap**, safe unblock, idempotent re-block and an explicit limit response. The application firewall permits only bounded actor-filtered block reads and refuses raw inserts/deletes. Both channel blocking and moderation mutations require a configured canonical HTTPS origin, never an inferred Host header.
+
+The acceptance specification `docs/sql-proposals/tests/growth-channel-safety-pgtap.sql` contains 22 checks for RLS, privileges, available RPCs and denial for invalid actors. It is intentionally kept **outside** the `supabase/tests` auto-discovery tree because the proposal has not been applied. After migration on isolated Postgres, move it into the test database tree, run `supabase test db`, and supplement with concurrent writers to prove the 500-account cap. **No pgTAP execution or migration replay has occurred yet.**
+
+The current isolated JavaScript checks cover the active and default-off paths, moderator identity restrictions, host-spoofed origins, block quota error cases, and report/takedown fallback, but cannot prove real PostgreSQL semantics or that GitHub Actions has passed.

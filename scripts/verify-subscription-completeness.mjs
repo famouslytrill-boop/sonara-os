@@ -99,9 +99,12 @@ const LIMITERS = Object.freeze({
   public_event_rsvp: "anonymous_surface",
   public_store_order: "anonymous_surface",
   public_channel_report: "anonymous_surface",
-  // Profile reports/blocks use transactional quotas at the database and a
-  // high-ceiling IP flood safeguard at the HTTP boundary.
+  // Signed-in profile block/report flood safeguard. Per-actor database
+  // report and saved-block quotas remain independent of this HTTP ceiling.
   social_account_safety: "abuse_ceiling",
+  // Authenticated block toggles cannot become a throttle on normal subscription
+  // activity; the database separately enforces the saved-block safety limit.
+  growth_channel_block_toggle: "abuse_ceiling",
   // Stripe's Connect webhook: nobody is signed in, and the signature is what
   // authenticates it.
   stripe_connect_webhook: "anonymous_surface",

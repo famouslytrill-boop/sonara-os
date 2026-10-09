@@ -45,7 +45,7 @@ const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
   "requireWorkspaceAccess", "getCustomerPrimaryOrganization",
   "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter",
-  "requireCustomer", "resolveCustomerSession"
+  "requireCustomer", "resolveCustomerSession", "getEnv"
 ];
 
 const CHANNEL_TABLE = "growth_channels";
@@ -70,11 +70,15 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     layout, brandCard, linkAction, escapeHtml,
     requireWorkspaceAccess, getCustomerPrimaryOrganization,
     getSupabaseServerConfig, supabaseHeaders, createRateLimiter,
-    requireCustomer, resolveCustomerSession
+    requireCustomer, resolveCustomerSession, getEnv
   } = deps;
 
   const enc = encodeURIComponent;
   const OWNER_PAGE = "/growth-studio/owner/channels";
+  // Keep the pre-existing public channel/report experience available until the
+  // new tables and RPCs have passed isolated DB replay and operator approval.
+  const advancedSafetyEnabled = () =>
+    getEnv("SONARA_GROWTH_CHANNEL_SAFETY_ENABLED") === "true";
   const guard = requireWorkspaceAccess("growth_studio");
 
   async function scopeFor(req) {
@@ -121,6 +125,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   }
 
   async function viewerBlocks(req, res, config) {
+    if (!advancedSafetyEnabled()) return { ok: true, viewer: null, rows: [] };
     const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
     const viewer = session?.ok ? session.user : null;
     if (!viewer?.id) return { ok: true, viewer: null, rows: [] };
@@ -136,11 +141,16 @@ function registerGrowthChannelRoutes(app, deps = {}) {
 
   const blockLimiter = createRateLimiter({
     name: "growth_channel_block_toggle",
-    windowSeconds: 3600, maxAttempts: 60, scopes: ["ip"],
+    windowSeconds: 3600, maxAttempts: 600, scopes: ["ip"],
     getSupabaseServerConfig
   });
 
   app.get("/account/blocked-channels", requireCustomer, async (req, res) => {
+    if (!advancedSafetyEnabled()) return res.status(200).type("html").send(layout({
+      title: "Blocked channels", eyebrow: "Your account",
+      heading: "Blocked channels", body: "Blocking channels is not available yet.",
+      sections: [], actions: [linkAction("/channels", "All channels")]
+    }));
     const config = getSupabaseServerConfig();
     if (!config?.ok) return failedPage(res, "Your blocked channels cannot be read just now.", 503);
     const blocks = await rest(config,
@@ -168,10 +178,12 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   });
 
   async function changeBlock(req, res, blocking) {
+    if (!advancedSafetyEnabled()) {
+      return res.status(503).type("text/plain").send("Channel blocking is not available yet.");
+    }
     // Cookie-backed mutation: reject forged cross-origin form submissions.
-    const origin = String(req.headers?.origin || "");
-    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
-      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
     }
     const id = String(req.params.id || "");
     if (!safety.isUuid(id) || !safety.isUuid(req.sonaraUser?.id)) {
@@ -179,14 +191,28 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
     const config = getSupabaseServerConfig();
     if (!config?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
-    const result = blocking
-      ? await write(config, `${BLOCK_TABLE}?on_conflict=viewer_user_id,channel_id`,
-          { viewer_user_id: req.sonaraUser.id, channel_id: id }, "POST",
-          "resolution=ignore-duplicates,return=minimal")
-      : await write(config,
-          `${BLOCK_TABLE}?viewer_user_id=eq.${enc(req.sonaraUser.id)}&channel_id=eq.${enc(id)}`,
-          undefined, "DELETE");
-    if (!result.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    // One server-only PostgreSQL transaction enforces a shared 500-block
+    // ceiling even when requests arrive concurrently from multiple devices.
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_growth_channel_block_action`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_actor_user_id: req.sonaraUser.id,
+        p_channel_id: id,
+        p_action: blocking ? "block" : "unblock"
+      })
+    }).catch(() => undefined);
+    if (!response?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    const result = await response.json().catch(() => null);
+    if (result === "block_limit_reached") {
+      return res.status(409).type("text/plain").send("You have reached the limit of 500 blocked channels. Unblock one to add another.");
+    }
+    if (result === "unknown_channel" || result === "denied") {
+      return res.status(404).type("text/plain").send("This channel is not available.");
+    }
+    if (result !== (blocking ? "blocked" : "unblocked")) {
+      return res.status(503).type("text/plain").send("Your block could not be saved.");
+    }
     return res.redirect(303, "/account/blocked-channels");
   }
 
@@ -198,9 +224,8 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   // One database RPC changes the post/reports AND inserts the audit event in
   // one transaction. It checks the current organization membership itself.
   async function moderatePost(req, res, action) {
-    const origin = String(req.headers?.origin || "");
-    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
-      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
     }
     const scope = await scopeFor(req);
     if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
@@ -212,6 +237,33 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       postId: owned.post.id, ownedPostId: owned.post.id, ownedOrganizationId: scope.organizationId
     });
     if (!intent.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    if (!advancedSafetyEnabled()) {
+      // Preserve the existing owner moderation workflow until the proposed
+      // atomic audit procedure has been installed. It remains tenant-scoped
+      // and owner/admin-checked, but is not yet an atomic/audited transition.
+      const now = new Date().toISOString();
+      if (action === "remove") {
+        const removed = await write(scope.config,
+          `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
+          { state: "removed", removed_at: now, updated_at: now }, "PATCH");
+        if (!removed.ok) return res.redirect(303, back({ problem: "save_failed" }));
+        await write(scope.config,
+          `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
+          { state: "actioned", decided_at: now }, "PATCH");
+      } else if (action === "restore") {
+        const restored = await write(scope.config,
+          `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
+          { state: "published", removed_at: null, updated_at: now }, "PATCH");
+        if (!restored.ok) return res.redirect(303, back({ problem: "save_failed" }));
+      } else {
+        const dismissed = await write(scope.config,
+          `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
+          { state: "dismissed", decided_at: now }, "PATCH");
+        if (!dismissed.ok) return res.redirect(303, back({ problem: "save_failed" }));
+      }
+      return res.redirect(303, back({ done: action === "remove" ? "removed" :
+        action === "restore" ? "restored" : "dismissed" }));
+    }
     const response = await fetch(`${scope.config.url}/rest/v1/rpc/sonara_moderate_growth_post`, {
       method: "POST",
       headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json" },
@@ -265,7 +317,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       rest(scope.config, `${POST_TABLE}?select=id,channel_id,kind,body,event_id,state,created_at&${org}&order=created_at.desc&limit=${POST_CAP + 1}`),
       canReview ? rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`) : Promise.resolve({ ok: true, rows: [] }),
       rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`),
-      canReview ? rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`) : Promise.resolve({ ok: true, rows: [] })
+      canReview && advancedSafetyEnabled() ? rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`) : Promise.resolve({ ok: true, rows: [] })
     ]);
 
     // A failed read renders as a failed read. An empty page here is a sentence:
@@ -282,13 +334,13 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
 
     const sections = [];
-    if (canReview) sections.push(brandCard("Moderation decision history",
+    if (canReview && advancedSafetyEnabled()) sections.push(brandCard("Moderation decision history",
       audit.rows.length
         ? "<ul>" + audit.rows.slice(0, 20).map((decision) =>
           `<li>${escapeHtml(decision.action)} on post ${escapeHtml(decision.post_id)} by ${escapeHtml(decision.actor_user_id)}
           at ${escapeHtml(String(decision.created_at))}</li>`).join("") + "</ul>"
         : "No moderation decisions have been recorded."));
-    if (canReview && audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
+    if (canReview && advancedSafetyEnabled() && audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
     // A Growth channel is a basic free login-based SONARA social surface.
     // The subscription policy is shared across parent, Business Builder,
     // Creator Studio and Growth Studio; it is NOT a payment or publish grant.

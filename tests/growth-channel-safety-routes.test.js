@@ -9,7 +9,7 @@ const BLOCKED="33333333-3333-4333-8333-333333333333";
 const VISIBLE="44444444-4444-4444-8444-444444444444";
 const POST="55555555-5555-4555-8555-555555555555";
 const middleware=(_req,_res,next)=>next();
-function setup() {
+function setup(safetyEnabled=true) {
   const handlers=new Map();
   const app={
     get:(p,...h)=>handlers.set("GET "+p,h),
@@ -25,7 +25,9 @@ function setup() {
     requireWorkspaceAccess:()=>middleware,
     getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:ORG}),
     getSupabaseServerConfig:()=>({ok:true,url:"https://database.example.invalid"}),
-    supabaseHeaders:()=>({}), createRateLimiter:()=>middleware
+    supabaseHeaders:()=>({}), createRateLimiter:()=>middleware,
+    getEnv:(name)=>name==="NEXT_PUBLIC_SITE_URL"?"https://sonara.test":
+      name==="SONARA_GROWTH_CHANNEL_SAFETY_ENABLED"?(safetyEnabled?"true":"false"):""
   });
   return handlers;
 }
@@ -74,6 +76,8 @@ function mockFetch(calls,result=true,role="owner"){
       data=[{id:BLOCKED,organization_id:ORG,handle:"blocked-news",state:"public",title:"Blocked News"}];
     }else if(url.pathname.endsWith("/growth_channel_posts")){
       data=[{id:POST,channel_id:BLOCKED,organization_id:ORG,state:"published"}];
+    }else if(url.pathname.endsWith("/rpc/sonara_growth_channel_block_action")){
+      data=typeof result === "string" ? result : "blocked";
     }else if(url.pathname.endsWith("/rpc/sonara_moderate_growth_post")){
       data=result;
     }
@@ -84,6 +88,40 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
   let originalFetch;
   beforeEach(()=>{originalFetch=global.fetch;});
   afterEach(()=>{global.fetch=originalFetch;});
+
+  it("keeps old public channels readable without querying uninstalled safety tables",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"GET","/channels",req());
+    assert.equal(res.statusCode,200);
+    assert.match(res.body,/Visible to me/);
+    assert.match(res.body,/Hidden from me/);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_blocks")),false);
+  });
+
+  it("does not access uninstalled safety RPCs when the rollout flag is off",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,503);
+    assert.equal(calls.length,0);
+  });
+
+  it("preserves pre-existing owner post takedowns while audited RPC is inactive",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"POST","/api/growth/channels/posts/remove",
+      req({},{body:{post_id:POST}}));
+    assert.equal(res.statusCode,303);
+    assert.match(res.redirectTo,/done=removed/);
+    assert.equal(calls.some(c=>c.url.endsWith("/rpc/sonara_moderate_growth_post")),false);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_posts")&&c.method==="PATCH"),true);
+  });
+
+  it("does not read the unapplied audit table for an existing owner page",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"GET","/growth-studio/owner/channels",req());
+    assert.equal(res.statusCode,200);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_moderation_events")),false);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_post_reports")),true);
+  });
 
   it("suppresses an account-blocked channel from directory",async()=>{
     const calls=[];global.fetch=mockFetch(calls);
@@ -108,8 +146,46 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
       req({id:VISIBLE},{body:{viewer_user_id:BLOCKED}}));
     assert.equal(res.statusCode,303);
     assert.equal(res.redirectTo,"/account/blocked-channels");
-    const post=calls.find(c=>c.url.endsWith("/growth_channel_blocks")&&c.method==="POST");
-    assert.deepEqual(JSON.parse(post.body),{viewer_user_id:USER,channel_id:VISIBLE});
+    const post=calls.find(c=>c.url.endsWith("/rpc/sonara_growth_channel_block_action") && c.method==="POST");
+    assert.ok(post);
+    assert.deepEqual(JSON.parse(post.body),{
+      p_actor_user_id:USER,p_channel_id:VISIBLE,p_action:"block"
+    });
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_blocks")&&c.method!=="GET"),false);
+  });
+
+  it("returns an honest limit error when the atomic block quota is exhausted",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,"block_limit_reached");
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,409);
+    assert.match(res.body,/500 blocked channels/);
+    assert.equal(calls.filter(c=>c.url.endsWith("/rpc/sonara_growth_channel_block_action")).length,1);
+  });
+
+  it("fails closed if the block database RPC refuses the operation",async()=>{
+    const calls=[];global.fetch=mockFetch(calls,"denied");
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,404);
+    assert.equal(res.redirectTo,undefined);
+  });
+
+  it("rejects a forged Host header when the canonical site is different",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const request=req({id:VISIBLE});
+    request.get=()=> "evil.example";
+    request.headers.origin="https://evil.example";
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",request);
+    assert.equal(res.statusCode,403);
+    assert.equal(calls.length,0);
+  });
+
+  it("rejects cross-site fetch metadata despite a matching Origin",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const request=req({id:VISIBLE});
+    request.headers["sec-fetch-site"]="cross-site";
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",request);
+    assert.equal(res.statusCode,403);
+    assert.equal(calls.length,0);
   });
 
   it("rejects cross-origin block attempts without writes",async()=>{
