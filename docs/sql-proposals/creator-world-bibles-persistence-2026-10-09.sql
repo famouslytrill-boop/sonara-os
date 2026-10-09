@@ -28,6 +28,30 @@ create table if not exists public.creator_world_bibles (
 create index if not exists creator_world_bibles_tenant_updated_idx
   on public.creator_world_bibles (organization_id, updated_at desc);
 
+-- Lock the parent against concurrent archive/update while a World Bible is
+-- written. Application checks alone would have a read-then-archive race.
+create or replace function public.sonara_world_bible_parent_write_guard()
+returns trigger language plpgsql security invoker
+set search_path = public, pg_temp as $
+begin
+  perform 1 from public.creator_projects
+    where id = new.project_id
+      and organization_id = new.organization_id
+      and archived_at is null
+    for share;
+  if not found then
+    raise exception 'active creator project required' using errcode = '23503';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.sonara_world_bible_parent_write_guard() from public, anon, authenticated;
+grant execute on function public.sonara_world_bible_parent_write_guard() to service_role;
+drop trigger if exists creator_world_bibles_parent_write_guard on public.creator_world_bibles;
+create trigger creator_world_bibles_parent_write_guard
+  before insert or update on public.creator_world_bibles
+  for each row execute function public.sonara_world_bible_parent_write_guard();
+
 alter table public.creator_world_bibles enable row level security;
 revoke all on table public.creator_world_bibles from public, anon, authenticated, service_role;
 -- Supabase Data API exposure increasingly requires explicit grants; these
