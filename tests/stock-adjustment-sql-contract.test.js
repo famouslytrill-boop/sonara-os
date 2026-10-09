@@ -122,7 +122,7 @@ describe("Staged inventory stock version and journal SQL contract", () => {
   it("has balanced, fully delimited PostgreSQL function bodies", () => {
     const openings = migration.split("as $function$").length - 1;
     const closings = migration.split("$function$;").length - 1;
-    assert.equal(openings, 5);
+    assert.equal(openings, 7);
     assert.equal(openings, closings);
   });
   it("never routes custody, expiry, returns or supplier disputes through plain cycle-count stock posting", () => {
@@ -130,6 +130,20 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.ok(migration.includes("stock_custody_evidence_required"));
     assert.ok(behavior.includes("'stock_custody_evidence_required'"));
     assert.ok(behavior.includes("'unaudited damage must not move sellable stock'"));
+  });
+  it("requires immutable employee count requests before a separate owner signs", () => {
+    assert.ok(migration.includes("create table public.inventory_stock_count_requests"));
+    assert.ok(migration.includes("stock_count_request_id uuid not null unique"));
+    assert.ok(migration.includes("stock_review_request_lineage_invalid"));
+    assert.ok(migration.includes("q.actor_user_id <> new.reviewer_user_id"));
+    assert.ok(migration.includes("create function public.sonara_submit_stock_count_request("));
+    assert.ok(migration.includes("create function public.sonara_review_stock_count_request("));
+    assert.ok(migration.includes("stock_review_self_approval_forbidden"));
+    assert.ok(migration.includes("stock_review_owner_role_required"));
+    assert.ok(migration.includes("stock_count_request_key_conflict"));
+    assert.ok(migration.includes("v_result := public.sonara_apply_stock_count_adjustment("));
+    assert.ok(migration.includes("revoke all on public.inventory_stock_count_requests from public,anon,authenticated,service_role"));
+    assert.ok(migration.includes("grant select,insert on public.inventory_stock_count_requests to service_role"));
   });
   it("executes fixtures plus independent-connection races in the required database replay", () => {
     assert.match(replay,/tests\/sql\/stock-adjustment-journal\.sql/);
