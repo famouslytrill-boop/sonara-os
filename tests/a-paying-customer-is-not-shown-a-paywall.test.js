@@ -98,6 +98,29 @@ describe("a paying customer is not shown a paywall we cannot justify", () => {
     assert.equal(result.entitlementKey, "all_three_monthly");
   });
 
+  it("does not unlock an unrelated workspace when all active subscriptions cover different workspaces", async () => {
+    const result = await build({
+      allowedKeys: ["workspace_monthly"],
+      subscriptions: [
+        { plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "growth_studio" } },
+        { plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" } }
+      ]
+    })(USER, "creator_studio");
+    assert.equal(result.ok, false);
+    assert.equal(result.status, 402);
+    assert.equal(result.reason, "different_workspace_chosen");
+  });
+
+  it("does not trust a recurring entitlement when the subscription read fails", async () => {
+    const result = await build({
+      entitlements: [{ entitlement_key: "all_three_monthly", status: "active" }],
+      subscriptions: "failed"
+    })(USER, "creator_studio");
+    assert.equal(result.ok, false);
+    assert.equal(result.status, 503);
+    assert.equal(result.code, "entitlement_unreadable");
+  });
+
   it("fails closed when more active subscriptions exist than can be evaluated", async () => {
     const subscriptions = Array.from({ length: 101 }, (_, index) => ({
       plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" },
