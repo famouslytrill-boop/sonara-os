@@ -34,6 +34,8 @@ describe("Current P1 policy replay contract",()=>{
     assert.match(sql,/subscription policy baseline drift/);
     assert.match(sql,/subscription_count NOT BETWEEN 1 AND 2/);
     assert.match(sql,/subscription_invalid <> 0/);
+    // NULL from an absent/malformed qualifier must be treated as failure.
+    assert.match(sql,/with_check IS NULL\s*\n\s*\) IS DISTINCT FROM TRUE\)/);
     assert.match(sql,/roles=ARRAY\['authenticated'\]::name\[\]/);
     assert.match(sql,/qual IN \(/);
     assert.match(sql,/auth\.uid\(\) = user_id/);
