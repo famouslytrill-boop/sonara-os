@@ -326,10 +326,11 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
-    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
+    // P1 rollback-only proof: a newer applied migration already hardened
+    // 25 auth policies. Verify their *current* exact definitions, then test
+    // removal of one duplicate subscriptions SELECT policy inside ROLLBACK.
+    // Do not revert hardened policies or write to a customer database.
+    behaves(psql, "P1 hardened RLS and subscription-dedup guarded rollback proof",
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
       ["p1_rls_hygiene_staging_passed"]);
 
