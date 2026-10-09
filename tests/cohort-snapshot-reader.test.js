@@ -155,7 +155,15 @@ describe("server-only customer cohort snapshot contract", () => {
 
   it("does not permit a cutoff beyond the authoritative database transaction clock", async () => {
     const client = fakeClient();
-    const result = await report(client, { asOf: "2026-10-08T23:00:00.000Z" });
+    // The manifest must have been exported AFTER its observation cutoff but
+    // BEFORE its signer issued the approval; only the DB snapshot clock fails.
+    const result = await report(client, {
+      asOf: "2026-10-08T23:00:00.000Z",
+      sourceEvidenceBytes: sourceManifest({
+        cutoff: "2026-10-08T23:00:00.000Z",
+        exportedAt: "2026-10-09T00:00:00.000Z"
+      })
+    });
     assert.equal(result.code, "snapshot_read_failed");
     assert.equal(client.calls.at(-1).sql, "ROLLBACK");
     assert.equal(client.releaseCalled, true);
