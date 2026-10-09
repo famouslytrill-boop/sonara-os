@@ -36,7 +36,7 @@ All calculators return `missing_inputs` or `invalid_input` on missing or invalid
 - U.S. BLS, Employer Costs for Employee Compensation, June 2026 (September 9, 2026 release): https://www.bls.gov/news.release/ecec.nr0.htm — benchmark only; customer supplies occupation, location, actual wages and employer costs.
 - U.S. BLS, May 2025 OEWS occupational wages: https://www.bls.gov/oes/tables.htm — occupation-specific sourcing guidance.
 - NIST, Guide to SI / unit notation: https://www.nist.gov/pml/special-publication-811 and exact conversions in NIST Handbook 44.
-- NIST, Life Cycle Costing Manual (HB 135, 2022): https://www.nist.gov/publications/life-cycle-costing-manual-federal-energy-management-program.
+- NIST, Life Cycle Costing Manual (HB 135, 2025): https://doi.org/10.6028/NIST.HB.135e2025 and DOE BLCC overview: https://www.energy.gov/cmei/femp/building-life-cycle-cost-programs.
 - NASA, Kepler and Earth satellite dynamics: https://pwg.gsfc.nasa.gov/stargaze/Skepl3rd.htm.
 - NASA, Rayleigh angular-resolution criterion: https://ntrs.nasa.gov/api/citations/19680013447/downloads/19680013447.pdf.
 - IBM Quantum, Qiskit circuit documentation: https://quantum.cloud.ibm.com/docs/en/api/qiskit/circuit.
@@ -49,3 +49,36 @@ All calculators return `missing_inputs` or `invalid_input` on missing or invalid
 4. Later phases: occupation/location labor benchmarking; local regulations and overtime policy engines; blueprint geometric takeoffs with human review; HVAC thermal models, construction scheduling, life-cycle costing with real cash-flow arrays; cloud billing telemetry; orbital perturbations/SGP4 via reviewed integration; full quantum circuit simulation via a licensed optional adapter. **No safety-critical design decisions from basic scalar formulas.**
 
 The new calculators are public learning/estimating utilities, and their saved results require existing authenticated, tenant-scoped records. They do not implicitly activate external vendors, create new entitlements, or collect personal pay-rate data.
+
+## Phase 2: accuracy, traceability, and broader estimators (October 9, 2026)
+
+Phase 2 adds seven formula keys to the 17 above (24 total) and preserves the original five formula database tables. These new formulas are mapped into the existing public formula page and saved-result route.
+
+| Key | Core equation | Validation/caveats |
+| --- | --- | --- |
+| `project_variable_cash_flow_npv` | `-upfront_cost + Σ CF_t/(1+r)^t`, t from 1 to n | Customer enters 1–100 annual net cash flows in identical currency, constant annual discount rate 0–1; negative net cash flow is allowed; no tax or subsidy assumptions |
+| `roof_pitch_surface_sqft` | `horizontal_plan_area * sqrt(1 + (rise_per_12/12)^2)` | Enter **horizontal projection area**, not already sloped roof area; uniform roof pitch; excludes dormers, valleys, cuts, overhangs, waste and safety review |
+| `trade_bid_gross_margin_percent` | `100*(bid - direct_cost)/bid` | Distinguishes gross margin from markup; excludes overhead unless included in direct job cost |
+| `base64_encoded_bytes` | `4*ceil(source_bytes/3)` | Padded Base64 payload bytes in ASCII form; excludes MIME newlines, data-URI prefixes, headers and external transport overhead |
+| `circular_orbit_speed_m_s` | `sqrt(mu / orbital_radius)` | Ideal Newtonian two-body *circular* orbit; radius from central-body center, not altitude; not valid for collision avoidance |
+| `nadir_ground_sample_distance_m` | `pixel_pitch_um*1e-6*altitude_m/focal_length_m` | Small-angle, ideal nadir optics and flat-ground approximation; not real sensor modulation transfer function, geographic error, or usable spatial resolution |
+| `combined_standard_uncertainty` | `hypot(u_a,u_b)` | Only two **independent**, uncorrelated *standard uncertainties* expressed in the same unit. Correlation, bias, coverage factors and additional uncertainty sources must be analyzed separately |
+
+### Precision defect fixed on this branch
+
+The original shared formula result pipeline rounded **all** values to 4 decimal places. A qubit probability of roughly `2.5e-7` would have been returned as zero, and the public display also truncated small values to zero. The scientific/measurement subset of formulas now retains 12 significant digits; a nonzero value smaller than 0.0001 is shown in scientific notation. The existing business-money four-decimal policy remains unchanged.
+
+**This is still not a calibrated measurement or uncertainty certificate**: preserving significant digits is not the same as proving measurement precision. NIST TN 1297 describes how uncertainty components and coverage assumptions should be reported; neither automatically follows from a calculator.
+
+### Additional references verified for Phase 2
+
+- NIST TN 1297, Reporting Uncertainty: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
+- NIST Handbook 44, exact international-foot area conversion: https://www.nist.gov/pml/us-surveyfoot/revised-unit-conversion-factors
+- NIST Handbook 135 (2025), life-cycle project economics: https://doi.org/10.6028/NIST.HB.135e2025
+- IBM Quantum Qiskit RYGate: https://quantum.cloud.ibm.com/docs/api/qiskit/2.3/qiskit.circuit.library.RYGate
+- NASA planetary Kepler third-law principles: https://science.nasa.gov/solar-system/orbits-and-keplers-laws/
+- RFC 4648, Base64 data encoding: https://www.rfc-editor.org/rfc/rfc4648
+
+### Not production-verified
+
+The feature branch has not been merged or deployed, migration replay has not been run on a live managed database, and the full pnpm CI suite is a release gate. Isolated engine checks do not establish build, payment, RLS or science certification readiness.
