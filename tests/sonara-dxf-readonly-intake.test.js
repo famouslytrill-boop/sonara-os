@@ -78,15 +78,14 @@ describe("strict read-only ASCII DXF subset",()=>{
   });
   it("refuses unknown sections, hidden geometry and out-of-order drawing contents",()=>{
     refused(dxf(4,flat(...line)).replace(
-      "0\\nSECTION\\n2\\nENTITIES\\n",
-      "0\\nSECTION\\n2\\nTABLES\\n0\\nENDSEC\\n0\\nSECTION\\n2\\nENTITIES\\n"
+      "0\nSECTION\n2\nENTITIES\n",
+      "0\nSECTION\n2\nTABLES\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n"
     ),"unsupported_section");
     refused(dxf(4,flat(...line,[60,1])),"unsupported_visibility");
     refused(dxf(4,flat(...line,[62,-1])),"unsupported_visibility");
-    const correct=dxf(4,flat(...line));
-    const header="0\\nSECTION\\n2\\nHEADER\\n9\\n$INSUNITS\\n70\\n4\\n0\\nENDSEC\\n";
-    const entities="0\\nSECTION\\n2\\nENTITIES\\n"+flat(...line).join("\\n")+"\\n0\\nENDSEC\\n";
-    refused(entities+header+"0\\nEOF\\n","malformed_structure");
+    const header="0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n";
+    const entities="0\nSECTION\n2\nENTITIES\n"+flat(...line).join("\n")+"\n0\nENDSEC\n";
+    refused(entities+header+"0\nEOF\n","malformed_structure");
   });
 
   it("rejects paper-space geometry, nonstandard extrusions and malformed file structure",()=>{
