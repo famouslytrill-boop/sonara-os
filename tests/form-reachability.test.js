@@ -38,13 +38,13 @@ const NO_FORM_NEEDED = {
   // where they set when it runs for them.
   "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
 
-  // Its reason here was "Interface telemetry, posted by public/sonara-one.js."
-  // Checked on 7 October 2026: no file in public/ posts to it, and
-  // `git log -S"/api/motion/events" -- public/` finds no commit that ever made
-  // one do so. The reason described a client that never existed. What is true:
-  // it stores raw device motion readings and nothing sends any, so it records
-  // nothing today -- and a form is the wrong way to send sensor readings anyway.
-  "/api/motion/events": "No client posts to it: nothing in public/ ever has. It stores raw device motion readings, which a person does not type, so a form is not the missing piece; a consented sensor client is.",
+  // This used to be an honest gap: no client posted motion events at all.
+  // /settings/device-feedback now loads public/sonara-motion-capture.js, which
+  // starts only from an explicit button, stops when the page is hidden, samples
+  // for at most five seconds and posts one coarse aggregate. A markup form is
+  // still the wrong abstraction for a browser sensor event, so this remains an
+  // intentional no-form endpoint rather than a hidden customer workflow.
+  "/api/motion/events": "Posted by public/sonara-motion-capture.js from /settings/device-feedback after an explicit user action. Browser motion readings are not hand-entered form data; the client sends one bounded coarse summary and never background-streams them.",
   // /api/location/events used to be here, exempted as "posted by client script"
   // while no script posted to it. It has a real form now -- the check-in form on
   // /staff/location -- so the exemption is gone rather than reworded. The
