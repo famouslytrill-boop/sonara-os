@@ -117,7 +117,7 @@ const RESOURCE_MAP = {
   // Accounts receivable. customer_invoices records who raised it; the payments
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
-  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
+  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" }, references: { customer_id: "customers" } },
   "/api/business/work-orders": {
     table: "business_work_orders",
     required: ["title"],
@@ -2342,6 +2342,17 @@ function registerRestResource(app, path, resource, deps, middleware) {
       for (const key of Object.keys(submitted)) {
         if (key.startsWith("approval_")) delete submitted[key];
       }
+    }
+    if (resource.table === "quotes") {
+      // Quote acceptance is a distinct, auditable owner action. The general
+      // create endpoint must not create an already-won quote that downstream
+      // invoice and work-order actions consider authorized.
+      submitted.status = "draft";
+      delete submitted.approved_by;
+      delete submitted.accepted_by;
+      delete submitted.accepted_at;
+      delete submitted.sent_at;
+      delete submitted.invoice_id;
     }
     if (resource.table === "business_work_orders") {
       // The lifecycle begins at draft. Quote linkage is written only by the
