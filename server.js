@@ -17,6 +17,7 @@ const registerPayPeriodRoutes = require("./routes/sonara-pay-period-routes.cjs")
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
 const registerSonaraPromptLibraryRoutes = require("./routes/sonara-prompt-library-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
+const { registerEditorialWorkbenchRoutes } = require("./routes/sonara-editorial-workbench-routes.cjs");
 const { createReceiptWebhookHandler } = require("./routes/sonara-email-receipt-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerCreatorGenerationRoutes = require("./routes/creator-generation-routes.cjs");
@@ -646,6 +647,12 @@ registerSonaraFormulaRoutes(app, {
   getCustomerPrimaryOrganization,
   supabaseHeaders,
   insertActivityEvent
+});
+
+registerEditorialWorkbenchRoutes(app, {
+  layout, linkAction, requireWorkspaceAccess, getSupabaseServerConfig,
+  getCustomerPrimaryOrganization, supabaseHeaders, createRateLimiter,
+  isEnabled: () => getEnv("SONARA_EDITORIAL_WORKBENCH_ENABLED") === "true"
 });
 
 registerCreatorMusicSystemReadOnlyRoutes(app, {
