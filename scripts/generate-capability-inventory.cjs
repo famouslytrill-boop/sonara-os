@@ -465,6 +465,9 @@ function openApiContracts() {
 
 function buildInventory() {
   const { ROUTE_REGISTRY } = require(path.join(ROOT, "lib", "sonara-route-registry.cjs"));
+  const { CREATOR_ROUTE_DATA_CONTRACTS, CONTRACT_BY_ROUTE, EXPECTED_TABLES,
+    inspectCreatorRouteDataContracts } = require(path.join(ROOT, "lib", "sonara-creator-route-data-contracts.cjs"));
+  const { PENDING_CREATOR_SCHEMA } = require(path.join(ROOT, "lib", "sonara-pending-creator-schema-contract.cjs"));
   const { getWorkspaceDirectoryGroups } = require(path.join(ROOT, "lib", "sonara-workspace-directory.cjs"));
   const { describedColumns, tableColumns } = require(path.join(ROOT, "lib", "sonara-migration-columns.cjs"));
   const { ORPHAN_TABLES, ORPHAN_DISPOSITIONS } = require(path.join(ROOT, "lib", "sonara-orphan-tables.cjs"));
@@ -2265,6 +2268,8 @@ function buildInventory() {
   const routeDataReviewOutcomes = new Map();
   const routes = rawRoutes.map((route) => {
     const moduleTablesForRoute = route.moduleTableNames || [];
+    const creatorData = CONTRACT_BY_ROUTE.get(route.id) || null;
+    const creatorPending = creatorData?.kind === "pending_database";
     const resource = resourceForOperation(route.route, route.method);
     const agentContract = agentRouteContractById.get(route.id) || null;
     const isFormulaEvaluate = route.method === "POST" && route.route === "/api/formulas/evaluate";
@@ -2288,7 +2293,8 @@ function buildInventory() {
       ...resourceTableNames, ...formulaTableNames, ...(agentContract?.tables || []), ...route.directTableReferences, ...rpcEffectTables,
       ...triggeredEffects.flatMap((effect) => [...effect.readTables, ...effect.writeTables])
     ]);
-    const tracedMode = resource ? "resource_registry_contract"
+    const tracedMode = creatorData ? (creatorPending ? "creator_proposal_only_adapter" : "creator_unsaved_preview")
+      : resource ? "resource_registry_contract"
       : agentContract ? "agent_registry_route_contract"
         : isFormulaEvaluate ? "deterministic_compute_no_write"
           : isFormulaSave ? "formula_result_and_activity_write"
@@ -2307,7 +2313,8 @@ function buildInventory() {
     const isUserAction = route.method !== "GET" && route.kind !== "webhook";
     const dataModuleId = route.source.file ? `module:${route.source.file}` : null;
     const knownNoPersistence = ["navigation_or_static_output", "deterministic_compute_no_write", "static_formula_catalog", "static_or_read_only_contract"].includes(tracedMode) && !supabaseBackedPage;
-    const tracedStatus = resource ? "explicit_resource_registry"
+    const tracedStatus = creatorData ? (creatorPending ? "explicit_proposed_schema_not_migrated" : "explicit_no_persistent_table_expected")
+      : resource ? "explicit_resource_registry"
       : agentContract ? "explicit_agent_runner_registry"
       : isFormulaSave ? "explicit_formula_result_registry"
         : isFormulaEvaluate || isFormulaCatalog ? "explicit_no_persistent_table_expected"
@@ -2332,7 +2339,8 @@ function buildInventory() {
     const reviewApplies = Boolean(dataReview) && !traceContradictions.length && tracedStatus === "needs_explicit_data_contract";
     const mode = reviewApplies ? "reviewed_no_database_access" : tracedMode;
     const dataMappingStatus = reviewApplies ? "explicit_no_persistent_table_expected" : tracedStatus;
-    const noPersistenceReason = reviewApplies ? dataReview.reason
+    const noPersistenceReason = creatorData && !creatorPending ? creatorData.reason
+      : reviewApplies ? dataReview.reason
       : isFormulaEvaluate ? "Deterministic calculation; result persistence is a separate POST /api/formulas/results action."
       : isFormulaCatalog ? "Formula definitions and static readiness metadata are returned from the in-repository formula registry."
       : mode === "static_or_read_only_contract" ? "Read-only health, readiness, manifest, definition, or catalog response."
@@ -2393,6 +2401,18 @@ function buildInventory() {
       response: route.response,
       data: {
         mappingStatus: dataMappingStatus,
+        // Proposal-only dependencies are never counted as active migration
+        // tables. Keep them distinct from directTables and schemaMigrations.
+        creatorDataContract: creatorData ? {
+          kind: creatorData.kind,
+          lifecycle: creatorPending ? "reviewed_sql_proposal_unapplied" : "unsaved_local_compute",
+          operation: creatorData.operation,
+          proposedReadTables: creatorData.reads,
+          proposedWriteTables: creatorData.writes,
+          runtimeFlag: creatorData.flag,
+          sourceAdapter: creatorData.adapter,
+          sourceReason: creatorData.reason
+        } : null,
         directTables: mappedTables,
         candidateTables: moduleTablesForRoute,
         tableLineage,
@@ -2790,6 +2810,25 @@ function buildInventory() {
     // Zero since 6 October 2026, and held there. A new route either traces to
     // the tables, functions or provider endpoints it reaches, or somebody reads
     // it and records why it reaches none in lib/sonara-route-data-reviews.cjs.
+    // Contract list must exactly match real registrations and the schema
+    // proposal inventory, and must not override a true traced table or outbound
+    // provider call. A new route cannot slip in as "unsaved" by assertion.
+    creatorProposedRouteContracts: inspectCreatorRouteDataContracts({
+      registeredRouteIds: rawRoutes.map((route) => route.id),
+      pendingTables: PENDING_CREATOR_SCHEMA.map((entry) => entry.table),
+      creatorProjectRoutesSource: fs.readFileSync(path.join(ROOT, "routes/sonara-creator-project-routes.cjs"), "utf8"),
+      creatorPlannerRoutesSource: fs.readFileSync(path.join(ROOT, "routes/creator-music-system-readonly.cjs"), "utf8"),
+      worldAdapter: fs.readFileSync(path.join(ROOT, "lib/sonara-world-bible-store.cjs"), "utf8"),
+      storyAdapter: fs.readFileSync(path.join(ROOT, "lib/sonara-interactive-story-store.cjs"), "utf8")
+    }),
+    creatorProposedRouteContractsContradictedByTrace: routes.filter((route) => {
+      const item = CONTRACT_BY_ROUTE.get(route.id);
+      return item?.kind !== "pending_database" && item &&
+        (route.data.directTables.length || route.data.rpcEffects.length
+          || route.data.providerEndpoints.length ||
+          rawRouteById.get(route.id)?.outboundCallObserved ||
+          persistenceTraceTruncatedRoutes.has(route.id));
+    }).map((route) => route.id),
     routesWithoutDataContract: dataGapRoutes.map((route) => route.id),
     // Two signals about one route that cannot both be true.
     routesSayingNoTableWhileTracingOne: routes.filter((route) => route.data.noPersistenceReason && route.data.directTables.length).map((route) => `${route.id}: ${route.data.directTables.join(", ")}`),
