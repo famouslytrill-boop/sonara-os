@@ -390,7 +390,9 @@ app.use((req, res, next) => {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self)"); // microphone and geolocation are asked for on a click; see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com";
+  // WebKit upgrades loopback HTTP under this directive; production remains HTTPS-only while local/browser CI stays reachable.
+  res.setHeader("Content-Security-Policy", isProductionEnvironment() ? `${contentSecurityPolicy}; upgrade-insecure-requests` : contentSecurityPolicy);
   next();
 });
 
