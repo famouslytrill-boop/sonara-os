@@ -38,12 +38,14 @@ const { CATALOG: FREE_SURFACE_CATALOG } = require("../lib/sonara-free-platform-s
 // anything a business would later ask about.
 
 const channels = require("../lib/sonara-growth-channels.cjs");
+const safety = require("../lib/sonara-growth-channel-safety.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
   "requireWorkspaceAccess", "getCustomerPrimaryOrganization",
-  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter"
+  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter",
+  "requireCustomer", "resolveCustomerSession"
 ];
 
 const CHANNEL_TABLE = "growth_channels";
@@ -51,6 +53,8 @@ const POST_TABLE = "growth_channel_posts";
 const REPORT_TABLE = "growth_post_reports";
 const DIRECTORY_TABLE = "growth_channel_directory";
 const EVENT_TABLE = "growth_events";
+const BLOCK_TABLE = "growth_channel_blocks";
+const MODERATION_AUDIT_TABLE = "growth_channel_moderation_events";
 
 // Read one past each cap, so a truncated list says so rather than looking short.
 const CHANNEL_CAP = channels.CHANNELS_PER_ORGANIZATION;
@@ -65,7 +69,8 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   const {
     layout, brandCard, linkAction, escapeHtml,
     requireWorkspaceAccess, getCustomerPrimaryOrganization,
-    getSupabaseServerConfig, supabaseHeaders, createRateLimiter
+    getSupabaseServerConfig, supabaseHeaders, createRateLimiter,
+    requireCustomer, resolveCustomerSession
   } = deps;
 
   const enc = encodeURIComponent;
@@ -100,6 +105,104 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       body: payload === undefined ? undefined : JSON.stringify(payload)
     }).catch(() => undefined);
     return { ok: Boolean(response?.ok), status: response?.status || 0 };
+  }
+
+
+  // Account-level block lists are private, server-read and must fail closed.
+  // Anonymous readers have no account block state. RSS readers without a session
+  // are also anonymous and must not be advertised as block-aware.
+  async function viewerBlocks(req, res, config) {
+    const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
+    const viewer = session?.ok ? session.user : null;
+    if (!viewer?.id) return { ok: true, viewer: null, rows: [] };
+    if (!safety.isUuid(viewer.id)) return { ok: false, viewer, rows: [] };
+    const blocks = await rest(config,
+      `${BLOCK_TABLE}?select=channel_id&viewer_user_id=eq.${enc(viewer.id)}&limit=${safety.MAX_BLOCKED + 1}`);
+    if (!blocks.ok || blocks.rows.length > safety.MAX_BLOCKED ||
+      !safety.visibleDirectory([], blocks.rows).ok) {
+      return { ok: false, viewer, rows: [] };
+    }
+    return { ok: true, viewer, rows: blocks.rows };
+  }
+
+  const blockLimiter = createRateLimiter({
+    name: "growth_channel_block_toggle",
+    windowSeconds: 3600, maxAttempts: 60, scopes: ["ip"],
+    getSupabaseServerConfig
+  });
+
+  app.get("/account/blocked-channels", requireCustomer, async (req, res) => {
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return failedPage(res, "Your blocked channels cannot be read just now.", 503);
+    const blocks = await rest(config,
+      `${BLOCK_TABLE}?select=channel_id&viewer_user_id=eq.${enc(req.sonaraUser.id)}&limit=${safety.MAX_BLOCKED + 1}`);
+    if (!blocks.ok || blocks.rows.length > safety.MAX_BLOCKED || !safety.visibleDirectory([], blocks.rows).ok) {
+      return failedPage(res, "Your blocked channels cannot be read just now. Nothing was changed.", 503);
+    }
+    const directory = await rest(config,
+      `${DIRECTORY_TABLE}?select=channel_id,handle,title&limit=${DIRECTORY_CAP + 1}`);
+    if (!directory.ok) return failedPage(res, "We could not load channel names. Your blocks are still in place.", 503);
+    const labels = new Map(directory.rows.map((item) => [item.channel_id, item]));
+    const entries = blocks.rows.map((entry) => {
+      const item = labels.get(entry.channel_id);
+      const title = item ? item.title || item.handle : "A channel not currently listed";
+      return `<li><span>${escapeHtml(title)}</span> <form method="post" action="/api/growth/channels/${enc(entry.channel_id)}/unblock">
+        <button type="submit">Unblock channel</button></form></li>`;
+    });
+    return res.status(200).type("html").send(layout({
+      title: "Blocked channels", eyebrow: "Your account", heading: "Blocked channels",
+      body: "Blocked channels are removed from your signed-in SONARA directory and channel pages. Anonymous browsers and outside feed readers are not tied to this account.",
+      sections: [brandCard("Your blocks", entries.length ? `<ul>${entries.join("")}</ul>` : "You have not blocked any channels.")],
+      actions: [linkAction("/channels", "All channels"), linkAction("/account", "Your account")]
+    }));
+  });
+
+  async function changeBlock(req, res, blocking) {
+    const id = String(req.params.id || "");
+    if (!safety.isUuid(id) || !safety.isUuid(req.sonaraUser?.id)) {
+      return res.status(400).type("text/plain").send("Invalid channel.");
+    }
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    const result = blocking
+      ? await write(config, `${BLOCK_TABLE}?on_conflict=viewer_user_id,channel_id`,
+          { viewer_user_id: req.sonaraUser.id, channel_id: id }, "POST",
+          "resolution=ignore-duplicates,return=minimal")
+      : await write(config,
+          `${BLOCK_TABLE}?viewer_user_id=eq.${enc(req.sonaraUser.id)}&channel_id=eq.${enc(id)}`,
+          undefined, "DELETE");
+    if (!result.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    return res.redirect(303, "/account/blocked-channels");
+  }
+
+  app.post("/api/growth/channels/:id/block", requireCustomer, blockLimiter,
+    (req, res) => changeBlock(req, res, true));
+  app.post("/api/growth/channels/:id/unblock", requireCustomer, blockLimiter,
+    (req, res) => changeBlock(req, res, false));
+
+  // One database RPC changes the post/reports AND inserts the audit event in
+  // one transaction. It checks the current organization membership itself.
+  async function moderatePost(req, res, action) {
+    const scope = await scopeFor(req);
+    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
+    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
+    const intent = safety.moderationInput({
+      action, actorId: scope.userId, organizationId: scope.organizationId,
+      postId: owned.post.id, ownedPostId: owned.post.id, ownedOrganizationId: scope.organizationId
+    });
+    if (!intent.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    const response = await fetch(`${scope.config.url}/rest/v1/rpc/sonara_moderate_growth_post`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_organization_id: intent.organizationId,
+        p_post_id: intent.postId, p_actor_user_id: intent.actorId, p_action: action
+      })
+    }).catch(() => undefined);
+    const committed = response?.ok ? await response.json().catch(() => false) : false;
+    if (committed !== true) return res.redirect(303, back({ problem: "save_failed" }));
+    return res.redirect(303, back({ done: action === "remove" ? "removed" : action === "restore" ? "restored" : "dismissed" }));
   }
 
   // Codes in the URL, sentences looked up here, so a crafted link cannot put text
