@@ -74,6 +74,7 @@ describe("Creator Studio public profile social user-safety integration",()=>{
     assert.equal(res.statusCode,200);
     assert.match(res.body,/You blocked this creator/);
     assert.match(res.body,/Unblock creator/);
+    assert.match(res.body,/Report this creator/);
     assert.doesNotMatch(res.body,/Artist biography/);
     assert.doesNotMatch(res.body,/Follow Nova/);
     assert.equal(res.headers["Cache-Control"],"private, no-store");
@@ -83,6 +84,8 @@ describe("Creator Studio public profile social user-safety integration",()=>{
     const res=await invoke(routes(true).get("GET /creator/:handle"));
     assert.equal(res.statusCode,404);
     assert.doesNotMatch(res.body,/Artist biography|blocked you/);
+    assert.match(res.body,/Report this creator/);
+    assert.doesNotMatch(res.body,/Follow Nova/);
     assert.equal(calls.some(c=>c.url.includes("/creator_follows?")),false);
   });
   it("shows report and block actions only when interaction state is allowed",async()=>{
