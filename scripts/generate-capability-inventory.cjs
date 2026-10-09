@@ -2814,7 +2814,7 @@ function buildInventory() {
     // provider call. A new route cannot slip in as "unsaved" by assertion.
     creatorProposedRouteContracts: inspectCreatorRouteDataContracts({
       registeredRouteIds: rawRoutes.map((route) => route.id),
-      pendingTables: PENDING_CREATOR_SCHEMA.map((entry) => entry.table),
+      pendingTables: PENDING_CREATOR_SCHEMA.map((entry) => entry.proposalTable),
       creatorProjectRoutesSource: fs.readFileSync(path.join(ROOT, "routes/sonara-creator-project-routes.cjs"), "utf8"),
       creatorPlannerRoutesSource: fs.readFileSync(path.join(ROOT, "routes/creator-music-system-readonly.cjs"), "utf8"),
       worldAdapter: fs.readFileSync(path.join(ROOT, "lib/sonara-world-bible-store.cjs"), "utf8"),
