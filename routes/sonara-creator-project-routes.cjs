@@ -3,6 +3,7 @@
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { createWorldBibleStore } = require("../lib/sonara-world-bible-store.cjs");
+const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 function offlineDraftForm(project, scope, esc) {
@@ -69,6 +70,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       entities: [], scenes: [{ id: "opening", title: "Opening" }], resources: {} };
     return page(res, "World Bible", [
       brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/markdown">Download World Bible Markdown</a></p>`] : []),
       `<section class="card"><h2>Edit structured World Bible JSON</h2>
 <form method="post" action="${base}/${esc(req.params.id)}/world-bible">
 <input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
@@ -138,6 +140,21 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     res.set("Cache-Control", "private, no-store");
     const result = worldStore ? await worldStore.get(req, req.params.id) : worldUnavailable();
     return res.status(result.ok ? 200 : result.status).json(result);
+  });
+
+  app.get(`${api}/:id/world-bible/export/markdown`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return res.status(503).json(worldUnavailable());
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    try {
+      const output = renderWorldBibleMarkdown(result.worldBible);
+      return res.set("Content-Disposition", `attachment; filename="world-bible-${req.params.id}.md"`)
+        .type(output.type).send(output.data);
+    } catch {
+      return res.status(503).json({ ok: false, code: "world_bible_export_invalid" });
+    }
   });
   app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
