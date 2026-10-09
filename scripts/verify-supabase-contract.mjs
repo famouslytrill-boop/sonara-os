@@ -1074,8 +1074,13 @@ for (const [name, file, flag] of pendingCreatorContracts) {
     fail("Creator proposal missing DDL/RLS/grant-revocation contract: " + name);
   if (new RegExp("create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\." + name + "\\s*\\(").test(allSql))
     fail("Creator pending table now migrated: promote reviewed contract " + name);
-  if (!proposalExample.split("\n").includes(flag + "=false") || !proposalRoutes.includes(flag))
+  if (!proposalExample.split("\\n").includes(flag + "=false") || !proposalRoutes.includes(flag))
     fail("Creator proposal not behind a default-off route flag: " + name);
+  const adapterPath = name === "creator_world_bibles"
+    ? "lib/sonara-world-bible-store.cjs" : "lib/sonara-interactive-story-store.cjs";
+  const adapterSource = read(path.join(root, adapterPath));
+  if (!adapterSource.includes('"' + name + '"'))
+    fail("Creator pending table lacks a matching server adapter: " + name);
 }
 // The story revision history constant is checked here even though it does
 // not match the runtime scanner's legacy *_TABLE pattern.
