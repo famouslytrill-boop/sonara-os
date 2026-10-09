@@ -29,6 +29,9 @@ function fakeClient({ organizations = [{ id: ID_A, created_at: create }],
       if (sql === "SHOW transaction_read_only") {
         return { rows: [{ transaction_read_only: readOnly }], rowCount: 1 };
       }
+      if (sql === "SELECT transaction_timestamp() AS snapshot_at") {
+        return { rows: [{ snapshot_at: "2026-10-08T22:00:00.000Z" }], rowCount: 1 };
+      }
       if (sql.startsWith("select id, created_at")) {
         return { rows: organizations, rowCount: mismatch ? organizations.length + 1 : organizations.length };
       }
@@ -63,6 +66,7 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.report.firstValueOrganizations, 1);
     assert.equal(result.report.verifiedPaidConversionRate, null);
     assert.equal(result.sourceConsistency, "dedicated_repeatable_read_read_only_transaction");
+    assert.equal(result.snapshotCapturedAt, "2026-10-08T22:00:00.000Z");
     assert.equal(client.calls[0].sql, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     assert.equal(client.calls.at(-1).sql, "ROLLBACK");
     assert.equal(client.releaseCalled, true);
@@ -71,6 +75,14 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.ok(selects.every((call) => !/insert|update|delete/i.test(call.sql)));
     assert.ok(selects.every((call) => call.params[0] === from && call.params[1] === to));
     assert.equal(JSON.stringify(result).includes(ID_A), false);
+  });
+
+  it("does not permit a cutoff beyond the authoritative database transaction clock", async () => {
+    const client = fakeClient();
+    const result = await report(client, { asOf: "2026-10-09T00:00:00.000Z" });
+    assert.equal(result.code, "snapshot_read_failed");
+    assert.equal(client.calls.at(-1).sql, "ROLLBACK");
+    assert.equal(client.releaseCalled, true);
   });
 
   it("does not connect with invalid windows or missing trusted policy", async () => {
