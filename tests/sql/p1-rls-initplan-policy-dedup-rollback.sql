@@ -61,16 +61,34 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
+ -- These two permissive policies must be identical in every security
+ -- dimension before one can safely be dropped. pg_policies.qual is deparsed
+ -- display text and is allowed to differ in harmless formatting across
+ -- PostgreSQL versions. Compare PostgreSQL's catalog policy trees instead:
+ -- same command, roles, permissive mode, USING AST and WITH CHECK AST.
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname IN ('Users can view own subscriptions',
                           'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+       AND permissive='PERMISSIVE'
+       AND roles=ARRAY['authenticated']::name[]
+       AND cmd='SELECT'
        AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+   RAISE EXCEPTION 'subscriptions duplicate policy role/command definitions drifted; abort';
+ END IF;
+
+ IF (SELECT count(*) FROM (
+       SELECT p.polcmd, p.polroles, p.polpermissive, p.polqual, p.polwithcheck
+       FROM pg_policy p
+       JOIN pg_class c ON c.oid=p.polrelid
+       JOIN pg_namespace n ON n.oid=c.relnamespace
+       WHERE n.nspname='public' AND c.relname='subscriptions'
+         AND p.polname IN ('Users can view own subscriptions',
+                           'Users can view their own subscription')
+       GROUP BY p.polcmd, p.polroles, p.polpermissive, p.polqual, p.polwithcheck
+       HAVING count(*)=2
+     ) exact_duplicate) <> 1 THEN
+   RAISE EXCEPTION 'subscriptions policies are not exact catalog-AST duplicates; abort';
  END IF;
 END
 $drift$;
@@ -100,9 +118,10 @@ BEGIN
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='Users can view own subscriptions'
+       AND permissive='PERMISSIVE'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
+       AND with_check IS NULL)<>1
  OR (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='Users can view their own subscription')<>0
