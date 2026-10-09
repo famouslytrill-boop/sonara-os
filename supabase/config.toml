@@ -456,6 +456,12 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.google-search-console-broker]
+# Server-to-server only. Supabase verifies the JWT before the function runs;
+# the function additionally requires SONARA's body-bound HMAC signature and
+# refuses browser Origin requests.
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
