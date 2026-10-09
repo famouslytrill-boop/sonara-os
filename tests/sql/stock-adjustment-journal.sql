@@ -344,7 +344,7 @@ select pg_temp.require_true(
     '25000000-0000-4000-8000-000000000003',
     (select id from public.inventory_stock_count_requests
       where organization_id='25000000-0000-4000-8000-000000000003'
-        and idempotency_key='employee-count-001'),
+        and idempotency_key=('employee-' || 'count-001')),
     '25000000-0000-4000-8000-000000000002')->>'code')='adjustment_recorded',
   'independent owner review posts an atomic correction');
 select pg_temp.require_true(
@@ -362,7 +362,7 @@ select pg_temp.require_true(
     '25000000-0000-4000-8000-000000000003',
     (select id from public.inventory_stock_count_requests
       where organization_id='25000000-0000-4000-8000-000000000003'
-        and idempotency_key='employee-count-001'),
+        and idempotency_key=('employee-' || 'count-001')),
     '25000000-0000-4000-8000-000000000002')->>'code')='already_recorded',
   'reviewer retry posts no duplicate movement');
 
