@@ -38,6 +38,51 @@ describe("billing delivery reliability", () => {
       : { ok: true };
     assert.equal((await billing().synchronizeBillingFromStripeEvent(event)).ok, true);
   });
+  it("refuses unversioned or malformed Stripe subscription events before ANY database I/O", async () => {
+    const badStamps = [undefined, null, "1780000000", 1780000000.5, NaN, Infinity, -1, 0, 253402300800, Number.MAX_SAFE_INTEGER + 1];
+    const types = ["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"];
+    for (const type of types) {
+      for (const created of badStamps) {
+        let calls = 0;
+        global.fetch = async () => { calls += 1; throw Error("invalid event timestamp reached database"); };
+        const result = await billing().synchronizeBillingFromStripeEvent({
+          id: "evt_timestamp_guard", type, created, data: { object: {
+            id: "sub_timestamp_guard", customer: "cus_timestamp_guard",
+            status: type === "customer.subscription.deleted" ? "canceled" : "active",
+            metadata: { organization_id: "org_test", plan: "workspace_monthly" }
+          } }
+        });
+        assert.deepEqual(result, { ok: false, code: "stripe_event_timestamp_invalid" }, `${type} / ${String(created)}`);
+        assert.equal(calls, 0, "an invalid Stripe timestamp bypassed the stale-event guard");
+      }
+    }
+  });
+
+  it("persists the exact Stripe-created event stamp for both subscription and entitlement writes", async () => {
+    const recorded = [];
+    const created = 1780000000;
+    global.fetch = async (url, init) => {
+      if (String(url).includes("/stripe_customers?")) return { ok: true, json: async () => [{
+        stripe_customer_id: "cus_test", organization_id: "org_test", user_id: "user_test"
+      }] };
+      recorded.push({ url: String(url), row: JSON.parse(init.body) });
+      return { ok: true };
+    };
+    const result = await billing().synchronizeBillingFromStripeEvent({
+      id: "evt_versioned", type: "customer.subscription.updated", created,
+      data: { object: {
+        id: "sub_test", customer: "cus_test", status: "active",
+        metadata: { organization_id: "org_test", plan: "workspace_monthly" }
+      } }
+    });
+    assert.equal(result.ok, true);
+    assert.equal(recorded.length, 2);
+    for (const { row } of recorded) {
+      assert.equal(row.provider_event_at, new Date(created * 1000).toISOString());
+      assert.notEqual(row.provider_event_at, null);
+    }
+  });
+
   it("does not write parent billing records for connected merchant events", async () => {
     global.fetch = async () => { throw new Error("unexpected database access"); };
     assert.deepEqual(await billing().synchronizeBillingFromStripeEvent({ account: "acct_merchant", type: "customer.subscription.updated" }), { ok: true, ignored: true });
