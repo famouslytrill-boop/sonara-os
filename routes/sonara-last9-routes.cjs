@@ -2011,9 +2011,9 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // Device motion is a powerful sensor surface. The browser policy is only
     // one gate: the account-level permission must also be granted, and a failed
     // permission read is treated as off rather than as "never asked".
-    res.set("Permissions-Policy", permissionsPolicyFor("device_feedback"));
     const config = getConfig(deps);
     const motionPermission = await accountMotionPermission(config, req.sonaraUser?.id);
+    res.set("Permissions-Policy", permissionsPolicyFor(motionPermission.ok ? "device_feedback" : "default"));
     const motionConfig = JSON.stringify({
       endpoint: "/api/motion/events",
       sampleWindowMs: 5000,
