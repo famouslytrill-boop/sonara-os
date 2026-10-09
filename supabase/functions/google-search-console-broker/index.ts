@@ -157,7 +157,7 @@ function parseContext(value: unknown): Context {
   };
 }
 
-async function query(sql: postgres.Sql, statement: string, params: unknown[] = []): Promise<any[]> {
+async function query(sql: postgres.Sql, statement: string, params: any[] = []): Promise<any[]> {
   return sql.unsafe(statement, params);
 }
 
@@ -184,7 +184,7 @@ async function authorizedConnection(sql: postgres.Sql, context: Context): Promis
   return connection;
 }
 
-async function providerFetch(url: string, init: RequestInit) {
+async function providerFetch(url: string, init: RequestInit): Promise<any> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
@@ -224,7 +224,7 @@ function retrySeconds(response: Response, fallback = QUOTA_RETRY_SECONDS): numbe
   return Number.isFinite(seconds) && seconds > 0 ? Math.min(86400, Math.ceil(seconds)) : fallback;
 }
 
-async function exchangeCode(config: ReturnType<typeof environment>, code: string, verifier: string) {
+async function exchangeCode(config: ReturnType<typeof environment>, code: string, verifier: string): Promise<any> {
   if (!code || code.length > 4096) return { ok: false, code: "oauth_authorization_code_invalid", status: 400 };
   if (!PKCE.test(verifier)) return { ok: false, code: "oauth_pkce_verifier_invalid", status: 400 };
   const result = await providerFetch(TOKEN_URL, {
@@ -259,7 +259,7 @@ async function exchangeCode(config: ReturnType<typeof environment>, code: string
   return { ok: true, accessToken, refreshToken: refreshToken || null };
 }
 
-async function refreshAccess(config: ReturnType<typeof environment>, refreshToken: string) {
+async function refreshAccess(config: ReturnType<typeof environment>, refreshToken: string): Promise<any> {
   const result = await providerFetch(TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
@@ -304,7 +304,7 @@ async function refreshAccess(config: ReturnType<typeof environment>, refreshToke
   return { ok: true, accessToken };
 }
 
-async function googleApi(path: string, accessToken: string, body?: Record<string, unknown>) {
+async function googleApi(path: string, accessToken: string, body?: Record<string, unknown>): Promise<any> {
   const url = new URL(path, API_ORIGIN);
   if (url.origin !== API_ORIGIN || !url.pathname.startsWith(API_PREFIX)) {
     return { ok: false, code: "provider_endpoint_refused", status: 400 };
@@ -334,7 +334,7 @@ async function googleApi(path: string, accessToken: string, body?: Record<string
   };
 }
 
-async function listSites(accessToken: string) {
+async function listSites(accessToken: string): Promise<any> {
   const result = await googleApi(API_PREFIX + "/sites", accessToken);
   if (!result.ok) return result;
   const rows = Array.isArray(result.payload.siteEntry) ? result.payload.siteEntry : [];
@@ -361,7 +361,7 @@ function rowMetrics(row: Record<string, unknown>) {
   };
 }
 
-async function dailyReport(accessToken: string, siteUrl: string, date: string) {
+async function dailyReport(accessToken: string, siteUrl: string, date: string): Promise<any> {
   const endpoint = API_PREFIX + "/sites/" + encodeURIComponent(siteUrl) + "/searchAnalytics/query";
   const summaryResult = await googleApi(endpoint, accessToken, {
     startDate: date, endDate: date, type: "web", dataState: "final", rowLimit: 1, startRow: 0
@@ -506,7 +506,7 @@ async function saveSettings(
   return Boolean(updated[0]?.id);
 }
 
-async function brokerAccess(sql: postgres.Sql, config: ReturnType<typeof environment>, connection: Connection) {
+async function brokerAccess(sql: postgres.Sql, config: ReturnType<typeof environment>, connection: Connection): Promise<any> {
   const refreshToken = await resolveRefresh(sql, connection);
   if (!refreshToken) return { ok: false, code: "provider_refresh_credential_missing", status: 409 };
   return refreshAccess(config, refreshToken);
