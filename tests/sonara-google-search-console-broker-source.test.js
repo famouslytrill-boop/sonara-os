@@ -36,10 +36,10 @@ describe("Search Console Vault broker source boundary", () => {
     assert.doesNotMatch(broker, /access-control-allow-origin/i);
   });
 
-  it("exposes exactly four broker operations and no generic SQL or credential endpoint", () => {
+  it("exposes only the five reviewed lifecycle operations and no generic SQL or credential endpoint", () => {
     assert.match(
       broker,
-      /new Set\(\["complete_authorization", "bind_site", "read_daily", "disconnect"\]\)/
+      /new Set\(\["complete_authorization", "review_sites", "bind_site", "read_daily", "disconnect"\]\)/
     );
     for (const forbidden of ["run_sql", "query_sql", "get_secret", "list_secrets", "decrypt_secret"]) {
       assert.equal(broker.includes('"' + forbidden + '"'), false, forbidden);
@@ -103,6 +103,20 @@ describe("Search Console Vault broker source boundary", () => {
 
   it("will not silently lose a rotated refresh token", () => {
     assert.match(broker, /provider_refresh_rotation_requires_persistence/);
+  });
+
+  it("can recover site review after the one-time authorization code has already been consumed", () => {
+    const authorization = sliceBetween("async function completeAuthorization", "async function reviewSites");
+    assert.match(authorization, /credential_stored_provider_probe_pending/);
+    assert.match(authorization, /recoveryOperation: "review_sites"/);
+    assert.match(authorization, /provider_probe_error_code/);
+
+    const review = sliceBetween("async function reviewSites", "async function bindSite");
+    assert.match(review, /brokerAccess\(sql, config, connection\)/);
+    assert.match(review, /listSites\(access\.accessToken\)/);
+    assert.match(review, /authorization_review_ready/);
+    assert.match(review, /providerSecretsReturned: false/);
+    assert.doesNotMatch(review, /exchangeCode/);
   });
 
   it("requires a real provider canary before marking the connection connected", () => {
