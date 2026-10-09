@@ -25,6 +25,16 @@ describe("Creator proposal-only database contract (unapplied and default-off)", 
       ["creator_world_bibles", "creator_story_drafts", "creator_story_draft_revisions"]);
     assert.deepEqual(inspectPendingCreatorSchema(fixture()), []);
   });
+  it("never mislabels unexecuted proposal metadata as a live table declaration", () => {
+    const moduleSource = read("lib/sonara-pending-creator-schema-contract.cjs");
+    // Must agree with the conservative declaration detector in
+    // tests/every-declared-table-exists.test.js. That test still rejects every
+    // *runtime* table absent from migrations; we do not add an exemption.
+    const declarations = [...moduleSource.matchAll(/\\btable:\\s*["']([a-z][a-z0-9_]{2,})["']/g)];
+    assert.deepEqual(declarations, []);
+    assert.equal(PENDING_CREATOR_SCHEMA.every((item) =>
+      typeof item.proposalTable === "string" && !Object.hasOwn(item, "table")), true);
+  });
   it("accepts Windows and Unix line endings but never literal escaped line breaks", () => {
     const base = fixture();
     assert.deepEqual(inspectPendingCreatorSchema({
