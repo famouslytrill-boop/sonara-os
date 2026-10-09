@@ -307,7 +307,19 @@ function main() {
     function behaves(run, what, sql, expected) {
       const result = run(sql);
       if (result.status !== 0) {
-        stop(`the behaviour probe "${what}" would not run against the replayed database:\n${result.stderr || result.stdout}`);
+        // The P1 probe emits expected policy names and differing attributes
+        // on stdout, then raises on stderr. Logging stderr alone hid which
+        // policy check failed. Other probes may include private test payloads:
+        // do not print their stdout.
+        const p1 = what === "P1 RLS initplan and policy-overlap guarded rollback proof";
+        const differences = p1
+          ? String(result.stdout || "").split(/\r?\n/)
+            .filter((line) => line.includes("|") && line.length <= 320)
+            .slice(0, 30).join("\n")
+          : "";
+        stop(`the behaviour probe "${what}" would not run against the replayed database:\n`
+          + (differences ? `Policy attribute differences (staging only):\n${differences}\n` : "")
+          + String(result.stderr || "SQL replay command failed without stderr."));
       }
       const output = String(result.stdout || "");
       const absent = expected.filter((marker) => !output.includes(marker));
