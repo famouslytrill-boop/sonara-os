@@ -83,6 +83,21 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/e\.version_before = new\.stock_version_before/i);
     assert.match(migration,/e\.balance_after = new\.balance_after/i);
   });
+  it("prevents an old event from being relabelled as a new approved adjustment", () => {
+    assert.match(migration,/posting_xid xid8 not null default pg_current_xact_id\\(\\)/i);
+    assert.match(migration,/e\\.posting_xid = pg_current_xact_id\\(\\)/i);
+    assert.match(migration,/i\\.stock_version = new\\.stock_version_after/i);
+    assert.match(migration,/i\\.quantity = new\\.balance_after/i);
+    assert.match(migration,/stock_adjustment_current_item_mismatch/i);
+    assert.match(migration,/a\\.approved_at <= \\(/i);
+    assert.match(migration,/e\\.recorded_at/i);
+  });
+  it("runs a committed two-connection historical-event forgery scenario", () => {
+    assert.match(replay,/tests\\/sql\\/stock-adjustment-cross-tx-prep\\.sql/i);
+    assert.match(replay,/tests\\/sql\\/stock-adjustment-cross-tx-check\\.sql/i);
+    assert.match(replay,/cross_tx_seeded_1/i);
+    assert.match(replay,/cross_tx_spoof_blocked_2/i);
+  });
   it("executes fixtures plus independent-connection races in the required database replay", () => {
     assert.match(replay,/tests\/sql\/stock-adjustment-journal\.sql/);
     assert.match(replay,/tests\/sql\/stock-adjustment-concurrency\.sql/);
