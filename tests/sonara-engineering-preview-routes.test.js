@@ -123,7 +123,7 @@ describe("authenticated stateless engineering JSON previews", () => {
     assert.equal(unsupported.statusCode,415);
     const long=setup.run(PREVIEW_ROUTES.dxf,{dxfText:"x".repeat(524289)});
     assert.equal(long.statusCode,413);
-    const nonJson=setup.run(PREVIEW_ROUTES.pose,"raw-pose");
+    const nonJson=setup.run(PREVIEW_ROUTES.pose,"raw-pose",{workspace:"creator_studio"});
     assert.equal(nonJson.statusCode,400);
   });
   it("propagates rate limiting and does not compute before denial", () => {
