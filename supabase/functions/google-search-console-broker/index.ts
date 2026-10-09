@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import postgres from "npm:postgres@3.4.3";
+import { withSupabase } from "npm:@supabase/server@1.9.1";
 
 const VERSION = "1.0.0";
 const PROVIDER = "google_search_console";
@@ -91,54 +92,20 @@ function base64UrlBytes(value: string): Uint8Array | null {
   }
 }
 
-function constantTimeTextEqual(left: string, right: string): boolean {
-  const a = encoder.encode(left);
-  const b = encoder.encode(right);
-  if (a.length !== b.length || a.length === 0) return false;
-  let difference = 0;
-  for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
-  return difference === 0;
-}
-
 function environment() {
   const databaseUrl = text(Deno.env.get("SUPABASE_DB_URL"));
-  const serverApiKeys: string[] = [];
-  const secretKeysJson = text(Deno.env.get("SUPABASE_SECRET_KEYS"));
-  if (secretKeysJson) {
-    try {
-      const parsed = JSON.parse(secretKeysJson);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        for (const value of Object.values(parsed)) {
-          const key = text(value);
-          if (key) serverApiKeys.push(key);
-        }
-      }
-    } catch {
-      throw new Error("broker_supabase_secret_keys_invalid");
-    }
-  }
-  const legacyServiceRoleKey = text(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-  if (legacyServiceRoleKey) serverApiKeys.push(legacyServiceRoleKey);
-
   const brokerSecret = text(Deno.env.get("SONARA_PROVIDER_BROKER_TOKEN"));
   const clientId = text(Deno.env.get("GOOGLE_SEARCH_CONSOLE_CLIENT_ID"));
   const clientSecret = text(Deno.env.get("GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET"));
   const redirectUri = text(Deno.env.get("GOOGLE_SEARCH_CONSOLE_REDIRECT_URI"));
-  if (!databaseUrl || !serverApiKeys.length || brokerSecret.length < 32 || !clientId || !clientSecret || !redirectUri) {
+  if (!databaseUrl || brokerSecret.length < 32 || !clientId || !clientSecret || !redirectUri) {
     throw new Error("broker_environment_not_configured");
   }
   const redirect = new URL(redirectUri);
   if (redirect.protocol !== "https:" || redirect.username || redirect.password || redirect.hash) {
     throw new Error("broker_redirect_uri_invalid");
   }
-  return {
-    databaseUrl,
-    serverApiKeys: [...new Set(serverApiKeys)],
-    brokerSecret,
-    clientId,
-    clientSecret,
-    redirectUri
-  };
+  return { databaseUrl, brokerSecret, clientId, clientSecret, redirectUri };
 }
 
 async function validSignature(secret: string, timestamp: string, body: string, signature: string): Promise<boolean> {
@@ -831,7 +798,7 @@ async function disconnect(sql: postgres.Sql, context: Context, connection: Conne
   };
 }
 
-Deno.serve(async (req: Request) => {
+const brokerHandler = async (req: Request) => {
   let config: ReturnType<typeof environment>;
   try { config = environment(); }
   catch { return json(503, { ok: false, code: "provider_broker_setup_required" }); }
@@ -843,10 +810,6 @@ Deno.serve(async (req: Request) => {
   }
   if (req.headers.has("authorization")) {
     return json(403, { ok: false, code: "authorization_header_refused" });
-  }
-  const serverApiKey = text(req.headers.get("apikey"));
-  if (!config.serverApiKeys.some((expected) => constantTimeTextEqual(serverApiKey, expected))) {
-    return json(403, { ok: false, code: "service_identity_required" });
   }
   const declared = Number(req.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) {
@@ -915,4 +878,8 @@ Deno.serve(async (req: Request) => {
   } finally {
     await sql.end({ timeout: 1 }).catch(() => undefined);
   }
-});
+};
+
+export default {
+  fetch: withSupabase({ auth: "secret" }, brokerHandler)
+};
