@@ -64,7 +64,7 @@ Server routes registered (disabled by default):
 
 All routes require `requireWorkspaceAccess("creator_studio")`.
 Write operations additionally require the existing durable-capable
-rate limiter (30 requests per hour by hashed IP and account subject).
+rate limiter (1,200 requests per hour by hashed IP and account subject); this is an abuse ceiling, not a purchased usage quota.
 Browser form POST additionally requires `Sec-Fetch-Site: same-origin`;
 same-site-but-cross-origin and missing signal are refused rather than
 trusting the user's cookies alone. The existing global Express request-body
