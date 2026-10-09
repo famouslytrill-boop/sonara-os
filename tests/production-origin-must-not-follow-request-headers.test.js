@@ -227,4 +227,62 @@ describe("canonical SONARA origin for all company products", () => {
     }
   });
 
+  it("does not trust Host headers on Vercel preview even if NODE_ENV is accidentally unset", () => {
+    const previousVercelEnv = process.env.VERCEL_ENV;
+    const previousVercel = process.env.VERCEL;
+    try {
+      delete process.env.VERCEL;
+      process.env.VERCEL_ENV = "preview";
+      withNodeEnv("", () => assert.equal(siteOrigin(forgedRequest, () => ""), ""));
+      delete process.env.VERCEL_ENV;
+      process.env.VERCEL = "1";
+      withNodeEnv("test", () => assert.equal(siteOrigin(forgedRequest, () => ""), ""));
+    } finally {
+      if (previousVercelEnv === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = previousVercelEnv;
+      if (previousVercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = previousVercel;
+    }
+  });
+
+  it("retains Stripe loopback redirects only for genuine non-hosted local tests", () => {
+    const { createBilling } = require("../lib/sonara-billing.cjs");
+    const previousVercelEnv = process.env.VERCEL_ENV;
+    const previousVercel = process.env.VERCEL;
+    function redirects() {
+      return createBilling({
+        STRIPE_PLANS: {},
+        getEnv: () => "",
+        getPublicAppUrl: () => "http://localhost:5000",
+        getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+        getSupabaseServerConfig: () => ({ ok: false }),
+        supabaseHeaders: () => ({}),
+        safeCountTable: async () => ({ ok: true, count: 0 }),
+        formatMetric: String,
+        insertActivityEvent: async () => ({ ok: true })
+      }).getCheckoutRedirectUrls({});
+    }
+    try {
+      delete process.env.VERCEL_ENV;
+      delete process.env.VERCEL;
+      withNodeEnv("test", () => assert.deepEqual(redirects(), {
+        ok: true,
+        successUrl: "http://localhost:5000/account",
+        cancelUrl: "http://localhost:5000/pricing"
+      }));
+      withNodeEnv("production", () => assert.deepEqual(redirects(), {
+        ok: false, code: "site_origin_not_configured"
+      }));
+      process.env.VERCEL_ENV = "preview";
+      withNodeEnv("development", () => assert.deepEqual(redirects(), {
+        ok: false, code: "site_origin_not_configured"
+      }));
+    } finally {
+      if (previousVercelEnv === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = previousVercelEnv;
+      if (previousVercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = previousVercel;
+    }
+  });
+
 });
