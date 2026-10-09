@@ -29,7 +29,8 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     ["base64_encoded_bytes",{source_bytes:3},4],
     ["circular_orbit_speed_m_s",{gravitational_parameter_m3_s2:3.986004418e14,orbital_radius_meters:7000000},Math.sqrt(3.986004418e14/7000000)],
     ["nadir_ground_sample_distance_m",{sensor_pixel_pitch_micrometers:5,altitude_meters:500000,focal_length_meters:1},2.5],
-    ["combined_standard_uncertainty",{uncertainty_a:0.3,uncertainty_b:0.4},0.5]
+    ["combined_standard_uncertainty",{uncertainty_a:0.3,uncertainty_b:0.4},0.5],
+    ["correlated_standard_uncertainty",{uncertainty_a:0.3,uncertainty_b:0.4,correlation_coefficient:0},0.5]
   ];
   it("registers every evaluator on the existing public calculator", () => {
     const keys = new Set(listFormulaDefinitions().map(d=>d.formulaKey));
@@ -83,6 +84,54 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     assert.deepEqual(inputs.cash_flows,["500","700"]);
     assert.equal(evaluateFormula(def.formulaKey,inputs).ok,true);
     assert.match(pages.formatResult(0.00000025,"probability"),/e-7/);
+  });
+  it("uses stable present-value math as annual discount rate tends to zero",()=>{
+    const nearZero = evaluateFormula("project_net_present_value",{
+      upfront_cost:100, annual_net_cash_flow:250,discount_rate:1e-16,years:3
+    });
+    assert.equal(nearZero.ok,true);
+    assert.equal(nearZero.resultValue,650);
+    const exactZero = evaluateFormula("project_net_present_value",{
+      upfront_cost:100,annual_net_cash_flow:250,discount_rate:0,years:3
+    });
+    assert.equal(nearZero.resultValue,exactZero.resultValue);
+    const variable = evaluateFormula("project_variable_cash_flow_npv",{
+      cash_flows:[250,250,250],discount_rate:1e-16,upfront_cost:100
+    });
+    assert.equal(variable.ok,true);
+    assert.equal(variable.resultValue,650);
+  });
+  it("accounts for correlation rather than assuming independent uncertainty",()=>{
+    const measure=(rho)=>evaluateFormula("correlated_standard_uncertainty",{
+      uncertainty_a:0.3,uncertainty_b:0.4,correlation_coefficient:rho
+    });
+    assert.equal(measure(-1).ok,true);
+    assert.equal(measure(-1).resultValue,0.1);
+    assert.equal(measure(0).resultValue,0.5);
+    assert.equal(measure(1).resultValue,0.7);
+    for(const rho of [-1.01,1.01,"NaN"]){
+      assert.equal(measure(rho).code,"invalid_input");
+    }
+    const equality=evaluateFormula("correlated_standard_uncertainty",{
+      uncertainty_a:5,uncertainty_b:5,correlation_coefficient:-1
+    });
+    assert.equal(equality.resultValue,0);
+  });
+  it("discloses research assumptions before and after evaluation",()=>{
+    const pages=require("../lib/sonara-formula-pages.cjs");
+    const def=listFormulaDefinitions().find(x=>x.formulaKey==="trade_bid_price");
+    const escape=(v)=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    const before=pages.calculatorCard(def,{},escape);
+    assert.match(before,/Assumptions and limits/);
+    assert.match(before,/Markup is NOT gross margin/);
+    const answer=evaluateFormula("trade_bid_price",{
+      productive_hours:8,utilization_rate:0.8,burdened_cost_per_paid_hour:30,
+      materials_cost:100,other_direct_cost:0,markup_rate:0.2
+    });
+    const after=pages.resultCard(def,answer,escape);
+    assert.match(after,/Assumptions and limits/);
+    assert.match(after,/Save to my records/);
+    assert.match(pages.formatResult(0.0000003,"percent"),/e-7%/);
   });
   it("does not assume actual QPU noise or engineering certification",()=> {
     assert.equal(evaluateFormula("quantum_ideal_one_probability",{rotation_radians:0}).resultValue,0);
