@@ -20,13 +20,17 @@ function sliceBetween(start, end) {
 }
 
 describe("Search Console Vault broker source boundary", () => {
-  it("pins the Edge runtime database client and explicitly enables JWT verification", () => {
+  it("pins the Edge runtime database client and explicitly uses handler auth for service-to-service keys", () => {
     assert.match(broker, /npm:postgres@3\.4\.3/);
-    assert.match(config, /\[functions\.google-search-console-broker\][\s\S]*?verify_jwt\s*=\s*true/);
+    assert.match(config, /\[functions\.google-search-console-broker\][\s\S]*?verify_jwt\s*=\s*false/);
+    assert.match(broker, /SUPABASE_SECRET_KEYS/);
+    assert.match(broker, /SUPABASE_SERVICE_ROLE_KEY/);
   });
 
-  it("is server-to-server only and requires a fresh body-bound HMAC after service identity", () => {
+  it("is server-to-server only and requires a server API key plus a fresh body-bound HMAC", () => {
     assert.match(broker, /browser_origin_refused/);
+    assert.match(broker, /authorization_header_refused/);
+    assert.match(broker, /req\.headers\.get\("apikey"\)/);
     assert.match(broker, /service_identity_required/);
     assert.match(broker, /x-sonara-provider-broker-timestamp/);
     assert.match(broker, /x-sonara-provider-broker-signature/);
