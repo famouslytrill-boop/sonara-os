@@ -104,7 +104,7 @@ function registerCateringRoutes(app, deps = {}) {
       heading: "Plan a catering event",
       body: "Calculate portions, sales, food costs, operating costs and a proposed deposit. No payment or booking occurs.",
       sections: [form, detail],
-      actions: [linkAction("/business-builder/owner/menu", "Manage menu"), linkAction("/business-builder/owner/operations", "View operations")]
+      actions: [linkAction("/business-builder/owner/menu", "Manage menu"), linkAction("/business-builder/owner/recipes", "Manage recipes"), linkAction("/business-builder/owner/bookings", "Manage bookings"), linkAction("/business-builder/owner/schedules/week", "Check staffing"), linkAction("/growth-studio/owner/events", "Plan event promotion"), linkAction("/creator-studio/dashboard", "Create event artwork"), linkAction("/business-builder/owner/operations", "View operations")]
     }));
   }
 
