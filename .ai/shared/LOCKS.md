@@ -1,6 +1,14 @@
 # Locks
 
 Active:
+- HELD: Search Console Vault broker + server-to-server Edge Function -- Codex,
+  branch `codex/provider-broker-vault-gsc-20261008`, taken 2026-10-08.
+  Stacked on PR #553. Covers provider-broker client/runtime files, the
+  `google-search-console-broker` Supabase Edge Function, focused tests and
+  provider-broker research only. No production function deployment, no Vault
+  secret creation, no Supabase DDL, no Growth campaign route edits, no payment
+  mutation, and no production deployment. Release when the stacked broker PR
+  merges or closes.
 - HELD: customer-owned provider OAuth runtime + Search Console read-only canary -- Codex,
   branch `codex/provider-runtime-gsc-20261008`, taken 2026-10-08.
   Covers `lib/sonara-provider-oauth-flow.cjs`, `lib/sonara-provider-secret-broker.cjs`,
