@@ -63,6 +63,9 @@ Mode combinations are validated; mislabeled modes fail closed.
   No implicit left-handed/Z-up conversion or unvalidated camera orientation.
 - An optional rigid/uniform transform uses translation in meters,
   unit-length XYZW quaternion rotation and strictly positive uniform scale.
+  When a transform is supplied, `frame.targetFrameId` is mandatory; results
+  report both sourceFrameId and destination referenceFrameId to prohibit
+  silently combining incompatible coordinate frames.
   Processing order T*R*S is glTF-style. Coordinate conventions must be
   converted by a separately verified adapter before calling this module.
 - This library does not open DXF/DWG or read `$INSUNITS`. A future read-only
