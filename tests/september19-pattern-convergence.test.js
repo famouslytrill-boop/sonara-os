@@ -685,7 +685,7 @@ describe("September 19 platform pattern convergence", () => {
       async withTransaction(work) {
         // The fixture, unlike production, is an in-memory transactional stand-in.
         // Discard every staged change if ANY callback throws or denies.
-        const draft = structuredClone(committed);
+        const draft = globalThis.structuredClone(committed);
         const tx = {
           async nowMs() { return options.nowMs ?? 2000; },
           async readStateForUpdate() { return { ...draft.state }; },
@@ -735,7 +735,7 @@ describe("September 19 platform pattern convergence", () => {
     };
     return {
       coordinator: operationalTransitionCoordinator({ store, authorizer, evidenceVerifier }),
-      command, view() { return structuredClone(committed); }
+      command, view() { return globalThis.structuredClone(committed); }
     };
   }
 
@@ -1127,7 +1127,7 @@ describe("September 19 platform pattern convergence", () => {
       const queries = [];
       const store = createPostgresOperationalStore({
         pool: { async connect() { return {
-          async query(sql, values) {
+          async query(sql, _values) {
             queries.push(sql);
             if (trial === "error" && sql.startsWith("select e.id"))
               throw new Error("SENSITIVE_SQL_AND_USER_DETAILS");
