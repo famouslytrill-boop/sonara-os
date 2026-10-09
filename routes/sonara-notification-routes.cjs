@@ -177,6 +177,9 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
     const organizationId = await organizationFor(req);
     if (!organizationId) return res.status(400).json({ ok: false, code: "no_organization" });
 
+    const userId = req.sonaraUser?.id || req.sonaraAccess?.user?.id;
+    if (!userId) return res.status(403).json({ ok: false, code: "no_user" });
+
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const subscription = body.subscription && typeof body.subscription === "object" ? body.subscription : {};
     const keys = subscription.keys && typeof subscription.keys === "object" ? subscription.keys : {};
@@ -190,14 +193,15 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
       // The browser's own description of itself, for a settings page that has
       // to tell one device from another. Never parsed, never trusted.
       label: req.get("user-agent") || null,
-      createdBy: req.sonaraUser?.id || null
+      createdBy: userId
     });
 
     if (!saved.ok) {
       // 400 for a malformed subscription, 500 for our own failure. A browser
       // retrying a bad subscription forever is what one status for both causes.
       const clientFault = ["bad_endpoint", "bad_key", "bad_auth", "no_organization"].includes(saved.code);
-      return res.status(clientFault ? 400 : 500).json({ ok: false, code: saved.code });
+      const status = saved.code === "subscription_owned_elsewhere" ? 409 : clientFault ? 400 : 500;
+      return res.status(status).json({ ok: false, code: saved.code });
     }
     // The stored topics are echoed rather than the requested ones: unknown
     // topics are filtered out, and a page that showed what was asked for would
@@ -217,8 +221,8 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
       return res.status(400).json({ ok: false, code: "no_endpoint" });
     }
     const removed = await store.remove(mod, { organizationId, endpoint, createdBy: userId });
-    if (!removed.ok) return res.status(500).json({ ok: false, code: removed.code });
-    return res.status(200).json({ ok: true });
+    if (!removed.ok) return res.status(removed.code === "not_found" ? 404 : 500).json({ ok: false, code: removed.code });
+    return res.status(200).json({ ok: true, removed: removed.count });
   });
 
   return { PAGE };
