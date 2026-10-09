@@ -190,7 +190,7 @@ function registerCreatorProfileRoutes(app, deps = {}) {
       sections: [
         brandCard("Followers", view.followers.sentence),
         followCard(found.rows[0].id, followState, view, escapeHtml),
-        ...(socialSafety.featureEnabled(getEnv) && viewer?.id
+        ...(socialSafety.featureEnabled(getEnv) && viewer?.id && socialState !== "self"
           ? [socialSafetyCard(found.rows[0].id, socialState)] : [])
       ],
       actions: [linkAction("/creator-studio", "Creator Studio"), linkAction("/", "SONARA One")]
