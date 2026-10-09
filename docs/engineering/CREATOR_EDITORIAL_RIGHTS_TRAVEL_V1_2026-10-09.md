@@ -73,7 +73,7 @@ characters, body/reference 12,000, asset count 20, stops 20).
 
 `SONARA_EDITORIAL_WORKBENCH_ENABLED=true` is a server-only operator
 feature flag and defaults off. No user's form input can change that.
-Disabled routes return 404 without storage reads or writes. All routes
+When disabled, the authenticated landing and saved-draft index return a 200 informational page without touching storage; mutation, preview, detailed draft and export routes return 404. All routes
 set `Cache-Control: no-store`.
 
 The save contract inserts into `public.module_outputs` with
