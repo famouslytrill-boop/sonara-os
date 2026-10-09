@@ -3591,12 +3591,12 @@ paths:
       - name: format
         in: path
         required: true
-        schema: { type: string, enum: [csv, otio, midi] }
+        schema: { type: string, enum: [csv, otio, midi, audit, dot, fountain, quest] }
     get:
       operationId: exportCreatorProjectWorldBibleInterchange
       tags: [Creator Studio]
-      summary: Download validated scene cues as CSV, an OTIO gap storyboard, or marker-only MIDI.
-      description: Private, authenticated, read-only attachment, disabled until project World Bible persistence is approved. CSV preserves unknown timing as blank. OTIO requires complete scene durations and produces gaps without linked media. MIDI requires complete scene durations and uses 480 ticks per quarter at 120 BPM, with markers only and no notes, sound or licensed media. No publishing authorization or rendering occurs.
+      summary: Download project cue sheets, narrative structural analysis, DOT, Fountain, game prerequisites, or timed OTIO/MIDI placeholders.
+      description: Private, authenticated, read-only attachment, disabled until project World Bible persistence is approved. CSV preserves unknown timing as blank. Audit is advisory deterministic JSON, DOT encodes authored prerequisites, Fountain is a blank beat-outline template, and quest JSON encodes design prerequisites only (not playable branches or actions). OTIO requires complete scene durations and produces gaps without linked media. MIDI requires complete scene durations and uses 480 ticks per quarter at 120 BPM, with markers only and no notes, sound or licensed media. No publishing authorization or rendering occurs.
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -3608,11 +3608,17 @@ paths:
               schema: { type: string }
             audio/midi:
               schema: { type: string, format: binary }
+            application/json:
+              schema: { type: string }
+            text/vnd.graphviz:
+              schema: { type: string }
+            text/plain:
+              schema: { type: string }
         '400': { description: Unsupported export format or frame rate }
         '401': { description: Authentication required }
         '403': { description: Creator authorization required }
         '404': { description: Project or World Bible not found }
-        '422': { description: Complete verified timing is required for OTIO or MIDI }
+        '422': { description: Complete timing needed for OTIO/MIDI, or game/interactive medium needed for quest export }
         '503': { description: Persistence disabled or storage unavailable }
   /api/creator-studio/projects/{id}/commands:
     parameters:
