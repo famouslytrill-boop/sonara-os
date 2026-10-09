@@ -326,9 +326,11 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
+    // P1 dry-run only: attest 21 service-role-only and four ownership
+    // policies against their exact post-20261008100000 migrated definitions.
+    // Also attest three distinct subscriptions policies. The probe enforces
+    // pre/postflight equality and ROLLBACK; it never rewrites or drops policies.
+    // No production DDL is performed by replay.
     behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
       ["p1_rls_hygiene_staging_passed"]);
