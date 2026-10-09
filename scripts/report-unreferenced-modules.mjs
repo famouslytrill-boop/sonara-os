@@ -71,6 +71,8 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-stock-reconciliation.cjs",
+    "Staged cycle-count variance and hold-integrity preflight; intentionally no stock writes. Requires a persisted stock version, server-scoped reservation snapshot, authorization, dual-approval workflow and atomic stock adjustment ledger before routing."],
   ["lib/sonara-procurement-three-way-match.cjs",
     "Test-only deterministic PO/received/invoice comparison. No payment initiation, trusted database source, tenant authorization, customer API, or approval action; waits for scoped provider evidence and a reviewed invoice dashboard."],
   ["lib/sonara-physical-supply-chain.cjs",
