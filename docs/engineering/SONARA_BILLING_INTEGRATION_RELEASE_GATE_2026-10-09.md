@@ -319,3 +319,65 @@ Research:
 - https://docs.stripe.com/api/events/object
 - https://docs.stripe.com/api/subscriptions/object
 - https://docs.stripe.com/api/subscriptions/retrieve
+
+
+## Read-only Stripe reconciliation inspector (additional engineering execution)
+
+**Implemented but not executed against customer systems:**
+- `lib/sonara-stripe-reconciliation.cjs` — tenant-pinned,
+  provider-backed read-only inspection with explicit `GET` and
+  `redirect: "error"` on both database and Stripe requests.
+- `scripts/inspect-stripe-subscription.mjs` — CLI requiring the exact
+  existing SONARA organization UUID and provider subscription ID;
+  no mutating endpoints, event timestamp generation, or hidden background job.
+- `tests/stripe-reconciliation-readonly.test.js` — 13 adversarial
+  tests (12 selected module tests executed in a mocked JS harness, passed
+  12/12; CLI's real Node import test requires Node/Mocha).
+
+**Operator usage** (only after test credentials, customer permission and
+release-gate approval; never paste secret keys into a command):
+```sh
+# Existing secure environment configuration:
+# NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY,
+# and STRIPE_PRICE_WORKSPACE_MONTHLY / ... canonical price keys.
+node scripts/inspect-stripe-subscription.mjs \
+  --organization=00000000-0000-4000-8000-000000000051 \
+  --subscription=sub_test123
+
+# Only for an explicitly authorized READ-ONLY live diagnostic:
+node scripts/inspect-stripe-subscription.mjs \
+  --organization=<existing-organization-uuid> \
+  --subscription=<existing-subscription-id> \
+  --allow-live-readonly
+```
+
+**Safety contracts:** input must be a valid UUID and Stripe subscription ID;
+the database URL must be an origin-only HTTPS value; the recorded subscription
+must exist uniquely in precisely the requested organization and carry an
+exact immutable Stripe customer ID. The canonical catalog plan must be a
+subscription SKU and its configured Stripe price must match exactly the
+single provider subscription item at quantity 1. Provider customer and
+conflicting metadata must never reassign the customer to another tenant.
+
+The inspector refuses all network traffic when a live Stripe key is present
+without `--allow-live-readonly`. It returns only bounded, non-secret status
+and decision fields: `consistent`, `reconciliation_required`,
+`revocation_review_priority`, `subscription_status_differs`, or a
+coded inspection refusal. It never writes billing tables, triggers a refund,
+executes a cancellation, updates metadata or activates access.
+
+**Operational workflow:** run only against a known test tenant initially,
+capture the decision and correlate to a Stripe Dashboard test-mode
+subscription. For any mismatch or quarantine, verify tenant identity, price,
+and the provider's current record. Record an operator-approved repair ticket,
+then design separately reviewed transactional reconciliation. Do **not**
+run direct SQL updates or manufacture newer Stripe timestamps to clear
+`same_second_conflict`. The inspector is intentionally diagnosis-only.
+
+Remaining evidence: focused Mocha with native Node globals, actual SQL
+migration replay with the new conflict fixture, Stripe test-mode and
+PostgREST sandbox retrieval, restricted-key authorization validation,
+branch-protection checks and an owner-approved rollback/restore exercise.
+The authorized remote desktop was offline when queried; there is no
+verified PostgreSQL runtime for this execution.
+Stripe reference: https://docs.stripe.com/api/subscriptions/retrieve
