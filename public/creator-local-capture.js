@@ -40,6 +40,7 @@
     abort();
     controller = new window.AbortController();
     const revision = sequence, keys = [kind === "camera" ? "camera" : "microphone"];
+    let phase = "authorization";
     camera.disabled = voice.disabled = true; stop.disabled = false;
     status.textContent = "Checking device permissions…";
     try {
@@ -47,11 +48,13 @@
       if (kind === "voice" && typeof MediaRecorder === "undefined") throw new Error("Voice recording is unavailable in this browser.");
       await window.SonaraDeviceAccess.verify(keys, panel.dataset.userId, controller.signal);
       if (revision !== sequence || document.hidden) return;
+      phase = "device";
       const captured = await navigator.mediaDevices.getUserMedia(kind === "camera"
         ? { audio: false, video: { width: { ideal: 1920, max: 4096 }, height: { ideal: 1080, max: 4096 }, facingMode: "environment" } }
         : { audio: true, video: false });
       if (revision !== sequence || document.hidden) { captured.getTracks().forEach((track) => track.stop()); return; }
       // The account decision can change while a browser prompt remains open.
+      phase = "authorization";
       try { await window.SonaraDeviceAccess.verify(keys, panel.dataset.userId, controller.signal); }
       catch (error) { captured.getTracks().forEach((track) => track.stop()); throw error; }
       if (revision !== sequence || document.hidden) { captured.getTracks().forEach((track) => track.stop()); return; }
@@ -67,6 +70,7 @@
       }, 5000);
       timer = window.setTimeout(() => stop.click(), 60000);
       if (kind === "camera") {
+        phase = "preview";
         video.srcObject = stream; video.hidden = false;
         await video.play();
         if (revision !== sequence) return;
@@ -103,6 +107,7 @@
         // display engine exception text or pretend that capture succeeded.
         const denied = error?.name === "NotAllowedError";
         const unsupportedCamera = kind === "camera" && !denied &&
+          ["device", "preview"].includes(phase) &&
           ["TypeError", "NotSupportedError"].includes(error?.name);
         abort(denied
           ? "Your browser refused capture. You can still open your own files."
