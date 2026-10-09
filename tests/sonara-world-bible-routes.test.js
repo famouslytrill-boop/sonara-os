@@ -74,6 +74,12 @@ describe("Feature-gated Creator World Bible project routes", () => {
     const found = await request(app).get(endpoint).set("x-paid", "yes");
     assert.equal(found.status, 200);
     assert.equal(found.body.worldBible.draft.title, "Draft");
+    const md = await request(app).get(`${endpoint}/export/markdown`).set("x-paid", "yes");
+    assert.equal(md.status, 200);
+    assert.match(md.headers["content-disposition"], /attachment/);
+    assert.match(md.text, /Ordered story beats/);
+    assert.match(md.headers["cache-control"], /no-store/);
+    assert.equal((await request(app).get(`${endpoint}/export/markdown`)).status, 403);
     assert.match(found.headers["cache-control"], /no-store/);
   });
   it("provides a private JSON editor that escapes stored text and refuses malformed input", async () => {
