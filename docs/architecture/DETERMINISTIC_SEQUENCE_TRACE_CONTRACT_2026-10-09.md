@@ -56,6 +56,22 @@ const snapshot = replayWorkflowTrace(plan, [
 // snapshot.eligible includes review, but no publication authority is granted.
 ```
 
+## Bounded retry decision (pass 2)
+
+`evaluateWorkflowRetry(input)` is a pure, read-only decision function. It replays the supplied graph and event history before considering a new attempt. It **does not enqueue, sleep, call a provider, grant permission, verify a token, or commit an idempotency key**.
+
+Required caller-provided inputs include: `plan`, `events`, `stepId`, opaque `runId`, `startedAtMs`, `nowMs`, positive `maxElapsedMs`, `failureKind`, and explicit safety assertions `authorizationConfirmed`, `effectReplaySafe`, and `budgetApproved`. An upstream component must independently prove those assertions for the current actor, tenant, operation and attempt; never expose them as customer-controlled request flags.
+
+The function stops for any non-failed step, exhausted attempt budget, requested cancellation, expired time budget, permanent/unknown failure, missing authorization, uncertain idempotency or missing resource budget. An allowed retry receives `nextAttempt`, `remainingAttempts`, `delayMs`, `notBeforeMs` and `deadlineMs`.
+
+**Pure deterministic jitter:** `window_ms = min(cap_delay_ms, base_delay_ms * 2^(completed_attempts - 1))`; a SHA-256-derived fraction of an opaque `runId`, `stepId` and completed-attempt number determines a stable delay between 1 ms and the window. The delay is reproducible for a given input; it is not a random security token. The default base delay is 1 second and cap 30 seconds. The final timestamp must not exceed the explicit end-to-end deadline.
+
+**Rate-limit behavior:** A `rate_limited` failure requires a previously validated positive provider `providerRetryAfterMs` interval. SONARA never proposes a retry earlier than that interval. If it exceeds the configured delay cap, the recommendation is to stop instead of violating the provider's backoff instruction. Upstream code must parse provider headers safely, cap untrusted input and respect platform/global token buckets.
+
+**Cancellation:** `cancellationRequested: true` refuses *new retries*; this is not cancellation of an already in-flight request, nor a durable cancellation transition. Those are separate worker responsibilities.
+
+**Execution contract:** Persist the scheduled retry transactionally with a database uniqueness constraint for `(tenant, run, step, next_attempt)`, original event versions and lease ownership. Re-check authorization, cancellation, provider state and idempotency at claim time; a precomputed recommendation alone cannot be an execution permit.
+
 ## Proof requirements before connecting to live jobs
 
 1. Independently validate run identity, organization/workspace authorization and owner approvals before each production side effect.
