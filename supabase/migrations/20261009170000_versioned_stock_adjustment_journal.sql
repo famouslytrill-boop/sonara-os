@@ -246,7 +246,7 @@ begin
        and a.idempotency_key = new.idempotency_key
        and a.reason = new.reason
        and a.expected_stock_version = new.stock_version_before
-       and a.expected_unit = (
+       and lower(a.expected_unit) = (
           select lower(btrim(i.unit)) from public.inventory_items i
            where i.id = new.inventory_item_id
        )
