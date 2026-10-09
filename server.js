@@ -61,6 +61,7 @@ const registerCustomerReadyExperience = require("./routes/customer-ready-experie
 // them. That generator is retired along with the other fifty-five, so nothing
 // writes here any more and the two bindings went with it.
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const { permissionsPolicyFor } = require("./lib/sonara-permissions-policy.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
@@ -387,7 +388,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self)"); // microphone and geolocation are asked for on a click; see SECURITY_NOTES.md
+  res.setHeader("Permissions-Policy", permissionsPolicyFor("default")); // route-specific widening must use the complete shared preset; see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
