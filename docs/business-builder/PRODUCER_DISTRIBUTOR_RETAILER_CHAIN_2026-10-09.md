@@ -160,6 +160,63 @@ quantity mutations are blocked or journaled without breaking customer workflows.
 execution harness. They are not proof of customer data provenance, full Mocha
 CI, database replay, multi-session concurrency, or external payment correctness.
 
+## Phase 5: controlled stock reconciliation (October 9, 2026)
+
+Implemented `lib/sonara-stock-reconciliation.cjs` and
+`tests/stock-reconciliation.test.js` as a **pure, unconnected** stock discrepancy
+preflight. It compares physical cycle count in thousandths of the declared
+inventory unit with the same-tenant stock snapshot and held reservations.
+
+Deterministic invariants:
+
+- Physical stock correction must not reduce on-hand below committed reservations.
+  Even a zero-variance count is blocked if holds already exceed on-hand.
+- Cross-tenant counts, mismatched SKU/item IDs or units, stale `stockVersion`,
+  invalid/noninteger quantities, unsupported adjustment reasons and self-review
+  are rejected without inventing a correction.
+- Absolute discrepancy value is calculated with BigInt in integer cents, with
+  half-up rounding. Amount or quantity above configured organization thresholds
+  raises `dual_approval_required`; damage, expiry or shrinkage raises a custody
+  / quarantine review flag.
+- The result has `effect: proposal_only` and
+  `authorizesStockMutation: false`. It cannot grant permissions or trust
+  caller-provided role/approval IDs and NEVER posts a stock change.
+
+**Read-only connected schema inspection:** `inventory_count_sessions` and
+`inventory_count_lines` exist with actor, count, quantity and unit fields;
+`inventory_items` has `quantity` and `updated_at`, but **no
+`stockVersion` counter**. There is no verified irreversible stock-adjustment
+transaction, and `inventory_items.quantity` can still be changed through
+existing authorized CRUD. The preflight must not be wired to customer writes.
+
+**Next exact engineering order:** (1) add an explicit, monotonically incremented
+stock version on an appropriately reviewed migration; (2) reconcile current
+manual stock values against historical storefront fulfillment and job usage
+without deleting data; (3) implement a service-only, tenant-bound,
+idempotent adjustment journal with expected-version compare-and-swap and a
+durable independent approval record; (4) redirect inventory adjustments away
+from generic CRUD while retaining permitted catalog edits; (5) under a single
+item row lock, recalculate held reservations, adjust stock and append immutable
+audit evidence atomically; (6) test cross-tenant forgery, duplicate request
+keys, lost updates, two reviewers, no-negative available-to-promise, recall/
+expiry quarantine, rollback and snapshot replay; (7) enable one-tenant
+flag only after exact-head green CI and an approved controlled database rollout.
+
+**Standards / controls:** GS1 EPCIS 2.0 models source, destination, disposition
+and time for upstream/downstream visibility; do not claim EPCIS conformance
+from an internal stock count record. NIST SP 800-161 Rev. 1 frames third-party
+supply-chain risk; invoice matching guidance distinguishes approved purchase
+orders, accepted receipts and vendor invoice lines. Neither standard gives
+permission to move stock or funds. Current sources:
+- https://www.gs1.org/standards/epcis
+- https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final
+- https://learn.microsoft.com/en-us/dynamics365/finance/accounts-payable/three-way-matching-policies
+
+**Verification:** 14 focused stock-reconciliation test assertions were executed
+in an isolated JavaScript harness and passed. The full Node/Mocha test suite,
+real PostgreSQL replay, migration-derived inventories, and production gates
+remain independently required. No live rows or schema were modified by this work.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
