@@ -40,69 +40,69 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
+-- Two exact, security-reviewed policy baselines: legacy scalar-auth policies
+-- or the already-hardened role-scoped and auth-InitPlan forms.
+CREATE TEMP TABLE expected_rls_p1_hardened ON COMMIT DROP AS
+SELECT tbl,policy_name,permissive,cmd,
+ CASE WHEN roles='{authenticated}' THEN roles ELSE '{service_role}' END AS roles,
+ CASE WHEN roles='{authenticated}' THEN '(( SELECT auth.uid() AS uid) = user_id)' ELSE 'true' END AS qualifier,
+ CASE WHEN roles='{authenticated}' THEN NULL::text ELSE 'true' END AS check_expr
+FROM expected_rls_p1;
+
 DO $drift$
-DECLARE bad int; mismatch_detail text;
+DECLARE old_bad int; hard_bad int; details text;
 BEGIN
- SELECT count(*) INTO bad
- FROM expected_rls_p1 e LEFT JOIN pg_policies p
-   ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
- WHERE p.policyname IS NULL
-    OR p.permissive IS DISTINCT FROM e.permissive
-    OR p.roles::text IS DISTINCT FROM e.roles
-    OR p.cmd IS DISTINCT FROM e.cmd
-    OR p.qual IS DISTINCT FROM e.qualifier
-    OR p.with_check IS DISTINCT FROM e.check_expr;
- IF bad <> 0 THEN
-   -- Report the dimensions of policy drift, not merely the number of rows.
-   -- Keep the guard fail-closed; this is a disposable database rollback probe.
-   SELECT string_agg(
-      format('%s.%s missing=%s permissive=%s roles=%s cmd=%s using=%s check=%s',
-        d.tbl, d.policy_name, d.actual_policy IS NULL,
-        d.actual_permissive IS DISTINCT FROM d.permissive,
-        d.actual_roles::text IS DISTINCT FROM d.roles,
-        d.actual_cmd IS DISTINCT FROM d.cmd,
-        d.actual_qual IS DISTINCT FROM d.qualifier,
-        d.actual_check IS DISTINCT FROM d.check_expr),
-      '; ')
-     INTO mismatch_detail
-   FROM (
-     SELECT e.*, p.policyname AS actual_policy,
-            p.permissive AS actual_permissive, p.roles AS actual_roles,
-            p.cmd AS actual_cmd, p.qual AS actual_qual,
-            p.with_check AS actual_check
-     FROM expected_rls_p1 e
-     LEFT JOIN pg_policies p
-       ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
-     WHERE p.policyname IS NULL
-       OR p.permissive IS DISTINCT FROM e.permissive
-       OR p.roles::text IS DISTINCT FROM e.roles
-       OR p.cmd IS DISTINCT FROM e.cmd
-       OR p.qual IS DISTINCT FROM e.qualifier
-       OR p.with_check IS DISTINCT FROM e.check_expr
-     ORDER BY e.tbl, e.policy_name
-     LIMIT 8
-   ) AS d;
-   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort', bad
-     USING DETAIL = COALESCE(mismatch_detail, 'No mismatch detail available');
- END IF;
- IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
-   RAISE EXCEPTION 'P1 expected 25 policies; abort';
+ IF (SELECT count(*) FROM expected_rls_p1)<>25
+ OR (SELECT count(*) FROM expected_rls_p1_hardened)<>25
+ THEN RAISE EXCEPTION 'P1 expected exactly 25 policies; abort'; END IF;
+
+ SELECT count(*) INTO old_bad FROM expected_rls_p1 e
+ LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+ WHERE p.policyname IS NULL OR p.permissive IS DISTINCT FROM e.permissive
+ OR p.roles::text IS DISTINCT FROM e.roles OR p.cmd IS DISTINCT FROM e.cmd
+ OR p.qual IS DISTINCT FROM e.qualifier OR p.with_check IS DISTINCT FROM e.check_expr;
+
+ SELECT count(*) INTO hard_bad FROM expected_rls_p1_hardened e
+ LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+ WHERE p.policyname IS NULL OR p.permissive IS DISTINCT FROM e.permissive
+ OR p.roles::text IS DISTINCT FROM e.roles OR p.cmd IS DISTINCT FROM e.cmd
+ OR p.qual IS DISTINCT FROM e.qualifier OR p.with_check IS DISTINCT FROM e.check_expr;
+
+ IF old_bad<>0 AND hard_bad<>0 THEN
+   SELECT string_agg(format('%s.%s missing=%s roles=%s cmd=%s using=%s check=%s',
+     e.tbl,e.policy_name,p.policyname IS NULL,p.roles::text IS DISTINCT FROM e.roles,
+     p.cmd IS DISTINCT FROM e.cmd,p.qual IS DISTINCT FROM e.qualifier,
+     p.with_check IS DISTINCT FROM e.check_expr),'; ')
+   INTO details FROM
+    (SELECT * FROM expected_rls_p1_hardened ORDER BY tbl,policy_name LIMIT 8) e
+   LEFT JOIN pg_policies p ON p.schemaname='public'
+     AND p.tablename=e.tbl AND p.policyname=e.policy_name;
+   RAISE EXCEPTION 'P1 policy definition drift: legacy % mismatches, hardened % mismatches; abort',
+     old_bad, hard_bad USING DETAIL=COALESCE(details,'No mismatch details');
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
  IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
- END IF;
+ WHERE schemaname='public' AND tablename='subscriptions'
+ AND policyname IN ('Users can view own subscriptions','Users can view their own subscription')
+ AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
+ AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+ AND with_check IS NULL)<>2
+ THEN RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort'; END IF;
+ RAISE NOTICE 'P1 rollback baseline: %',
+   CASE WHEN old_bad=0 THEN 'legacy rewrite' ELSE 'already hardened' END;
 END
 $drift$;
 
+-- Never rewrite service_role-scoped hardened policies into legacy predicates.
+-- psql IF covers all 25 legacy ALTER statements (otherwise none execute).
+SELECT CASE WHEN count(*)=25 THEN 'true' ELSE 'false' END AS apply_legacy_p1
+FROM expected_rls_p1 e JOIN pg_policies p
+ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+WHERE p.permissive=e.permissive AND p.roles::text=e.roles AND p.cmd=e.cmd
+AND p.qual IS NOT DISTINCT FROM e.qualifier
+AND p.with_check IS NOT DISTINCT FROM e.check_expr
+\gset
+\if :apply_legacy_p1
 ALTER POLICY "service role manages agent_pending_actions" ON public."agent_pending_actions"
   USING (((select auth.role()) = 'service_role'::text))
   WITH CHECK (((select auth.role()) = 'service_role'::text));
@@ -175,33 +175,35 @@ ALTER POLICY "user_notifications_select_own" ON public."user_notifications"
 ALTER POLICY "user_preferences_select_own" ON public."user_preferences"
   USING (((select auth.uid()) = user_id));
 
+\endif
+
 DROP POLICY "Users can view their own subscription" ON public.subscriptions;
 
 DO $postflight$
-DECLARE bad int;
+DECLARE old_bad int; hard_bad int;
 BEGIN
- SELECT count(*) INTO bad
- FROM expected_rls_p1 e
- LEFT JOIN pg_policies p
-  ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
- WHERE p.policyname IS NULL
-    OR p.roles::text IS DISTINCT FROM e.roles
-    OR p.cmd IS DISTINCT FROM e.cmd
-    OR p.permissive IS DISTINCT FROM e.permissive
-    OR (e.qualifier IS NOT NULL AND p.qual !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]')
-    OR (e.check_expr IS NOT NULL AND p.with_check !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]');
- IF bad <> 0 THEN
-   RAISE EXCEPTION 'P1 postflight failed % policies',bad;
+ SELECT count(*) INTO hard_bad FROM expected_rls_p1_hardened e
+ LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+ WHERE p.policyname IS NULL OR p.permissive IS DISTINCT FROM e.permissive
+ OR p.roles::text IS DISTINCT FROM e.roles OR p.cmd IS DISTINCT FROM e.cmd
+ OR p.qual IS DISTINCT FROM e.qualifier OR p.with_check IS DISTINCT FROM e.check_expr;
+
+ SELECT count(*) INTO old_bad FROM expected_rls_p1 e
+ LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+ WHERE p.policyname IS NULL OR p.permissive IS DISTINCT FROM e.permissive
+ OR p.roles::text IS DISTINCT FROM e.roles OR p.cmd IS DISTINCT FROM e.cmd
+ OR (e.qualifier IS NOT NULL AND p.qual !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]')
+ OR (e.check_expr IS NOT NULL AND p.with_check !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]');
+ IF hard_bad<>0 AND old_bad<>0 THEN
+   RAISE EXCEPTION 'P1 postflight failed: hardened % mismatches, rewritten legacy % mismatches',
+     hard_bad,old_bad;
  END IF;
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
- OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription')<>0
+ IF (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+ AND tablename='subscriptions' AND policyname='Users can view own subscriptions'
+ AND roles=ARRAY['authenticated']::name[] AND cmd='SELECT'
+ AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
+ OR (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+ AND tablename='subscriptions' AND policyname='Users can view their own subscription')<>0
  THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
 END
 $postflight$;
