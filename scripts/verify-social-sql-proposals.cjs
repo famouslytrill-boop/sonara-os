@@ -7,6 +7,15 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const EXPECTED_SERVICE_ROLE_GRANTS = Object.freeze({
+  growth_channel_blocks: "select,insert,delete",
+  growth_channel_moderation_events: "select,insert",
+  sonara_social_user_blocks: "select,insert,delete",
+  sonara_social_profile_reports: "select,insert,update",
+  sonara_social_moderator_grants: "select",
+  sonara_social_report_review_events: "select,insert"
+});
+
 const PROPOSALS = Object.freeze([
   "2026-10-09-growth-channel-blocking-moderation.sql",
   "2026-10-09-social-user-blocks-and-reports.sql"
@@ -63,6 +72,18 @@ function verifyProposalSql(filename, sql) {
     const revoke = new RegExp("revoke\\s+all\\s+on\\s+public\\." + name + "\\s+from\\s+(?:public|PUBLIC),\\s*anon,\\s*authenticated", "i");
     if (!rls.test(stripped)) issues.push(name + ":missing_rls");
     if (!revoke.test(stripped)) issues.push(name + ":missing_client_revoke");
+    const privilegeReset = new RegExp(
+      "revoke\\\\s+all\\\\s+on\\\\s+public\\\\." + name +
+      "\\\\s+from\\\\s+(?:public),\\\\s*anon,\\\\s*authenticated,\\\\s*service_role", "i");
+    if (!privilegeReset.test(stripped)) issues.push(name + ":missing_service_role_default_revoke");
+    const expected = EXPECTED_SERVICE_ROLE_GRANTS[name];
+    if (expected) {
+      const grantMatch = new RegExp("grant\\\\s+([a-z,\\\\s]+)\\\\s+on\\\\s+public\\\\." +
+        name + "\\\\s+to\\\\s+service_role\\\\s*;", "i").exec(stripped);
+      const actual = grantMatch ? grantMatch[1].toLowerCase().replace(/\\s+/g, "").split(",").sort().join(",") : "";
+      const allowed = expected.split(",").sort().join(",");
+      if (actual !== allowed) issues.push(name + ":unexpected_service_role_privileges");
+    }
   }
   return Object.freeze({ filename, functions: [...foundFunctions], tables, issues, ok: issues.length === 0 });
 }
