@@ -131,6 +131,7 @@ describe("customer notifications: explicitly chosen channels", () => {
     assert.equal(planCustomerNotification({ ...NOTIFICATION, preferenceReadable: false }).code, "notification_preference_unreadable");
     assert.equal(planCustomerNotification({ ...NOTIFICATION, channelOptedIn: false }).code, "notification_opt_in_required");
     assert.equal(planCustomerNotification({ ...NOTIFICATION, optedOut: true }).code, "notification_opt_in_required");
+    assert.equal(planCustomerNotification({ ...NOTIFICATION, optedOut: undefined }).code, "notification_opt_in_required");
     assert.equal(planCustomerNotification({ ...NOTIFICATION, senderBlocked: true }).code, "notification_suppressed");
     assert.equal(planCustomerNotification({ ...NOTIFICATION, suppressed: undefined }).code, "notification_suppressed");
     assert.equal(planCustomerNotification({ ...NOTIFICATION, quietHoursActive: true }).code, "notification_quiet_hours");
