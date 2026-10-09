@@ -248,20 +248,22 @@ describe("September 19 platform pattern convergence", () => {
       { id: "render", maxAttempts: 2 },
       { id: "publish", dependsOn: ["render"] }
     ]);
+    const definitionHash = plan.definitionHash;
     const start = {
-      organizationId, runId, sequence: 1, eventId: "one",
+      organizationId, runId, definitionHash, sequence: 1, eventId: "one",
       stepId: "render", action: "started", attempt: 1,
       traceId: "0123456789abcdef0123456789abcdef"
     };
     const finish = {
-      organizationId, runId, sequence: 2, eventId: "two",
+      organizationId, runId, definitionHash, sequence: 2, eventId: "two",
       stepId: "render", action: "succeeded", attempt: 1
     };
-    const input = { plan, organizationId, runId, events: [start, finish, start] };
+    const input = { plan, organizationId, runId, definitionHash, events: [start, finish, start] };
     const state = replayScopedWorkflowTrace(input);
     assert.equal(state.complete, false);
     assert.equal(state.organizationId, organizationId);
     assert.equal(state.runId, runId);
+    assert.equal(state.definitionHash, definitionHash);
     assert.equal(state.lastSequence, 2);
     assert.equal(state.acceptedEvents, 2);
     assert.equal(state.replayedEvents, 1);
@@ -292,6 +294,26 @@ describe("September 19 platform pattern convergence", () => {
       ...input, events: [start, { ...finish, action: "succeeded", attempt: 2 }]
     }), /Out-of-sequence/);
     assert.throws(() => replayScopedWorkflowTrace({ ...input, organizationId: "wrong" }), /canonical lowercase UUID/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, definitionHash: "0".repeat(64)
+    }), /Workflow definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: "0".repeat(64) }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: undefined }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input,
+      plan: planWorkflowSequence([
+        { id: "render", maxAttempts: 3 },
+        { id: "publish", dependsOn: ["render"] }
+      ])
+    }), /Workflow definition mismatch/);
+    assert.equal(
+      planWorkflowSequence([...plan.steps].reverse()).definitionHash,
+      definitionHash
+    );
     assert.throws(() => replayScopedWorkflowTrace({
       ...input, events: [{ ...start, traceId: "00000000000000000000000000000000" }]
     }), /Invalid trace id/);
