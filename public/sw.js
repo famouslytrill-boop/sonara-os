@@ -8,7 +8,7 @@ const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
 // Separate cache namespace to evict previously stored extension-matched URLs
 // when this tighter public-asset policy activates.
-const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v3";
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v4";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -69,7 +69,8 @@ function isPublicStaticAsset(url, request) {
     if (keys.length !== 1 || keys[0] !== "v" ||
         !/^[a-z0-9._-]{1,100}$/i.test(url.searchParams.get("v") || "")) return false;
   }
-  if (request.cache === "no-store" ||
+  // Respect explicit request-side revalidation and bypass semantics.
+  if (["no-store", "no-cache", "reload"].includes(request.cache) ||
       (request.headers && request.headers.has("authorization"))) return false;
   return true;
 }
@@ -178,14 +179,19 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname === "/sw.js" || !isPublicStaticAsset(url, event.request)) return;
 
+  // Public static files must be identical for authenticated and anonymous
+  // callers. Fetch and key them without cookies or client certificates, even
+  // when the calling page uses the browser's default same-origin credentials.
+  // Never rely on reading Set-Cookie in a service worker: browsers can filter it.
+  const publicRequest = new Request(event.request, { credentials: "omit" });
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.match(event.request).then((cached) => {
-        const refresh = fetch(event.request)
+      cache.match(publicRequest).then((cached) => {
+        const refresh = fetch(publicRequest)
           .then(async (response) => {
             if (isCacheableResponse(response, url)) {
               // Cache failures must not hide a valid network response.
-              await cache.put(event.request, response.clone()).catch(() => {});
+              await cache.put(publicRequest, response.clone()).catch(() => {});
             }
             return response;
           })
