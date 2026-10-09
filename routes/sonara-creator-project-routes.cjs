@@ -4,6 +4,7 @@
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { createWorldBibleStore } = require("../lib/sonara-world-bible-store.cjs");
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
+const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 // Defense in depth for new World Bible writes. Ordinary cross-origin forms can
@@ -86,6 +87,9 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     return page(res, "World Bible", [
       brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
       ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/markdown">Download World Bible Markdown</a></p>`] : []),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/csv">Download cue sheet (CSV)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
       `<section class="card"><h2>Edit structured World Bible JSON</h2>
 <form method="post" action="${base}/${esc(req.params.id)}/world-bible">
 <input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
@@ -171,6 +175,39 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
         .type(output.type).send(output.data);
     } catch {
       return res.status(503).json({ ok: false, code: "world_bible_export_invalid" });
+    }
+  });
+  // Interchange outputs are derived from a private, tenant-scoped saved draft.
+  // The OTIO file is placeholder gaps, MIDI is markers only, and CSV is a
+  // spreadsheet-friendly cue sheet; none is a rendered media asset.
+  app.get(`${api}/:id/world-bible/export/:format`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return res.status(503).json(worldUnavailable());
+    if (!["csv", "otio", "midi"].includes(req.params.format)) {
+      return res.status(400).json({ ok: false, code: "unsupported_world_bible_export" });
+    }
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    try {
+      const format = req.params.format;
+      let output;
+      if (format === "csv") output = renderWorldBibleCueCsv(result.worldBible);
+      if (format === "otio") {
+        const value = req.query.fps;
+        if (value !== undefined && !["24", "25", "30", "60"].includes(value)) {
+          return res.status(400).json({ ok: false, code: "invalid_export_frame_rate" });
+        }
+        output = renderWorldBibleOtio(result.worldBible, Number(value ?? 24));
+      }
+      if (format === "midi") output = renderWorldBibleMidi(result.worldBible);
+      return res.set("Content-Disposition", `attachment; filename="world-bible-${req.params.id}.${output.extension}"`)
+        .type(output.type).send(output.data);
+    } catch (error) {
+      if (error instanceof TypeError || error instanceof RangeError) {
+        return res.status(422).json({ ok: false, code: "world_bible_export_needs_valid_timing", message: error.message });
+      }
+      return res.status(503).json({ ok: false, code: "world_bible_export_unavailable" });
     }
   });
   app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
