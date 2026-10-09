@@ -69,3 +69,28 @@ describe("authenticated block and moderation decisions", () => {
     assert.doesNotMatch(sql, /alter table public\.growth_post_reports\s+add column.*(email|ip|reporter)/i);
   });
 });
+
+describe("Supabase tenant firewall: blocked channel actor-scope enforcement", () => {
+  const { inspect } = require("../lib/sonara-tenant-guard.cjs");
+  const root = "https://database.example.invalid/rest/v1/growth_channel_blocks";
+  const allowed = root + "?select=channel_id&viewer_user_id=eq." + OWNER + "&limit=501";
+
+  it("admits only the exact per-user block read and exact writes", () => {
+    assert.equal(inspect("GET", allowed).allowed, true);
+    assert.equal(inspect("DELETE", root + "?viewer_user_id=eq." + OWNER + "&channel_id=eq." + A).allowed, true);
+    const payload = JSON.stringify({ viewer_user_id: OWNER, channel_id: A });
+    assert.equal(inspect("POST", root + "?on_conflict=viewer_user_id,channel_id", payload).allowed, true);
+  });
+  it("refuses account enumeration, wildcard reads, unrestricted deletes and injected writes", () => {
+    for (const url of [
+      root + "?select=*",
+      root + "?select=channel_id&limit=501",
+      root + "?select=viewer_user_id&viewer_user_id=eq." + OWNER + "&limit=501",
+      root + "?select=channel_id&viewer_user_id=neq." + OWNER + "&limit=501",
+      root + "?viewer_user_id=eq." + OWNER
+    ]) assert.equal(inspect("GET", url).allowed, false, url);
+    assert.equal(inspect("DELETE", root + "?viewer_user_id=eq." + OWNER).allowed, false);
+    assert.equal(inspect("POST", root + "?on_conflict=viewer_user_id,channel_id",
+      JSON.stringify({ viewer_user_id: OWNER, channel_id: A, is_admin: true })).allowed, false);
+  });
+});
