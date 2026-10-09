@@ -538,7 +538,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     // it must never do is render a failed read as "no public channels yet".
     const config = getSupabaseServerConfig();
     const listed = config?.ok
-      ? await rest(config, `${DIRECTORY_TABLE}?select=handle,title,about&order=listed_at.desc&limit=${DIRECTORY_CAP + 1}`)
+      ? await rest(config, `${DIRECTORY_TABLE}?select=channel_id,handle,title,about&order=listed_at.desc&limit=${DIRECTORY_CAP + 1}`)
       : { ok: false, rows: [] };
     if (!listed.ok) {
       return publicPage(res, {
@@ -550,7 +550,14 @@ function registerGrowthChannelRoutes(app, deps = {}) {
           "That is a problem on our side, and it does not mean there are no channels. Nothing has been removed.")]
       });
     }
-    const rows = listed.rows.slice(0, DIRECTORY_CAP);
+    const blockRead = await viewerBlocks(req, res, config);
+    if (!blockRead.ok) return publicPage(res, {
+      heading: "Channels unavailable", body: "We could not verify your blocked-channel settings, so we are not showing the directory.",
+      sections: [], status: 503
+    });
+    const visible = safety.visibleDirectory(listed.rows.slice(0, DIRECTORY_CAP), blockRead.rows);
+    if (!visible.ok) return unavailable(res);
+    const rows = visible.rows;
     const sections = rows.length
       ? [brandCard(`${rows.length}${listed.rows.length > DIRECTORY_CAP ? "+" : ""} public ${rows.length === 1 ? "channel" : "channels"}`,
         "<ul>" + rows.map((row) => `<li><a href="/channels/${escapeHtml(enc(row.handle))}">${escapeHtml(row.title || row.handle)}</a>`
@@ -561,7 +568,11 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       surface: "marketing",
       heading: "Channels",
       body: "Public pages businesses post updates and announcements to. Read any of them without an account; nothing here signs you up for anything.",
-      sections
+      sections: [
+        ...sections,
+        ...(blockRead.viewer ? [brandCard("Your controls",
+          '<a href="/account/blocked-channels">Manage blocked channels</a>')] : [])
+      ]
     });
   });
 
@@ -625,6 +636,17 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     if (!found.ok) return unavailable(res);
     if (!found.channel) return notFound(res);
 
+    const blocked = await viewerBlocks(req, res, config);
+    if (!blocked.ok) return unavailable(res);
+    const decision = safety.blockState(blocked.rows, found.channel.id);
+    if (!decision.ok) return unavailable(res);
+    if (decision.blocked) return publicPage(res, {
+      heading: "You blocked this channel",
+      body: "Its posts are hidden in this signed-in session. You can change that choice in your account.",
+      sections: [brandCard("Your control",
+        `<form action="/api/growth/channels/${enc(found.channel.id)}/unblock" method="post"><button type="submit">Unblock this channel</button></form>`)]
+    });
+
     const posts = await publicPostsFor(config, found.channel);
     const sections = [];
     if (!posts.ok) {
@@ -642,6 +664,10 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       + "Nothing is sent to you, and nobody here learns that you follow it.</p>"));
     sections.push(brandCard("About reports",
       "A report goes to the business that runs this channel, with no name or address attached. Reporting does not take a post down by itself; the business decides."));
+    if (blocked.viewer) sections.push(brandCard("Control your feed",
+      `<form method="post" action="/api/growth/channels/${enc(found.channel.id)}/block">
+        <button type="submit">Block this channel</button></form>
+        <p><a href="/account/blocked-channels">Manage your blocks</a>. This affects your signed-in view, not public or third-party RSS readers.</p>`));
 
     return publicPage(res, {
       heading: found.channel.title || found.channel.handle,
@@ -661,11 +687,16 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     const found = await findPublicChannel(config, checked.channel.handle);
     if (!found.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
     if (!found.channel) return res.status(404).type("text/plain").send("No such channel.");
+    const blocked = await viewerBlocks(req, res, config);
+    if (!blocked.ok) return res.status(503).type("text/plain").send("Your block preferences cannot be verified.");
+    const state = safety.blockState(blocked.rows, found.channel.id);
+    if (!state.ok) return res.status(503).type("text/plain").send("Your block preferences cannot be verified.");
+    if (state.blocked) return res.status(404).type("text/plain").send("Blocked in this account.");
     const posts = await publicPostsFor(config, found.channel);
     // An unreadable post list is not an empty channel. A feed answering with no
     // entries would tell every reader the channel had gone quiet.
     if (!posts.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Cache-Control", blocked.viewer ? "private, no-store" : "public, max-age=300");
     return res.status(200).type("application/atom+xml; charset=utf-8").send(channels.atomFeed({
       channel: found.channel,
       arranged: posts.arranged,
