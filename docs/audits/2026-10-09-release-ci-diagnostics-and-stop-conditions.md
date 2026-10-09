@@ -46,3 +46,14 @@ The test-only SQL file `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` now
 
 Success criterion for this diagnostic: on the next exact-head native replay, the job must show actionable table+policy mismatch classifications and still fail closed when drift exists. This is not a policy fix or a successful migration replay. No PostgreSQL execution of this edited probe was available from the connected tooling before PR creation.
 
+
+
+### Exact-head follow-up (October 9, 2026)
+
+PR #580 at the earlier head `7e56221200c9953ad3a26f1183b4781f467ad83b` passed Node compatibility, SONARA One Validation, Docker, dependency scan and other initial checks. SONARA Industries CI failed at `verify:capability-coverage` instead of the previous handoff count. Its job output reported **61 documented formula definitions versus 59 actually imported from `lib/sonara-formula-library.cjs`**; the formula table itself already has precisely 59 matching keys. The header was corrected in `docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md` without adding or removing formula implementation.
+
+The edited SQL P1 diagnostic ran on that prior head but its output never appeared in the error log, because `scripts/verify-migration-replay.mjs` handled failure as `result.stderr || result.stdout`. PostgreSQL correctly wrote the abort on stderr, hiding diagnostic rows on stdout. The runner now prints **at most 30 pipe-delimited P1 diagnostic lines, each at most 320 characters**, followed by the same PostgreSQL stderr and nonzero exit. Other SQL probes do **not** log arbitrary stdout. `tests/native-migration-replay-installer-resilience.test.js` asserts the bounded filter, P1 scope, and required replay protections. Four targeted static workflow tests passed in a JavaScript harness, but real PostgreSQL rerun on this new exact head is required.
+
+The original RLS policy definitions and authorization boundaries remain unchanged. The P1 probe must still fail closed while drift persists. No diagnostic output is an approval to apply P1 schema changes without a resolved role/policy comparison, two-tenant access matrix and controlled staging review.
+
+**Evidence:** https://github.com/famouslytrill-boop/sonara-os/actions/runs/37957454863 and https://github.com/famouslytrill-boop/sonara-os/actions/runs/37957454864.
