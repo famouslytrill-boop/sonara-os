@@ -45,7 +45,7 @@ const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
   "requireWorkspaceAccess", "getCustomerPrimaryOrganization",
   "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter",
-  "requireCustomer", "resolveCustomerSession"
+  "requireCustomer", "resolveCustomerSession", "getEnv"
 ];
 
 const CHANNEL_TABLE = "growth_channels";
@@ -70,7 +70,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     layout, brandCard, linkAction, escapeHtml,
     requireWorkspaceAccess, getCustomerPrimaryOrganization,
     getSupabaseServerConfig, supabaseHeaders, createRateLimiter,
-    requireCustomer, resolveCustomerSession
+    requireCustomer, resolveCustomerSession, getEnv
   } = deps;
 
   const enc = encodeURIComponent;
@@ -169,9 +169,8 @@ function registerGrowthChannelRoutes(app, deps = {}) {
 
   async function changeBlock(req, res, blocking) {
     // Cookie-backed mutation: reject forged cross-origin form submissions.
-    const origin = String(req.headers?.origin || "");
-    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
-      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
     }
     const id = String(req.params.id || "");
     if (!safety.isUuid(id) || !safety.isUuid(req.sonaraUser?.id)) {
@@ -212,9 +211,8 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   // One database RPC changes the post/reports AND inserts the audit event in
   // one transaction. It checks the current organization membership itself.
   async function moderatePost(req, res, action) {
-    const origin = String(req.headers?.origin || "");
-    if (!origin || !siteOrigin(req) || origin !== siteOrigin(req)) {
-      return res.status(403).type("text/plain").send("This action needs a same-site request.");
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
     }
     const scope = await scopeFor(req);
     if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
