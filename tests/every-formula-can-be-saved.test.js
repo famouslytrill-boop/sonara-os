@@ -166,6 +166,26 @@ describe("every formula can be worked out and saved", () => {
       assert.equal(fake.rows("sonara_formula_results").length,0);
     });
 
+    it("requires an authenticated user even if a workspace guard silently passes", async () => {
+      const app = express();
+      app.use(express.json());
+      registerFormulaRoutes(app,{
+        requireWorkspaceAccess:()=>(req,res,next)=>next(),
+        getSupabaseServerConfig:()=>({ok:true,url:fake.url,serviceRoleKey:"server-only"}),
+        getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:ORG}),
+        supabaseHeaders:()=>({"Content-Type":"application/json"})
+      });
+      const read = await request(app).get("/formulas/campaign_roi/results");
+      assert.equal(read.status,403);
+      assert.equal(read.body.code,"workspace_identity_missing");
+      const write = await request(app).post("/api/formulas/results").send({
+        formulaKey:"campaign_roi",inputValues:{campaign_revenue:300,campaign_cost:100}
+      });
+      assert.equal(write.status,403);
+      assert.equal(write.body.code,"workspace_guard_not_configured");
+      assert.equal(fake.rows("sonara_formula_results").length,0);
+    });
+
     it("safely ignores invalid provenance metadata when saving a calculated answer", async () => {
       const app = buildApp(fake);
       const saved = await request(app).post("/api/formulas/results").send({
