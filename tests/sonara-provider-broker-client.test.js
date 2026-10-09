@@ -230,7 +230,7 @@ describe("server-only provider broker client", () => {
         context: CONTEXT,
         payload: {},
         ...configured({
-          getSupabaseServerConfig: () => ({ ok: true, url, serviceRoleKey: SERVICE })
+          getSupabaseServerConfig: () => ({ ok: true, url, secretKey: SECRET_API, serviceRoleKey: SERVICE })
         })
       });
       assert.equal(out.ok, false, url);

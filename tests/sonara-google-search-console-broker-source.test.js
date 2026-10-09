@@ -24,20 +24,21 @@ describe("Search Console Vault broker source boundary", () => {
     assert.match(broker, /npm:postgres@3\.4\.3/);
     assert.match(broker, /npm:@supabase\/server@1\.9\.1/);
     assert.match(config, /\[functions\.google-search-console-broker\][\s\S]*?verify_jwt\s*=\s*false/);
-    assert.match(broker, /withSupabase\(\{ auth: "secret" \}, brokerHandler\)/);
+    assert.match(broker, /withSupabase\(\{ auth: "secret", cors: "disabled" \}, brokerHandler\)/);
     assert.doesNotMatch(broker, /SUPABASE_SERVICE_ROLE_KEY/);
   });
 
   it("is server-to-server only and requires Supabase secret auth plus a fresh body-bound HMAC", () => {
     assert.match(broker, /browser_origin_refused/);
     assert.match(broker, /authorization_header_refused/);
-    assert.match(broker, /withSupabase\(\{ auth: "secret" \}, brokerHandler\)/);
+    assert.match(broker, /withSupabase\(\{ auth: "secret", cors: "disabled" \}, brokerHandler\)/);
     assert.match(broker, /x-sonara-provider-broker-timestamp/);
     assert.match(broker, /x-sonara-provider-broker-signature/);
     assert.match(broker, /MAX_CLOCK_SKEW_SECONDS\s*=\s*120/);
     assert.match(broker, /\[timestamp, "POST", BROKER_PATH, body\]\.join\("\\n"\)/);
     assert.doesNotMatch(broker, /x-sonara-provider-broker-token/);
     assert.doesNotMatch(broker, /access-control-allow-origin/i);
+    assert.match(broker, /cors: "disabled"/);
   });
 
   it("exposes only the five reviewed lifecycle operations and no generic SQL or credential endpoint", () => {

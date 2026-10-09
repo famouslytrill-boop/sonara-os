@@ -883,5 +883,5 @@ const brokerHandler = async (req: Request) => {
 };
 
 export default {
-  fetch: withSupabase({ auth: "secret" }, brokerHandler)
+  fetch: withSupabase({ auth: "secret", cors: "disabled" }, brokerHandler)
 };

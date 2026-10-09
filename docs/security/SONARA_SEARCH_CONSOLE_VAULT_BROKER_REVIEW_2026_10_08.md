@@ -76,7 +76,7 @@ Supabase's pinned `@supabase/server@1.9.1` middleware first authenticates the ca
 - malformed signatures;
 - payloads larger than 32 KiB;
 - unsupported protocol versions;
-- operations outside the four-item allowlist.
+- operations outside the five-item allowlist.
 
 This is defense in depth. It is not a substitute for network/service isolation, and a total compromise of all backend secrets remains a high-impact event.
 
@@ -88,6 +88,7 @@ Because this broker is a new service-to-service component rather than a user-JWT
 
 - `verify_jwt = false` is explicit for this function;
 - the Edge entrypoint is wrapped with pinned `@supabase/server@1.9.1` and `auth: 'secret'`;
+- the wrapper sets `cors: 'disabled'`, so it does not auto-answer browser preflights or add CORS response headers;
 - callers must send the current Supabase secret key in `apikey`;
 - the broker client refuses legacy service-role fallback;
 - the independent SONARA HMAC is still required after Supabase secret authentication;
@@ -101,7 +102,7 @@ References:
 - https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
 - https://supabase.com/docs/guides/functions/secrets
 
-## Exactly four operations
+## Exactly five operations
 
 The broker supports only:
 
