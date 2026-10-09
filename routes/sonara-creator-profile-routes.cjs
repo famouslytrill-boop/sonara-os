@@ -35,6 +35,8 @@ const {
   publicProfileView
 } = require("../lib/sonara-creator-profiles.cjs");
 
+const { randomUUID } = require("node:crypto");
+const socialSafety = require("../lib/sonara-social-account-safety.cjs");
 const PROFILE_TABLE = "creator_artist_profiles";
 const FOLLOW_TABLE = "creator_follows";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -52,7 +54,8 @@ function registerCreatorProfileRoutes(app, deps = {}) {
   const {
     layout, brandCard, linkAction, escapeHtml, responsePage,
     requireCustomer, resolveCustomerSession, wantsJson,
-    getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization
+    getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization,
+    getEnv = () => null
   } = deps;
 
   const enc = encodeURIComponent;
@@ -132,6 +135,42 @@ function registerCreatorProfileRoutes(app, deps = {}) {
     // an account, and neither costs them a redirect.
     const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
     const viewer = session.ok ? session.user : null;
+    // A signed-in viewer's block state is checked at the database, never
+    // inferred from profile metadata or cached follower counts.
+    let socialState = "allowed";
+    if (socialSafety.featureEnabled(getEnv) && viewer?.id) {
+      if (!socialSafety.isUuid(viewer.id)) {
+        return res.status(503).type("html").send(publicPage({
+          heading: "This profile cannot be opened",
+          body: "Your safety settings could not be verified. Please try again.", sections: []
+        }));
+      }
+      const status = await rest(config, "rpc/sonara_social_creator_state", {
+        method: "POST",
+        headers: { ...supabaseHeaders(config), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          p_actor_user_id: viewer.id, p_profile_id: found.rows[0].id
+        })
+      });
+      if (!status.ok || typeof status.rows !== "string" || !socialSafety.STATES.includes(status.rows)) {
+        return res.status(503).type("html").send(publicPage({
+          heading: "This profile cannot be opened",
+          body: "Your safety settings could not be verified. Nothing has changed.", sections: []
+        }));
+      }
+      socialState = status.rows;
+      res.setHeader("Cache-Control", "private, no-store");
+      if (socialState === "unavailable") return res.status(404).type("html").send(noProfilePage());
+      if (socialState === "blocked_by_me") return res.status(200).type("html").send(publicPage({
+        heading: "You blocked this creator",
+        body: "This person's public profile is hidden while you are signed in.",
+        sections: [brandCard("Your safety settings",
+          `<form method="post" action="/api/social/creator-profiles/${enc(found.rows[0].id)}/unblock">
+            <button type="submit">Unblock creator</button></form>
+            <p><a href="/account/social-safety">Manage blocked people</a></p>`)]
+      }));
+    }
+
     let followState = { signedIn: Boolean(viewer), following: false, known: true };
     if (viewer?.id) {
       const mine = await rest(
@@ -150,11 +189,39 @@ function registerCreatorProfileRoutes(app, deps = {}) {
       surface: "marketing",
       sections: [
         brandCard("Followers", view.followers.sentence),
-        followCard(found.rows[0].id, followState, view, escapeHtml)
+        followCard(found.rows[0].id, followState, view, escapeHtml),
+        ...(socialSafety.featureEnabled(getEnv) && viewer?.id
+          ? [socialSafetyCard(found.rows[0].id, socialState)] : [])
       ],
       actions: [linkAction("/creator-studio", "Creator Studio"), linkAction("/", "SONARA One")]
     }));
   });
+
+  // Shown only after the viewer's server-authenticated session and
+  // database safety state have been verified. No public author UUID is exposed.
+  function socialSafetyCard(profileId, state) {
+    const base = "/api/social/creator-profiles/" + enc(profileId);
+    const block = state === "no_owner"
+      ? "<p>Blocking is unavailable for this profile because it has no verified account owner.</p>"
+      : `<form method="post" action="${escapeHtml(base + "/block")}">
+          <button type="submit">Block this creator</button></form>`;
+    const reasons = socialSafety.REASONS.map((reason) =>
+      `<option value="${escapeHtml(reason)}">${escapeHtml(reason)}</option>`).join("");
+    const nonce = randomUUID();
+    const report = `<details><summary>Report this creator</summary>
+      <form method="post" action="${escapeHtml(base + "/report")}">
+      <input type="hidden" name="request_id" value="${escapeHtml(nonce)}">
+      <label for="creator-report-reason-${escapeHtml(profileId)}">Reason</label>
+      <select id="creator-report-reason-${escapeHtml(profileId)}" name="reason" required>
+        <option value="">Choose a reason</option>${reasons}</select>
+      <label for="creator-report-detail-${escapeHtml(profileId)}">Details (optional)</label>
+      <textarea id="creator-report-detail-${escapeHtml(profileId)}" name="detail"
+        maxlength="${socialSafety.MAX_DETAIL}" rows="3"></textarea>
+      <button type="submit">Submit report</button>
+      </form></details>`;
+    return brandCard("Safety controls", block + report +
+      '<p>Reports are reviewed separately. Reporting does not automatically remove a profile.</p>');
+  }
 
   // Three states, and the third is the one worth having. A follow check that
   // failed is not a person who is not following: offering Follow to somebody who
