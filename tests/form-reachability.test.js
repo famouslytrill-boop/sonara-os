@@ -120,6 +120,11 @@ const NO_FORM_NEEDED = {
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
+  // The Worldbuilding planner already has a customer-facing form at
+  // /creator-studio/worldbuilding, posted to its HTML preview handler.
+  // This separate JSON endpoint accepts richer nested entities/dependencies
+  // for API clients; a second create form would imply a saved record or job.
+  "/api/creator/worldbuilding/plan": "JSON-only advanced worldbuilding preview. Customers use the existing /creator-studio/worldbuilding form for an HTML preview; neither creates a persistent record or render job.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
   // The five market-intelligence entries that stood here -- fetch-source and the
   // four research records -- are gone because the forms exist now, on
