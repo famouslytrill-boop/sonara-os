@@ -3582,6 +3582,54 @@ paths:
         '403': { description: Creator authorization required }
         '404': { description: Project or World Bible not found }
         '503': { description: Persistence disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/preview:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: previewCreatorInteractiveStoryDraft
+      tags: [Creator Studio]
+      summary: Simulate an ephemeral author-supplied interactive story draft with explicit choices and bounded state.
+      description: Private, default-off, JSON-only with x-sonara-intent interactive-preview; requires an authorized and saved game/interactive World Bible plus its exact expected revision. Never persists story drafts, executes external scripts, publishes content, invokes providers, or compiles games. World scene prerequisites are not player transitions.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: x-sonara-intent
+          in: header
+          required: true
+          schema: { type: string, enum: [interactive-preview] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedWorldRevision, story, decisions]
+              properties:
+                expectedWorldRevision: { type: integer, minimum: 1 }
+                decisions:
+                  type: array
+                  maxItems: 32
+                  items: { type: string }
+                story:
+                  type: object
+                  required: [version, startSceneId, state, scenes]
+                  properties:
+                    version: { type: integer, const: 1 }
+                    startSceneId: { type: string }
+                    state: { type: array, maxItems: 16, items: { type: object } }
+                    scenes: { type: array, maxItems: 64, items: { type: object } }
+      responses:
+        '200': { description: Private, unsaved preview and deterministic state; no media generation }
+        '400': { description: Invalid scene, dialogue, choice, state, or decision sequence }
+        '401': { description: Authentication required }
+        '403': { description: Creator authorization or cross-origin check failed }
+        '404': { description: World Bible or project missing in authorized workspace }
+        '409': { description: Supplied World Bible revision was stale }
+        '413': { description: Request exceeds the interactive preview budget }
+        '415': { description: JSON request or explicit editor intent header required }
+        '503': { description: Preview feature or World Bible storage is not enabled }
   /api/creator-studio/projects/{id}/world-bible/export/{format}:
     parameters:
       - name: id
