@@ -1,10 +1,14 @@
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const { createBilling } = require("../lib/sonara-billing.cjs");
-function billing(plans = { workspace_monthly: { mode: "subscription" } }) {
+const validStripeItems = () => ({
+  data: [{ price: { id: "price_fixture_workspace" }, quantity: 1 }],
+  has_more: false
+});
+function billing(plans = { workspace_monthly: { mode: "subscription", env: "STRIPE_PRICE_WORKSPACE_MONTHLY" } }) {
   return createBilling({
     STRIPE_PLANS: plans,
-    getEnv: () => "", getPublicAppUrl: () => "https://example.com",
+    getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_fixture_workspace" : "", getPublicAppUrl: () => "https://example.com",
     getSafeAbsoluteUrl: (value, fallback) => value || fallback,
     getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.com" }),
     supabaseHeaders: () => ({}), safeCountTable: async () => 0,
@@ -25,7 +29,7 @@ describe("billing delivery reliability", () => {
   });
   it("requires both subscription and entitlement writes to succeed", async () => {
     const event = { type: "customer.subscription.updated", created: 1780000000, data: { object: {
-      id: "sub_test", customer: "cus_test", status: "active", metadata: { organization_id: "org_test", plan: "workspace_monthly" }
+      id: "sub_test", customer: "cus_test", status: "active", items: validStripeItems(), metadata: { organization_id: "org_test", plan: "workspace_monthly" }
     } } };
     for (const failedTable of ["billing_subscriptions", "billing_entitlements"]) {
       global.fetch = async (url) => String(url).includes("/stripe_customers?")
@@ -71,7 +75,7 @@ describe("billing delivery reliability", () => {
     const result = await billing().synchronizeBillingFromStripeEvent({
       id: "evt_versioned", type: "customer.subscription.updated", created,
       data: { object: {
-        id: "sub_test", customer: "cus_test", status: "active",
+        id: "sub_test", customer: "cus_test", status: "active", items: validStripeItems(),
         metadata: { organization_id: "org_test", plan: "workspace_monthly" }
       } }
     });
@@ -192,7 +196,7 @@ describe("billing delivery reliability", () => {
     const event = (org, customer = "cus_test") => ({
       type: "customer.subscription.updated", created: 1780000000,
       data: { object: {
-        id: "sub_test", customer, status: "active",
+        id: "sub_test", customer, status: "active", items: validStripeItems(),
         metadata: { organization_id: org, plan: "workspace_monthly" }
       } }
     });
@@ -397,7 +401,7 @@ describe("billing delivery reliability", () => {
     const response = await billing().synchronizeBillingFromStripeEvent({
       type: "customer.subscription.updated", created: 1780000000,
       data: { object: {
-        id: "sub_cancel", customer: "cus_original", status: "canceled",
+        id: "sub_cancel", customer: "cus_original", status: "canceled", items: validStripeItems(),
         metadata: { organization_id: "org_original", plan: "workspace_monthly" }
       } }
     });
@@ -520,7 +524,7 @@ describe("billing webhook HTTP retry contract", () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", created: 1780000000, data: { object: {
-        id: "sub_retry", customer: "cus_retry", status: "active", metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
+        id: "sub_retry", customer: "cus_retry", status: "active", items: validStripeItems(), metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
       const timestamp = Math.floor(Date.now() / 1000);
       const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
