@@ -70,7 +70,9 @@ self.addEventListener("install", (event) => {
       );
     })
   );
-  self.skipWaiting();
+  // Do not take control of an open page during an update. The page presents
+  // an explicit Apply update action and then sends SKIP_WAITING. A first-ever
+  // installation activates normally when no older worker controls this scope.
 });
 
 self.addEventListener("activate", (event) => {
