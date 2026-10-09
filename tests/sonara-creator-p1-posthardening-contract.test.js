@@ -7,7 +7,8 @@ const path = require("node:path");
 const { OPTIONAL_CAPABILITY, REQUIRED } = require("../lib/sonara-environment-classification.cjs");
 const SQL = fs.readFileSync(path.resolve(__dirname,
   "./sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
-const rowBlock = SQL.split("INSERT INTO expected_rls_p1 VALUES")[1]?.split("DO $drift$")[0] || "";
+const rowBlock = SQL.split("INSERT INTO expected_rls_p1 VALUES")[1]
+  ?.split("CREATE TEMP TABLE expected_subscription_rls")[0] || "";
 const rows = rowBlock.split("\n").filter((line) => /^\s*\('/.test(line));
 
 describe("Post-hardening Creator release-gate contract", () => {
