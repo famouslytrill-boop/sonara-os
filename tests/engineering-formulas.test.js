@@ -22,7 +22,14 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     ["satellite_orbital_period_seconds",{semi_major_axis_meters:7000000,gravitational_parameter_m3_s2:3.986004418e14},5828.516637686015],
     ["telescope_rayleigh_arcseconds",{wavelength_nanometers:550,aperture_meters:0.2},0.692],
     ["quantum_ideal_one_probability",{rotation_radians:Math.PI},1],
-    ["quantum_sampling_standard_error",{probability_one:0.5,shots:100},0.05]
+    ["quantum_sampling_standard_error",{probability_one:0.5,shots:100},0.05],
+    ["project_variable_cash_flow_npv",{cash_flows:[500,700],discount_rate:0.1,upfront_cost:1000},500/1.1+700/1.21-1000],
+    ["roof_pitch_surface_sqft",{plan_area_square_feet:1200,rise_per_12:6},1200*Math.sqrt(1.25)],
+    ["trade_bid_gross_margin_percent",{bid_price:1250,direct_job_cost:1000},20],
+    ["base64_encoded_bytes",{source_bytes:3},4],
+    ["circular_orbit_speed_m_s",{gravitational_parameter_m3_s2:3.986004418e14,orbital_radius_meters:7000000},Math.sqrt(3.986004418e14/7000000)],
+    ["nadir_ground_sample_distance_m",{sensor_pixel_pitch_micrometers:5,altitude_meters:500000,focal_length_meters:1},2.5],
+    ["combined_standard_uncertainty",{uncertainty_a:0.3,uncertainty_b:0.4},0.5]
   ];
   it("registers every evaluator on the existing public calculator", () => {
     const keys = new Set(listFormulaDefinitions().map(d=>d.formulaKey));
@@ -46,6 +53,36 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     assert.equal(evaluateFormula("single_phase_ac_real_power_watts",{rms_volts:1,rms_amps:1,power_factor:1.2}).code,"invalid_input");
     assert.equal(evaluateFormula("satellite_orbital_period_seconds",{semi_major_axis_meters:1,gravitational_parameter_m3_s2:0}).code,"invalid_input");
     assert.equal(evaluateFormula("telescope_rayleigh_arcseconds",{wavelength_nanometers:1e9,aperture_meters:1}).code,"invalid_input");
+  });
+  it("keeps small non-zero scientific results instead of rounding them to zero",()=>{
+    const p = evaluateFormula("quantum_ideal_one_probability",{rotation_radians:0.001});
+    assert.equal(p.ok,true);
+    assert.ok(p.resultValue > 0 && p.resultValue < 1e-6);
+    const u = evaluateFormula("combined_standard_uncertainty",{uncertainty_a:1e-8,uncertainty_b:2e-8});
+    assert.equal(u.ok,true);
+    assert.ok(u.resultValue > 2e-8 && u.resultValue < 3e-8);
+  });
+  it("checks different annual cash-flows and correct return units",()=>{
+    const zero = evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[100,200],discount_rate:0,upfront_cost:50});
+    assert.equal(zero.resultValue,250);
+    assert.equal(zero.resultUnit,"money");
+    assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[],discount_rate:0.2,upfront_cost:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[100,"NaN"],discount_rate:0.2,upfront_cost:0}).code,"invalid_input");
+  });
+  it("refuses invalid nonphysical and incompatible sampling domains",()=>{
+    assert.equal(evaluateFormula("base64_encoded_bytes",{source_bytes:1.5}).code,"invalid_input");
+    assert.equal(evaluateFormula("nadir_ground_sample_distance_m",{sensor_pixel_pitch_micrometers:5,altitude_meters:500000,focal_length_meters:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("roof_pitch_surface_sqft",{plan_area_square_feet:100,rise_per_12:-1}).code,"invalid_input");
+    assert.equal(evaluateFormula("trade_bid_gross_margin_percent",{bid_price:0,direct_job_cost:100}).code,"invalid_input");
+  });
+  it("uses one annual cash-flow list on the same existing formula form",()=>{
+    const pages=require("../lib/sonara-formula-pages.cjs");
+    const def=listFormulaDefinitions().find(d=>d.formulaKey==="project_variable_cash_flow_npv");
+    assert.equal(pages.inputKind("cash_flows"),"list");
+    const inputs=pages.valuesFromForm(def,{input_cash_flows:"500,700",input_discount_rate:"0.1",input_upfront_cost:"1000"});
+    assert.deepEqual(inputs.cash_flows,["500","700"]);
+    assert.equal(evaluateFormula(def.formulaKey,inputs).ok,true);
+    assert.match(pages.formatResult(0.00000025,"probability"),/e-7/);
   });
   it("does not assume actual QPU noise or engineering certification",()=> {
     assert.equal(evaluateFormula("quantum_ideal_one_probability",{rotation_radians:0}).resultValue,0);
