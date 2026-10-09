@@ -5,12 +5,11 @@ const assert = require("node:assert/strict");
 const classification = require("../lib/sonara-environment-classification.cjs");
 
 const KEYS = [
-  "SONARA_GROWTH_CHANNEL_SAFETY_ENABLED",
-  "SONARA_SOCIAL_USER_SAFETY_ENABLED"
+  "SONARA_GROWTH_CHANNEL_SAFETY_ENABLED"
 ];
 
 describe("feature-disabled social rollout environment contract", () => {
-  it("classifies both flags as optional, not paid-customer prerequisites or ratchets", () => {
+  it("classifies the channel rollout switch as optional, not paid-customer prerequisites or ratchets", () => {
     for (const key of KEYS) {
       assert.equal(classification.OPTIONAL_CAPABILITY.has(key), true, key);
       for (const group of ["REQUIRED", "RATCHET", "DEVELOPMENT_ONLY", "PLATFORM_PROVIDED"]) {
@@ -19,7 +18,7 @@ describe("feature-disabled social rollout environment contract", () => {
     }
   });
 
-  it("contains exactly one classification for each new rollout flag", () => {
+  it("contains exactly one classification for the channel rollout flag", () => {
     for (const key of KEYS) {
       const classifications = [
         "REQUIRED", "PLATFORM_PROVIDED", "OPTIONAL_CAPABILITY", "RATCHET", "DEVELOPMENT_ONLY"
