@@ -337,4 +337,84 @@ describe("Feature-gated Creator World Bible project routes", () => {
       .set("x-sonara-intent", "interactive-preview").send(payload)).status, 200);
   });
 
+  it("keeps revision storage independently disabled even with World Bible read enabled", async () => {
+    const { app } = setup(true, true, false);
+    const base = `/api/creator-studio/projects/${PID}/world-bible/interactive`;
+    assert.equal((await request(app).get(`${base}/draft`).set("x-paid", "yes")).status, 503);
+    assert.equal((await request(app).get(`${base}/revisions`).set("x-paid", "yes")).status, 503);
+    assert.equal((await request(app).post(`${base}/draft`).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save").send({})).status, 503);
+    assert.equal((await request(app).get(`${base}/draft`)).status, 403);
+  });
+  it("saves and recovers tenant-scoped story snapshots with exact CAS and no world data mutation", async () => {
+    const { app, rows, storyRevisions } = setup(true, true, true);
+    const wb = `/api/creator-studio/projects/${PID}/world-bible`;
+    const source = { title: "Our Game", medium: "game",
+      entities: [{ id: "hero", kind: "character", name: "Hero" }],
+      scenes: [{ id: "intro", title: "Introduction" },
+        { id: "end", title: "Ending" }], resources: {} };
+    assert.equal((await request(app).post(wb).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft: source })).status, 200);
+    const path = `${wb}/interactive/draft`;
+    const story = { version: 1, startSceneId: "intro", state: [],
+      scenes: [{ sceneId: "intro", prose: "Draft prose.",
+        dialogue: [{ speakerId: "hero", text: "Hi." }],
+        choices: [{ id: "continue", label: "Continue", targetSceneId: "end" }] },
+      { sceneId: "end", prose: "Done.", dialogue: [], choices: [] }] };
+    const body = { expectedRevision: 0, expectedWorldRevision: 1, story };
+    const saved = await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save").send(body);
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.storyDraft.revision, 1);
+    assert.equal(storyRevisions.length, 1);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].revision, 1);
+    const loaded = await request(app).get(path).set("x-paid", "yes");
+    assert.equal(loaded.status, 200);
+    assert.equal(loaded.body.storyDraft.draft.scenes[0].prose, "Draft prose.");
+    assert.match(loaded.headers["cache-control"], /no-store/);
+    assert.equal(JSON.stringify(loaded.body).includes("PRIVATE_SECRET"), false);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save").send(body)).status, 409);
+    const updated = { ...story, scenes: [ { ...story.scenes[0], prose: "Edited draft." }, story.scenes[1] ] };
+    const next = await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save")
+      .send({ expectedRevision: 1, expectedWorldRevision: 1, story: updated });
+    assert.equal(next.status, 200);
+    assert.equal(next.body.storyDraft.revision, 2);
+    const list = await request(app).get(`${wb}/interactive/revisions?limit=2`).set("x-paid", "yes");
+    assert.equal(list.status, 200);
+    assert.deepEqual(list.body.revisions.map(x=>x.revision), [2,1]);
+    assert.equal(list.body.revisions.some(x=>x.draft), false);
+    const prior = await request(app).get(`${wb}/interactive/revisions/1`).set("x-paid", "yes");
+    assert.equal(prior.status, 200);
+    assert.equal(prior.body.storyDraft.draft.scenes[0].prose, "Draft prose.");
+    const page = await request(app).get(`/creator-studio/projects/${PID}/world-bible`).set("x-paid", "yes");
+    assert.match(page.text, /data-story-save/);
+    assert.match(page.text, /data-story-load/);
+  });
+  it("refuses forged, stale, archived, cross-tenant and unauthorized story mutations", async () => {
+    const { app } = setup(true, true, true);
+    const path = `/api/creator-studio/projects/${PID}/world-bible/interactive/draft`;
+    const body = { expectedRevision: 0, expectedWorldRevision: 1,
+      story: { version: 1, startSceneId: "intro", state: [], scenes: [] } };
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save").send(body)).status, 404);
+    assert.equal((await request(app).post(path).send(body)).status, 403);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save").send(body)).status, 400);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save")
+      .set("Origin", "https://attacker.example").send(body)).status, 403);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "story-save")
+      .set("Sec-Fetch-Site", "same-site").send(body)).status, 403);
+    assert.equal((await request(app).get(path).set("x-paid", "yes")
+      .set("x-workspace", "other")).status, 404);
+    assert.equal((await request(app).get(`/api/creator-studio/projects/${PID}/world-bible/interactive/revisions?limit=26`)
+      .set("x-paid", "yes")).status, 400);
+    assert.equal((await request(app).get(`/api/creator-studio/projects/${PID}/world-bible/interactive/revisions/101`)
+      .set("x-paid", "yes")).status, 400);
+  });
+
 });
