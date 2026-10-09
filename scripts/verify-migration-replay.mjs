@@ -480,6 +480,26 @@ function main() {
       select 'unstamped_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
     `, ["stale_kept_active", "fresh_gave_canceled", "unstamped_gave_past_due"]);
 
+    // Probe real SQL execution on the disposable replay cluster, not just
+    // SQL text. Stripe Event.created has whole-second resolution: cancellation
+    // and access restrictions must beat ambiguous same-second grants.
+    behaves(psql, "same-second Stripe subscription and entitlement conflicts are fail-closed",
+      fs.readFileSync(path.join(root, "tests/sql/stripe-equal-second-conflicts.sql"), "utf8"),
+      [
+        "same_second_terminal_canceled",
+        "newer_stamped_terminal_canceled",
+        "same_second_failure_past_due",
+        "next_second_recovery_active",
+        "same_second_duplicate_active",
+        "workspace_collision_paused_true",
+        "workspace_recovery_active",
+        "plan_collision_paused",
+        "entitlement_same_second_disabled",
+        "entitlement_new_second_active",
+        "entitlement_collision_disabled_true",
+        "older_event_kept_active"
+      ]);
+
     // The shape repair, proved against the case it exists for.
     //
     // Replaying against an empty database makes every statement in
