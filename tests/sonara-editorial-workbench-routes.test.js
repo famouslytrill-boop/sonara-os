@@ -96,13 +96,30 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
     assert.ok(h.guards.every(x=>x==="creator_studio"));
     assert.equal(h.rateConfigs.length,1);
     assert.deepEqual(h.rateConfigs[0].scopes,["ip","subject"]);
+    assert.equal(h.rateConfigs[0].maxAttempts,1200);
   });
-  it("disables every endpoint when operator flag is absent, before any persistence",async()=>{
+  it("shows an honest disabled-state page without exposing editing or storage",async()=>{
     const h=makeHarness({enabled:false});
-    const r=await h.call("POST",API+"/save",doc(),{intent:"save-editorial-draft"});
-    assert.equal(r.statusCode,404);
-    assert.equal(r.body.code,"not_found");
+    for(const p of [ROUTE,ROUTE+"/drafts"]){
+      const page=await h.call("GET",p);
+      assert.equal(page.statusCode,200);
+      assert.match(page.body,/Writing workspace not enabled/);
+      assert.equal(page.body.includes("<textarea"),false);
+    }
+    const anonymous=await h.call("GET",ROUTE,{}, {auth:false});
+    assert.equal(anonymous.statusCode,401);
+    for(const [method,p,opts] of [
+      ["POST",API+"/save",{intent:"save-editorial-draft"}],
+      ["POST",API+"/preview",{}],
+      ["POST",ROUTE+"/save",{}],
+      ["GET",API+"/drafts",{}]
+    ]){
+      const r=await h.call(method,p,doc(),opts);
+      assert.equal(r.statusCode,404);
+      assert.equal(r.body.code,"not_found");
+    }
     assert.equal(h.calls.length,0);
+    assert.equal(h.saved.length,0);
   });
   it("denies anonymous and wrong-workspace users before computing or saving",async()=>{
     const h=makeHarness();
