@@ -217,6 +217,87 @@ in an isolated JavaScript harness and passed. The full Node/Mocha test suite,
 real PostgreSQL replay, migration-derived inventories, and production gates
 remain independently required. No live rows or schema were modified by this work.
 
+## Phase 6: staged versioned inventory and reviewer-backed adjustments
+
+**Source committed; do not apply to production before release-gate success.**
+Migration:
+`supabase/migrations/20261009170000_versioned_stock_adjustment_journal.sql`.
+It introduces `inventory_items.stock_version bigint` and three internal
+service-only tables:
+
+- `inventory_stock_events`: universal version/quantity event evidence. A
+  fixed-table, schema-pinned **SECURITY DEFINER trigger** inserts opening
+  snapshots and every subsequent quantity change, including unclassified
+  legacy storefront/job/manual writes. Trigger-only elevation is used because
+  existing authorized owner writes lack service-role INSERT grants to this
+  private audit. The trigger has no dynamic SQL and is not an application API.
+- `inventory_stock_adjustment_approvals`: immutable, independently recorded
+  reviewer decision for one specific item, expected version, count, actor,
+  reason and idempotency key. Service-role only. The backend must **actually
+  authenticate the reviewer and bind their action**. A database UUID by itself
+  is not proof of user consent or an approved transaction.
+- `inventory_stock_adjustments`: a unique, immutable correction linked to
+  both the actual quantity-change event and matching durable reviewer
+  approval. A before-insert tenant/lineage trigger rejects mismatched
+  references even from a privileged INSERT.
+
+**Stock-version mechanics:** Each new item begins at version 0 and each
+physical quantity update increments by exactly one. Existing items receive a
+version-0 **opening snapshot with zero delta** inside the migration, not a
+fabricated historical receipt. Subsequent legacy changes are marked
+`unattributed_quantity_change` rather than falsely credited to procurement,
+a sale or a named worker. Item-to-organization reassignment and direct version
+tampering are denied. Direct deletion of an inventory item cannot erase its
+event history silently.
+
+The service-only `sonara_apply_stock_count_adjustment` transaction rechecks
+active organization membership for the actor and owner/admin reviewer, loads
+and locks its durable approved decision, then locks the item. It enforces
+exact idempotency semantics, expected-version compare-and-swap, valid physical
+count precision, nonnegative counted balance and sufficient stock against
+held reservations **including for a zero-variance count**. The correction,
+version increment, automatic stock event and manual adjustment evidence must
+commit atomically or roll back together.
+
+**Additional safeguards and boundaries:**
+
+1. The default owner CRUD permission to edit inventory quantity remains active
+   for compatibility. Its changes are now auditable and versioned, but **not
+   yet constrained to a reviewed reason**. Do not label the journal a fully
+   attributed or closed-loop inventory accounting system.
+2. Stock reconciliation proposals and three-way invoice matching remain
+   **test-only**: they do not perform direct stock or financial mutations.
+3. Reviewer evidence must originate from a separately authorized server action
+   with live identity verification, explicit reviewer consent and auditable
+   separation of duties. A trusted `service_role` connection alone does not
+   establish that a human approved anything.
+4. This DDL adds a version column and snapshots existing rows, so production
+   lock duration, backfill size, missing history, restore/rollback and
+   idempotent rollout must be assessed before the change is enabled.
+
+**Native replay tests:** `tests/sql/stock-adjustment-journal.sql` uses a
+rolled-back disposable database to check journal math, opening snapshots,
+privileges, approval requirements, exact retries, stale data and reservation
+corruption. `tests/sql/stock-adjustment-concurrency.sql` seeds real
+independent-connection races for duplicate requests and differing counts at
+the same version; `scripts/verify-migration-replay.mjs` executes them.
+`tests/stock-adjustment-sql-contract.test.js` contains 10 additional focused
+source-level checks. These source checks passed in an isolated JS harness,
+**not a completed native PostgreSQL run**.
+
+**Release gate:** production remains unchanged until fresh native replay for
+Node 22/24 and PostgreSQL compatibility lanes, authenticated grants/RLS matrix,
+actual business inventory flow regression tests, backup/restore proof, owner
+authorization and one-tenant controlled deployment are all demonstrably green.
+Then separately migrate direct owner stock editing to the reviewed, durable
+adjustment route, preserving ordinary catalog metadata edits.
+
+Design reference: PostgreSQL row locking and trigger/transaction semantics;
+Supabase database functions and RLS guidance:
+https://www.postgresql.org/docs/current/explicit-locking.html
+https://supabase.com/docs/guides/database/functions
+https://supabase.com/docs/guides/database/postgres/row-level-security
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
