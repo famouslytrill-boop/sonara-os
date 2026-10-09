@@ -953,7 +953,7 @@ describe("the billing module stands on its own", () => {
   function deps(overrides = {}) {
     return {
       STRIPE_PLANS,
-      getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_fixture_workspace" : "",
+      getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_FixtureWorkspace" : "",
       getPublicAppUrl: () => "https://app.example.com",
       getSafeAbsoluteUrl: (value, fallback) => value || fallback,
       getSupabaseServerConfig: () => ({ ok: false }),
@@ -1115,7 +1115,7 @@ describe("the billing module stands on its own", () => {
             id: "sub_workspace",
             customer: "cus_workspace",
             status: "active",
-            items: { data: [{ price: { id: "price_fixture_workspace" }, quantity: 1 }], has_more: false },
+            items: { data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false },
             metadata: {
               organization_id: "org-1",
               plan: "workspace_monthly",
