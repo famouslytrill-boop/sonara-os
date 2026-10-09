@@ -134,6 +134,32 @@ An existing Mocha regression in `tests/migrations-are-replayed-not-just-read.tes
 The latest local attempt to install PostgreSQL into the isolated execution environment could not reach the system package repository because DNS was unavailable. Consequently, the native replay and its mutation probe were **not** executed locally, and no pass is claimed for them.
 
 
+## Cryptographic roster approval gate (2026-10-09)
+
+An unsigned `expectedOrganizationIds` list is no longer sufficient for the snapshot reader. `lib/sonara-cohort-roster-attestation.cjs` now verifies a **server-trusted Ed25519 signature before opening the database connection**. The snapshot reader fails closed with `roster_attestation_invalid` when the approval is missing, tampered, expired, replayed against a different reporting role/window/roster, or signed by an unknown/unsupported key.
+
+The operator control plane is responsible for securely generating an approval. It must supply an envelope with exactly `{ keyId, payloadB64, signatureB64 }`. `payloadB64` is unpadded base64url of UTF-8 JSON whose keys are exactly:
+
+```json
+{
+  "asOf": "2026-09-15T00:00:00.000Z",
+  "audience": "sonara.cohort.snapshot.v1",
+  "evidenceSha256": "<64 lowercase hexadecimal characters>",
+  "expiresAt": "<UTC timestamp with .sssZ>",
+  "from": "2026-09-01T00:00:00.000Z",
+  "issuedAt": "<UTC timestamp with .sssZ>",
+  "organizationIds": ["<lowercase sorted UUID>", "<additional IDs>"],
+  "reportingRole": "sonara_cohort_reader",
+  "to": "2026-09-02T00:00:00.000Z"
+}
+```
+
+The Ed25519 signature is over the **original decoded JSON bytes**, not a reserialized object. The verifier accepts only a pinned server-provided public Ed25519 KeyObject or PEM `BEGIN PUBLIC KEY` trust anchor. It rejects private keys, unknown `keyId`, unsupported algorithms, extra fields, invalid base64url, unsorted/mismatched/duplicate IDs, invalid dates, evidence digests of the wrong shape, approvals issued in the future, expired approvals and signatures valid for longer than 24 hours. The maximum signed JSON payload is 500 KB; the maximum distinct organization population is 10,000.
+
+**Authority boundary:** The signing private key belongs in an independently permissioned and audited control plane or KMS, **never** in the repository, client, environment dumps or the reader's `trustedRosterPublicKeys`. Server startup policy must pin the trusted public keys with a revocation/rotation procedure; the caller must not accept keys supplied in user requests. Public-key signature authenticity proves the approved *bytes* came from the pinned key, **not** that the underlying organization universe or eligibility classification is complete. `evidenceSha256` references separately retained source evidence; this module does not fetch or independently verify that evidence. A missing/invalid proof is not a legitimate zero-customer cohort.
+
+**Tests:** The cryptographic verifier has been executed with native Node 22 Ed25519 keys against an exact-source-matched local copy. Seventeen positive/adversarial cases passed after resolving a real Node 22 `createPublicKey(public KeyObject)` incompatibility; source blob hashes were checked against the committed GitHub file. The Mocha regression suite includes key-object/PEM acceptance, explicit rejection of private-key custody, signature tampering, unknown keys, altered scope and expiration. **Full exact-head GitHub CI and real reporting-role PostgreSQL integration remain unverified.**
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
