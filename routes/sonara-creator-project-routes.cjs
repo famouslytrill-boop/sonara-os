@@ -4,6 +4,7 @@
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+const { planBeatGrid, beatGridCsv, FRAME_RATES } = require("../lib/sonara-creator-beat-grid.cjs");
 function offlineDraftForm(project, scope, esc) {
   if (project.archived_at) return "";
   const snapshot = { version: 1, projectId: project.id, title: project.title, medium: project.medium, revision: project.revision, graph: project.graph };
@@ -43,9 +44,35 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     if (!result.ok) return page(res, "Projects are unavailable", [brandCard("Project storage", result.message)], result.status);
     const cards = result.projects.map((project) => `<article class="card"><h2><a href="${base}/${esc(project.id)}">${esc(project.title)}</a></h2><p>${esc(project.medium)} · Revision ${project.revision}${project.archived_at ? " · Archived" : ""}</p></article>`);
     return page(res, "Your creative projects", [
+      `<p><a class="action" href="${base}/beat-grid">Plan film cuts to music beats</a></p>`,
       `<section class="card"><h2>Start a project</h2><form method="post" action="/api/creator-studio/projects">${field("title", "Project title", "text", 'maxlength="180"')}<label>Project kind<select name="medium"><option value="mixed">Mixed media</option><option value="audio">Audio</option><option value="video">Video</option><option value="image">Images</option></select></label><button type="submit">Create project</button></form></section>`,
       ...cards, ...(cards.length ? [] : [brandCard("Your first project", "Create a project above, then add assets from your library.")]),
       ...(result.truncated ? [brandCard("Latest 100 projects", "This list shows your 100 most recently updated projects.")] : [])
+    ]);
+  });
+  // A usable, offline-friendly planning surface. No media or tenant records are read.
+  app.get(`${base}/beat-grid`, guard, (req, res) => {
+    let grid;
+    try { grid = planBeatGrid(req.query); }
+    catch (error) { return page(res, "Beat grid settings need correction", [brandCard("Invalid settings", error.message), `<p><a href="${base}/beat-grid">Return to the beat planner</a></p>`], 400); }
+    if (req.query.format && req.query.format !== "csv") return page(res, "Unsupported export format", [brandCard("Export", "Only CSV beat markers are available.")], 400);
+    if (req.query.format === "csv") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.csv"');
+      return res.type("text/csv").send(beatGridCsv(grid));
+    }
+    const fields = [[
+      ["bpm", "Tempo (beats per minute)", grid.bpm, 20, 320],
+      ["beatsPerBar", "Beats per bar", grid.beatsPerBar, 2, 12],
+      ["bars", "Number of bars", grid.bars, 1, 128],
+      ["offsetFrames", "Start frame offset", grid.offsetFrames, 0, 2000000]
+    ].map(([key, label, value, min, max]) => `<label>${esc(label)}<input name="${key}" type="number" min="${min}" max="${max}" step="1" value="${value}" required></label>`).join("");
+    const options = Object.keys(FRAME_RATES).map((rate) => `<option value="${esc(rate)}"${grid.frameRate === rate ? " selected" : ""}>${esc(rate)} fps</option>`).join("");
+    const params = new URLSearchParams({ bpm: String(grid.bpm), beatsPerBar: String(grid.beatsPerBar), bars: String(grid.bars), offsetFrames: String(grid.offsetFrames), frameRate: grid.frameRate });
+    const rows = grid.markers.map((row) => `<tr><th scope="row">${row.bar}</th><td>${row.beat}</td><td>${row.frame}</td><td>${row.seconds.toFixed(3)}</td></tr>`).join("");
+    return page(res, "Film and music beat grid", [
+      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter a tempo, time signature and film frame rate. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
+      `<section class="card"><h2>Marker results</h2><p>${grid.bars} bars · ${grid.approximateDurationSeconds} seconds of music · ${grid.durationFrames} frames of picture after the offset.</p><p>${esc(grid.note)}</p><p><a class="action" href="${base}/beat-grid?${params.toString()}&format=csv">Download beat-marker CSV</a></p><div style="overflow-x:auto"><table><thead><tr><th scope="col">Bar</th><th scope="col">Beat index</th><th scope="col">Absolute frame</th><th scope="col">Timeline seconds</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
+      `<p><a href="${base}">Return to your projects</a> · <a href="/creator-studio/tools/storyboard">Storyboard builder</a> · <a href="/business-builder/tools/reorder-point">Reorder-point calculator</a></p>`
     ]);
   });
   app.get(`${base}/:id`, guard, async (req, res) => {
@@ -58,6 +85,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const timeline = summarizeTimeline(project.graph);
     const sections = [brandCard("Your project", `Revision ${project.revision}. ${nodes.length} entries. Source durations are supplied by you; exports describe edits and do not render a film or verify rights.`),
       `<p><a href="/creator-studio/generation?project=${project.id}">Generate media for this project</a></p>`,
+      `<p><a href="${base}/beat-grid">Calculate music-to-picture beat markers</a></p>`,
       `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/srt">Download SRT captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
     sections.push(brandCard("Timeline summary", `${timeline.durationMs} ms total · ${timeline.clipCount} clips · ${timeline.captionCount} captions · ${timeline.unusedSourceCount} unused sources · ${timeline.mutedClipCount} muted clips. ${timeline.gapMs} ms without clips; ${timeline.overlapMs} ms with overlapping clips. Gaps and overlaps describe placement, not audio silence or errors.`));
     if (!project.archived_at) {
