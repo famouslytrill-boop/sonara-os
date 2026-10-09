@@ -174,10 +174,10 @@ describe("read-only provider-backed Stripe reconciliation", () => {
   it("rejects live Stripe access without explicit read-only opt-in", async () => {
     const h = harness({ testKey: "sk_live_fake_key" });
     assert.equal((await inspect(h)).code, "live_inspection_requires_explicit_opt_in");
-    assert.equal(h.calls.length, 1);
+    assert.equal(h.calls.length, 0, "live-key refusal must happen before even database reads");
     const approved = await inspect(h, { allowLiveReadonly: true });
     assert.equal(approved.code, "consistent");
-    assert.equal(h.calls.length, 3);
+    assert.equal(h.calls.length, 2);
   });
 
   it("never follows an untrusted database origin", async () => {
