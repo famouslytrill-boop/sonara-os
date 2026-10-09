@@ -119,6 +119,9 @@ const NO_FORM_NEEDED = {
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
+  "/api/business/catering/estimate": "Read-only JSON equivalent of the owner catering calculator form at /business-builder/owner/catering; this API does not save quotes.",
+  "/api/business/events/resource-scenario": "Nested interval and resource snapshot preview; no persistent resource booking exists and a generic create form would misleadingly imply one.",
+  "/api/business/finance/microtransaction-scenario": "Owner enters assumptions at /business-builder/owner/financial-scenarios; the JSON twin previews fees and moves no funds.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
   // The five market-intelligence entries that stood here -- fetch-source and the
