@@ -10,12 +10,14 @@ alter table public.inventory_items
   add column stock_version bigint not null default 0
   constraint inventory_items_stock_version_nonnegative check (stock_version >= 0);
 
+-- Item deletion must not silently erase stock events. Organization deletion
+-- may still cascade the journal as part of a reviewed privacy deletion.
 -- A universal change audit is required BEFORE blocking legacy stock editors.
 -- No mutable source or user attribution is inferred from generic UPDATEs.
 create table public.inventory_stock_events (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references public.organizations(id) on delete cascade,
-  inventory_item_id uuid not null references public.inventory_items(id) on delete cascade,
+  inventory_item_id uuid not null references public.inventory_items(id),
   source text not null check (source in ('opening_snapshot','unattributed_quantity_change')),
   version_before bigint not null check (version_before >= 0),
   version_after bigint not null check (version_after >= version_before),
