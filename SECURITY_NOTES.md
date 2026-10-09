@@ -657,3 +657,20 @@ RGBA tiles and exposes no DOM, credentials, storage or network operation. The gu
 and actual browser Worker processing are tested; an empty origin alone is not
 described as proof of sender identity. This addresses CodeQL's handler finding
 without disabling the query or suppressing a scan.
+
+## Permissions-Policy: accelerometer and gyroscope are default-deny
+
+**Date:** 2026-10-09
+
+**Why it was changed.** The motion capture work initially widened `accelerometer` and `gyroscope` only on `/settings/device-feedback`, but the global header omitted both directives. That was not a real default deny: both directives have a default allowlist of `self`, so a same-origin top-level page can remain eligible when a directive is omitted. A second problem was route-specific header replacement: Creator Generation already replaces the global Permissions-Policy for camera/microphone access, so leaving motion directives out of that replacement could silently restore their default-`self` behavior.
+
+**Control.** `lib/sonara-permissions-policy.cjs` now serializes the complete controlled feature set for every named surface. The global `default` preset uses `accelerometer=()` and `gyroscope=()`. The signed-in `device_feedback` preset alone changes those to `(self)` while keeping camera denied. The `creator_generation` preset opens camera/microphone to this origin and explicitly keeps accelerometer/gyroscope denied. Tests reject partial policies, wildcards, unknown presets and literal ad-hoc Permissions-Policy headers in server/route modules.
+
+**Research basis.**
+- MDN Permissions-Policy accelerometer: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy/accelerometer
+- MDN Permissions-Policy gyroscope: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy/gyroscope
+- W3C Permissions Policy Working Draft (22 September 2026): https://www.w3.org/TR/2026/WD-permissions-policy-1-20260922/
+- MDN DeviceMotionEvent.requestPermission(): https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/requestPermission_static
+
+This does not make browser support universal. Device motion remains HTTPS-only where required, browser-dependent, explicitly user-initiated, foreground-bounded, and subject to the browser's own permission decision.
+
