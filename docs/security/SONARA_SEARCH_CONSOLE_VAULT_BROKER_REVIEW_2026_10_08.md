@@ -57,7 +57,7 @@ The Express/server-side client calls only:
 
 The request carries:
 
-1. a server-only Supabase API key in the `apikey` header, preferring a current `sb_secret_…` key and allowing the legacy service-role key only as a transitional fallback;
+1. a current server-only Supabase `sb_secret_…` key in the `apikey` header; this new broker does not accept the legacy service-role key;
 2. a timestamp;
 3. an HMAC-SHA256 signature over:
    - timestamp;
