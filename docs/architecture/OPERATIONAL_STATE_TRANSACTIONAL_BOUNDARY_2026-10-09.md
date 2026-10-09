@@ -71,6 +71,29 @@ The coordinator now requires UUID event/approval IDs, verifies `revokedAtMs` is 
 
 Research: PostgreSQL `UPDATE ... RETURNING` and conditional updates (https://www.postgresql.org/docs/current/sql-update.html), RLS and privileges (https://www.postgresql.org/docs/current/ddl-rowsecurity.html), and Supabase RLS guidance (https://supabase.com/docs/guides/database/postgres/row-level-security).
 
+## Pass 12 — exact positive-only recovery from indeterminate COMMIT
+
+Files: `lib/sonara-postgres-operational-store.cjs` and `lib/sonara-operational-transition-coordinator.cjs`.
+
+**Defect addressed:** a successfully acknowledged COMMIT could previously appear to fail to the caller if `client.release()` raised an exception. The adapter now preserves the confirmed COMMIT result across connection-pool release errors. When the COMMIT acknowledgement itself is lost, it still returns the sanitized `SONARA_COMMIT_OUTCOME_UNKNOWN` condition. No automatic retry of a consumed approval is safe.
+
+**New recovery contract:** `store.withReadOnlyTransaction(work)` opens a separate, read-only PostgreSQL transaction on the **authoritative primary** (no eventually-consistent read replica), with a scoped receipt lookup `tx.readCommittedEvent`. The coordinator's `reconcile({session,command})` independently checks the current authorized actor and tenant through its trusted authorizer, then verifies exact event UUID, approval UUID, actor UUID, environment, scope, tenant UUID, expected prior revision, next revision and destination mode. The read-only SQL joins the immutable audit receipt with the one-use approval and original state, requiring `a.consumed_event_id = e.id`, consumed timestamp, matching from/to, `e.revision = a.expected_revision + 1`, and `s.revision >= e.revision`.
+
+**Three possible results:**
+- `confirmed_committed`: complete event and approval proof exists for the authorized actor. This does not reexecute the transition.
+- `unresolved`: receipt absent, invalid or unreadable, or the DB lookup unavailable. **Do not treat absence as proven rollback or safe retry.**
+- `refused`: caller-supplied evidence, malformed receipt identifier, invalid scope or unauthorized tenant actor. Does not divulge whether another tenant's event exists.
+
+All cases set `retryAuthorized: false`; do not automatically replay a command merely because a network call failed. This read-only verification does not substitute for separately authorized restorative action or an external provider reconciliation.
+
+**Operational prerequisites:** the PostgreSQL pool must target the authoritative production writer for that environment, with current read-your-writes visibility; access through an asynchronous replica could produce false "not found" ambiguity. The private schema must ensure event immutability, unique event/approval IDs, one-use approval consumption, tenant-safe joins, and audited revocation. The coordinator accepts only server-supplied authorization, and the read query runs inside a PostgreSQL transaction declared `READ ONLY`, which prohibits ordinary table writes. SQL arguments are parameterized. No browser-exposed RPC, schema migration, endpoint, or monitoring job has been enabled.
+
+**Focused test evidence:** committed source passed 13 coordinator/adapter tests with 218 assertions, including end-to-end mocked PostgreSQL receipt lookup, missing/foreign/forged events, unauthorized actor, read error and rollback, SQL-value parameterization, full-mode rollback and post-COMMIT release exception. A regression initially caught an incorrect four-part UUID check in the adapter; it was fixed to the complete five-part UUID format and all 13 cases passed.
+
+**Not yet proven:** actual PostgreSQL SQL parsing and runtime, pg driver behavior on connection loss, real primary/replica consistency, CI runner execution, branch protection, multi-client CAS and tenant RLS. Do not claim operational activation or real committed customer events from mocked fixtures.
+
+References: https://www.postgresql.org/docs/current/sql-set-transaction.html and https://www.postgresql.org/docs/current/sql-update.html .
+
 ## Schema design for review (NOT an executable migration)
 
 Generate a dated migration using the real installed Supabase CLI before committing DDL. Reconcile existing database migrations and the production target first. The relational model needs **three** operator-only tables, preferably in a non-exposed schema:
