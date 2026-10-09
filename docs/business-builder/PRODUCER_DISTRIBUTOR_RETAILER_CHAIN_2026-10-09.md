@@ -410,6 +410,74 @@ test. The native database replay includes revised approval fixtures with
 `expected_unit` and `expected_location_id`, plus a savepoint-based unit
 change/rollback probe.
 
+## Phase 9: authenticated dual-person stock review path (staged, disabled)
+
+The application previously lacked the trusted actor/approver pathway required
+to produce the independent-review record. This update adds one table and
+two service-only PostgreSQL RPCs **inside the un-applied versioned-stock
+migration**, plus three registered backend endpoints in
+`routes/sonara-last9-routes.cjs`.
+
+**Durable count and review lifecycle:**
+
+1. An authenticated staff member sends
+   `POST /api/business/inventory/stock-count-requests` with an inventory item
+   UUID, count in thousandths, expected inventory revision and an
+   organization-scoped idempotency key. The handler resolves the member
+   and organization from the verified session; body-supplied actor, reviewer,
+   role or organization IDs are **not** used. It calls the service-only
+   `sonara_submit_stock_count_request` RPC. That RPC locks the inventory
+   item, verifies active organization membership and the current revision,
+   and stores a **non-editable** `inventory_stock_count_requests` row
+   containing unit, warehouse, actor, version and counted quantity.
+   Submission posts **no inventory change**.
+2. An authorized member can retrieve up to 50 organization-scoped records via
+   `GET /api/business/inventory/stock-count-requests`. There is no
+   cross-tenant list path.
+3. A **different** active owner/admin explicitly sends
+   `POST /api/business/inventory/stock-count-requests/:requestId/review`
+   with JSON `{"action":"approve"}`. The route takes the reviewer user ID
+   and role from the authenticated server-side membership resolution. The
+   `sonara_review_stock_count_request` RPC locks the original request,
+   refuses self-review and competing reviewers, records an approval tied to
+   that exact request, and executes the existing
+   `sonara_apply_stock_count_adjustment` RPC inside the same transaction.
+   Any version, reservation, stock, tenant, authorization or audit error
+   aborts **both** the reviewer decision and stock update.
+
+**Security hardening:** Both write endpoints require the existing business
+manager middleware, request rate limiter, valid same-origin JSON submissions,
+confirmed primary organization and verified server-side user ID. The review
+route additionally requires owner/admin role, while PostgreSQL independently
+checks active memberships and disallows self-approval. All tables have RLS,
+no `anon` or `authenticated` write grants, and the sensitive RPCs are
+service-role-only. The reviewer-approval insert trigger now also requires a
+previously recorded same-tenant count request whose item, employee, unit,
+location, version, quantity, reason and request key match.
+
+**Launch flag:** `SONARA_ENABLE_STOCK_COUNT_REVIEW=true` is required for
+the endpoints to accept requests. It is **off by default**. No public
+customer menu, button, approval notification or service-provider activation
+was enabled by this source-only change. Do **not** turn it on until the
+actual PostgreSQL migration has passed replay and controlled deployment,
+reviewer UX has been validated, and generic inventory quantity editing is
+migrated away from direct CRUD. The flag is not an authorization mechanism:
+the server and database guards remain mandatory.
+
+**Verification:** 8 new executable route-handler tests exercise the disabled
+flag, hostile origins, malformed counts, verified actor binding, owner review
+and tenant-filtered reading. The disposable SQL behavior fixture was expanded
+to exercise count queueing, duplicate request IDs, conflicting submissions,
+actual independent review, adjustment posting, reviewer retry and rejection
+of self-review. The pre-existing adversarial fixtures now seed requests
+before their synthetic approvals, and the generated tenant-table and orphan
+registries cover `inventory_stock_count_requests`. Across six focused
+source-level suites, **80 assertions passed** in an isolated JavaScript
+harness. Native PostgreSQL execution and the full repo CI are **unverified**.
+
+**Production is unchanged.** No live tables, approval rows, stock balances
+or provider payments were modified. Code and tests remain in draft PR #566.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
