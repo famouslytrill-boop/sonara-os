@@ -63,6 +63,9 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
     });
     if (!result.ok) return fail(res, 503, "Your request cannot be saved right now.");
     if (result.value === "rate_limited") return fail(res, 429, "Too many requests. Try again later.");
+    if (result.value === "idempotency_conflict") {
+      return fail(res, 409, "This report request identifier was already used for a different submission.");
+    }
     if (!["blocked", "unblocked", "reported", "already_reported"].includes(result.value)) {
       // Do not reveal whether the creator is unpublished, already moderated or
       // has blocked this viewer.
