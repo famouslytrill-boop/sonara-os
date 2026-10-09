@@ -12,7 +12,7 @@ describe("SONARA bounded editorial workbench",()=>{
   it("supports exactly six creator formats without inventing a story",()=>{
     assert.deepEqual(KINDS,["note","blog","storyboard","vlog","gaming","travel"]);
     for(const kind of KINDS.filter(x=>x!=="travel")){
-      const out=success(draft(input(kind)));
+      const out=success(draft(input(kind,kind==="storyboard"?{durationSeconds:30}:{})));
       assert.equal(out.title,"Planning journal");
       assert.equal(out.body,"Teh first first idea  matters.");
       assert.equal(out.publication.status,"not_published");
@@ -39,6 +39,9 @@ describe("SONARA bounded editorial workbench",()=>{
     const result=success(draft(input("blog",{body:"Bonjour tout le monde",language:"fr"})));
     assert.equal(result.proofreading.supported,false);
     assert.deepEqual(result.proofreading.issues,[]);
+  });
+  it("refuses storyboards without a confirmed shot duration",()=>{
+    refusal(draft(input("storyboard")),"missing_runtime");
   });
   it("uses existing storyboard runtime arithmetic rather than guessing shot seconds",()=>{
     const out=success(draft(input("storyboard",{topic:"Behind the scenes",durationSeconds:30,sceneCount:8})));
