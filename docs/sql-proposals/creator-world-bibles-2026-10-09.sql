@@ -39,7 +39,7 @@ create index if not exists creator_world_bibles_org_idx
 -- Run this on an isolated PostgreSQL branch and verify lock behavior first.
 create or replace function public.sonara_world_bible_parent_write_guard()
 returns trigger language plpgsql security invoker
-set search_path = public, pg_temp as $
+set search_path = pg_catalog, public, pg_temp as $sonara_world_guard$
 begin
   perform 1 from public.creator_projects
     where id = new.project_id
@@ -51,7 +51,7 @@ begin
   end if;
   return new;
 end;
-$;
+$sonara_world_guard$;
 revoke execute on function public.sonara_world_bible_parent_write_guard()
   from public, anon, authenticated;
 grant execute on function public.sonara_world_bible_parent_write_guard()
