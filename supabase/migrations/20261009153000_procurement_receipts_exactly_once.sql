@@ -72,7 +72,7 @@ create policy inventory_procurement_ledger_service_only on public.inventory_proc
 -- organization is the same as the referenced record's organization. Validate
 -- seller/buyer-owned lineage even on a direct privileged insert.
 create function public.sonara_guard_procurement_receipt_tenant()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
   if not exists (
     select 1
@@ -90,7 +90,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 revoke all on function public.sonara_guard_procurement_receipt_tenant() from public, anon, authenticated;
 grant execute on function public.sonara_guard_procurement_receipt_tenant() to service_role;
 create trigger procurement_receipt_enforce_tenant
@@ -98,7 +98,7 @@ before insert on public.procurement_receipt_entries
 for each row execute function public.sonara_guard_procurement_receipt_tenant();
 
 create function public.sonara_guard_procurement_ledger_receipt()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
   if not exists (
     select 1 from public.procurement_receipt_entries r
@@ -113,7 +113,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 revoke all on function public.sonara_guard_procurement_ledger_receipt() from public, anon, authenticated;
 grant execute on function public.sonara_guard_procurement_ledger_receipt() to service_role;
 create trigger procurement_ledger_enforce_receipt
