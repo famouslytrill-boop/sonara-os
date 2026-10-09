@@ -54,11 +54,16 @@ function setup(enabled = true, interactive = false, storyPersistent = false) {
         : [...storyRevisions].reverse().slice(0, Number(parsed.searchParams.get("limit") || 25));
       return { ok: true, status: 200, json: async () => list };
     }
-    assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
+    if (opts.method !== "POST") {
+      assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
+      assert.equal(parsed.searchParams.get("project_id"), "eq." + PID);
+    }
     const existing = rows[0];
     if (!opts.method) return { ok: true, status: 200, json: async () => existing ? [existing] : [] };
     const payload = JSON.parse(opts.body);
     if (opts.method === "POST") {
+      assert.equal(payload.organization_id, ORG);
+      assert.equal(payload.project_id, PID);
       if (existing) return { ok: false, status: 409 };
       rows.push(payload);
     } else if (opts.method === "PATCH") {
