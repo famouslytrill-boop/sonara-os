@@ -16,6 +16,10 @@ const {
   shardRequirement,
   replicaRequirement,
   boundedLoopStatus,
+  planWorkflowSequence,
+  replayWorkflowTrace,
+  replayScopedWorkflowTrace,
+  evaluateWorkflowRetry,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
 const {
@@ -439,6 +443,220 @@ describe("September 19 platform pattern convergence", () => {
     decision = operationalAlertDecision({ ...base, signal: "job_queue_stalled" });
     assert.equal(decision.severity, "warning");
     assert.equal(decision.notifyCandidate, true);
+  });
+
+  it("plans stable dependency stages, reports the critical path, and rejects graph hazards", () => {
+    const steps = [
+      { id: "publish", dependsOn: ["review"], estimatedMs: 3 },
+      { id: "review", dependsOn: ["render"], estimatedMs: 8, maxAttempts: 2 },
+      { id: "render", estimatedMs: 20 },
+      { id: "bill", estimatedMs: 5 }
+    ];
+    const plan = planWorkflowSequence(steps);
+    assert.deepEqual(plan.order, ["bill", "render", "review", "publish"]);
+    assert.deepEqual(plan.stages, [["bill", "render"], ["review"], ["publish"]]);
+    assert.equal(plan.criticalPathMs, 31);
+    assert.deepEqual(plan.criticalPath, ["render", "review", "publish"]);
+    assert.deepEqual(planWorkflowSequence([...steps].reverse()), plan);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }, { id: "b", dependsOn: ["a"] }]), /cycle/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }]), /Unknown dependency/);
+    assert.throws(() => planWorkflowSequence([{ id: "a" }, { id: "a" }]), /Duplicate step/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", maxAttempts: 100 }]), /maxAttempts/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["a"] }]), /Self-dependency/);
+  });
+
+  it("replays step traces without duplicate effects or out-of-order transitions", () => {
+    const plan = planWorkflowSequence([
+      { id: "publish", dependsOn: ["review"] },
+      { id: "review", dependsOn: ["render"], maxAttempts: 2 },
+      { id: "render" },
+      { id: "bill" }
+    ]);
+    assert.deepEqual(replayWorkflowTrace(plan, []).eligible, ["bill", "render"]);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      { eventId: "z", stepId: "publish", action: "started", attempt: 1 }
+    ]), /Out-of-sequence/);
+
+    const events = [
+      { eventId: "a", stepId: "render", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "c", stepId: "review", action: "started", attempt: 1 },
+      { eventId: "d", stepId: "review", action: "failed", attempt: 1 },
+      { eventId: "e", stepId: "review", action: "started", attempt: 2 },
+      { eventId: "f", stepId: "review", action: "succeeded", attempt: 2 },
+      { eventId: "g", stepId: "publish", action: "started", attempt: 1 },
+      { eventId: "h", stepId: "publish", action: "succeeded", attempt: 1 },
+      { eventId: "i", stepId: "bill", action: "started", attempt: 1 },
+      { eventId: "j", stepId: "bill", action: "succeeded", attempt: 1 }
+    ];
+    const replay = replayWorkflowTrace(plan, events);
+    assert.equal(replay.complete, true);
+    assert.equal(replay.replayedEvents, 1);
+    assert.equal(replay.acceptedEvents, 10);
+    assert.deepEqual(replay.eligible, []);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      events[0], { ...events[0], action: "failed" }
+    ]), /Conflicting replay event id/);
+
+    const singleAttempt = planWorkflowSequence([{ id: "once", maxAttempts: 1 }]);
+    const failed = [
+      { eventId: "start", stepId: "once", action: "started", attempt: 1 },
+      { eventId: "fail", stepId: "once", action: "failed", attempt: 1 }
+    ];
+    assert.deepEqual(replayWorkflowTrace(singleAttempt, failed).exhausted, ["once"]);
+    assert.throws(() => replayWorkflowTrace(singleAttempt, [
+      ...failed, { eventId: "retry", stepId: "once", action: "started", attempt: 2 }
+    ]), /Out-of-sequence/);
+  });
+
+  it("rejects cross-tenant, mixed-run, reordered and conflicting durable event histories", () => {
+    const organizationId = "11111111-1111-4111-8111-111111111111";
+    const runId = "run:42";
+    const plan = planWorkflowSequence([
+      { id: "render", maxAttempts: 2 },
+      { id: "publish", dependsOn: ["render"] }
+    ]);
+    const definitionHash = plan.definitionHash;
+    const start = {
+      organizationId, runId, definitionHash, sequence: 1, eventId: "one",
+      stepId: "render", action: "started", attempt: 1,
+      traceId: "0123456789abcdef0123456789abcdef"
+    };
+    const finish = {
+      organizationId, runId, definitionHash, sequence: 2, eventId: "two",
+      stepId: "render", action: "succeeded", attempt: 1
+    };
+    const input = { plan, organizationId, runId, definitionHash, events: [start, finish, start] };
+    const state = replayScopedWorkflowTrace(input);
+    assert.equal(state.complete, false);
+    assert.equal(state.organizationId, organizationId);
+    assert.equal(state.runId, runId);
+    assert.equal(state.definitionHash, definitionHash);
+    assert.equal(state.lastSequence, 2);
+    assert.equal(state.acceptedEvents, 2);
+    assert.equal(state.replayedEvents, 1);
+    assert.deepEqual(state.eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [start, finish] }).eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [] }).eligible, ["render"]);
+
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, organizationId: "22222222-2222-4222-8222-222222222222" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, runId: "another" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: [finish] }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 3 }]
+    }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 1 }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, eventId: "one" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...start, traceId: "fedcba9876543210fedcba9876543210" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, action: "succeeded", attempt: 2 }]
+    }), /Out-of-sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, organizationId: "wrong" }), /canonical lowercase UUID/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, definitionHash: "0".repeat(64)
+    }), /Workflow definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: "0".repeat(64) }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: undefined }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input,
+      plan: planWorkflowSequence([
+        { id: "render", maxAttempts: 3 },
+        { id: "publish", dependsOn: ["render"] }
+      ])
+    }), /Workflow definition mismatch/);
+    assert.equal(
+      planWorkflowSequence([...plan.steps].reverse()).definitionHash,
+      definitionHash
+    );
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, traceId: "00000000000000000000000000000000" }]
+    }), /Invalid trace id/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, sequence: 0 }]
+    }), /Invalid workflow event sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: new Array(4097).fill(start) }), /4096/);
+  });
+
+  it("schedules bounded deterministic retries only after explicit safety checks", () => {
+    const plan = planWorkflowSequence([
+      { id: "ingest", maxAttempts: 3 },
+      { id: "publish", dependsOn: ["ingest"], maxAttempts: 2 }
+    ]);
+    const events = [
+      { eventId: "a", stepId: "ingest", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "ingest", action: "failed", attempt: 1 }
+    ];
+    const input = {
+      plan, events, stepId: "ingest", runId: "run:001",
+      startedAtMs: 1000, nowMs: 1100, maxElapsedMs: 20000,
+      baseDelayMs: 100, capDelayMs: 1000, failureKind: "transient",
+      authorizationConfirmed: true, effectReplaySafe: true, budgetApproved: true
+    };
+    const scheduled = evaluateWorkflowRetry(input);
+    assert.equal(scheduled.action, "schedule");
+    assert.equal(scheduled.nextAttempt, 2);
+    assert.equal(scheduled.remainingAttempts, 1);
+    assert.equal(scheduled.notBeforeMs, 1100 + scheduled.delayMs);
+    assert.ok(scheduled.delayMs >= 1 && scheduled.delayMs <= 100);
+    assert.deepEqual(evaluateWorkflowRetry(input), scheduled);
+    assert.deepEqual(evaluateWorkflowRetry({ ...input, events: [...events, events[1]] }), scheduled);
+
+    const refusals = [
+      ["cancellationRequested", true, "cancel_requested"],
+      ["failureKind", "permanent", "non_retryable_failure"],
+      ["failureKind", undefined, "non_retryable_failure"],
+      ["authorizationConfirmed", false, "authorization_unconfirmed"],
+      ["effectReplaySafe", false, "idempotency_unconfirmed"],
+      ["budgetApproved", false, "resource_budget_unconfirmed"]
+    ];
+    for (const [field, value, reason] of refusals) {
+      assert.equal(evaluateWorkflowRetry({ ...input, [field]: value }).reason, reason);
+    }
+    assert.equal(evaluateWorkflowRetry({ ...input, nowMs: 21001 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, maxElapsedMs: 101 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, events: [] }).reason, "step_not_failed");
+    assert.equal(evaluateWorkflowRetry({ ...input, plan: planWorkflowSequence([{ id: "ingest", maxAttempts: 1 }]) }).reason, "attempt_budget_exhausted");
+
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited" }).reason, "provider_backoff_unverified");
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 3000 }).reason, "provider_backoff_exceeds_cap");
+    const throttled = evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 800 });
+    assert.equal(throttled.action, "schedule");
+    assert.equal(throttled.delayMs, 800);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, runId: "PII leaked /token" }), /runId/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, baseDelayMs: 0 }), /baseDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, capDelayMs: 3, baseDelayMs: 4 }), /capDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, nowMs: 999 }), /precedes/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, stepId: "unknown" }), /Unknown/);
+
+    const secondAttempt = [
+      ...events,
+      { eventId: "c", stepId: "ingest", action: "started", attempt: 2 },
+      { eventId: "d", stepId: "ingest", action: "failed", attempt: 2 }
+    ];
+    const next = evaluateWorkflowRetry({ ...input, events: secondAttempt });
+    assert.equal(next.nextAttempt, 3);
+    assert.ok(next.delayMs <= 200);
+    const exhausted = [
+      ...secondAttempt,
+      { eventId: "e", stepId: "ingest", action: "started", attempt: 3 },
+      { eventId: "f", stepId: "ingest", action: "failed", attempt: 3 }
+    ];
+    assert.equal(evaluateWorkflowRetry({ ...input, events: exhausted }).reason, "attempt_budget_exhausted");
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
