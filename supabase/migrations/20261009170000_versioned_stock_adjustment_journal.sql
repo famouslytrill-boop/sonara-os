@@ -504,4 +504,152 @@ comment on function public.sonara_apply_stock_count_adjustment(
   uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid
 ) is 'Staged: service-only, count-based stock adjustment with expected version, held-quantity check and immutable evidence. Authenticated backend must bind real actors and obtain owner approval.';
 
+-- Stage 1: immutable stock-count proposal from a server-verified worker.
+-- Neither actor_user_id nor organization_id may be supplied by the browser
+-- directly to this service-role-only RPC; bind both to the authenticated session.
+create function public.sonara_submit_stock_count_request(
+  p_organization_id uuid,
+  p_inventory_item_id uuid,
+  p_actor_user_id uuid,
+  p_idempotency_key text,
+  p_expected_version bigint,
+  p_counted_quantity numeric
+) returns jsonb
+language plpgsql security invoker set search_path = ''
+as $function$
+declare
+  v_item public.inventory_items%rowtype;
+  v_existing public.inventory_stock_count_requests%rowtype;
+  v_id uuid;
+begin
+  if p_organization_id is null or p_inventory_item_id is null
+     or p_actor_user_id is null or p_idempotency_key is null
+     or char_length(p_idempotency_key) not between 8 and 128
+     or p_idempotency_key <> btrim(p_idempotency_key)
+     or p_expected_version is null or p_expected_version < 0
+     or p_counted_quantity is null
+     or p_counted_quantity::text in ('NaN','Infinity','-Infinity')
+     or p_counted_quantity < 0 or p_counted_quantity > 999999999.999
+     or p_counted_quantity <> trunc(p_counted_quantity,3) then
+    raise exception 'stock_count_request_invalid';
+  end if;
+  if not exists (
+    select 1 from public.organization_memberships m
+    where m.organization_id=p_organization_id and m.user_id=p_actor_user_id
+      and m.status='active'
+  ) then
+    raise exception 'stock_count_actor_unauthorized';
+  end if;
+  select * into v_item from public.inventory_items
+    where organization_id=p_organization_id and id=p_inventory_item_id
+    for update;
+  if not found then raise exception 'inventory_item_not_found'; end if;
+
+  select * into v_existing from public.inventory_stock_count_requests
+    where organization_id=p_organization_id and idempotency_key=p_idempotency_key;
+  if found then
+    if v_existing.inventory_item_id <> p_inventory_item_id
+       or v_existing.actor_user_id <> p_actor_user_id
+       or v_existing.expected_stock_version <> p_expected_version
+       or v_existing.counted_quantity <> p_counted_quantity then
+      raise exception 'stock_count_request_key_conflict';
+    end if;
+    return jsonb_build_object('ok',true,'code','already_requested',
+      'request_id',v_existing.id,'stock_posted',false);
+  end if;
+
+  if v_item.status <> 'active'
+     or v_item.stock_version <> p_expected_version
+     or v_item.quantity is null or v_item.quantity < 0
+     or v_item.quantity::text in ('NaN','Infinity','-Infinity')
+     or v_item.quantity <> trunc(v_item.quantity,3)
+     or v_item.unit is null or char_length(btrim(v_item.unit)) not between 1 and 32 then
+    raise exception 'stock_count_snapshot_invalid';
+  end if;
+  insert into public.inventory_stock_count_requests(
+    organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values (
+    p_organization_id,p_inventory_item_id,p_actor_user_id,p_idempotency_key,
+    p_expected_version,lower(btrim(v_item.unit)),v_item.location_id,p_counted_quantity
+  ) returning id into v_id;
+  return jsonb_build_object('ok',true,'code','review_requested','request_id',v_id,
+    'stock_posted',false,'stock_version',p_expected_version);
+end;
+$function$;
+revoke all on function public.sonara_submit_stock_count_request(
+  uuid,uuid,uuid,text,bigint,numeric
+) from public,anon,authenticated;
+grant execute on function public.sonara_submit_stock_count_request(
+  uuid,uuid,uuid,text,bigint,numeric
+) to service_role;
+
+-- Stage 2: a different, authenticated owner/admin reviews the immutable
+-- request. The correction and reviewer approval commit or roll back together.
+create function public.sonara_review_stock_count_request(
+  p_organization_id uuid,
+  p_request_id uuid,
+  p_reviewer_user_id uuid
+) returns jsonb
+language plpgsql security invoker set search_path = ''
+as $function$
+declare
+  v_request public.inventory_stock_count_requests%rowtype;
+  v_existing public.inventory_stock_adjustment_approvals%rowtype;
+  v_result jsonb;
+  v_review_id uuid;
+begin
+  if p_organization_id is null or p_request_id is null or p_reviewer_user_id is null then
+    raise exception 'stock_review_invalid';
+  end if;
+  if not exists (
+    select 1 from public.organization_memberships m
+    where m.organization_id=p_organization_id
+      and m.user_id=p_reviewer_user_id and m.status='active'
+      and lower(m.role) in ('owner','admin','business_owner')
+  ) then
+    raise exception 'stock_review_owner_role_required';
+  end if;
+  select * into v_request from public.inventory_stock_count_requests
+    where id=p_request_id and organization_id=p_organization_id for update;
+  if not found then raise exception 'stock_review_request_missing'; end if;
+  if v_request.actor_user_id=p_reviewer_user_id then
+    raise exception 'stock_review_self_approval_forbidden';
+  end if;
+  select * into v_existing from public.inventory_stock_adjustment_approvals
+    where stock_count_request_id=v_request.id;
+  if found and v_existing.reviewer_user_id <> p_reviewer_user_id then
+    raise exception 'stock_review_already_signed_by_another';
+  end if;
+  if found then
+    v_review_id := v_existing.id;
+  else
+    insert into public.inventory_stock_adjustment_approvals(
+      stock_count_request_id,organization_id,inventory_item_id,
+      actor_user_id,reviewer_user_id,idempotency_key,reason,
+      expected_stock_version,expected_unit,expected_location_id,
+      counted_quantity,decision
+    ) values (
+      v_request.id,p_organization_id,v_request.inventory_item_id,
+      v_request.actor_user_id,p_reviewer_user_id,v_request.idempotency_key,
+      v_request.reason,v_request.expected_stock_version,
+      v_request.expected_unit,v_request.expected_location_id,
+      v_request.counted_quantity,'approved'
+    ) returning id into v_review_id;
+  end if;
+  v_result := public.sonara_apply_stock_count_adjustment(
+    p_organization_id,v_request.inventory_item_id,v_request.actor_user_id,
+    p_reviewer_user_id,v_request.idempotency_key,v_request.reason,
+    v_request.expected_stock_version,v_request.counted_quantity,v_review_id
+  );
+  return v_result || jsonb_build_object('request_id',v_request.id,'review_id',v_review_id);
+end;
+$function$;
+revoke all on function public.sonara_review_stock_count_request(
+  uuid,uuid,uuid
+) from public,anon,authenticated;
+grant execute on function public.sonara_review_stock_count_request(
+  uuid,uuid,uuid
+) to service_role;
+
 commit;
