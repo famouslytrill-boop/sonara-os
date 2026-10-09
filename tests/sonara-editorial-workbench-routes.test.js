@@ -184,7 +184,7 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
       output_payload:{kind:"blog",publication:{status:"not_published"}}}]});
     const r=await h.call("GET",ROUTE+"/drafts/:id/export.md",{}, {params:{id:OWN_ID}});
     assert.equal(r.statusCode,200);
-    assert.match(r.headers["content-type"],/text\\/markdown/);
+    assert.match(r.headers["content-type"],/text\/markdown/);
     assert.match(r.body,/# Road Notes/);
     assert.match(r.body,/First draft only/);
     assert.equal(r.headers["Cache-Control"],"no-store");
