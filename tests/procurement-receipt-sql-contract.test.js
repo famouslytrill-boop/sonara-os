@@ -49,7 +49,7 @@ describe("Physical goods: staged procurement SQL contract", () => {
     // Match exact dollar delimiters; a single dollar is invalid SQL.
     const dollar = String.fromCharCode(36);
     const delimiter = dollar + dollar;
-    assert.equal(sql.split(" as " + delimiter).length - 1, functions.length);
+    assert.equal(sql.split("as " + delimiter).length - 1, functions.length);
     assert.equal(sql.split("end;" + String.fromCharCode(10) + delimiter + ";").length - 1, functions.length);
     assert.ok(!sql.includes(" as " + dollar + String.fromCharCode(10)));
     assert.ok(!sql.includes("end;" + String.fromCharCode(10) + dollar + ";"));
