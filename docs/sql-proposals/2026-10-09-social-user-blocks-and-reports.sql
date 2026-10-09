@@ -104,6 +104,7 @@ set search_path = ''
 as $$
 declare
   v_profile record;
+  v_existing record;
 begin
   if p_actor_user_id is null or not exists (
     select 1 from auth.users where id = p_actor_user_id
@@ -116,16 +117,24 @@ begin
 
   if p_action = 'report' then
     if v_profile.public_handle is null and v_profile.published_at is null then return 'denied'; end if;
-    if p_request_id is null or p_reason not in
+    if p_request_id is null or p_reason is null or p_reason not in
       ('spam','harassment','hate','violence','sexual','illegal','impersonation','privacy','other')
       or p_detail is null or char_length(p_detail) > 500
     then return 'denied'; end if;
     perform pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended(p_actor_user_id::text, 74531));
-    if exists (
-      select 1 from public.sonara_social_profile_reports
-      where reporter_user_id = p_actor_user_id and request_id = p_request_id
-    ) then return 'already_reported'; end if;
+    select subject_profile_id, reason, detail into v_existing
+      from public.sonara_social_profile_reports
+      where reporter_user_id = p_actor_user_id and request_id = p_request_id;
+    if found then
+      if v_existing.subject_profile_id = p_profile_id
+         and v_existing.reason = p_reason
+         and v_existing.detail is not distinct from p_detail
+      then return 'already_reported'; end if;
+      -- A repeated receipt for a different person, reason or evidence must
+      -- NOT falsely claim that the new report was submitted.
+      return 'idempotency_conflict';
+    end if;
     if (
       select count(*) from public.sonara_social_profile_reports
        where reporter_user_id = p_actor_user_id
@@ -340,7 +349,7 @@ begin
     where g.user_id = p_reviewer_user_id and g.active is true
       and g.approved_by_user_id is not null and g.approved_at is not null
   ) then return 'denied'; end if;
-  if p_decision not in ('dismiss','escalate','reopen') or p_explanation is null
+  if p_decision is null or p_decision not in ('dismiss','escalate','reopen') or p_explanation is null
     or char_length(trim(p_explanation)) not between 1 and 500
   then return 'denied'; end if;
 
