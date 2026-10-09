@@ -85,11 +85,12 @@ This is defense in depth. It is not a substitute for network/service isolation, 
 The broker supports only:
 
 1. `complete_authorization`
-2. `bind_site`
-3. `read_daily`
-4. `disconnect`
+2. `review_sites`
+3. `bind_site`
+4. `read_daily`
+5. `disconnect`
 
-There is no generic provider-execution operation.
+There is no generic provider-execution operation. `review_sites` is intentionally read-only and exists so a successfully stored refresh credential can recover after a transient site-list probe failure without replaying an already-consumed authorization code.
 
 ### complete_authorization
 
@@ -106,7 +107,11 @@ The broker:
 - probes the account's accessible Search Console sites;
 - returns sanitized site identities and no provider token.
 
-Automatic retry is prohibited because authorization codes are one-time protocol material.
+Automatic retry is prohibited because authorization codes are one-time protocol material. If the credential is stored but the immediate property probe fails, the connection records `credential_stored_provider_probe_pending` and returns `review_sites` as its recovery operation.
+
+### review_sites
+
+The broker resolves the already-stored refresh credential, refreshes an ephemeral access token, re-lists authorized Search Console properties, and moves the connection back to `authorization_review_ready`. It does not exchange an authorization code and it does not mark the connection `connected`.
 
 ### bind_site
 
