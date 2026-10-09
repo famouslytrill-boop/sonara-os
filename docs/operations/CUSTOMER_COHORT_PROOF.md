@@ -89,6 +89,22 @@ This role check is a necessary safeguard **but not sufficient authorization proo
 **Current status:** 12/12 focused snapshot cases passed in a source-executing V8 test harness; the production database metadata query confirms that the admin connection **correctly would be rejected** by the new gate. A real least-privilege PostgreSQL integration test has **not yet passed** and cannot be claimed. Do not enable scheduled exports, billing analytics or public marketing based on mocked role checks.
 
 
+## Authorized-roster completeness enforcement (2026-10-09 follow-up)
+
+A read-only RLS-enabled query can return **zero rows for data a different session could read**. Consequently, a silent short result must **never** become a lower customer-activation denominator.
+
+The snapshot reader now requires `expectedOrganizationIds` (a nonempty, case-deduplicated, validated UUID array of up to 10,000 organization IDs) from the trusted operator **before** opening its database connection. Both parameterized SQL queries are bound to that same roster with `= any($n::uuid[])`.
+
+- The organization query rejects unexpected IDs, duplicate IDs and any missing expected organization. No denominator is published when the roster and visible rows disagree.
+- The activity query also binds the roster, and every returned event must belong to the observed authorized organization set. Event completeness remains limited by the explicit 200,000-row cap and the externally reviewed source-integrity assumptions.
+- A valid zero-organization cohort cannot yet be reported by this reader. A nonempty expected roster is intentional: an empty operator input must not masquerade as proof that no customers exist. Empty-cohort reporting requires a separately attested total population of zero.
+- The **identity and completeness of the operator-supplied roster remain unproven in this code**. It must originate from an approved control plane with signed or otherwise independently verifiable scope and population evidence. Client-supplied or ad hoc incomplete UUID lists are not authoritative.
+- The current source-level test suite covers absent/empty/invalid/duplicate/oversized rosters, a missing RLS-visible organization, unexpected or duplicated returned organizations, a complete two-organization result, role verification, clean rollback and nonleaking aggregate output.
+- Two read-only `EXPLAIN (VERBOSE, COSTS OFF)` queries against the connected Supabase schema successfully parsed both `uuid[]` roster predicates and the timestamp-bounded organization/activity join. That is **SQL-shape verification only**, not role-authorized execution, a full dataset scan benchmark, or evidence of tenant isolation. PostgreSQL chose sequential scans for the currently tiny sample; do not generalize scaling cost from that plan.
+
+**Next P0 gate:** Capture an independently authorized and auditable roster, then run the bounded adapter under a dedicated reviewed PostgreSQL reporting identity in staging. Prove two-tenant negative cases, missing IDs, snapshots under concurrent writes, timeouts and RLS policy selectivity before promotion. `READ ONLY`, an RLS-active flag and the roster predicate together are still not a substitute for a reviewed authorization policy.
+
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
