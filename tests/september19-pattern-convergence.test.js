@@ -46,6 +46,7 @@ const {
   repairAuthorityDecision,
   OPERATIONAL_MODES,
   operationalTransitionDecision,
+  reviewOperationalTransitionLedger,
   maintenanceActionDecision,
   operationalAlertDecision,
   ragQualityScore,
@@ -222,6 +223,141 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(operationalTransitionDecision(null).candidate, false);
     assert.equal(operationalTransitionDecision({ ...base, observedRevision: Number.MAX_SAFE_INTEGER })
       .reason, "stale_or_missing_revision");
+  });
+
+  it("replays version-bound operational receipts and refuses stale authorization or replay", () => {
+    const actor = "11111111-1111-4111-8111-111111111111";
+    const approver = "22222222-2222-4222-8222-222222222222";
+    const evidence = { scopeVerified: true, actorAuthorized: true };
+    const make = (id, revision, from, to, occurredAtMs, extra = {}) => ({
+      eventId: "evt_" + id, actorId: actor, scope: "platform", organizationId: null,
+      from, to, revision, occurredAtMs,
+      evidence: { ...evidence, ...extra },
+      approval: {
+        approvalId: "app_" + id, approvedBy: approver,
+        scope: "platform", organizationId: null, from, to,
+        expectedRevision: revision - 1,
+        issuedAtMs: occurredAtMs - 100, expiresAtMs: occurredAtMs + 500
+      }
+    });
+    const a = make("pause", 8, "active", "paused", 2000);
+    const b = make("maintenance", 9, "paused", "maintenance", 3000,
+      { inFlightJobsDrained: true });
+    const c = make("end", 10, "maintenance", "paused", 4000);
+    const d = make("resume", 11, "paused", "active", 5000,
+      { healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true });
+    const input = {
+      scope: "platform", initialMode: "active", initialRevision: 7,
+      events: [a, b, c, d, a]
+    };
+    let state = reviewOperationalTransitionLedger(input);
+    assert.equal(state.mode, "active");
+    assert.equal(state.revision, 11);
+    assert.equal(state.acceptedEvents, 4);
+    assert.equal(state.replayedEvents, 1);
+    assert.equal(state.transitionExecuted, false);
+    assert.equal(state.authorizationVerified, false);
+    assert.equal(state.durableConsistencyProven, false);
+    assert.equal(reviewOperationalTransitionLedger({ ...input, events: [] }).revision, 7);
+
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [b]
+    }), /Out-of-order/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, revision: 11 }]
+    }), /approval|Out-of-order/i);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, occurredAtMs: 1999 }]
+    }), /Out-of-order/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, approval: { ...b.approval, approvalId: a.approval.approvalId } }]
+    }), /approval reused/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...a, evidence: { ...a.evidence, bypassRequested: true } }]
+    }), /Conflicting operational event replay/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, evidence: { ...b.evidence, bypassRequested: true } }]
+    }), /policy_bypass_refused/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expectedRevision: 6 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expiresAtMs: 1999 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expiresAtMs: 9000000 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, evidence: { ...a.evidence, actorAuthorized: false } }]
+    }), /operator_authority_unverified/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, scope: "tenant" }]
+    }), /Invalid operational ledger event/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, scope: "tenant", organizationId: "33333333-3333-4333-8333-333333333333"
+    }), /Invalid operational ledger event/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: new Array(513).fill(a)
+    }), /512/);
+    assert.throws(() => reviewOperationalTransitionLedger(null), /object/);
+
+    const org = "33333333-3333-4333-8333-333333333333";
+    const tenantA = {
+      ...a, scope: "tenant", organizationId: org,
+      approval: { ...a.approval, scope: "tenant", organizationId: org }
+    };
+    state = reviewOperationalTransitionLedger({
+      scope: "tenant", organizationId: org,
+      initialMode: "active", initialRevision: 7, events: [tenantA]
+    });
+    assert.equal(state.mode, "paused");
+    assert.equal(state.organizationId, org);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "tenant", organizationId: org, initialMode: "active", initialRevision: 7,
+      events: [{ ...tenantA, approval: { ...tenantA.approval, organizationId: "44444444-4444-4444-8444-444444444444" } }]
+    }), /Stale, cross-scope or unbound/);
+  });
+
+  it("requires incident clearance before lockdown recovery and full release proof before startup", () => {
+    const who = "55555555-5555-4555-8555-555555555555";
+    const proof = { scopeVerified: true, actorAuthorized: true };
+    const event = (name, from, to, revision, evidence) => ({
+      eventId: "event_" + name, actorId: who, scope: "platform",
+      organizationId: null, from, to, revision, occurredAtMs: revision * 1000,
+      evidence: { ...proof, ...evidence },
+      approval: {
+        approvalId: "approve_" + name, approvedBy: who, scope: "platform", organizationId: null,
+        from, to, expectedRevision: revision - 1,
+        issuedAtMs: revision * 1000 - 100, expiresAtMs: revision * 1000 + 100
+      }
+    });
+    const lock = event("lock", "active", "lockdown", 2, { verifiedSecurityIncident: true });
+    const cleared = event("clear", "lockdown", "paused", 3,
+      { incidentClearedVerified: true, recoveryVerified: true });
+    const start = event("start", "paused", "active", 4,
+      { healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true });
+    let result = reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, cleared, start]
+    });
+    assert.equal(result.mode, "active");
+    assert.equal(result.revision, 4);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [{ ...lock, evidence: proof }]
+    }), /incident_evidence_missing/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, { ...cleared, evidence: proof }]
+    }), /recovery_evidence_missing/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, cleared, { ...start, evidence: { ...proof, healthVerified: true } }]
+    }), /startup_release_or_health_unverified/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, { ...start, revision: 3, from: "lockdown" }]
+    }), /Stale, cross-scope or unbound|transition_not_allowed/);
   });
 
   it("proposes bounded scans and maintenance but never executes cleanup or defragmentation", () => {
