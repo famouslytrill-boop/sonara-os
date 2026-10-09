@@ -2,7 +2,7 @@
 const assert = require("node:assert/strict");
 const { registerEngineeringPreviewRoutes, PREVIEW_ROUTES } = require("../routes/sonara-engineering-preview-routes.cjs");
 
-function makeApp() {
+function makeApp(options = {}) {
   const registry = new Map();
   const counts = { auth: [], limited: 0 };
   const config = [];
@@ -22,7 +22,8 @@ function makeApp() {
         next();
       };
     },
-    getSupabaseServerConfig: () => ({ok:false})
+    getSupabaseServerConfig: () => ({ok:false}),
+    isEnabled: () => options.enabled !== false
   });
   function run(path, body, opts = {}) {
     const req = {
@@ -79,6 +80,14 @@ describe("authenticated stateless engineering JSON previews", () => {
     assert.equal(setup.config[0].maxAttempts,30);
     assert.deepEqual(setup.config[0].scopes,["ip","subject"]);
     assert.equal(typeof setup.config[0].subjectFrom,"function");
+  });
+  it("defaults the experimental endpoints off without an operator flag and enforces server-side switch", () => {
+    const setup=makeApp({enabled:false});
+    const denied=setup.run(PREVIEW_ROUTES.dxf,{dxfText:sampleDxf(),isEnabled:true});
+    assert.equal(denied.statusCode,404);
+    assert.equal(denied.body.code,"not_found");
+    assert.equal(setup.counts.auth.length,0);
+    assert.equal(setup.counts.limited,0);
   });
   it("gates the business preview from creator-only users and unauthorized callers", () => {
     const setup=makeApp();
