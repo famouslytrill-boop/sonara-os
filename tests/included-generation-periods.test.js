@@ -42,7 +42,13 @@ describe("verified Stripe periods reach generation billing", () => {
     const { createBilling } = require("../lib/sonara-billing.cjs");
     const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
     const writes = [], previous = global.fetch;
-    global.fetch = async (url, options) => { writes.push({ url, row: JSON.parse(options.body) }); return Response.json([]); };
+    global.fetch = async (url, options) => {
+      if (String(url).includes("/stripe_customers?")) return Response.json([
+        { stripe_customer_id: "cus_test", organization_id: "org-a", user_id: "user_test" }
+      ]);
+      writes.push({ url, row: JSON.parse(options.body) });
+      return Response.json([]);
+    };
     try {
       const billing = createBilling({ STRIPE_PLANS, getEnv: () => "", getPublicAppUrl: () => "https://example.test", getSafeAbsoluteUrl: (v) => v,
         getSupabaseServerConfig: () => ({ ok: true, url: "https://example.supabase.co", serviceRoleKey: "fixture-only" }), supabaseHeaders: () => ({}),
