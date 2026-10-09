@@ -129,10 +129,14 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.match(cue.headers["cache-control"], /no-store/);
     const otio = await request(app).get(`${base}/export/otio?fps=30`).set("x-paid", "yes");
     assert.equal(otio.status, 200);
-    const timeline = typeof otio.body === "object" && otio.body.OTIO_SCHEMA ? otio.body : JSON.parse(otio.text);
+    const timeline = typeof otio.body === "object" && otio.body?.OTIO_SCHEMA
+      ? otio.body : JSON.parse(otio.text || Buffer.from(otio.body).toString("utf8"));
     assert.equal(timeline.OTIO_SCHEMA, "Timeline.1");
     assert.equal(timeline.tracks.children[0].children[0].OTIO_SCHEMA, "Gap.1");
     assert.equal(timeline.tracks.children[0].children[0].source_range.duration.value, 1800);
+    const readyPage = await request(app).get(`/creator-studio/projects/${PID}/world-bible`).set("x-paid", "yes");
+    assert.match(readyPage.text, /world-bible\/export\/otio/);
+    assert.match(readyPage.text, /world-bible\/export\/midi/);
     const midi = await request(app).get(`${base}/export/midi`).set("x-paid", "yes");
     assert.equal(midi.status, 200);
     assert.equal(Buffer.from(midi.body).toString("ascii", 0, 4), "MThd");
@@ -146,6 +150,10 @@ describe("Feature-gated Creator World Bible project routes", () => {
     const untimed = { ...draft, scenes: [{ id: "one", title: "Unscheduled opening" }] };
     assert.equal((await request(app).post(base).set("x-paid", "yes")
       .send({ expectedRevision: 0, draft: untimed })).status, 200);
+    const page = await request(app).get(`/creator-studio/projects/${PID}/world-bible`).set("x-paid", "yes");
+    assert.equal(page.status, 200);
+    assert.doesNotMatch(page.text, /world-bible\/export\/otio/);
+    assert.doesNotMatch(page.text, /world-bible\/export\/midi/);
     const csv = await request(app).get(`${base}/export/csv`).set("x-paid", "yes");
     assert.equal(csv.status, 200);
     assert.match(csv.text, /"unknown"/);
