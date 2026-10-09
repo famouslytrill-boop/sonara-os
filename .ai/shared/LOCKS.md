@@ -1,6 +1,14 @@
 # Locks
 
 Active:
+- HELD: GitHub Actions runner-capacity hardening -- Codex,
+  branch `codex/ci-runner-capacity-20261008`, taken 2026-10-08.
+  Covers only `.github/workflows/sonara-industries-ci.yml`,
+  `.github/workflows/node-runtime-compatibility.yml`,
+  `.github/workflows/dependency-scan.yml`, and the existing release-gate
+  source test that verifies their concurrency/timeouts. No runtime, product,
+  database, migration, provider, payment, generated handoff, or deployment
+  changes. Release when the CI-hardening PR merges or closes.
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
   PR #445, branch `codex/reservation-workflows-20261007`, taken 2026-10-07.
   Covers the operations expansion controller, reservation renderer, bookings
