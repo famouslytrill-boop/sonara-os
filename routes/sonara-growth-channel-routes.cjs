@@ -141,7 +141,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
 
   const blockLimiter = createRateLimiter({
     name: "growth_channel_block_toggle",
-    windowSeconds: 3600, maxAttempts: 60, scopes: ["ip"],
+    windowSeconds: 3600, maxAttempts: 600, scopes: ["ip"],
     getSupabaseServerConfig
   });
 
