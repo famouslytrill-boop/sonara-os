@@ -71,6 +71,8 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-physical-supply-chain.cjs",
+    "Staged deterministic production, B2B receipt and retailer replenishment preflight. Not customer routed: waits for reviewed tenant/partner authorization, locked idempotent stock receipt transactions, RLS, and staging canary."],
   ["lib/sonara-mobile-billing-classification.cjs",
     "Storefront-region-aware purchase classification research, test-only pending trusted server catalog / iOS StoreKit / Google Play program and provider verification. Not a route, checkout, entitlement, or payment activation."],
   ["lib/sonara-community-discovery.cjs",
