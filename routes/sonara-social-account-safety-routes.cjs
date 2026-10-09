@@ -25,7 +25,7 @@ function registerSocialAccountSafetyRoutes(app, deps = {}) {
   const active = () => safety.featureEnabled(getEnv);
   const limiter = createRateLimiter({
     name: "social_account_safety",
-    windowSeconds: 3600, maxAttempts: 30,
+    windowSeconds: 3600, maxAttempts: 600,
     scopes: ["ip"],
     getSupabaseServerConfig
   });
