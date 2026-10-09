@@ -1,0 +1,86 @@
+# SONARA shared trust, cross-platform reliability and performance — 2026-10-09
+
+**Status:** reviewed engineering plan and incremental PWA cache hardening. This is not a statement that production is certified or customer features are fully operational.
+
+## Scope and architecture decision
+
+SONARA Industries is the parent brand; SONARA One is the shared application platform; Business Builder, Creator Studio and Growth Studio are separately positioned products built on the same Express/Node 24 runtime. Keep shared identity, tenant authorization, consent, billing entitlements, provider connections, audit events and observability **single-source**. Keep each product's navigation, workspace records and customer workflows product-scoped.
+
+The repository already has contracts for tenants, subscriptions, capabilities, routes, Android TWA, release verification and browser tests. Do not create replacement Next.js, identity or payment stacks merely for a design refresh. Corporate subsidiaries are a legal question, not something a code branch can establish.
+
+## Evidence-backed security standards
+
+| Concern | Baseline | Required SONARA proof |
+| --- | --- | --- |
+| Secure development | NIST SP 800-218 SSDF v1.1 (final); v1.2 draft is not final | Trace threat model, code review, testing, provenance and recovery records to release SHAs |
+| Application security | OWASP ASVS 5.0 | Server-verified sessions; tenant membership plus resource/action scope, consistent authorization and negative tests |
+| Android/iOS security | OWASP MASVS and MASTG | Local storage, platform permissions, HTTPS, session revocation, app association and device testing |
+| Accessibility | WCAG 2.2 AA | Keyboard/focus, no obscured focus, errors and labels, reflow, contrast, screen-reader and touch tests |
+| Web performance | Core Web Vitals | Mobile and desktop **field** p75 LCP <= 2.5 s, INP <= 200 ms, CLS <= 0.1; include real-user sample/coverage |
+| PWA caching | MDN Cache API/CacheStorage, web.dev service-worker caching | Public-asset allowlist; network-only private routes; rejection of sensitive requests/responses; offline fallbacks never impersonate completed writes |
+
+Primary references:
+- https://csrc.nist.gov/pubs/sp/800/218/final
+- https://owasp.org/www-project-application-security-verification-standard/
+- https://mas.owasp.org/MASVS/
+- https://www.w3.org/TR/WCAG22/
+- https://web.dev/articles/defining-core-web-vitals-thresholds
+- https://developer.mozilla.org/en-US/docs/Web/API/Cache
+- https://web.dev/articles/service-worker-caching-and-http-caching
+
+## P0: protect the source and production execution plane
+
+1. **Branch governance:** GitHub reported `main.protected=false` on October 9, 2026. Configure protection/rulesets with required exact-head checks, controlled reviewer approval, blocked force-pushes/deletions and no direct unreviewed merges. The GitHub integration cannot edit the protection endpoint. Do not claim it is enabled.
+2. **Release chain:** on the final head SHA execute locked dependencies, typecheck, lint, full test/coverage, build, route/API and security contracts, native PostgreSQL migration replay and browser/device gates. Treat missing/skipped required jobs as **unknown**, not green.
+3. **Data authority:** migrate only from reviewed SQL with backups and restore drills; verify tenant RLS as both member and attacker, service-role isolation, function grants, durable idempotency and production schema drift. No live migration as part of this document.
+4. **Identity + payment:** prohibit owner-bypass in customer workloads. Mutations require authenticated user, active tenant membership, resource ownership, action grant, no lock and explicit owner approval for sensitive actions. Payment/subscription entitlements arise from provider-verified, tenant-bound evidence, never browser assertions.
+5. **Connector egress:** approved provider-specific HTTPS origins and secrets kept server-side; bounded retries/timeouts; safe redirects; scrubbed structured logs; customer-visible disconnect; ability to revoke authorization.
+6. **Deployment control:** maintain a dry-run, signed artifact provenance, one-tenant canary, automatic stop criteria, rollback rehearsals, and post-deploy health and commit evidence before making a customer-availability claim.
+
+## P1: shared cross-platform execution contract
+
+| Surface | Product/customer contract | Gate |
+| --- | --- | --- |
+| Desktop/mobile web | Same route, action result, error and accessible controls; low-bandwidth fallbacks | Chromium/Firefox/WebKit; 320/390/768/1280 px; keyboard and screen-reader passes |
+| Installable PWA | Canonical manifest, public offline page, conservative public asset caching | No caching any account URL, bearer URL, personalized response or business transaction |
+| Android TWA | Verified app association, real release signing, notification/permission consent | Play-signed AAB, asset links on production domain, physical-device cold/warm/auth flows |
+| iOS web / Home Screen | Core web flows without mandatory native features; progressive enhancement | Safari and installed-mode flow; unsupported APIs show truthful fallback |
+| Cross-device account | Server-side user/session/tenant authority, explicit device action consent | Cross-account browser cache tests, session revocation and offline queue isolation |
+| Provider adapters | Read and write via per-tenant grants, auditable delivery receipts | Reauthorization, outages, replay/conflict and provider-rejection tests |
+
+Resource policy: no automatic camera/microphone/location/notifications on page load. Provide opt-in and revoke controls; when an API is unavailable, display an actionable unsupported state. An offline enqueue must not be described as a successfully committed server transaction.
+
+## P1: one consistent economic path per child product
+
+**Business Builder:** captured lead -> quote -> owner approval -> booking/order -> payment evidence -> inventory reservation -> fulfillment -> reconciliation -> customer receipt. Use one authoritative stock ledger, integer minor currency units and exact idempotency keys. A draft PO receipt table cannot be described as complete warehouse accounting.
+
+**Creator Studio:** rights provenance -> project graph -> approved generation estimate and usage reserve -> queued render -> moderation/review -> licensed marketplace listing -> verified purchase -> controlled delivery -> settlement. Measure provider cost and margin per job; a preview is not proof of licensed fulfillment.
+
+**Growth Studio:** audience opt-in -> approved campaign -> channel connector eligibility -> rate-limited dispatch -> delivery receipt -> unsubscribe/bounce processing -> attribution and revenue reconciliation. Avoid fabricated reach/conversion numbers when provider evidence is missing.
+
+**Parent SONARA:** explicitly public, rights-cleared discovery only. No private child tenant content in public indexing. Cross-product administration must be scoped to each customer organization's permission grants.
+
+## P1: performance and resilience budget
+
+- Capture separate p75 Core Web Vitals for mobile and desktop. Measure a representative sample and report the number of sessions, timeframe and which routes were covered; do not claim compliance from a single Lighthouse run.
+- Define practical service objectives for availability, route p95, database/query p95, queue age, payment reconciliation lag, provider failure rate, and failed job rate. **Baseline before selecting targets**; alert on user-impacting conditions, not alert volume.
+- Apply explicit timeout and concurrency budgets to every outbound adapter. Bound payload size, retries and costs. Queue expensive media operations; support cancellation and dead-letter/manual review rather than retry storms.
+- Add controlled fault injection: absent OAuth provider, database 500, stale sessions, double webhook, concurrent receipts, offline replay, wrong tenant, unsupported permission and cache failure.
+- Set per-tenant resource budgets and admission control so one customer's GPU/media burst or connector backlog does not starve another customer's booking/payment flow.
+
+## Increment delivered in this review branch
+
+- Restrict service-worker static cache interception to public root assets and first-party `/brand/` and `/fonts/` directories, rather than all URL paths ending in a static extension.
+- Reject credential-like query parameters, authenticated or explicit no-store requests, responses carrying Set-Cookie, Cache-Control private/no-store, Vary Cookie/Authorization/* and non-200/opaque responses.
+- Rotate the static cache namespace so the prior extension-based cache is removed on new-worker activation.
+- Add simulated service-worker fetch-event regression tests covering all three products' private paths, permitted public assets, credential-sensitive data and navigation behavior.
+
+**Remaining proof:** exact-head CI, manual browser service-worker upgrade check, actual multi-account/cache inspection, mobile device trials and production telemetry. This branch must remain draft and must not deploy itself.
+
+## Operational rollout checklist
+
+1. Review diff, assign the security/browser owners and verify this branch does not conflict with payment, migration or notification draft work.
+2. Obtain full CI on its final SHA, then verify the root public pages, all three product entry points, old-to-new service worker activation and offline experience in browser profiles with and without a user session.
+3. Confirm a previously cached private-looking URL is not available after activation, that authorization-sensitive responses never enter CacheStorage and that all static assets still load on constrained/mobile networks.
+4. Manually verify a signed Android build and Safari installed mode; document findings and product-specific limitations.
+5. Merge only after branch governance is active and recorded. Deploy via the controlled procedure, record deployed commit, monitor and retain rollback evidence. Never turn on customer sends, payments or durable workers just because PWA tests pass.
