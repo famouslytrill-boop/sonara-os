@@ -90,7 +90,11 @@
 
     active.sampleCount += 1;
     for (const key of numericKeys) {
-      const value = Number(sample[key]);
+      const raw = sample[key];
+      // Number(null) and Number("") are both zero. Missing sensor fields are
+      // absence, not a measured zero, so refuse the coercion before Number().
+      if (raw === null || raw === undefined || raw === "") continue;
+      const value = Number(raw);
       if (!Number.isFinite(value)) continue;
       active.sums[key] = (active.sums[key] || 0) + value;
       active.counts[key] = (active.counts[key] || 0) + 1;
