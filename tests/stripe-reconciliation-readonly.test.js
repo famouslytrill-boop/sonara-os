@@ -139,7 +139,11 @@ describe("read-only provider-backed Stripe reconciliation", () => {
   });
 
   it("refuses malformed or unreadable database/provider JSON without throwing or leaking account data", async () => {
-    for (const response of [null, { ok: false }, { ok: true, json: async () => { throw Error("hidden key"); } }]) {
+    for (const response of [
+      null, { ok: false }, { ok: true },
+      { ok: true, json: () => { throw Error("synchronous parse failure"); } },
+      { ok: true, json: async () => { throw Error("hidden key"); } }
+    ]) {
       const h = harness({ databaseResponse: response });
       const result = await inspect(h);
       assert.equal(result.code, "subscription_record_unreadable");
