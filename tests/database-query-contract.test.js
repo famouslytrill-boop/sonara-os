@@ -83,17 +83,18 @@ describe("database query contract", () => {
     assert.ok(source.length > 200000, "the runtime scan collected almost nothing; these assertions would be measuring an empty string");
     assert.match(source, /if \(!allowedKeys\.length\)/);
     assert.match(source, /reason: "product_entitlement_unmapped"/);
-    // Multi-subscription access must check every candidate (bounded), not whichever\n    // PostgREST row happens to sort first. Metadata is selected because\n    // workspace_monthly buys one workspace and
+    // Consider every matching row, not whichever PostgREST returns first.
+    // Metadata is selected because workspace_monthly buys one workspace and
     // which one is recorded on the row. Selecting it is what lets
     // billingRowOpensProduct answer; without it every $19 plan would open all
     // three, and the row would look identical to a $39 one.
     assert.match(
       source,
-      /billing_entitlements\?select=entitlement_key,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=eq\.active&entitlement_key=in\.\(\$\{entitlementFilter\}\)&limit=\$\{allowedKeys\.length \+ 1\\}/
+      /billing_entitlements\?select=entitlement_key,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=eq\.active&entitlement_key=in\.\(\$\{entitlementFilter\}\)&limit=\$\{allowedKeys\.length \+ 1\}/
     );
     assert.match(
       source,
-      /billing_subscriptions\?select=plan_slug,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=in\.\(active,trialing\)&plan_slug=in\.\(\$\{entitlementFilter\}\)&order=updated_at\.desc,provider_subscription_ref\.asc&limit=\$\{SUBSCRIPTION_SCAN_LIMIT\\}/
+      /billing_subscriptions\?select=plan_slug,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=in\.\(active,trialing\)&plan_slug=in\.\(\$\{entitlementFilter\}\)&order=updated_at\.desc,provider_subscription_ref\.asc&limit=\$\{SUBSCRIPTION_SCAN_LIMIT\}/
     );
     assert.doesNotMatch(
       source,
@@ -142,7 +143,7 @@ describe("database query contract", () => {
       assert.ok(DATABASE_TABLES.includes(index.table), `${index.name} references a canonical table`);
       assert.match(
         sql,
-        new RegExp(`create index if not exists ${index.name}\\s+on public\.${index.table}\\b`, "i"),
+        new RegExp(`create index if not exists ${index.name}\\s+on public\\.${index.table}\\b`, "i"),
         `${index.name} must be created on public.${index.table}`
       );
       assert.match(sql, new RegExp(`'${index.name}'`), `${index.name} must be asserted after creation`);
