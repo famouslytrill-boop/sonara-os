@@ -25,6 +25,7 @@
 
   var status = form.querySelector("[data-sonara-push-status]");
   var button = form.querySelector("[data-sonara-push-subscribe]");
+  var optOutButton = form.querySelector("[data-sonara-push-unsubscribe]");
 
   function say(message) {
     if (status) status.textContent = message;
@@ -36,6 +37,57 @@
   } catch {
     say("This page could not read its own settings. Reload and try again.");
     return;
+  }
+
+  // Revocation needs no fresh permission prompt. It must remain possible even
+  // if the browser permission was subsequently blocked in system settings.
+  if (optOutButton) {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      optOutButton.disabled = true;
+    } else {
+      optOutButton.addEventListener("click", function () {
+        optOutButton.disabled = true;
+        say("Turning off notifications for this browser…");
+        navigator.serviceWorker.getRegistration("/")
+          .then(function (registration) {
+            return registration ? registration.pushManager.getSubscription() : null;
+          })
+          .then(function (subscription) {
+            if (!subscription) {
+              say("This browser has no active SONARA push subscription.");
+              return null;
+            }
+            // Remove the server record before the browser endpoint disappears.
+            // If the request fails, preserve the browser subscription so the
+            // customer can retry rather than silently retaining a server record.
+            return fetch(config.unsubscribeEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "same-origin",
+              body: JSON.stringify({ endpoint: subscription.endpoint })
+            })
+              .then(function (response) {
+                if (!response.ok) throw new Error("server_revocation_failed");
+                return response.json();
+              })
+              .then(function (answer) {
+                if (!answer || !answer.ok) throw new Error("server_revocation_failed");
+                return subscription.unsubscribe();
+              })
+              .then(function (unsubscribed) {
+                say(unsubscribed
+                  ? "Notifications are off for this browser. You can turn them on again here."
+                  : "The browser could not finish removing this subscription. Reload and try again.");
+              });
+          })
+          .catch(function () {
+            say("Could not turn notifications off. Check your connection and try again.");
+          })
+          .finally(function () {
+            optOutButton.disabled = false;
+          });
+      });
+    }
   }
 
   // Feature detection before anything else, and each capability named
