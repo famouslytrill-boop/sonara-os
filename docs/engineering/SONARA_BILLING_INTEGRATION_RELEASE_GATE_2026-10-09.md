@@ -137,3 +137,70 @@ missing legacy records. Do not backfill an account association from webhook
 metadata alone.
 
 Reference: https://docs.stripe.com/api/events/types
+
+
+## P0 recurring-plan entitlement integrity and multiple subscriptions
+
+Additional integration review found two authorization defects in
+`lib/sonara-paid-entitlement.cjs`:
+
+1. The customer-paid-access reader previously trusted `billing_entitlements`
+   `status=active` for *recurring* subscription keys, even if the actual
+   `billing_subscriptions` row had since been canceled. A late webhook or
+   competing-subscription update can leave that projection stale.
+2. Both the entitlement and active subscription reads ended in `limit=1`.
+   With multiple valid single-workspace subscriptions, the first returned
+   row could be for another workspace. It denied access even when a second
+   active subscription entitled the customer to the requested product.
+
+Implementation:
+
+- Active subscription rows become the authoritative evidence for recurring
+  plans. The `billing_entitlements` path still recognizes a separately
+  granted historical non-recurring purchase (for example,
+  `business_builder_one_time`) but never treats an active recurring projection
+  as proof that the provider subscription remains active.
+- Tenant, status and approved plan-key filters remain server-side in
+  PostgREST; every returned row is checked against the requested product and
+  its workspace policy. An unrelated workspace cannot unlock a product.
+- The subscription scan is deterministic
+  (`updated_at.desc,provider_subscription_ref.asc`) with a bounded
+  `SUBSCRIPTION_SCAN_LIMIT = 101`. The extra row signals overflow.
+  If no eligible subscription was found and the bound is exhausted,
+  return HTTP 503 / `subscription_scan_incomplete` rather than falsely
+  demanding a second payment. Never infer "unpaid" from a truncated list.
+- Entitlement rows are uniquely keyed by `(organization_id, entitlement_key)`,
+  so the query limit is proportional to the supplied catalog plan keys,
+  plus an overflow sentinel.
+- Malformed, out-of-filter or incomplete rows return an unreadable state.
+  Database outages produce HTTP 503, never a mistaken upgrade demand.
+- Competing subscription webhooks still write the `billing_entitlements`
+  projection independently. This change corrects the **access enforcement
+  read path**, not historical ledger drift or production reconciliation.
+  Subscription writes retain their existing database stale-event guards.
+
+Regression proof:
+
+- Extended `tests/a-paying-customer-is-not-shown-a-paywall.test.js` to
+  17 cases: stale recurring entitlement cannot grant access, surviving
+  second active subscription opens its own workspace, wrong-workspace plans
+  cannot open another product, matching all-three plan takes precedence
+  over an unrelated single-workspace row, older/historical one-time access
+  remains recognized, outages fail closed and overflow does not trigger
+  an incorrect paywall.
+- Updated `tests/database-query-contract.test.js` to insist on the
+  new bounded query shapes, not `limit=1`. Verified both source-match
+  assertions on the current integration branch.
+- Executed all 17 actual entitlement-reader test callbacks using
+  isolated repository-module loading and mock PostgREST data: 17/17 passed.
+  **This is not project Mocha/Node runtime proof, PostgreSQL proof, or
+  provider sandbox proof.**
+- Research confirmation: Stripe emits `customer.subscription.updated`
+  for subscription state changes and `customer.subscription.deleted`
+  when a subscription ends. See https://docs.stripe.com/api/events/types.
+
+Remaining gates: exact-head GitHub CI; `pnpm exec mocha` for both affected
+tests and all existing paid-access tests; Node 22/24 lanes; real PostgreSQL
+multiple-subscription reconciliation; stale-event replay; tenant-adversarial
+RLS tests; Stripe sandbox cancellation/retry checks; and protected merge review.
+No production migration, deployment, real payment, or website restore.
