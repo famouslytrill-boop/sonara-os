@@ -185,3 +185,85 @@ describe("person-level SQL proposal static safety requirements",()=>{
     assert.doesNotMatch(source,/security definer/i);
   });
 });
+
+describe("independent moderator queue and decision controls (database stub)",()=>{
+  let oldFetch;
+  beforeEach(()=>{oldFetch=global.fetch;});
+  afterEach(()=>{global.fetch=oldFetch;});
+
+  it("requires explicit platform review grant, not ordinary account login",async()=>{
+    const calls=[];
+    global.fetch=stub(calls,{authorized:false,reports:[]});
+    const res=await invoke(setup(),"GET","/owner/social-moderation",request());
+    assert.equal(res.statusCode,403);
+    assert.equal(calls[0].payload.p_reviewer_user_id,A);
+  });
+  it("shows verified staff only an allowlisted, escaped report queue",async()=>{
+    const calls=[];
+    global.fetch=stub(calls,{authorized:true,reports:[{
+      id:NONCE,profile_id:B,reason:"harassment",state:"open",
+      detail:"<script>evil()</script>",created_at:"2026-10-09T01:00:00Z"
+    }]});
+    const res=await invoke(setup(),"GET","/owner/social-moderation",request());
+    assert.equal(res.statusCode,200);
+    assert.match(res.body,/Platform moderation/);
+    assert.doesNotMatch(res.body,/<script>/);
+    assert.equal(res.headers["Cache-Control"],"private, no-store");
+  });
+  it("refuses unreadable moderation rows instead of a false empty queue",async()=>{
+    const calls=[];
+    global.fetch=stub(calls,{authorized:true,reports:[{id:"bad"}]});
+    const res=await invoke(setup(),"GET","/owner/social-moderation",request());
+    assert.equal(res.statusCode,503);
+  });
+  it("posts independent reviewer decisions only from session ID and same-origin",async()=>{
+    const calls=[];
+    global.fetch=stub(calls,"reviewed");
+    const req=request({id:NONCE},
+      {decision:"escalate",explanation:"Second investigation required.",p_reviewer_user_id:B});
+    const res=await invoke(setup(),"POST",
+      "/api/social/moderation/reports/:id/decision",req);
+    assert.equal(res.statusCode,303);
+    assert.deepEqual(calls[0].payload,{
+      p_reviewer_user_id:A,p_report_id:NONCE,
+      p_decision:"escalate",p_explanation:"Second investigation required."
+    });
+  });
+  it("never executes an empty, invalid or cross-origin moderation decision",async()=>{
+    const calls=[];global.fetch=stub(calls,"reviewed");
+    const invalid=await invoke(setup(),"POST",
+      "/api/social/moderation/reports/:id/decision",
+      request({id:NONCE},{decision:"ban_all",explanation:"Because"}));
+    assert.equal(invalid.statusCode,400);
+    const forged=await invoke(setup(),"POST",
+      "/api/social/moderation/reports/:id/decision",
+      request({id:NONCE},{decision:"dismiss",explanation:"Reviewed"},
+        {headers:{origin:"https://attacker.invalid"}}));
+    assert.equal(forged.statusCode,403);
+    assert.equal(calls.length,0);
+  });
+  it("rejects a reviewer denied by the database even if the UI says moderator",async()=>{
+    const calls=[];global.fetch=stub(calls,"denied");
+    const res=await invoke(setup(),"POST",
+      "/api/social/moderation/reports/:id/decision",
+      request({id:NONCE},{decision:"dismiss",explanation:"Reviewed"}));
+    assert.equal(res.statusCode,403);
+  });
+});
+describe("independent moderation SQL grant and audit contract",()=>{
+  const source=fs.readFileSync(path.join(__dirname,"..","docs","sql-proposals",
+    "2026-10-09-social-user-blocks-and-reports.sql"),"utf8");
+  it("defaults reviewer grant to inactive and denies client writes",()=>{
+    assert.match(source,/create table if not exists public\.sonara_social_moderator_grants/);
+    assert.match(source,/active boolean not null default false/);
+    assert.match(source,/revoke all on public\.sonara_social_moderator_grants from PUBLIC, anon, authenticated/);
+    assert.doesNotMatch(source,/grant (insert|update) on public\.sonara_social_moderator_grants to service_role/i);
+  });
+  it("checks the separate moderator roster and atomically logs each decision",()=>{
+    assert.match(source,/sonara_social_decide_report/);
+    assert.match(source,/from public\.sonara_social_moderator_grants/);
+    assert.match(source,/for update/);
+    assert.match(source,/insert into public\.sonara_social_report_review_events/);
+    assert.match(source,/not active or \(approved_by_user_id is not null/);
+  });
+});
