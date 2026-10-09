@@ -212,7 +212,7 @@ permission to move stock or funds. Current sources:
 - https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final
 - https://learn.microsoft.com/en-us/dynamics365/finance/accounts-payable/three-way-matching-policies
 
-**Verification:** 14 focused stock-reconciliation test assertions were executed
+**Verification:** 15 focused stock-reconciliation test assertions were executed
 in an isolated JavaScript harness and passed. The full Node/Mocha test suite,
 real PostgreSQL replay, migration-derived inventories, and production gates
 remain independently required. No live rows or schema were modified by this work.
