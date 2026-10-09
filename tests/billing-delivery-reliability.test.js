@@ -2,13 +2,13 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const { createBilling } = require("../lib/sonara-billing.cjs");
 const validStripeItems = () => ({
-  data: [{ price: { id: "price_fixture_workspace" }, quantity: 1 }],
+  data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 1 }],
   has_more: false
 });
 function billing(plans = { workspace_monthly: { mode: "subscription", env: "STRIPE_PRICE_WORKSPACE_MONTHLY" } }) {
   return createBilling({
     STRIPE_PLANS: plans,
-    getEnv: (key) => ({ STRIPE_PRICE_WORKSPACE_MONTHLY: "price_fixture_workspace", STRIPE_PRICE_TEAM_MONTHLY: "price_fixture_team" })[key] || "", getPublicAppUrl: () => "https://example.com",
+    getEnv: (key) => ({ STRIPE_PRICE_WORKSPACE_MONTHLY: "price_FixtureWorkspace", STRIPE_PRICE_TEAM_MONTHLY: "price_FixtureTeam" })[key] || "", getPublicAppUrl: () => "https://example.com",
     getSafeAbsoluteUrl: (value, fallback) => value || fallback,
     getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.com" }),
     supabaseHeaders: () => ({}), safeCountTable: async () => 0,
@@ -93,9 +93,9 @@ describe("billing delivery reliability", () => {
       { items: { data: validStripeItems().data.concat(validStripeItems().data), has_more: false }, code: "stripe_subscription_items_unverified" },
       { items: { data: validStripeItems().data, has_more: true }, code: "stripe_subscription_items_unverified" },
       { items: { data: validStripeItems().data }, code: "stripe_subscription_items_unverified" },
-      { items: { data: [{ price: { id: "price_fixture_workspace" }, quantity: 2 }], has_more: false }, code: "stripe_subscription_items_unverified" },
-      { items: { data: [{ price: { id: "price_fixture_workspace" } }], has_more: false }, code: "stripe_subscription_items_unverified" },
-      { items: { data: [{ price: "price_fixture_workspace", quantity: 1 }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 2 }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: { id: "price_FixtureWorkspace" } }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: "price_FixtureWorkspace", quantity: 1 }], has_more: false }, code: "stripe_subscription_items_unverified" },
       { items: { data: [{ price: { id: "price_different" }, quantity: 1 }], has_more: false }, code: "stripe_subscription_price_mismatch" }
     ];
     let calls = 0;
@@ -577,7 +577,7 @@ describe("billing webhook HTTP retry contract", () => {
       process.env.STRIPE_WEBHOOK_SECRET = ["whsec", "delivery", "regression", "1234567890"].join("_");
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
-      process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_fixture_workspace";
+      process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_FixtureWorkspace";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", created: 1780000000, data: { object: {
         id: "sub_retry", customer: "cus_retry", status: "active", items: validStripeItems(), metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
