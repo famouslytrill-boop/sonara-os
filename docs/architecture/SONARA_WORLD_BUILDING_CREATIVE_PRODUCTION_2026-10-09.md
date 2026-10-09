@@ -53,3 +53,22 @@ All resource estimates guard against unsafe JavaScript integers. No hidden provi
 5. **Distribution:** authenticated storefront/licensed deliverables; live recording/broadcast only through approved streaming infrastructure, moderation and consent; creator controls over rights, privacy and public publication.
 
 **Required release gate:** verify the exact PR head, all mandatory checks, staging environment, existing production DB migration history and security status. Do not activate, merge to main or deploy this draft automatically. If the website remains intentionally offline/paused, keep it that way.
+
+## Phase 2 addition — project-linked World Bible (source-only, not enabled)
+
+The same draft PR now also contains an authenticated, bounded persistence adapter in `lib/sonara-world-bible-store.cjs`, an HTML JSON editor and guarded JSON read/write routes in `routes/sonara-creator-project-routes.cjs`, safe author-editable Markdown outline output, a declared OpenAPI contract and mock-backed regression tests.
+
+**Activation control:** `SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED` defaults to off. Until a reviewed schema is tested and applied, GET/POST endpoints return 503 rather than implying that data has been saved. Keep the flag off in production. Existing Creator project authorization, organization selection and archived-project checks apply; the new endpoints do not accept organization IDs from clients.
+
+**SQL:** `docs/sql-proposals/creator-world-bibles-2026-10-09.sql` is not a migration and must not be executed in production. It proposes a single row per Creator project, a composite (project, organization) FK, default-denied direct writes, member-read RLS, server-only mutation and a monotone revision. The client submits `expectedRevision` (0 for creation). Server PATCH includes the exact current revision and organization+project filters; stale edits must fail. No data writes occur unless the separate flag is enabled and a reviewed migration has established the table.
+
+**Export:** `GET /api/creator-studio/projects/:id/world-bible/export/markdown` returns a private and escaped Markdown story outline. It does not embed real media, generate game code, issue rights clearance, or publish content.
+
+### Phase 2 verification required before activation
+
+1. Independently review and apply a numbered migration to a disposable Supabase project; verify existing creator_projects constraints and the composite foreign key. No automatic main/prod migration.
+2. Use native PostgreSQL/pgTAP to test cross-tenant reads and writes, creator archive vs concurrent saves, uniqueness, invalid JSON, deletion cascades, privilege grants and membership RLS. Run separate sessions and direct Data API tests.
+3. Confirm a service-only key is never delivered to web clients and that authentication/authorization cannot be replaced by a request-supplied organization identifier.
+4. Run tests/sonara-world-bible-store.test.js and tests/sonara-world-bible-routes.test.js plus the entire exact-head Node 24 pnpm lint/typecheck/test/build/security suite.
+5. Test HTML accessibility, mobile form behavior, 64 KB payload boundaries and HTTP/cache semantics in an authorized staging tenant.
+6. Release only by explicit review/approval after other standing deployment gates are resolved. Do not merge or deploy this work merely because GitHub reports the branch mergeable.
