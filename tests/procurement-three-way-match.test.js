@@ -19,7 +19,7 @@ function sample() {
     purchaseOrder: {
       id: PO, organizationId: ORG, vendorId: VENDOR, currency: "USD",
       status: "partially_received", approvalStatus: "approved",
-      approvalVersion: 2, approvalDecidedBy: ACTOR,
+      approvalVersion: 2, approvalDecidedBy: ACTOR, approvalDecidedAt: "2026-10-09T05:00:00Z",
       lines: [{ id: LINE, organizationId: ORG, quantityMilli: 10000, unitCostCents: 250, unit: "each" }]
     },
     receipts: [{
@@ -106,6 +106,9 @@ describe("Deterministic three-way PO / accepted receipt / supplier invoice match
     data.supplierInvoice.vendorId = VENDOR;
     data.supplierInvoice.purchaseOrderId = OTHER;
     assert.throws(() => assessThreeWayMatch(data), /purchase_order_mismatch/);
+    data.supplierInvoice.purchaseOrderId = PO;
+    delete data.supplierInvoice.purchaseOrderId;
+    assert.throws(() => assessThreeWayMatch(data), /invoice_purchase_order_id_invalid/);
     data.supplierInvoice.purchaseOrderId = PO;
     data.supplierInvoice.currency = "EUR";
     assert.throws(() => assessThreeWayMatch(data), /currency_mismatch/);
