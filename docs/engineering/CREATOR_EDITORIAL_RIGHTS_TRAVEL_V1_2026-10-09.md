@@ -173,3 +173,18 @@ Operator acceptance sequence:
 - JSON saves require both the explicit `X-Sonara-Intent` header and rejection of browser-reported `cross-site` and `same-site` origins. HTML forms require `Sec-Fetch-Site: same-origin`; cookie presence alone is insufficient.
 - Exports are returned as `text/markdown`, with a constant attachment filename and `Cache-Control: no-store`. This is an owner-selected download, not an externally published article or website.
 - New regression tests cover missing/other-tenant export, intentional draft save, source minimization and cross-origin write attempts.
+
+
+## Release-gate findings from the PR #588 CI run
+
+A completed earlier head showed that the automated gates are real:
+- Node compatibility lint rejected two unused test imports. They were removed.
+- The new optional `SONARA_EDITORIAL_WORKBENCH_ENABLED` flag was absent from the mandatory classification. Added it to `OPTIONAL_CAPABILITY` so missing configuration remains **disabled**, not a customer-wide outage.
+- The three new HTML GET destinations were absent from `lib/sonara-route-registry.cjs`. They are now classified as Creator Studio pages.
+- OpenAPI was missing the four editorial JSON endpoints. `openapi/sonara.yaml` now declares exact operations, authorization, request data and error responses.
+- Source-license verification flagged wording that called third-party XcodeGen an "open-source tool" within SONARA's iOS pilot README. Clarified that the generator is **third-party tooling**, not a licence grant over SONARA source; the ownership policy and verifier remain unchanged.
+- Creator Project navigation only exposes "Write, storyboard and plan" when the same server-side editorial feature flag is active; otherwise no dead link appears.
+- **45/45 isolated JavaScript regression cases** passed (editorial, routes, storyboard, navigation). These are not native CI results.
+- The earlier Native migration replay failed on existing **P1 RLS policy-definition drift covering 25 policies**. This requires a separate security/migration investigation; do not bypass rollback-protection checks. The earlier WebKit browser job also failed and must be reproduced and analyzed before release.
+
+The user must not be told this is a customer-ready deployment. The PR remains draft and the server-side switch remains disabled. The official OWASP CSRF cheat sheet recommends Fetch Metadata checks with Origin/Referer fallback for older clients; the current strict same-origin requirement intentionally blocks browsers without that signal rather than silently trusting cookies. Validate the real-device browser coverage before canary.
