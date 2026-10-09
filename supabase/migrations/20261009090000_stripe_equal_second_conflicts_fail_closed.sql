@@ -44,6 +44,16 @@ begin
     return old;
   end if;
 
+  -- A canceled Stripe subscription cannot be reactivated under the same
+  -- provider subscription ID, even by an event stamped in a later second.
+  -- Future purchases create a new subscription ID. Keep the prior row
+  -- terminal unless an explicitly approved reconciliation bypasses this
+  -- trigger under a separate controlled operation.
+  if tg_table_name = 'billing_subscriptions' and
+     old.status = 'canceled' and new.status <> 'canceled' then
+    return old;
+  end if;
+
   if new.provider_event_at = old.provider_event_at then
     old_workspace := coalesce(old.metadata->>'workspace', old.metadata->>'workspace_key');
     new_workspace := coalesce(new.metadata->>'workspace', new.metadata->>'workspace_key');
