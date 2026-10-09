@@ -25,13 +25,17 @@ describe("billing delivery reliability", () => {
   });
   it("requires both subscription and entitlement writes to succeed", async () => {
     const event = { type: "customer.subscription.updated", data: { object: {
-      id: "sub_test", status: "active", metadata: { organization_id: "org_test", plan: "workspace_monthly" }
+      id: "sub_test", customer: "cus_test", status: "active", metadata: { organization_id: "org_test", plan: "workspace_monthly" }
     } } };
     for (const failedTable of ["billing_subscriptions", "billing_entitlements"]) {
-      global.fetch = async (url) => ({ ok: !url.includes(failedTable) });
+      global.fetch = async (url) => String(url).includes("/stripe_customers?")
+        ? { ok: true, json: async () => [{ stripe_customer_id: "cus_test", organization_id: "org_test", user_id: "user_test" }] }
+        : { ok: !String(url).includes(failedTable) };
       assert.equal((await billing().synchronizeBillingFromStripeEvent(event)).ok, false);
     }
-    global.fetch = async () => ({ ok: true });
+    global.fetch = async (url) => String(url).includes("/stripe_customers?")
+      ? { ok: true, json: async () => [{ stripe_customer_id: "cus_test", organization_id: "org_test", user_id: "user_test" }] }
+      : { ok: true };
     assert.equal((await billing().synchronizeBillingFromStripeEvent(event)).ok, true);
   });
   it("does not write parent billing records for connected merchant events", async () => {
@@ -43,18 +47,22 @@ describe("billing delivery reliability", () => {
     const calls = [];
     global.fetch = async (url) => {
       calls.push(String(url));
+      if (String(url).includes("/stripe_customers?")) return { ok: true, json: async () => [
+        { stripe_customer_id: "cus_test", organization_id: "org_test", user_id: "user_test" }
+      ] };
       return { ok: !String(url).includes("/purchases?") };
     };
     const result = await billing({ legitimate_one_time: { mode: "payment" } }).synchronizeBillingFromStripeEvent({
       type: "checkout.session.async_payment_succeeded",
       data: { object: {
-        id: "cs_test", mode: "payment", payment_status: "paid",
+        id: "cs_test", customer: "cus_test", mode: "payment", payment_status: "paid",
         metadata: { organization_id: "org_test", plan: "legitimate_one_time" }
       } }
     });
     assert.equal(result.ok, false);
-    assert.equal(calls.length, 1, "the purchase write must be attempted in this failure test");
-    assert.match(calls[0], /\/purchases\?/);
+    assert.equal(calls.length, 2, "customer binding read and purchase write must both occur");
+    assert.match(calls[0], /\/stripe_customers\?/);
+    assert.match(calls[1], /\/purchases\?/);
   });
 
   it("never exchanges a one-time Checkout payment for recurring subscription entitlements", async () => {
@@ -100,11 +108,14 @@ describe("billing delivery reliability", () => {
   it("fulfills only explicitly configured non-retired one-time plans after payment", async () => {
     const calls = [];
     global.fetch = async (url, init) => {
+      if (String(url).includes("/stripe_customers?")) return { ok: true, json: async () => [
+        { stripe_customer_id: "cus_test", organization_id: "org_test", user_id: "user_test" }
+      ] };
       calls.push({ url: String(url), body: JSON.parse(init.body) });
       return { ok: true };
     };
     const service = billing({ setup_one_time: { mode: "payment" }, workspace_monthly: { mode: "subscription" } });
-    const receipt = { id: "cs_paid_once", mode: "payment", payment_status: "paid",
+    const receipt = { id: "cs_paid_once", customer: "cus_test", mode: "payment", payment_status: "paid",
       payment_intent: "pi_test", metadata: { organization_id: "org_test", plan: "setup_one_time", user_id: "user_test" } };
     const result = await service.synchronizeBillingFromStripeEvent({
       type: "checkout.session.async_payment_succeeded", data: { object: receipt }
@@ -130,6 +141,84 @@ describe("billing delivery reliability", () => {
       assert.deepEqual(await service.synchronizeCheckoutSessionCompleted({ data: { object: session } }), { ok: true, ignored: true });
     }
     assert.equal(calls, 0);
+  });
+
+  it("refuses to assign signed subscription events to a tenant that does not own the Stripe customer", async () => {
+    const event = (org, customer = "cus_test") => ({
+      type: "customer.subscription.updated",
+      data: { object: {
+        id: "sub_test", customer, status: "active",
+        metadata: { organization_id: org, plan: "workspace_monthly" }
+      } }
+    });
+    const cases = [
+      { rows: [], code: "stripe_webhook_customer_mismatch" },
+      { rows: [{ stripe_customer_id: "cus_test", organization_id: "org_B", user_id: "user_A" }], code: "stripe_webhook_customer_mismatch" },
+      { rows: [
+        { stripe_customer_id: "cus_test", organization_id: "org_A", user_id: "user_A" },
+        { stripe_customer_id: "cus_test", organization_id: "org_A", user_id: "user_B" }
+      ], code: "stripe_webhook_customer_mismatch" },
+      { rows: { code: "unexpected_object" }, code: "stripe_webhook_customer_unreadable" },
+      { rows: null, code: "stripe_webhook_customer_unreadable" }
+    ];
+    for (const { rows, code } of cases) {
+      const urls = [];
+      global.fetch = async (url) => {
+        urls.push(String(url));
+        return { ok: true, json: async () => rows };
+      };
+      assert.deepEqual(await billing().synchronizeBillingFromStripeEvent(event("org_A")), { ok: false, code });
+      assert.equal(urls.length, 1, "subscription or entitlement write attempted after bad ownership read");
+      assert.match(urls[0], /\/stripe_customers\?/);
+      assert.match(urls[0], /stripe_customer_id=eq.cus_test/);
+    }
+    let writes = 0;
+    global.fetch = async () => { writes++; throw new Error("customer absence caused I/O"); };
+    assert.deepEqual(
+      await billing().synchronizeBillingFromStripeEvent(event("org_A", null)),
+      { ok: false, code: "stripe_webhook_customer_missing" }
+    );
+    assert.equal(writes, 0);
+  });
+
+  it("refuses a one-time receipt whose user or organization conflicts with the immutable customer ledger", async () => {
+    const service = billing({ setup_one_time: { mode: "payment" } });
+    const event = (org, user) => ({
+      type: "checkout.session.completed",
+      data: { object: {
+        id: "cs_test", customer: "cus_test", mode: "payment", payment_status: "paid",
+        metadata: { organization_id: org, plan: "setup_one_time", user_id: user }
+      } }
+    });
+    for (const [org, user] of [["org_other", "user_owner"], ["org_owner", "user_other"]]) {
+      const urls = [];
+      global.fetch = async (url) => {
+        urls.push(String(url));
+        return { ok: true, json: async () => [{
+          stripe_customer_id: "cus_test", organization_id: "org_owner", user_id: "user_owner"
+        }] };
+      };
+      assert.deepEqual(await service.synchronizeBillingFromStripeEvent(event(org, user)),
+        { ok: false, code: "stripe_webhook_customer_mismatch" });
+      assert.equal(urls.length, 1, "purchase/entitlement was written from wrong customer binding");
+    }
+  });
+
+  it("will not acknowledge a paid event if the customer mapping query is unavailable", async () => {
+    const ev = {
+      type: "customer.subscription.deleted",
+      data: { object: {
+        id: "sub_deleted", customer: "cus_test", status: "canceled",
+        metadata: { organization_id: "org_test", plan: "workspace_monthly" }
+      } }
+    };
+    for (const response of [undefined, { ok: false }, { ok: true, json: async () => { throw Error("broken JSON"); } }]) {
+      const urls = [];
+      global.fetch = async (url) => { urls.push(String(url)); return response; };
+      assert.deepEqual(await billing().synchronizeBillingFromStripeEvent(ev),
+        { ok: false, code: "stripe_webhook_customer_unreadable" });
+      assert.equal(urls.length, 1);
+    }
   });
 
   it("never creates a provider customer when the tenant mapping cannot be read", async () => {
