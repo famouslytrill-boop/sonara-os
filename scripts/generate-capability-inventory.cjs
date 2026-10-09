@@ -2402,7 +2402,7 @@ function buildInventory() {
         mappingStatus: dataMappingStatus,
         // Proposal-only dependencies are never counted as active migration
         // tables. Keep them distinct from directTables and schemaMigrations.
-        creatorDataContract: creatorData ? {
+        ...(creatorData ? { creatorDataContract: {
           kind: creatorData.kind,
           lifecycle: creatorPending ? "reviewed_sql_proposal_unapplied" : "unsaved_local_compute",
           operation: creatorData.operation,
@@ -2411,7 +2411,7 @@ function buildInventory() {
           runtimeFlag: creatorData.flag,
           sourceAdapter: creatorData.adapter,
           sourceReason: creatorData.reason
-        } : null,
+        } } : {}),
         directTables: mappedTables,
         candidateTables: moduleTablesForRoute,
         tableLineage,
