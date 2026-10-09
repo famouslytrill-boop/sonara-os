@@ -9,7 +9,7 @@ const vm = require("node:vm");
 
 const workerSource = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
 
-function harness({ status = 200, headers = {}, type = "basic", redirected = false, existingCaches = [], overrides = {} } = {}) {
+function harness({ status = 200, headers = {}, type = "basic", redirected = false, existingCaches = [], overrides = {}, failAssetEviction = false } = {}) {
   const handlers = new Map();
   const stored = [];
   const removed = [];
@@ -54,6 +54,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
     delete: async (request) => {
       const url = typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url;
       evicted.push(url);
+      if (failAssetEviction) throw new Error("injected Cache.delete failure");
       return active.delete(url);
     },
     add: async () => undefined
@@ -290,6 +291,24 @@ describe("PWA cache contains public assets only", () => {
       assert.equal(await worker.request("/sonara-one.js"), true);
       assert.equal(worker.active.has(url), false);
     }
+  });
+
+  it("evicts only the worker namespace if a single revoked entry cannot be removed", async () => {
+    const overrides = {};
+    const worker = harness({
+      overrides,
+      failAssetEviction: true,
+      existingCaches: ["unrelated-user-owned-cache"]
+    });
+    const url = "https://sonaraindustries.com/sonara-one.js";
+    await worker.request("/sonara-one.js");
+    assert.ok(worker.active.has(url));
+    overrides["/sonara-one.js"] = { headers: { "cache-control": "private, no-store" } };
+    assert.equal(await worker.request("/sonara-one.js"), true);
+    assert.equal(worker.active.has(url), false, "fallback cache eviction must remove the stale entry");
+    assert.ok(worker.removed.length === 1);
+    assert.ok(worker.removed[0].startsWith("sonara-public-"));
+    assert.ok(!worker.removed.includes("unrelated-user-owned-cache"));
   });
 
   it("preserves a valid public cache on transient errors without guessing that permissions changed", async () => {
