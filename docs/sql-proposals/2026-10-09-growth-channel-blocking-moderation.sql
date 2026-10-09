@@ -30,7 +30,7 @@ create or replace function public.sonara_growth_channel_block_action(
 )
 returns text language plpgsql security invoker
 set search_path = ''
-as $
+as $$
 begin
   if p_actor_user_id is null or p_channel_id is null
     or p_action not in ('block', 'unblock')
@@ -63,7 +63,7 @@ begin
   values (p_actor_user_id, p_channel_id);
   return 'blocked';
 end;
-$;
+$$;
 revoke all on function public.sonara_growth_channel_block_action(uuid,uuid,text)
   from public, anon, authenticated;
 grant execute on function public.sonara_growth_channel_block_action(uuid,uuid,text)
