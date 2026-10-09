@@ -1130,6 +1130,54 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/catering/estimate:
+    post:
+      operationId: estimateCateringDraft
+      tags: [Operations]
+      summary: Estimate catering quote, portion requirements, shortages and owner-review flags without saving or billing.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/events/resource-scenario:
+    post:
+      operationId: assessEventResourceScenario
+      tags: [Operations]
+      summary: Model peak concurrent event-equipment usage from supplied snapshots; never reserve a resource.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/finance/microtransaction-scenario:
+    post:
+      operationId: simulateBusinessMicrotransaction
+      tags: [Operations]
+      summary: Model per-charge processing costs and microtransaction contribution using entered assumptions.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/marketing/event-seo-preview:
+    post:
+      operationId: previewBusinessEventStructuredData
+      tags: [Operations]
+      summary: Return unpublished event structured-data preview without claiming index eligibility.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/marketing/restaurant-seo-preview:
+    post:
+      operationId: previewRestaurantStructuredData
+      tags: [Operations]
+      summary: Return unpublished restaurant structured-data preview without inventing reviews.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/nonprofits/contribution-review:
+    post:
+      operationId: reviewNonprofitContribution
+      tags: [Operations]
+      summary: Provide draft donor acknowledgment and quid-pro-quo disclosure flags without issuing a receipt.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes:
     get:
       operationId: listBusinessQuotes
