@@ -63,3 +63,33 @@ Passing syntax/static contract inspection is **not** evidence that Mocha, browse
 - Rejecting previously accepted off-origin Stripe return overrides is an intentional safety change. If a genuine business requirement needs a second domain, it requires a separately reviewed allowlist and attack-path tests rather than a general-purpose HTTP URL validator.
 - Local Checkout on loopback HTTP is allowed for developer testing; public non-TLS payment redirects are rejected.
 - This change does not imply that service-provider credentials, branch protection, production database identity, Stripe Connect marketplace payments or live customer success were verified.
+
+
+## Additional billing-summary reliability gate
+
+The same production billing surface exposed a second payment-support defect:
+`getBillingPanelSummary` was treating JSON parsing failure as an empty array
+and only checking the five most recently updated subscription rows. A malformed
+HTTP-200 response could say "No active paid plan found" or throw; a valid older
+active subscription could be hidden behind five more recently updated canceled
+rows.
+
+- Preserve the first bounded, tenant-scoped five-row query for history.
+- Require a parsed JSON array containing structurally valid subscription rows.
+  A singular error object, null row, missing plan/status field or broken JSON
+  must display "We could not check your plan just now", never "no plan."
+- If no active/trialing row is present in the bounded history, make one
+  additional organization-scoped, status-filtered query before claiming none.
+- Fail closed on transport errors or malformed data from the second query.
+- A successfully read empty history **and** empty active query is the only
+  supported basis here for reporting no active subscription.
+- This is a **customer-visible reporting integrity fix**, not an entitlement
+  grant and not evidence of Stripe reconciliation.
+
+Regression suite:
+`tests/a-billing-page-says-what-happens-next.test.js`.
+The new cases cover malformed JSON, HTTP-200 error objects, partial records,
+older active rows, read failure, and tenant scoping.
+
+Official PostgREST plural JSON representation contract:
+https://postgrest.org/en/latest/references/api/resource_representation.html
