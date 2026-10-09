@@ -3587,6 +3587,82 @@ paths:
         '409':
           description: A source is unavailable or archived
 
+  /api/creator-studio/editorial/preview:
+    post:
+      operationId: previewCreatorEditorialDraft
+      tags: [Creator Studio]
+      summary: Preview a deterministic editorial draft without writing or publishing it
+      description: Requires Creator Studio workspace access and an operator-enabled feature flag. English-only rule suggestions, user-entered rights evidence and travel assumptions are not legal or live travel verification.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditorialDraftInput" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/creator-studio/editorial/save:
+    post:
+      operationId: saveCreatorEditorialDraftRevision
+      tags: [Creator Studio]
+      summary: Explicitly save a new organization-scoped editorial draft revision
+      description: Requires Creator Studio access and a custom X-Sonara-Intent header; user-entered comparison passages are never persisted. Does not publish, license, or book anything.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      parameters:
+        - name: X-Sonara-Intent
+          in: header
+          required: true
+          schema: { type: string, const: save-editorial-draft }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditorialDraftInput" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/editorial/drafts:
+    get:
+      operationId: listCreatorEditorialDraftRevisions
+      tags: [Creator Studio]
+      summary: List the latest 20 drafts belonging to the authenticated user's organization
+      description: Requires Creator Studio access, resolves organization server-side, and never lists another organization's records.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/editorial/drafts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorEditorialDraftRevision
+      tags: [Creator Studio]
+      summary: Open one specific organization-scoped editorial revision
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+
 components:
   securitySchemes:
     customerSession:
@@ -3692,6 +3768,35 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   schemas:
+    EditorialDraftInput:
+      type: object
+      required: [kind, title]
+      additionalProperties: true
+      properties:
+        kind: { type: string, enum: [note, blog, storyboard, vlog, gaming, travel] }
+        title: { type: string, minLength: 1, maxLength: 160 }
+        body: { type: string, maxLength: 12000 }
+        language: { type: string, default: en }
+        topic: { type: string, maxLength: 240 }
+        durationSeconds: { type: integer, minimum: 3, maximum: 1800 }
+        sceneCount: { type: integer, minimum: 3, maximum: 8 }
+        comparisonText:
+          type: string
+          maxLength: 12000
+          description: Ephemeral user-supplied comparison passage, never saved in input_payload or output_payload.
+        assets:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [name, status]
+            properties:
+              name: { type: string, maxLength: 160 }
+              status: { type: string, enum: [owned, licensed, permission, public_domain_claimed, unknown] }
+              evidence: { type: string, maxLength: 500 }
+        travel:
+          type: object
+          description: User-supplied destination, dates, stops and budget; no live travel-provider claims.
     JsonObject:
       type: object
       additionalProperties: true
