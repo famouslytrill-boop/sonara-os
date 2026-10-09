@@ -1700,6 +1700,34 @@ paths:
         "303": { description: "Unblocked a stored user ID belonging to the signed-in member's block list." }
         "403": { description: "Request-origin verification failed." }
         "503": { description: "Feature disabled or database unavailable." }
+  /owner/social-moderation:
+    get:
+      operationId: readIndependentSocialModerationQueue
+      tags: [SONARA One]
+      summary: Private moderation queue available only to separately granted platform reviewers.
+      description: Disabled by default and backed by an explicit platform reviewer roster, not business membership.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: "Approved reviewer receives only queued report evidence and controls." }
+        "403": { description: "No platform moderator grant." }
+        "503": { description: "Feature disabled, invalid response or database unavailable." }
+  /api/social/moderation/reports/{id}/decision:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: decideIndependentSocialModerationReport
+      tags: [SONARA One]
+      summary: Review an abuse report with a logged dismiss, escalate or reopen decision.
+      description: Each decision is role-checked inside PostgreSQL and audited atomically; it does not ban a user.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Audited decision committed, reviewer redirected to their queue." }
+        "400": { description: "Invalid decision or explanation." }
+        "403": { description: "Request origin or separate moderator authorization invalid." }
+        "503": { description: "Feature disabled or persistence failed." }
   /api/business/storefront:
     post:
       operationId: saveMerchantStorefront
