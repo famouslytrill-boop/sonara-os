@@ -33,6 +33,40 @@ Engineering pass: October 9, 2026. Status: **feature branch, not deployed, not c
 - An absent stock quantity or venue capacity is unknown, not zero. All estimates
   remain draft owner reviews, including when all numeric inputs appear valid.
 
+## October 9 follow-up: canonical quote handoff and security hardening
+
+- Reused the existing public.quotes table and its existing manager-only POST
+  /api/business/quotes rather than creating a duplicate catering quote table.
+  Following an estimate, the owner may explicitly press "Save draft quote
+  summary". Until that POST succeeds, nothing is saved. Only a title, a total
+  in integer cents and forced draft state are carried to the existing quote.
+- Existing quotes.amount_cents is a PostgreSQL 32-bit integer. The handoff
+  refuses nonpositive totals and sums above 2147483647 cents; no truncation or
+  monetary overflow is allowed. This is a summary, NOT itemized/versioned
+  catering quote persistence. The detailed menu, equipment, tax assumptions
+  and provenance must await audited quote-line storage and revision schema.
+- Strengthened generic quote creation: unknown client columns/acceptance
+  markers removed, status forced to draft, amount format/range validated,
+  referenced customer UUID verified against the active organization BEFORE
+  the service-role insert. The tenant identity and creator are server-derived.
+- Quote acceptance must remain a separate audited actor action before
+  work-order/invoice conversion. This branch does NOT enable an agent,
+  customer, or visitor to accept quotes, book events, send emails, move stock,
+  issue payments, or change payout destinations.
+- Added negative tests for forged acceptance, unauthorized customer binding,
+  invalid/overflow amounts, explicit owner-save form, and invalid estimate
+  refusal. Run full Node24 Mocha and migration contract checks on exact head.
+
+### CI bottleneck observed
+
+GitHub Actions has a significant queued-run backlog, with numerous cancelled
+runs and some in-progress runs. Diagnose account runner/billing availability,
+concurrency cancellation, and high workflow fan-out before treating a queued
+workflow as tested. Do not bypass required checks or merge because a workflow
+was merely created. GitHub currently reports main.protected=false; P0 issue
+#460 remains blocking. A build cannot be certified until final-commit checks
+pass, even when targeted pure-function checks pass.
+
 ## Design invariants for the next engineering waves
 
 | Domain | Canonical record lifecycle | Critical verification |
