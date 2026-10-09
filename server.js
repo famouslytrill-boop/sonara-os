@@ -1571,7 +1571,7 @@ app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(produ
 
 // Listing, correcting and retiring the records a customer creates. These six
 // tools were create-only until now -- see routes/sonara-module-crud-routes.cjs.
-registerCreatorProjectRoutes(app, { layout, brandCard, linkAction, escapeHtml, requirePaidOrOwnerAccess, wantsJson, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+registerCreatorProjectRoutes(app, { layout, brandCard, linkAction, escapeHtml, requirePaidOrOwnerAccess, wantsJson, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, editorialWorkbenchEnabled: () => getEnv("SONARA_EDITORIAL_WORKBENCH_ENABLED") === "true" });
 registerParentToolRoutes(app, { layout, brandCard, linkAction, escapeHtml });
 registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction });
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
