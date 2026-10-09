@@ -155,7 +155,7 @@ describe("server-only customer cohort snapshot contract", () => {
 
   it("does not permit a cutoff beyond the authoritative database transaction clock", async () => {
     const client = fakeClient();
-    const result = await report(client, { asOf: "2026-10-09T00:00:00.000Z" });
+    const result = await report(client, { asOf: "2026-10-08T23:00:00.000Z" });
     assert.equal(result.code, "snapshot_read_failed");
     assert.equal(client.calls.at(-1).sql, "ROLLBACK");
     assert.equal(client.releaseCalled, true);
@@ -165,7 +165,8 @@ describe("server-only customer cohort snapshot contract", () => {
     let connections = 0;
     const connect = async () => { connections += 1; return fakeClient(); };
     const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], rosterAttestation: signedRoster({ cutoff: from }), sourceEvidenceBytes: sourceManifest({ cutoff: from }), trustedRosterPublicKeys: trustStore, from, to, asOf: from });
-    assert.equal(invalid.code, "observation_window_invalid");
+    // Signed evidence now rejects impossible time windows before evaluator input.
+    assert.equal(invalid.code, "roster_attestation_invalid");
     assert.equal(connections, 0);
     const missing = await readCohortFromSnapshot({ connect, from, to, asOf });
     assert.equal(missing.code, "trusted_operator_dependencies_missing");
