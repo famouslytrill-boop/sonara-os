@@ -228,7 +228,11 @@ begin
        and a.expected_stock_version = new.stock_version_before
        and a.counted_quantity = new.balance_after
        and a.decision = 'approved'
-       and a.approved_at <= new.created_at
+       and a.approved_at <= (
+         select e.recorded_at
+         from public.inventory_stock_events e
+         where e.id = new.stock_event_id
+       )
   ) then
     raise exception 'stock_adjustment_approval_lineage_invalid';
   end if;
