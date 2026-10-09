@@ -7,6 +7,8 @@
 > [P0–P2 execution ledger](POSTGRES_P0_P2_EXECUTION_2026-10-08.md).
 > The active preview project is not confirmed to be production.
 
+> **Replay probe correction — 2026-10-09:** The GitHub PostgreSQL 16/17/18 replay matrix initially failed because `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` still asserted the 25 pre-hardening RLS definitions. The separately applied forward migration `20261008100000_tighten_service_role_rls_policies.sql` already changed 21 service-only policies to `TO service_role USING (true) WITH CHECK (true)` and four authenticated ownership policies to scalar `(SELECT auth.uid())` checks. The old probe must not rewrite them back to `auth.role()`. The revised **rollback-only** probe asserts all 25 hardened policy definitions exactly, then tests one identical subscriptions SELECT policy deletion inside a transaction that ends in `ROLLBACK`. A read-only `pg_policies` comparison against the connected preview database found 25/25 policies and zero mismatches. This is **not** fresh PostgreSQL 16/17/18 replay proof; wait for exact-head CI. No migration was edited or applied, and no live policy or data was changed.
+>
 # Supabase PostgreSQL performance consolidation — 8 October 2026
 
 Status: **draft, not deployed**. Database remains unchanged. This repair targets the active Supabase preview project `yqncsonkxgwhcxedgevk`, **not** inactive `sonara-industries-prod` (`ltzpppffnwopdxbchajr`).
