@@ -192,7 +192,7 @@ describe("a replayed Stripe event changes nothing twice", () => {
       // like a guarantee.
       assert.match(
         region,
-        /const providerEventAt = Number\.isFinite\(event\.created\)/,
+        /const providerEventAt = new Date\(event\.created \* 1000\)\.toISOString\(\)/,
         "the subscription sync no longer derives its stamp from event.created"
       );
       assert.doesNotMatch(
