@@ -204,6 +204,15 @@ describe("independent moderator queue and decision controls (database stub)",()=
   beforeEach(()=>{oldFetch=global.fetch;});
   afterEach(()=>{global.fetch=oldFetch;});
 
+  it("explains disabled moderation without querying unpublished staff data",async()=>{
+    const calls=[];global.fetch=stub(calls,{authorized:true,reports:[]});
+    const res=await invoke(setup(false),"GET","/owner/social-moderation",request());
+    assert.equal(res.statusCode,200);
+    assert.match(res.body,/Platform moderation is not active yet/);
+    assert.equal(res.headers["Cache-Control"],"private, no-store");
+    assert.equal(calls.length,0);
+  });
+
   it("requires explicit platform review grant, not ordinary account login",async()=>{
     const calls=[];
     global.fetch=stub(calls,{authorized:false,reports:[]});
