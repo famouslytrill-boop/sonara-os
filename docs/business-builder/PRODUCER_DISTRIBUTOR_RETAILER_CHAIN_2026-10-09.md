@@ -298,6 +298,60 @@ https://www.postgresql.org/docs/current/explicit-locking.html
 https://supabase.com/docs/guides/database/functions
 https://supabase.com/docs/guides/database/postgres/row-level-security
 
+## Phase 7: audit-event provenance and custody exception fail-closed
+
+Security review of the staged versioned-stock migration identified a way
+to label an old inventory movement as a newly approved correction if a
+privileged actor inserted a matching record after the movement had happened.
+The migration now includes **three independent posting requirements**:
+
+1. `inventory_stock_events.posting_xid` is stamped with
+   `pg_current_xact_id()` by PostgreSQL. A correction's event must belong
+   to the **same database transaction** as the correction insert.
+2. The inventory item's **current** organization, `stock_version` and
+   on-hand quantity must still agree with the event. An old but otherwise
+   matching event cannot be reused as a new correction.
+3. Every reviewer approval gets a database-controlled
+   `approved_at = clock_timestamp()`, with an insert trigger that ignores
+   a caller-supplied earlier timestamp. The approved event must occur
+   **after** the approval's recorded time. `now()` is deliberately not used
+   for this ordering because its value is fixed at the start of a
+   PostgreSQL transaction. This timestamp is an additional consistency
+   control, not cryptographic proof of who approved.
+
+A separate disposable replay pair
+(`tests/sql/stock-adjustment-cross-tx-prep.sql` and
+`tests/sql/stock-adjustment-cross-tx-check.sql`) commits an otherwise
+valid unattributed movement and then attempts to reclassify it as approved
+from a second connection/transaction. A separate negative fixture checks
+forged old `approved_at` values and a reviewer decision entered after the
+physical movement in a single transaction. These tests were **written and
+wired to mandatory native migration replay**; they are not proof of
+successful PostgreSQL execution until CI runs.
+
+**Custody safety:** `sonara_apply_stock_count_adjustment` now accepts
+`cycle_count` only, even if a reviewer row exists for another reason.
+`damaged`, `expired`, `shrinkage`, `customer_return` and
+`supplier_correction` require their own lot/serial tracking, ownership
+evidence, quarantine/return workflow and controls before affecting available
+stock. The generic count RPC returns
+`stock_custody_evidence_required` for those reasons. The pure JS
+reconciliation engine remains proposal-only.
+
+This is **not complete attribution or tamper-proof auditing**. A
+trusted service-role backend must still bind the authenticated caller's
+identity and collect genuine separate reviewer consent; existing direct
+quantity edits are still journaled as `unattributed_quantity_change`.
+Server key compromise or a privileged database owner can bypass ordinary
+application-level controls. The next engineering release step remains
+reviewed route integration, tenant-authorization adversarial tests, native
+PostgreSQL replay and exact-head merge protection.
+
+PostgreSQL reference:
+https://www.postgresql.org/docs/current/trigger-definition.html
+https://www.postgresql.org/docs/current/functions-info.html
+https://www.postgresql.org/docs/current/functions-datetime.html
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
