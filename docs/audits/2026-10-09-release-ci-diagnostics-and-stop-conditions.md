@@ -57,3 +57,25 @@ The edited SQL P1 diagnostic ran on that prior head but its output never appeare
 The original RLS policy definitions and authorization boundaries remain unchanged. The P1 probe must still fail closed while drift persists. No diagnostic output is an approval to apply P1 schema changes without a resolved role/policy comparison, two-tenant access matrix and controlled staging review.
 
 **Evidence:** https://github.com/famouslytrill-boop/sonara-os/actions/runs/37957454863 and https://github.com/famouslytrill-boop/sonara-os/actions/runs/37957454864.
+
+
+### Read-only Supabase preview policy reconciliation — 2026-10-09
+
+The connected Supabase project `yqncsonkxgwhcxedgevk` identifies itself as **ACTIVE_HEALTHY**, PostgreSQL 17.6 and **release_channel: preview**. It is not confirmed as customer production. No mutation was performed.
+
+Read-only SQL constructed the **exact 25 expected named policies** from `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` in a `WITH expected_rls_p1 ... AS (VALUES ...)` expression, then joined against `pg_policies` by `public` schema, table and policy name. The output was an aggregate only, with no table-row or customer-data access:
+
+| Check | Actual preview result |
+| --- | ---: |
+| Expected named policies | 25 |
+| Missing named policies | 0 |
+| Role sets differ | 16 |
+| Policy command differs | 0 |
+| `USING` text differs | 25 |
+| `WITH CHECK` text differs | 21 |
+
+Examples from read-only inspection: `agent_pending_actions` has a `{service_role}` policy with `true` predicates in preview, whereas the P1 probe expects `{public}` using `auth.role() = 'service_role'`. `business_employee_profiles_select_own` and `user_preferences_select_own` already use `(SELECT auth.uid())` in preview, whereas the P1 probe expects direct `auth.uid()` calls. A text mismatch can signify intentionally hardened roles or previously applied optimization; it is **not evidence that new permissions should be granted or that expressions should be rewritten back**.
+
+These facts do not by themselves prove the exact state of the *disposable database replayed from migrations*, nor that every textual difference affects effective access. The CI replay must now emit the bounded policy diagnostic on its newest exact commit and security reviewers must compare the replayed and preview baselines before any policy change. Preserve the fail-closed guard and perform two-user, anonymous and service-role deny/allow regression tests after any staged proposal.
+
+The optimization technique of wrapping row-independent auth calls in a scalar `SELECT` is documented by Supabase, but does not justify changing policy scopes or bypassing role checks: https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv . Column semantics are defined by PostgreSQL: https://www.postgresql.org/docs/17/view-pg-policies.html .
