@@ -82,7 +82,7 @@ BEGIN
   -- Requiring an obsolete duplicate blocked all nine native test lanes.
   -- Preserve a *strict* entitlement condition: at least one, at most two,
   -- authenticated SELECT with an exact user_id ownership predicate.
-  SELECT count(*), count(*) FILTER (WHERE NOT (
+  SELECT count(*), count(*) FILTER (WHERE (
        permissive='PERMISSIVE'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
@@ -93,7 +93,7 @@ BEGIN
          '(user_id = ( SELECT auth.uid() AS uid))'
        )
        AND with_check IS NULL
-     )),
+     ) IS DISTINCT FROM TRUE),
      string_agg(policyname || ':' || coalesce(qual,'<null>'), '; ' ORDER BY policyname)
   INTO subscription_count,subscription_invalid,subscription_details
   FROM pg_policies
