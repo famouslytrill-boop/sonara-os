@@ -55,6 +55,23 @@ Inventory position = usable_on_hand + confirmed_incoming - reserved_or_allocated
 
 Media unit margin = sale net of provider/API fees, compute/render costs, storage and egress, customer support and payment/marketplace fees. Require bounded jobs, owner review for rights, and no false “unlimited” media claims.
 
+
+## Engineering Phase 2 — variable-tempo music and film interchange (2026-10-09)
+
+Added to the same guarded Creator Studio route:
+- Optional ordered tempo changes: comma-delimited `bar:BPM` entries such as `5:90,9:140`. A change applies from its named bar forward; the first bar uses the primary BPM. Up to 16 events, 1–128 total bars, integer BPM 20–320. Invalid, unsorted, duplicate, or overlong input is rejected.
+- Exact rational accumulation of cumulative bar duration. Fraction arithmetic uses positive BigInt numerator/denominator reduced with GCD after each bar. Frames are rounded once from the absolute time, rather than summing independently rounded durations. This prevents drift at fractional picture frame rates.
+- `format=vtt`: nonoverlapping, contiguous WebVTT chapter cues with fixed `Bar N` labels. It is a **chapter** track, not a subtitle or live interpretation track. Each cue extends to the next bar marker, including a terminal boundary. The player must explicitly declare `<track kind="chapters">`; playback support must be verified separately.
+- `format=json`: versioned, provider-neutral marker manifest with explicit film rate numerator/denominator, offset, tempo map and marker boundaries. Rights and rendering booleans are false, never inferred as cleared or rendered.
+- `format=csv`: existing numeric-only edit markers retained, no arbitrary user text in CSV cells.
+- Added route and calculation tests for tempo-change boundaries, rational NTSC-like frame rates, export shape, rejection and tenant-independent entitlement gating. PR CI remains mandatory.
+
+Video/source synchronization nuance: exact planned frame indices cannot guarantee synchronization with captured variable-frame-rate video or audio clocks, nor does this export a Standard MIDI File tempo track, SMPTE timecode or OpenTimelineIO object. Future verified adapters may convert the manifest into those formats. Do not label these as implemented.
+
+**Authoritative interchange references:** WebVTT chapter cues require positive nonoverlapping durations and omit formatting tags (https://www.w3.org/TR/2026/CRD-webvtt1-20260520/); OpenTimelineIO `RationalTime` and `Marker` have an owning-item time coordinate system (https://opentimelineio.readthedocs.io/en/latest/api/python/opentimelineio.schema.html). This initial JSON is explicitly SONARA-native, not `.otio`.
+
+**Next bounded implementation after full CI:** add project-graph-linked cue metadata behind revision compare-and-swap, input validation and tenant isolation. Prevent historical cue sheets from being silently rewritten when a user changes BPM; store source hash, revision, timebase and approval state. Offline saved drafts require conflict detection at reconnection. No automatic writes to live productions or merchant orders.
+
 ## Next sequence
 
 P0: exact-head test, lint, typecheck, build, security, route smoke and CI; keep existing global release failures visible and separate.
