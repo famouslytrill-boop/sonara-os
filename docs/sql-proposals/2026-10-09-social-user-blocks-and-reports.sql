@@ -15,8 +15,8 @@ create table if not exists public.sonara_social_user_blocks (
 create index if not exists sonara_social_user_blocks_target_idx
  on public.sonara_social_user_blocks(blocked_user_id, blocker_user_id);
 alter table public.sonara_social_user_blocks enable row level security;
-revoke all on public.sonara_social_user_blocks from PUBLIC, anon, authenticated;
-grant select, insert, update, delete on public.sonara_social_user_blocks to service_role;
+revoke all on public.sonara_social_user_blocks from PUBLIC, anon, authenticated, service_role;
+grant select, insert, delete on public.sonara_social_user_blocks to service_role;
 
 create table if not exists public.sonara_social_profile_reports (
   id uuid primary key default gen_random_uuid(),
@@ -37,7 +37,7 @@ create table if not exists public.sonara_social_profile_reports (
 create index if not exists sonara_social_profile_reports_queue
  on public.sonara_social_profile_reports(state, created_at);
 alter table public.sonara_social_profile_reports enable row level security;
-revoke all on public.sonara_social_profile_reports from PUBLIC, anon, authenticated;
+revoke all on public.sonara_social_profile_reports from PUBLIC, anon, authenticated, service_role;
 grant select, insert, update on public.sonara_social_profile_reports to service_role;
 -- Reporting alone does not remove content. Platform-owned review and appeals
 -- require a separate authorization grant and decision audit in a future wave.
@@ -271,7 +271,7 @@ create table if not exists public.sonara_social_moderator_grants (
   )
 );
 alter table public.sonara_social_moderator_grants enable row level security;
-revoke all on public.sonara_social_moderator_grants from PUBLIC, anon, authenticated;
+revoke all on public.sonara_social_moderator_grants from PUBLIC, anon, authenticated, service_role;
 grant select on public.sonara_social_moderator_grants to service_role;
 -- Provisioning and revocation are out-of-band audited administrator operations.
 -- No web client insert/update grant exists for this sensitive roster.
@@ -287,7 +287,7 @@ create table if not exists public.sonara_social_report_review_events (
 create index if not exists sonara_social_report_review_events_report_idx
   on public.sonara_social_report_review_events(report_id, decided_at);
 alter table public.sonara_social_report_review_events enable row level security;
-revoke all on public.sonara_social_report_review_events from PUBLIC, anon, authenticated;
+revoke all on public.sonara_social_report_review_events from PUBLIC, anon, authenticated, service_role;
 grant select, insert on public.sonara_social_report_review_events to service_role;
 
 create or replace function public.sonara_social_moderation_queue(
