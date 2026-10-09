@@ -60,7 +60,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.csv"');
       return res.type("text/csv").send(beatGridCsv(grid));
     }
-    const fields = [[
+    const fields = [
       ["bpm", "Tempo (beats per minute)", grid.bpm, 20, 320],
       ["beatsPerBar", "Beats per bar", grid.beatsPerBar, 2, 12],
       ["bars", "Number of bars", grid.bars, 1, 128],
