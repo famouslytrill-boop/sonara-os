@@ -22,7 +22,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PKCE = /^[A-Za-z0-9_-]{43,128}$/;
 const VAULT_REF = /^vault:\/\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 const OWNER_ROLES = new Set(["owner", "admin", "business_owner"]);
-const OPERATIONS = new Set(["complete_authorization", "bind_site", "read_daily", "disconnect"]);
+const OPERATIONS = new Set(["complete_authorization", "review_sites", "bind_site", "read_daily", "disconnect"]);
 
 const encoder = new TextEncoder();
 
@@ -533,12 +533,28 @@ async function completeAuthorization(
   }
   const sites = await listSites(exchange.accessToken);
   if (!sites.ok) {
+    const staged = await saveSettings(
+      sql,
+      context,
+      { ...connection, credential_reference: reference },
+      {
+        oauth_stage: "credential_stored_provider_probe_pending",
+        granted_scopes: [READ_SCOPE],
+        provider_probe_pending_at: new Date().toISOString(),
+        provider_probe_error_code: text(sites.code) || "provider_probe_failed"
+      },
+      "setup_required"
+    );
+    if (!staged) {
+      return { status: 409, body: { ok: false, code: "connection_changed_during_authorization_probe" } };
+    }
     return {
       status: sites.status === 429 ? 429 : 502,
       body: {
         ...sites,
         credentialStored: Boolean(reference),
-        authorizationStage: "credential_stored_provider_probe_pending"
+        authorizationStage: "credential_stored_provider_probe_pending",
+        recoveryOperation: "review_sites"
       }
     };
   }
@@ -564,6 +580,48 @@ async function completeAuthorization(
       authorizationStage: "authorization_review_ready",
       credentialStored: true,
       grantedScopes: [READ_SCOPE],
+      sites: sites.sites,
+      providerSecretsReturned: false
+    }
+  };
+}
+
+async function reviewSites(
+  sql: postgres.Sql,
+  config: ReturnType<typeof environment>,
+  context: Context,
+  connection: Connection
+) {
+  if (connection.connection_status === "disabled") {
+    return { status: 409, body: { ok: false, code: "connection_disabled" } };
+  }
+  if (!vaultId(connection.credential_reference)) {
+    return { status: 409, body: { ok: false, code: "provider_refresh_credential_missing" } };
+  }
+  const access = await brokerAccess(sql, config, connection);
+  if (!access.ok) return { status: access.status || 409, body: access };
+  const sites = await listSites(access.accessToken);
+  if (!sites.ok) return { status: sites.status || 502, body: sites };
+  const saved = await saveSettings(
+    sql,
+    context,
+    connection,
+    {
+      oauth_stage: "authorization_review_ready",
+      granted_scopes: [READ_SCOPE],
+      accessible_site_count: sites.sites.length,
+      authorization_reviewed_at: new Date().toISOString()
+    },
+    "setup_required"
+  );
+  if (!saved) return { status: 409, body: { ok: false, code: "connection_changed_during_site_review" } };
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      operation: "review_sites",
+      provider: PROVIDER,
+      authorizationStage: "authorization_review_ready",
       sites: sites.sites,
       providerSecretsReturned: false
     }
@@ -806,6 +864,8 @@ Deno.serve(async (req: Request) => {
     let result;
     if (operation === "complete_authorization") {
       result = await completeAuthorization(sql, config, context, connection, payload);
+    } else if (operation === "review_sites") {
+      result = await reviewSites(sql, config, context, connection);
     } else if (operation === "bind_site") {
       result = await bindSite(sql, config, context, connection, payload);
     } else if (operation === "read_daily") {
