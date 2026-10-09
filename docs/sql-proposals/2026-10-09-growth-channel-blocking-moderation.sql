@@ -16,7 +16,7 @@ create table if not exists public.growth_channel_blocks (
 create index if not exists growth_channel_blocks_by_channel
  on public.growth_channel_blocks(channel_id);
 alter table public.growth_channel_blocks enable row level security;
-revoke all on public.growth_channel_blocks from public, anon, authenticated;
+revoke all on public.growth_channel_blocks from public, anon, authenticated, service_role;
 grant select, insert, delete on public.growth_channel_blocks to service_role;
 
 -- Only the server-side RPC is an application write path. A lock keyed by actor
@@ -81,7 +81,7 @@ create table if not exists public.growth_channel_moderation_events (
 create index if not exists growth_channel_moderation_events_owner
  on public.growth_channel_moderation_events(organization_id, created_at desc);
 alter table public.growth_channel_moderation_events enable row level security;
-revoke all on public.growth_channel_moderation_events from public, anon, authenticated;
+revoke all on public.growth_channel_moderation_events from public, anon, authenticated, service_role;
 grant select, insert on public.growth_channel_moderation_events to service_role;
 
 -- Atomic status change and append-only audit, invoked server-side ONLY
