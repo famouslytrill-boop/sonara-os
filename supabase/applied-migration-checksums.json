@@ -158,5 +158,6 @@
   "20261007110000_every_formula_can_be_saved.sql": "ab846302d2fdf2202b669fd9ea14b01ad5121f6485646a8d035560b53dcf4f50",
   "20261007130000_what_happened_to_a_campaign_email.sql": "ecf5e2c7f878208e06b1bc0f7f24a610fa33eb487a7cb94feabdf9d3f6664b3c",
   "20261008090000_consolidate_postgres_index_rls_hygiene.sql": "9e8dc7fa584a5b906237b8dc7eada0e670e7fcb7b970bf110c8a271ceaa49ea7",
-  "20261008100000_tighten_service_role_rls_policies.sql": "9297520c1a2e605fd3144ac3709d3e247384ee32fea8c64cf8949baf4ae04551"
+  "20261008100000_tighten_service_role_rls_policies.sql": "9297520c1a2e605fd3144ac3709d3e247384ee32fea8c64cf8949baf4ae04551",
+  "20261009180000_seed_engineering_formulas.sql": "092c1d331f2fbfc6755bb260d522c8727ac5bc6eb0d990592d5d96a3b4fa7ea6"
 }
