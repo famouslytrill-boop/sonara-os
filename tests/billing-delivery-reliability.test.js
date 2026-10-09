@@ -24,7 +24,7 @@ describe("billing delivery reliability", () => {
     assert.equal(service.verifyStripeWebhookSignature(body, `${header(now)},t=${now}`, secret).ok, false);
   });
   it("requires both subscription and entitlement writes to succeed", async () => {
-    const event = { type: "customer.subscription.updated", data: { object: {
+    const event = { type: "customer.subscription.updated", created: 1780000000, data: { object: {
       id: "sub_test", customer: "cus_test", status: "active", metadata: { organization_id: "org_test", plan: "workspace_monthly" }
     } } };
     for (const failedTable of ["billing_subscriptions", "billing_entitlements"]) {
@@ -145,7 +145,7 @@ describe("billing delivery reliability", () => {
 
   it("refuses to assign signed subscription events to a tenant that does not own the Stripe customer", async () => {
     const event = (org, customer = "cus_test") => ({
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       data: { object: {
         id: "sub_test", customer, status: "active",
         metadata: { organization_id: org, plan: "workspace_monthly" }
@@ -206,7 +206,7 @@ describe("billing delivery reliability", () => {
 
   it("does not acknowledge cancellation when the saved subscription cannot be read", async () => {
     const ev = {
-      type: "customer.subscription.deleted",
+      type: "customer.subscription.deleted", created: 1780000000,
       data: { object: {
         id: "sub_deleted", customer: "cus_test", status: "canceled",
         metadata: { organization_id: "org_test", plan: "workspace_monthly" }
@@ -271,7 +271,7 @@ describe("billing delivery reliability", () => {
         return { ok: true, json: async () => [persisted] };
       };
       const response = await billing().synchronizeBillingFromStripeEvent({
-        type: "customer.subscription.deleted", data: { object: {
+        type: "customer.subscription.deleted", created: 1780000000, data: { object: {
           id: "sub_cancel", customer: "cus_original", status: "canceled", metadata
         } }
       });
@@ -290,7 +290,7 @@ describe("billing delivery reliability", () => {
         return { ok: true, json: async () => [{ ...persisted, ...mismatch }] };
       };
       const result = await billing().synchronizeBillingFromStripeEvent({
-        type: "customer.subscription.deleted", data: { object: {
+        type: "customer.subscription.deleted", created: 1780000000, data: { object: {
           id: "sub_cancel", customer: "cus_original", status: "canceled"
         } }
       });
@@ -307,7 +307,7 @@ describe("billing delivery reliability", () => {
       { id: "sub_cancel", customer: "not-a-customer", status: "canceled" }
     ]) {
       const result = await billing().synchronizeBillingFromStripeEvent({
-        type: "customer.subscription.deleted", data: { object: bad }
+        type: "customer.subscription.deleted", created: 1780000000, data: { object: bad }
       });
       assert.deepEqual(result, { ok: false, code: "stripe_cancellation_invalid" });
     }
@@ -316,7 +316,7 @@ describe("billing delivery reliability", () => {
 
   it("does not invent a subscription owner when historical cancellation proof is missing or ambiguous", async () => {
     const ev = {
-      type: "customer.subscription.deleted",
+      type: "customer.subscription.deleted", created: 1780000000,
       data: { object: { id: "sub_cancel", customer: "cus_original", status: "canceled" } }
     };
     const valid = {
@@ -350,7 +350,7 @@ describe("billing delivery reliability", () => {
       return { ok: true, json: async () => [] };
     };
     const response = await billing().synchronizeBillingFromStripeEvent({
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       data: { object: {
         id: "sub_cancel", customer: "cus_original", status: "canceled",
         metadata: { organization_id: "org_original", plan: "workspace_monthly" }
@@ -375,7 +375,7 @@ describe("billing delivery reliability", () => {
       return { ok: true };
     };
     const result = await billing().synchronizeBillingFromStripeEvent({
-      type: "customer.subscription.deleted",
+      type: "customer.subscription.deleted", created: 1780000000,
       data: { object: { id: "sub_cancel", customer: "cus_original", status: "canceled" } }
     });
     assert.equal(result.ok, false);
@@ -474,7 +474,7 @@ describe("billing webhook HTTP retry contract", () => {
       process.env.STRIPE_WEBHOOK_SECRET = ["whsec", "delivery", "regression", "1234567890"].join("_");
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
-      const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", data: { object: {
+      const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", created: 1780000000, data: { object: {
         id: "sub_retry", customer: "cus_retry", status: "active", metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
       const timestamp = Math.floor(Date.now() / 1000);
