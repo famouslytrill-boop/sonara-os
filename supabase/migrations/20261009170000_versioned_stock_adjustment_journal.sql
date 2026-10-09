@@ -305,6 +305,13 @@ begin
     raise exception 'stock_adjustment_invalid';
   end if;
 
+  -- This is intentionally a CYCLE-COUNT posting function. Quarantine,
+  -- returns and supplier discrepancy settlement require provenance-rich
+  -- dedicated workflows and must never add unsellable stock to availability.
+  if p_reason <> 'cycle_count' then
+    raise exception 'stock_custody_evidence_required';
+  end if;
+
   -- Both roles checked under a service-only transaction, not from editable
   -- JWT user_metadata. Server MUST also bind actor to real auth session.
   if not exists (
