@@ -88,7 +88,24 @@
       if (kind === "camera") {
         phase = "preview";
         video.srcObject = stream; video.hidden = false;
-        await video.play();
+        // Some WebKit/camera drivers never settle play(), leaving the panel
+        // forever saying permissions are being checked. Give preview startup
+        // a fixed budget, release the stream on timeout, and preserve a
+        // visible failure state. The timeout never grants device access.
+        status.textContent = "Starting camera preview…";
+        let previewTimeout;
+        try {
+          await Promise.race([
+            video.play(),
+            new Promise((_, reject) => {
+              previewTimeout = window.setTimeout(() => {
+                const error = new Error("Camera preview did not start.");
+                error.name = "NotSupportedError";
+                reject(error);
+              }, 5000);
+            })
+          ]);
+        } finally { window.clearTimeout(previewTimeout); }
         if (revision !== sequence) return;
         photo.hidden = false;
         status.textContent = "Camera preview is on. It stops after 60 seconds. Take a photo or stop when finished.";
