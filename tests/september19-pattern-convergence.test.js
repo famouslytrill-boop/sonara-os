@@ -971,6 +971,91 @@ describe("September 19 platform pattern convergence", () => {
     }), /trusted_postgres_pool_and_environment_required/);
   });
 
+  it("coordinates full lifecycle through the PostgreSQL transaction interface", async () => {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const approvalId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const eventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const sqlLog = [];
+    let released = 0;
+    const pool = { async connect() { return {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (sql.includes("as now_ms")) return { rowCount: 1, rows: [{ now_ms: "2000" }] };
+        if (sql.startsWith("select id, scope, organization_id"))
+          return { rowCount: 1, rows: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            scope: "tenant", organization_id: org, mode: "active", revision: "7" }] };
+        if (sql.startsWith("select a.id, a.status"))
+          return { rowCount: 1, rows: [{ id: approvalId, status: "approved",
+            consumed_at: null, revoked_at: null, scope: "tenant", organization_id: org,
+            from_mode: "active", to_mode: "paused", expected_revision: "7",
+            approved_by: "22222222-2222-4222-8222-222222222222",
+            issued_ms: "1900", expires_ms: "2600" }] };
+        if (/^(update sonara_operations|insert into sonara_operations)/.test(sql))
+          return { rowCount: 1, rows: [{ id: "fixture_id" }] };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    }; } };
+    const store = createPostgresOperationalStore({ pool, environmentKey: "staging" });
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: {
+        async authorize({ tx }) {
+          assert.equal(typeof tx.authorizedQuery, "function");
+          return { actorId, authorized: true, scope: "tenant", organizationId: org };
+        },
+        async verifyApproval({ approval }) {
+          return approval.approvedBy !== actorId;
+        }
+      },
+      evidenceVerifier: { async verify() { return {}; } }
+    });
+    const result = await coordinator.transition({
+      session: { trustedServerSession: true },
+      command: { eventId, approvalId, scope: "tenant", organizationId: org,
+        expectedRevision: 7, to: "paused" }
+    });
+    assert.equal(result.applied, true);
+    assert.equal(result.reason, "transaction_committed");
+    assert.equal(result.auditCommitted, true);
+    assert.equal(released, 1);
+    const order = sqlLog.map(x => x.sql.slice(0, 12));
+    assert.equal(order[0], "BEGIN");
+    assert.equal(order[order.length - 1], "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    assert.equal(sqlLog.filter(x => /^(update sonara_operations|insert into sonara_operations)/.test(x.sql)).length, 3);
+    assert.ok(sqlLog.filter(x => x.values.includes(org)).every(x => !x.sql.includes(org)));
+  });
+
+  it("surfaces indeterminate PostgreSQL COMMIT as reconciliation required, not safe retry", async () => {
+    const f = operationalCoordinatorFixture({ transactionReject: true });
+    // An ordinary audit/write failure remains a definite failure.
+    const ordinary = await f.coordinator.transition({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(ordinary.reason, "operational_transaction_failed");
+    const store = {
+      async withTransaction() {
+        const error = new Error("private provider error");
+        error.code = "SONARA_COMMIT_OUTCOME_UNKNOWN";
+        throw error;
+      }
+    };
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: { async authorize() { return null; }, async verifyApproval() { return false; } },
+      evidenceVerifier: { async verify() { return null; } }
+    });
+    const result = await coordinator.transition({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(result.applied, false);
+    assert.equal(result.transitionExecuted, false);
+    assert.equal(result.reason, "commit_outcome_unknown_reconciliation_required");
+    assert.equal(Object.hasOwn(result, "sql"), false);
+  });
+
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
     const snapshot = get2026MarketIntelligence();
     assert.equal(MARKET_SNAPSHOT_DATE, "2026-09-20");
