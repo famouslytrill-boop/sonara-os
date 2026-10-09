@@ -11,7 +11,12 @@ async function mountLocalComponent(page, markup, scriptPath) {
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  await page.setContent(inertMarkup);
+  // Keep the origin of the real /tools document. Replacing the entire
+  // document with setContent can move WebKit into an opaque document context,
+  // causing the actual served /creator-*.js script loads to fail.
+  // The markup is still stripped of embedded scripts, and the component code
+  // still loads over HTTP from the running SONARA application server.
+  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
   await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
