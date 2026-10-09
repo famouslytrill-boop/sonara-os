@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+concurrency:
+  # Supersede only earlier versions of this PR, never main or manual evidence.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Named "frontend-dependencies" and there is no frontend.
   #

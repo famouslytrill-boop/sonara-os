@@ -19,6 +19,11 @@ on:
   # problem, which is this repository's recurring defect wearing a CI badge.
   workflow_dispatch:
 
+concurrency:
+  # Supersede only earlier versions of this PR, never main or manual evidence.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   sonara-industries:
     runs-on: ubuntu-latest
