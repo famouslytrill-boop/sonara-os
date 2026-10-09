@@ -30,7 +30,7 @@ describe("proposed social database migration preflight", () => {
     assert.ok(verifyProposalSql("missing-close.sql", missingClose).issues.some(
       (e) => e.includes("unterminated_dollar_quote")));
     const missingTerminator = channel.replace("end;\n$$;\nrevoke all on function public.sonara_growth_channel_block_action",
-      () => "end;\n$\nrevoke all on function public.sonara_growth_channel_block_action");
+      () => "end;\n$$\nrevoke all on function public.sonara_growth_channel_block_action");
     assert.ok(verifyProposalSql("missing-terminator.sql", missingTerminator).issues.some(
       (e) => e.includes("missing_function_semicolon")));
   });
