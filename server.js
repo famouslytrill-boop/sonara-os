@@ -1622,6 +1622,10 @@ registerWellKnownRoutes(app, { getEnv });
 // public/sw.js precaches, so they are the ones that genuinely still open with
 // no connection. Anything else would be a link to another copy of this page.
 app.get("/offline", (req, res) => {
+  // This page contains no customer/session data and is the sole HTML
+  // navigation intentionally admitted to the public service-worker cache.
+  // Override the generic HTML no-store middleware for this fixed fallback.
+  res.set("Cache-Control", "public, max-age=0");
   return res.status(200).type("html").send(
     layout({
       surface: "marketing",
