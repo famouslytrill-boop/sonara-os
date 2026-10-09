@@ -48,10 +48,38 @@ select i.organization_id,i.id,'opening_snapshot',0,0,
        coalesce(i.quantity,0),coalesce(i.quantity,0),0
 from public.inventory_items i;
 
+-- A durable count proposal, created from a verified inventory worker session,
+-- MUST exist before another human can authorize a stock change. This table is
+-- append-only; a separate reviewer may not rewrite the original counted value.
+create table public.inventory_stock_count_requests (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  inventory_item_id uuid not null references public.inventory_items(id),
+  actor_user_id uuid not null references auth.users(id),
+  idempotency_key text not null check (
+    char_length(idempotency_key) between 8 and 128
+    and idempotency_key = btrim(idempotency_key)
+  ),
+  expected_stock_version bigint not null check(expected_stock_version >= 0),
+  expected_unit text not null check (char_length(btrim(expected_unit)) between 1 and 32),
+  expected_location_id uuid,
+  counted_quantity numeric not null check (
+    counted_quantity >= 0 and counted_quantity <= 999999999.999
+    and counted_quantity = trunc(counted_quantity,3)
+    and counted_quantity::text not in ('NaN','Infinity','-Infinity')
+  ),
+  reason text not null default 'cycle_count' check(reason='cycle_count'),
+  created_at timestamptz not null default clock_timestamp(),
+  constraint inventory_stock_count_request_once unique (organization_id,idempotency_key)
+);
+create index inventory_stock_count_requests_item_idx
+ on public.inventory_stock_count_requests(organization_id,inventory_item_id,created_at desc);
+
 -- Persistent evidence of independent reviewer approval, written only by
 -- an authenticated server workflow after the reviewer actually confirms.
 create table public.inventory_stock_adjustment_approvals (
   id uuid primary key default gen_random_uuid(),
+  stock_count_request_id uuid not null unique references public.inventory_stock_count_requests(id),
   organization_id uuid not null references public.organizations(id) on delete cascade,
   inventory_item_id uuid not null references public.inventory_items(id),
   actor_user_id uuid not null references auth.users(id),
@@ -77,6 +105,25 @@ create function public.sonara_stamp_stock_review_approval()
 returns trigger language plpgsql security invoker set search_path = ''
 as $function$
 begin
+  -- An independent review must match a previously submitted immutable
+  -- physical count, including original actor, stock version, unit and site.
+  if not exists (
+    select 1 from public.inventory_stock_count_requests q
+    where q.id=new.stock_count_request_id
+      and q.organization_id=new.organization_id
+      and q.inventory_item_id=new.inventory_item_id
+      and q.actor_user_id=new.actor_user_id
+      and q.idempotency_key=new.idempotency_key
+      and q.expected_stock_version=new.expected_stock_version
+      and lower(q.expected_unit)=lower(new.expected_unit)
+      and q.expected_location_id is not distinct from new.expected_location_id
+      and q.counted_quantity=new.counted_quantity
+      and q.reason=new.reason
+      and q.created_at <= clock_timestamp()
+      and q.actor_user_id <> new.reviewer_user_id
+  ) then
+    raise exception 'stock_review_request_lineage_invalid';
+  end if;
   new.approved_at := clock_timestamp();
   return new;
 end;
@@ -124,15 +171,19 @@ create index inventory_stock_adjustment_item_time_idx
   on public.inventory_stock_adjustments(organization_id,inventory_item_id,created_at desc);
 
 alter table public.inventory_stock_events enable row level security;
+alter table public.inventory_stock_count_requests enable row level security;
 alter table public.inventory_stock_adjustment_approvals enable row level security;
 alter table public.inventory_stock_adjustments enable row level security;
 revoke all on public.inventory_stock_events from public,anon,authenticated,service_role;
+revoke all on public.inventory_stock_count_requests from public,anon,authenticated,service_role;
 revoke all on public.inventory_stock_adjustment_approvals from public,anon,authenticated,service_role;
 revoke all on public.inventory_stock_adjustments from public,anon,authenticated,service_role;
 grant select on public.inventory_stock_events to service_role;
+grant select,insert on public.inventory_stock_count_requests to service_role;
 grant select,insert on public.inventory_stock_adjustment_approvals to service_role;
 grant select,insert on public.inventory_stock_adjustments to service_role;
 create policy stock_events_service_read on public.inventory_stock_events for select to service_role using (true);
+create policy stock_count_requests_service_read on public.inventory_stock_count_requests for select to service_role using (true);
 create policy stock_approvals_service_read on public.inventory_stock_adjustment_approvals for select to service_role using (true);
 create policy stock_adjustments_service_read on public.inventory_stock_adjustments for select to service_role using (true);
 -- service_role is still an explicitly privileged server principal. The audit
