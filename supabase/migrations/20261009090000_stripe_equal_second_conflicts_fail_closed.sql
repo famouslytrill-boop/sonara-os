@@ -12,7 +12,7 @@
 -- Terminal canceled subscriptions never regain access at the same timestamp.
 -- An actual later-second provider event may restore nonterminal statuses.
 -- For incompatible active-state snapshots (plan/customer/workspace/period),
--- quarantine the affected subscription as paused; the access reader only
+-- quarantine the affected subscription as reconciliation_required; the access reader only
 -- accepts active/trialing subscription rows. Reconciliation against Stripe
 -- must then emit a newer stamped event or use an approved operator process.
 -- A competing shared entitlement projection is disabled on ambiguity; source
@@ -93,7 +93,7 @@ begin
            old_period is distinct from new_period or
            old.current_period_end is distinct from new.current_period_end
          ) then
-        new.status := 'paused';
+        new.status := 'reconciliation_required';
         new.metadata := coalesce(new.metadata, '{}'::jsonb) ||
           jsonb_build_object('same_second_conflict', true);
         return new;
