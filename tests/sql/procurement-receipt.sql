@@ -73,6 +73,15 @@ select pg_temp.expect_error($q$select public.sonara_receive_purchase_order_line(
     '23000000-0000-4000-8000-000000000032','23000000-0000-4000-8000-000000000001',
     'receive-a003','LOT-A','each',1,0)$q$, 'purchase_order_not_receivable');
 
+-- A forged 'approved' string with no approver/version evidence must fail.
+update public.purchase_orders set approval_status='approved',
+  approval_decided_at=now(), approval_decided_by=null, approval_version=1
+  where id='23000000-0000-4000-8000-000000000022';
+select pg_temp.expect_error($q$select public.sonara_receive_purchase_order_line(
+    '23000000-0000-4000-8000-000000000002','23000000-0000-4000-8000-000000000022',
+    '23000000-0000-4000-8000-000000000032','23000000-0000-4000-8000-000000000001',
+    'receive-a009','LOT-A','each',1,0)$q$, 'purchase_order_approval_evidence_missing');
+
 select pg_temp.expect_error($q$select public.sonara_receive_purchase_order_line(
     '23000000-0000-4000-8000-000000000002','23000000-0000-4000-8000-000000000020',
     '23000000-0000-4000-8000-000000000030','23000000-0000-4000-8000-000000000001',
