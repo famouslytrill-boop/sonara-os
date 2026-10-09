@@ -352,6 +352,44 @@ https://www.postgresql.org/docs/current/trigger-definition.html
 https://www.postgresql.org/docs/current/functions-info.html
 https://www.postgresql.org/docs/current/functions-datetime.html
 
+## Phase 8: snapshot identity and unit-of-measure integrity
+
+Follow-up correctness review found that `inventory_items.stock_version`
+previously incremented only when `quantity` changed. A tenant could therefore
+change an inventory item's measurement unit or physical location after a
+cycle-count review while the version still matched. Reusing a quantity-only
+approval after an `each` to `kg` conversion, or a warehouse move, would be
+incorrect.
+
+The staged schema now captures `expected_unit` and
+`expected_location_id` on every independent adjustment approval.
+The service-only posting transaction locks the inventory item and rejects
+approval if its actual unit or warehouse location differs, using
+`stock_adjustment_item_identity_changed`. A privileged direct-insert
+lineage trigger independently enforces these fields.
+
+**Crucially**, the database-managed `stock_version` now increments when
+`quantity`, `unit` **or** `location_id` changes. Pure catalog-identity
+changes write `catalog_identity_change` events with **zero stock delta**;
+they do not pretend goods were received, delivered or consumed. Thus changing
+an item from `each` to `kg` and back cannot restore the validity of a
+previously issued stock approval: the revision has still advanced twice.
+
+The read-only source tests assert the revised trigger, approval bindings and
+replay fixture. The transactional behavior fixture verifies a unit-only
+change advances the revision and creates exactly one zero-delta event; its
+adversarial change is rolled back to a savepoint so subsequent approved
+receiving/correction scenarios retain their expected baseline.
+
+**Important remaining boundary:** generic owner inventory quantity edits are
+still permitted and labeled `unattributed_quantity_change`; unit conversions
+are NOT implemented by this change, and no conversion formula or custody move
+is performed automatically. Any `unit` or location change to a quantity
+carrying actual physical stock still requires separately governed conversion,
+transfer and reservation integrity controls before customer rollout.
+Native PostgreSQL replay, backfill timing, data migration checks and
+authenticated actor-reviewer proof remain release blockers.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
