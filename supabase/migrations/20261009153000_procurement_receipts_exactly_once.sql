@@ -193,7 +193,8 @@ begin
      or v_po.status not in ('sent', 'partially_received') then
     raise exception 'purchase_order_not_receivable';
   end if;
-  if v_po.approval_decided_at is null then
+  if v_po.approval_decided_at is null or v_po.approval_decided_by is null
+     or v_po.approval_version < 2 then
     raise exception 'purchase_order_approval_evidence_missing';
   end if;
 
