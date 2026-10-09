@@ -687,9 +687,10 @@ for (const file of files) {
       // two known signed-in session expressions, a single safe field and the
       // bounded account-specific filter. Anything else fails this audit.
       const relative = path.relative(root, file);
-      const raw = (embeddedQuery ? `\`${embeddedQuery}\`` : args[signature.queryIndex] || "").trim();
-      const pattern = /^\`select=channel_id&viewer_user_id=eq\.\$\{enc\((viewer\.id|req\.sonaraUser\.id)\)\}&limit=\$\{safety\.MAX_BLOCKED \+ 1\}\`$/;
-      const matching = relative === "routes/sonara-growth-channel-routes.cjs" && pattern.exec(raw);
+      const raw = (embeddedQuery || args[signature.queryIndex] || "").trim();
+      const normalized = raw.replace(/^`|`$/g, "");
+      const pattern = /^select=channel_id&viewer_user_id=eq\.\$\{enc\((viewer\.id|req\.sonaraUser\.id)\)\}&limit=\$\{safety\.MAX_BLOCKED \+ 1\}$/;
+      const matching = relative === "routes/sonara-growth-channel-routes.cjs" && pattern.exec(normalized);
       if (matching && ACCOUNT_BLOCK_READS.has(matching[1])) {
         counts.readWithoutOrganization += 1;
         accountBlockReadsSeen.add(matching[1]);
