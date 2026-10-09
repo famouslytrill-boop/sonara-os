@@ -31,6 +31,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
       redirected: specific.redirected ?? redirected,
       headers: new Headers({
         "content-type": pathname === "/offline" ? "text/html; charset=utf-8" : (mimeTypes[extension] || "text/html"),
+        "cache-control": pathname === "/offline" ? "max-age=0" : "public, max-age=300",
         ...headers, ...(specific.headers || {})
       }),
       clone() { return this; }
@@ -154,6 +155,9 @@ describe("PWA cache contains public assets only", () => {
     for (const scenario of [
       { headers: { "cache-control": "private, max-age=3600" } },
       { headers: { "cache-control": "no-store" } },
+      { headers: { "cache-control": "no-cache" } },
+      { headers: { "cache-control": "max-age=0" } },
+      { headers: { "cache-control": "private, public" } },
       { headers: { "set-cookie": "session=sensitive" } },
       { headers: { vary: "Accept-Encoding, Cookie" } },
       { headers: { vary: "Authorization" } },
@@ -172,6 +176,12 @@ describe("PWA cache contains public assets only", () => {
     }
   });
 
+  it("requires the static origin to opt in explicitly with Cache-Control public", async () => {
+    const worker = harness({ headers: { "cache-control": "max-age=3600" } });
+    assert.equal(await worker.request("/sonara-one.js"), true);
+    assert.equal(worker.stored.length, 0);
+  });
+
   it("precache never stores a login-page response as JavaScript", async () => {
     const worker = harness({ overrides: {
       "/sonara-one.js": { headers: { "content-type": "text/html" } },
@@ -184,10 +194,21 @@ describe("PWA cache contains public assets only", () => {
     assert.ok(worker.stored.some((item) => item.includes("/sonara-application-ui.css")));
   });
 
-  it("rejects an unsafe offline fallback instead of silently installing a personalized page", async () => {
-    const worker = harness({ overrides: { "/offline": { headers: { "set-cookie": "private=1" } } } });
-    await assert.rejects(() => worker.install(), /Public offline fallback unavailable/);
-    assert.equal(worker.stored.length, 0);
+  it("rejects unsafe offline fallbacks rather than installing personalized pages", async () => {
+    for (const response of [
+      { headers: { "set-cookie": "private=1" } },
+      { headers: { vary: "Cookie" } },
+      { headers: { vary: "Authorization" } },
+      { headers: { "cache-control": "no-store" } },
+      { headers: { "cache-control": "private" } },
+      { headers: { "cache-control": "no-cache" } },
+      { headers: { "content-type": "application/json" } },
+      { redirected: true }
+    ]) {
+      const worker = harness({ overrides: { "/offline": response } });
+      await assert.rejects(() => worker.install(), /Public offline fallback unavailable/);
+      assert.equal(worker.stored.length, 0);
+    }
   });
 
   it("never caches private navigation; public navigation remains network-first", async () => {
