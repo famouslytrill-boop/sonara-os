@@ -32,6 +32,10 @@ const {
 
 // Reasons an endpoint has no form. Each key is an endpoint; each value says why.
 const NO_FORM_NEEDED = {
+  // HTML users save through /creator-studio/editorial/save, an actual form.
+  // This JSON counterpart is for authenticated API clients; it requires a
+  // non-simple intent header, so a duplicate browser form would add no workflow.
+  "/api/creator-studio/editorial/save": "The visible Creator Studio editorial editor already renders an explicit save form to /creator-studio/editorial/save. This JSON endpoint exists for authorized API clients with a non-simple intent header and preserves the same stored draft contract.",
   // Called by a scheduler, not a person. There is nobody signed in behind a
   // cron, so it takes a shared secret rather than a session and has no page to
   // render a form on. The customer-facing surface is /owner/agent-schedule,
