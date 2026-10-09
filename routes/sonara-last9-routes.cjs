@@ -2344,15 +2344,20 @@ function registerRestResource(app, path, resource, deps, middleware) {
       }
     }
     if (resource.table === "quotes") {
-      // Quote acceptance is a distinct, auditable owner action. The general
-      // create endpoint must not create an already-won quote that downstream
-      // invoice and work-order actions consider authorized.
+      // Quotes have a downstream invoice/work-order path: the generic creator
+      // must never accept forged acceptance, customer ownership or provider
+      // markers. Only the canonical draft-summary fields may be saved here.
+      const permitted = new Set(["title", "customer_id", "amount_cents", "metadata"]);
+      for (const field of Object.keys(submitted)) {
+        if (!permitted.has(field)) delete submitted[field];
+      }
+      if (submitted.amount_cents !== undefined) {
+        const value = String(submitted.amount_cents);
+        if (!/^\\d{1,10}$/.test(value) || Number(value) > 2147483647) {
+          return respond(400, { ok: false, code: "quote_amount_invalid" });
+        }
+      }
       submitted.status = "draft";
-      delete submitted.approved_by;
-      delete submitted.accepted_by;
-      delete submitted.accepted_at;
-      delete submitted.sent_at;
-      delete submitted.invoice_id;
     }
     if (resource.table === "business_work_orders") {
       // The lifecycle begins at draft. Quote linkage is written only by the
