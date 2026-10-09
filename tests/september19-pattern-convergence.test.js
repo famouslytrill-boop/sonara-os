@@ -18,6 +18,7 @@ const {
   boundedLoopStatus,
   planWorkflowSequence,
   replayWorkflowTrace,
+  replayScopedWorkflowTrace,
   evaluateWorkflowRetry,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
@@ -238,6 +239,66 @@ describe("September 19 platform pattern convergence", () => {
     assert.throws(() => replayWorkflowTrace(singleAttempt, [
       ...failed, { eventId: "retry", stepId: "once", action: "started", attempt: 2 }
     ]), /Out-of-sequence/);
+  });
+
+  it("rejects cross-tenant, mixed-run, reordered and conflicting durable event histories", () => {
+    const organizationId = "11111111-1111-4111-8111-111111111111";
+    const runId = "run:42";
+    const plan = planWorkflowSequence([
+      { id: "render", maxAttempts: 2 },
+      { id: "publish", dependsOn: ["render"] }
+    ]);
+    const start = {
+      organizationId, runId, sequence: 1, eventId: "one",
+      stepId: "render", action: "started", attempt: 1,
+      traceId: "0123456789abcdef0123456789abcdef"
+    };
+    const finish = {
+      organizationId, runId, sequence: 2, eventId: "two",
+      stepId: "render", action: "succeeded", attempt: 1
+    };
+    const input = { plan, organizationId, runId, events: [start, finish, start] };
+    const state = replayScopedWorkflowTrace(input);
+    assert.equal(state.complete, false);
+    assert.equal(state.organizationId, organizationId);
+    assert.equal(state.runId, runId);
+    assert.equal(state.lastSequence, 2);
+    assert.equal(state.acceptedEvents, 2);
+    assert.equal(state.replayedEvents, 1);
+    assert.deepEqual(state.eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [start, finish] }).eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [] }).eligible, ["render"]);
+
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, organizationId: "22222222-2222-4222-8222-222222222222" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, runId: "another" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: [finish] }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 3 }]
+    }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 1 }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, eventId: "one" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...start, traceId: "fedcba9876543210fedcba9876543210" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, action: "succeeded", attempt: 2 }]
+    }), /Out-of-sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, organizationId: "wrong" }), /canonical lowercase UUID/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, traceId: "00000000000000000000000000000000" }]
+    }), /Invalid trace id/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, sequence: 0 }]
+    }), /Invalid workflow event sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: new Array(4097).fill(start) }), /4096/);
   });
 
   it("schedules bounded deterministic retries only after explicit safety checks", () => {
