@@ -25,7 +25,15 @@ const FORMULA_GROUP_LABELS = {
   growth_marketing: "Growth and marketing",
   creator_music: "Creator music and release",
   ui_device_experience: "Device and interface experience",
-  operating_twin: "Operating twin and decision support"
+  operating_twin: "Operating twin and decision support",
+  stem_mathematics: "Mathematics and probability",
+  stem_physical_science: "Physics and applied science",
+  social_studies: "Geography, populations and civics",
+  language_arts: "Language and reading analysis",
+  creative_arts: "Visual arts, music and animation",
+  physical_education: "Physical activity and pacing",
+  cad_geometry: "CAD drawing and geometry",
+  motion_capture: "Motion capture analysis"
 };
 
 module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
@@ -46,7 +54,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
       title: "Formula Library",
       eyebrow: "SONARA formulas",
       heading: "Formula Library",
-      body: "Business, creator, growth, device, and operating-twin formulas that produce real saved results when database setup is complete.",
+      body: "Business, creator, growth, education, STEM, CAD, motion capture, device and operating-twin calculations. You can evaluate locally supplied measurements, and save results only after signing in and database setup." ,
       sections: [
         brandCard("Financial intelligence", `${financialIntelligence.count} deterministic decision-support formulas are available as a supplemental catalog; they cannot move money, post accounting entries, trade, or approve credit.`),
         ...Object.entries(groups).map(([group, definitions]) => `<article class="card"><h2>${escapeHtml(formatLabel(group))}</h2><ul>${definitions.map((definition) => `<li><a href="/formulas/${escapeHtml(definition.formulaKey)}">${escapeHtml(definition.publicLabel)}</a></li>`).join("")}</ul></article>`)
