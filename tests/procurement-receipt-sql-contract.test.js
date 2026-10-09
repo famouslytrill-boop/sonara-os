@@ -43,7 +43,7 @@ describe("Physical goods: staged procurement SQL contract", () => {
   it("keeps every stored-procedure authority boundary security-invoker and search-path pinned", () => {
     assert.doesNotMatch(sql, /security definer/i);
     const functions = sql.match(/create function public\./g) || [];
-    const boundaries = sql.match(/language plpgsql security invoker set search_path = ''/g) || [];
+    const boundaries = sql.match(/language plpgsql\s+security invoker\s+set search_path = ''/g) || [];
     assert.equal(functions.length, 3);
     assert.equal(boundaries.length, functions.length);
     assert.match(sql, /create trigger procurement_receipt_enforce_tenant/i);
