@@ -120,7 +120,7 @@ describe("SONARA versioned engineering measurement pipeline", () => {
     refused({...motion(),frame:{...FRAME,unit:"unitless"}},"unsupported_unit");
     refused({...motion(),frame:{...FRAME,handedness:"left"}},"unsupported_frame");
     refused({...motion(),frame:{...FRAME,upAxis:"Z"}},"unsupported_frame");
-    refused({...motion(),frame:{...FRAME,transform:{
+    refused({...motion(),frame:{...FRAME,targetFrameId:"world-q-01",transform:{
       uniformScale:1,rotationXYZW:[0,0,0,0],translationMeters:{x:0,y:0,z:0}
     }}},"invalid_rotation");
     refused({...quote(),job:{...job(),lengthUnit:"drawing_units"}},"unsupported_unit");
