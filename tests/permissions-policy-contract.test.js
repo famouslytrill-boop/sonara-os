@@ -68,7 +68,7 @@ describe("complete browser permissions policy", () => {
 
     assert.match(server, /setHeader\("Permissions-Policy", permissionsPolicyFor\("default"\)\)/);
     assert.match(creator, /res\.set\("Permissions-Policy", permissionsPolicyFor\("creator_generation"\)\)/);
-    assert.match(device, /res\.set\("Permissions-Policy", permissionsPolicyFor\("device_feedback"\)\)/);
+    assert.match(device, /permissionsPolicyFor\(motionPermission\.ok \? "device_feedback" : "default"\)/);
   });
 
   it("has no literal Permissions-Policy header in server or route modules", () => {
