@@ -132,6 +132,37 @@ describe("catering estimator and authenticated owner page", () => {
     assert.match(form.text, /Nothing was saved, charged, sent, or reserved/);
   });
 
+  it("offers a real but separate owner-click draft quote save after calculating", async () => {
+    const result = await request(appFor()).post("/business-builder/owner/catering/estimate")
+      .type("form").send({
+        guests: "10", capacity: "15", menu_name: "Weekend food &amp; service",
+        portions: "1", selling_price: "25.00", food_cost: "7.00",
+        available: "10", staff_cost: "20.00", equipment_cost: "0",
+        travel_cost: "0", venue_cost: "0", additional_cost: "0",
+        service_charge: "0", tax_amount: "0", deposit_percent: "0"
+      });
+    assert.equal(result.status, 200);
+    assert.match(result.text, /action="\/api\/business\/quotes"/);
+    assert.match(result.text, /name="amount_cents" value="25000"/);
+    assert.match(result.text, /name="status" value="draft"/);
+    assert.match(result.text, /Save draft quote summary/);
+    assert.match(result.text, /does not save menu lines/);
+    assert.doesNotMatch(result.text, /name="organization_id"/);
+  });
+
+  it("never offers saving an invalid catering amount as a quote", async () => {
+    const result = await request(appFor()).post("/business-builder/owner/catering/estimate")
+      .type("form").send({
+        guests: "0", menu_name: "Empty event", portions: "1",
+        selling_price: "25.00", food_cost: "7.00",
+        staff_cost: "0", equipment_cost: "0", travel_cost: "0",
+        venue_cost: "0", additional_cost: "0", service_charge: "0",
+        tax_amount: "0", deposit_percent: "0"
+      });
+    assert.equal(result.status, 422);
+    assert.doesNotMatch(result.text, /action="\/api\/business\/quotes"/);
+  });
+
   it("API uses the same formula and never stores a customer or card", async () => {
     const r = await request(appFor()).post("/api/business/catering/estimate").send(draft());
     assert.equal(r.status, 200);
