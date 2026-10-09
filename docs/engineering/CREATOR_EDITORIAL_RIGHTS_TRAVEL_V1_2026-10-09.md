@@ -138,7 +138,7 @@ Operator acceptance sequence:
 1. Require code review, green full CI, known migration state and an up-to-date
    deployed commit matching the approved SHA.
 2. Deploy with `SONARA_EDITORIAL_WORKBENCH_ENABLED` unset/false.
-   Verify all new routes return 404.
+   Verify the landing and draft index display a disabled state without storage access, while all write, API, revision and export paths return 404.
 3. In a consenting test workspace, enable only for canary testing, check
    unauthenticated, wrong workspace, same-site cross-origin, overlong,
    invalid date/rights, failed DB insert, and saved-draft retrieval cases.
