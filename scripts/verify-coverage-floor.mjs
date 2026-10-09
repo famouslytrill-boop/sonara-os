@@ -189,31 +189,40 @@ try {
     process.stdout.write("Using V8 coverage from the current successful release-gate test run.\n");
   } else {
     const mochaBin = path.join(REPO, "node_modules", "mocha", "bin", "mocha.js");
-    // The suite deliberately exercises noisy error paths. Piping all of stderr
-    // through spawnSync can hit Node's maxBuffer and turn a passing suite into
-    // a false coverage failure. Stream it to disk instead; collect() ignores
-    // non-JSON files and the enclosing finally removes the temporary directory.
-    const stderrPath = path.join(covDir, "mocha-stderr.log");
-    const stderrFd = fs.openSync(stderrPath, "wx+", 0o600);
+    // The suite deliberately exercises noisy error paths, and Mocha reports
+    // assertion failures on STDOUT (not necessarily STDERR). Discarding stdout
+    // made a failed CI coverage job print no useful failure details. Stream
+    // both to private disk files to avoid spawnSync maxBuffer exhaustion.
+    // Emit at most 64 KiB from each stream ONLY when the suite fails.
+    // collect() ignores non-JSON files; finally removes the temp directory.
+    const outputFd = fs.openSync(path.join(covDir, "mocha-stdout.log"), "wx+", 0o600);
+    const stderrFd = fs.openSync(path.join(covDir, "mocha-stderr.log"), "wx+", 0o600);
     let run;
     try {
       run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
         cwd: REPO,
         env: { ...process.env, NODE_V8_COVERAGE: covDir },
-        stdio: ["ignore", "ignore", stderrFd]
+        stdio: ["ignore", outputFd, stderrFd]
       });
       if (run.error || run.status !== 0) {
-        try {
-          const stat = fs.fstatSync(stderrFd);
-          const stderr = Buffer.alloc(stat.size);
-          fs.readSync(stderrFd, stderr, 0, stat.size, 0);
-          process.stderr.write(stderr.toString("utf8"));
-        } catch {}
+        for (const [name, fd] of [["stdout", outputFd], ["stderr", stderrFd]]) {
+          try {
+            const size = fs.fstatSync(fd).size;
+            const count = Math.min(size, 65536);
+            const chunk = Buffer.alloc(count);
+            fs.readSync(fd, chunk, 0, count, size - count);
+            process.stderr.write(`\n--- Mocha ${name} (last ${count} of ${size} bytes) ---\n`);
+            process.stderr.write(chunk.toString("utf8"));
+          } catch {
+            process.stderr.write(`Could not read failed Mocha ${name} output.\n`);
+          }
+        }
         if (run.error) process.stderr.write(`coverage test runner error: ${run.error.message}\n`);
         fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
         process.exit(1);
       }
     } finally {
+      fs.closeSync(outputFd);
       fs.closeSync(stderrFd);
     }
   }
