@@ -1,7 +1,7 @@
 # Producer → Distributor → Retailer: controlled physical supply chain
 
 **Research date:** 2026-10-09. **Application:** SONARA One / Business Builder™.
-**Status:** deterministic domain validation implemented on a draft branch; not connected to paid-customer routes or production database.
+**Status:** deterministic domain functions plus a proposed append-only procurement-receipt migration committed to draft PR #566. Not deployed, not exposed as a paid-customer route, and not proven against a disposable migrated database.
 
 ## Problem and architecture decision
 
@@ -59,6 +59,55 @@ unit-of-measure contract; never silently mix kilograms, grams, cases and units.
 Incoming quantities must be undelivered, approved and not double-counted as
 on-hand. Quarantined and reserved values must refer to non-overlapping stock.
 A customer-reported estimate is not authoritative inventory.
+
+## Engineering Phase 2: staged atomic procurement receiving (2026-10-09)
+
+Source: `supabase/migrations/20261009153000_procurement_receipts_exactly_once.sql`.
+
+A **single-organization buyer** may receive a line on an already-sent,
+owner-approved purchase order through a proposed service-role-only PostgreSQL
+function. The transaction:
+
+1. Locks the buyer's PO, PO line and inventory item in order.
+2. Verifies organization, location, unit, approval evidence and available
+   ordered quantity before accepting an event.
+3. Refuses incompatible historical `quantity_received` until the prior data
+   is reconciled. It does not invent backfilled receipts.
+4. Inserts immutable `procurement_receipt_entries` (accepted and rejected
+   amounts, lot, actor, idempotency key, before/after accepted total).
+5. Increases `inventory_items.quantity` only for accepted goods, then records
+   that delta in `inventory_procurement_receipt_ledger`.
+6. Transitions the PO to partially received or fully received only if all
+   ordered lines are fully **accepted**.
+7. Returns the original receipt on exact duplicate retry; refuses changed
+   payloads reusing a key.
+
+RLS is on, authenticated and anonymous roles have no table grants, and
+trigger-side references verify that tenant/PO/line/item/ledger lineage agrees.
+New tables have no direct UPDATE/DELETE grants to service_role. The function
+is `SECURITY INVOKER` and does not run on behalf of a browser without
+the separately required server-side tenant and actor authorization.
+
+**Boundaries:** This is not cross-tenant B2B exchange, lot-bin reconciliation,
+full supply-chain event capture, all-channel inventory accounting, payment
+settlement, or real provider sync. Other stock mutation paths still need ledger
+integration. The existing `inventory_movements` relation appears in old
+repository SQL, but was absent from the project's read-only live schema inspection
+on October 9. Do not assume historic migrations and live state agree.
+
+**Validation:** `tests/procurement-receipt-sql-contract.test.js` checks source
+security and transaction structure, not live isolation or PostgreSQL execution.
+A disposable database must run migration replay, tenant-negative tests, two
+concurrent sessions, exact replay, changed-payload replay, wrong-unit, partial
+receipt, rejection, damaged/expired lot, zero-stock, cancellation and deletion
+checks before CI approval. The Supabase CLI is unavailable in the current
+execution container; SQL migration-file generation and live DB replay were
+not performed by this pass.
+
+**Release policy:** Keep the PR draft. Require exact-head green checks,
+controlled migration review, rollback evidence and a deliberately approved
+one-tenant pilot before activation. The SQL file's presence does not mean it
+has been applied.
 
 ## Required integration work before customer activation
 
