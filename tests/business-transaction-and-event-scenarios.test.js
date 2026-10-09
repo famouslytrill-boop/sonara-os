@@ -8,6 +8,7 @@ const {
 } = require("../lib/sonara-business-transaction-review.cjs");
 const { assessEventResourceScenario, instant } = require("../lib/sonara-event-resource-scenario.cjs");
 const register = require("../routes/sonara-catering-routes.cjs");
+const registerFinancePages = require("../routes/sonara-financial-scenario-pages.cjs");
 
 const USER = "22222222-2222-4222-8222-222222222222";
 const ORG = "11111111-1111-4111-8111-111111111111";
@@ -44,7 +45,7 @@ function appFor({ allowed = true, organizationId = ORG } = {}) {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
-  register(app, {
+  const deps = {
     requireBusinessManager: (req, res, next) => {
       if (!allowed) return res.status(403).json({ ok: false, code: "manager_required" });
       req.sonaraUser = { id: USER };
@@ -55,7 +56,9 @@ function appFor({ allowed = true, organizationId = ORG } = {}) {
     layout: ({ title, sections = [] }) => "<title>" + title + "</title>" + sections.join(""),
     escapeHtml: (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;"),
     linkAction: (href, label) => '<a href="' + href + '">' + label + "</a>"
-  });
+  };
+  register(app, deps);
+  registerFinancePages(app, deps);
   return app;
 }
 
@@ -207,4 +210,53 @@ describe("owner-only scenario APIs", () => {
       assert.equal(accepted.headers["cache-control"], "private, no-store");
     });
   }
+});
+
+describe("business financial scenario owner pages", () => {
+  it("shows operational forms with no execution controls", async () => {
+    const result = await request(appFor()).get("/business-builder/owner/financial-scenarios");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Small-payment economics/);
+    assert.match(result.text, /Nonprofit contribution review/);
+    assert.match(result.text, /cannot charge customers, issue charitable receipts or trade securities/);
+    assert.equal(result.headers["cache-control"], "private, no-store");
+  });
+  it("calculates a merchant scenario through the user-facing dollar form", async () => {
+    const result = await request(appFor()).post("/business-builder/owner/financial-scenarios")
+      .type("form").send({
+        kind: "micro", price: "1.00", quantity: "100",
+        minimum: "0.50", fixed_fee: "0.30", rate_percent: "2.90",
+        delivery_cost: "0.10", risk_reserve: "0.05"
+      });
+    assert.equal(result.status, 200);
+    assert.match(result.text, /\$0\.33/);
+    assert.match(result.text, /\$0\.52/);
+    assert.match(result.text, /No money was transferred/);
+  });
+  it("shows nonprofit disclosure thresholds while refusing to issue a receipt", async () => {
+    const result = await request(appFor()).post("/business-builder/owner/financial-scenarios")
+      .type("form").send({
+        kind: "nonprofit", contribution: "250.00", benefit_value: "25.00",
+        restricted: "yes"
+      });
+    assert.equal(result.status, 200);
+    assert.match(result.text, /\$250\.00/);
+    assert.match(result.text, /Restricted|restricted/);
+    assert.match(result.text, /No money was transferred/);
+  });
+  it("fails closed on unsupported finance scenario, bad cents and absent organization", async () => {
+    const bad = await request(appFor()).post("/business-builder/owner/financial-scenarios")
+      .type("form").send({ kind: "micro", price: "1.111" });
+    assert.equal(bad.status, 422);
+    const unknown = await request(appFor()).post("/business-builder/owner/financial-scenarios")
+      .type("form").send({ kind: "securities_trade" });
+    assert.equal(unknown.status, 422);
+    const denied = await request(appFor({ allowed: false }))
+      .get("/business-builder/owner/financial-scenarios");
+    assert.equal(denied.status, 403);
+    const orgless = await request(appFor({ organizationId: null }))
+      .post("/business-builder/owner/financial-scenarios")
+      .type("form").send({ kind: "nonprofit", contribution: "100.00", benefit_value: "0" });
+    assert.equal(orgless.status, 403);
+  });
 });
