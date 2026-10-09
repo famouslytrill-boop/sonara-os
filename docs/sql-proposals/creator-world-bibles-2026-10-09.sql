@@ -62,7 +62,7 @@ create trigger creator_world_bibles_parent_write_guard
   for each row execute function public.sonara_world_bible_parent_write_guard();
 
 alter table public.creator_world_bibles enable row level security;
-revoke all on public.creator_world_bibles from public, anon, authenticated;
+revoke all on public.creator_world_bibles from public, anon, authenticated, service_role;
 grant select on public.creator_world_bibles to authenticated;
 grant select, insert, update on public.creator_world_bibles to service_role;
 drop policy if exists creator_world_bibles_org_read on public.creator_world_bibles;
