@@ -61,6 +61,11 @@ describe("authenticated block and moderation decisions", () => {
     assert.match(sql, /revoke all on public\.growth_channel_blocks from public, anon, authenticated/i);
     assert.match(sql, /insert into public\.growth_channel_moderation_events/i);
     assert.doesNotMatch(sql, /security definer/i);
+    assert.match(sql, /create or replace function public\.sonara_growth_channel_block_action/);
+    assert.match(sql, /pg_advisory_xact_lock/);
+    assert.match(sql, /count\(\*\) from public\.growth_channel_blocks/);
+    assert.match(sql, />= 500 then return 'block_limit_reached'/);
+    assert.match(sql, /grant execute on function public\.sonara_growth_channel_block_action/);
   });
 
   it("does not expose anonymous reporter identity through added report columns", () => {
@@ -75,11 +80,11 @@ describe("Supabase tenant firewall: blocked channel actor-scope enforcement", ()
   const root = "https://database.example.invalid/rest/v1/growth_channel_blocks";
   const allowed = root + "?select=channel_id&viewer_user_id=eq." + OWNER + "&limit=501";
 
-  it("admits only the exact per-user block read and exact writes", () => {
+  it("allows only the bounded per-user block read; raw writes cannot bypass SQL quota", () => {
     assert.equal(inspect("GET", allowed).allowed, true);
-    assert.equal(inspect("DELETE", root + "?viewer_user_id=eq." + OWNER + "&channel_id=eq." + A).allowed, true);
+    assert.equal(inspect("DELETE", root + "?viewer_user_id=eq." + OWNER + "&channel_id=eq." + A).allowed, false);
     const payload = JSON.stringify({ viewer_user_id: OWNER, channel_id: A });
-    assert.equal(inspect("POST", root + "?on_conflict=viewer_user_id,channel_id", payload).allowed, true);
+    assert.equal(inspect("POST", root + "?on_conflict=viewer_user_id,channel_id", payload).allowed, false);
   });
   it("refuses account enumeration, wildcard reads, unrestricted deletes and injected writes", () => {
     for (const url of [
