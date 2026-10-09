@@ -64,7 +64,56 @@ BEGIN
          AND (p.qual IS DISTINCT FROM 'true' OR p.with_check IS DISTINCT FROM 'true'))
      OR (e.expected_role='authenticated'
          AND (p.qual IS NULL
-              OR p.qual !~* 'SELECT[[:space:]]+auth[.]uid[(][)]'
+              -- Compare the WHOLE ownership predicate. Merely containing
+              -- SELECT auth.uid() is insufficient: OR true would preserve
+              -- that substring while granting unrelated customer access.
+              OR p.qual !~* '^[()[:space:]]*SELECT[[:space:]]+auth[.]uid[(][)]([[:space:]]+AS[[:space:]]+uid)?[()[:space:]]*=[[:space:]]*user_id[()[:space:]]*
+  IF (SELECT count(*) FROM expected_rls_p1) <> 25
+     OR (SELECT count(*) FROM expected_rls_p1 WHERE expected_role='service_role') <> 21
+     OR (SELECT count(*) FROM expected_rls_p1 WHERE expected_role='authenticated') <> 4
+     OR bad <> 0 THEN
+    RAISE EXCEPTION 'P1 hardened RLS policy drift on % policies: %', bad, entries;
+  END IF;
+
+  -- Both redundant subscriptions SELECT policies must still be identical
+  -- in *all* security dimensions before a dry-run DROP is permissible.
+  IF (SELECT count(*) FROM pg_policies
+      WHERE schemaname='public' AND tablename='subscriptions'
+        AND policyname IN ('Users can view own subscriptions',
+                           'Users can view their own subscription')
+        AND permissive='PERMISSIVE'
+        AND roles=ARRAY['authenticated']::name[]
+        AND cmd='SELECT'
+        AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+        AND with_check IS NULL) <> 2 THEN
+    RAISE EXCEPTION 'P1 subscriptions duplicate semantics drifted; abort';
+  END IF;
+END
+$drift$;
+
+DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+
+DO $postflight$
+BEGIN
+ IF (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+   AND tablename='subscriptions'
+   AND policyname='Users can view own subscriptions'
+   AND permissive='PERMISSIVE'
+   AND roles=ARRAY['authenticated']::name[]
+   AND cmd='SELECT'
+   AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+   AND with_check IS NULL) <> 1
+ OR (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+   AND tablename='subscriptions'
+   AND policyname='Users can view their own subscription') <> 0 THEN
+   RAISE EXCEPTION 'P1 subscription dedup postflight drift; abort';
+ END IF;
+END
+$postflight$;
+
+SELECT 'p1_rls_hygiene_staging_passed';
+ROLLBACK;
+
               OR p.with_check IS NOT NULL));
   IF (SELECT count(*) FROM expected_rls_p1) <> 25
      OR (SELECT count(*) FROM expected_rls_p1 WHERE expected_role='service_role') <> 21
