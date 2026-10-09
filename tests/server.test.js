@@ -1859,6 +1859,9 @@ describe("pricing and checkout", () => {
     const originalFetch = global.fetch;
     global.fetch = async (url, options = {}) => {
       calls.push({ url: String(url), body: options.body });
+      if (String(url).includes("/stripe_customers?")) return { ok: true, json: async () => [{
+        stripe_customer_id: "cus_test", organization_id: organizationId, user_id: "user_fixture"
+      }] };
       return { ok: true, json: async () => [] };
     };
 
