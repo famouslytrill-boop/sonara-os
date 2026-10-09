@@ -1,0 +1,183 @@
+# Producer → Distributor → Retailer: controlled physical supply chain
+
+**Research date:** 2026-10-09. **Application:** SONARA One / Business Builder™.
+**Status:** deterministic domain validation implemented on a draft branch; not connected to paid-customer routes or production database.
+
+## Problem and architecture decision
+
+SONARA has purchase-order approvals, merchant orders, inventory items, reservations and
+a stock-consuming fulfillment transition. It does not follow that a producer,
+distributor and retailer can already exchange orders and verified custody records
+across separate organizations. Do not create another per-channel order/stock system.
+
+One trade item should retain internal product UUID, customer SKU, optionally verified
+GS1 GTIN, unit, lot/serial provenance and owner-specific locations. Separate the
+seller's dispatch from the buyer's receipt and separate financial settlement from
+physical acceptance.
+
+\`\`\`text
+producer: material availability → approved production run → quality release
+      → outbound sales order / shipment → dispatch evidence
+distributor: independently approved trading partner → PO → incoming ASN
+      → goods receipt (accepted / rejected / quarantined) → storage / picking
+      → outbound sale → proof of delivery
+retailer: approved supplier → replenishment draft → PO → goods receipt
+      → available-to-promise → POS / online order → fulfillment → return
+shared: identity + custody events + immutable receipts + scoped permissions
+      + audit trails + external payment references + reconciliation
+\`\`\`
+
+A B2B transfer across organizations is **not** an internal warehouse transfer.
+Each organization owns its own inventory and accounting books. Never grant a
+partner direct access to the other tenant's tables merely because it knows a
+product, purchase-order or shipment ID.
+
+## Implemented deterministic boundary
+
+\`lib/sonara-physical-supply-chain.cjs\` implements five pure functions:
+
+| Function | Role | Guarantee / boundary |
+| --- | --- | --- |
+| \`isValidGtin\` | All | Validates 8/12/13/14-digit GTIN check digits; does not issue or verify ownership of a GTIN |
+| \`normalizeTradeItem\` | All | Preserves SKU/GTIN/lot/unit without inventing GS1 IDs |
+| \`proposeProductionRun\` | Producer | Computes BOM base-unit material requirements, duplicate detection and shortfalls without consuming inventory |
+| \`proposeShipmentReceipt\` | Distributor and buyer | Checks lot/quantity consistency, partial receipts and idempotency payload conflicts against an authoritative receipt snapshot; never writes a stock movement |
+| \`proposeReplenishment\` | Retailer | Computes stock available to promise and a draft reorder quantity without creating a PO or spending money |
+
+The corresponding tests are \`tests/physical-supply-chain.test.js\`.
+Count quantities are nonnegative safe integers measured in **one explicit base
+unit per stock item**. Gram/ml/each conversion must occur in a separately reviewed
+unit-of-measure contract; never silently mix kilograms, grams, cases and units.
+
+\`available_to_promise = max(0, on_hand - reserved - quarantined - safety_stock)\`
+
+\`projected_available = available_to_promise + approved_incoming\`
+
+\`draft_reorder = projected_available <= reorder_point
+  ? max(0, target_stock - projected_available) : 0\`
+
+Incoming quantities must be undelivered, approved and not double-counted as
+on-hand. Quarantined and reserved values must refer to non-overlapping stock.
+A customer-reported estimate is not authoritative inventory.
+
+## Required integration work before customer activation
+
+### 1. Canonical transaction and database migration
+
+Review existing inventory, procurement, checkout and fulfillment SQL
+against the live migration history before authoring an **append-only** change.
+These records are conceptual; do not create duplicates if source tables already
+provide the required contract:
+
+- \`trading_partner_grants\`: organization, counterparty, scope,
+  status, approver, expiry; each party independently authorizes data exchange.
+- \`product_lots\`: organization, inventory product, lot/serial,
+  producer reference, quantity unit, expiry, QC/quarantine status.
+- \`b2b_shipments\` and \`b2b_shipment_lines\`: seller-owned dispatch
+  linked to a seller order, product version/identity and shipping label/SSCC.
+- \`b2b_receipt_lines\`: buyer-owned immutable accepted/rejected quantities,
+  server-issued receipt ID, provider/actor evidence and idempotency key.
+- \`inventory_ledger_entries\`: immutable tenant/location/product/lot deltas
+  with event type, source, timestamp, actor, correlation ID and reversal link.
+- \`b2b_invoice_matches\`: separate PO, receipt, invoice, tax/currency and
+  verified external-payment status; never represent a self-reported transfer as paid.
+
+Every \`organization_id\` foreign key and row-level security policy must be
+tenant safe. For multi-tenant references use matching composite
+organization/record keys where the existing schema allows. Revoke direct
+authenticated writes to authoritative stock and receipts. Deny browser-supplied
+tenant IDs; resolve organization, role and relationship on the server.
+Do not create broad service-role access paths.
+
+### 2. Receipt and stock commit
+
+The receiving action must use one transaction to lock the shipment and its
+previous receipts, confirm the authenticated buyer and approved counterparty
+relationship, bind idempotency key to payload, reject over-receipts, insert
+immutable receipt evidence and post any allowed accepted-stock delta.
+A retry with the same receipt and key must return the existing persisted result.
+A retry with changed quantities must fail. No stock increase for damaged,
+rejected or quarantined units unless a separately approved disposition exists.
+
+Track manufacturer-originating transformation/lot genealogy. A shipped
+quantity and received quantity are **not automatically equal**, and rejected
+goods require disposition, supplier claims or corrective adjustments.
+
+### 3. Customer and provider journeys
+
+- **Producer:** BOM estimate → material reservation → owner-approved run →
+  lot genealogy → QC release → outbound ASN.
+- **Distributor:** supplier order → receiving → lot/bin allocation →
+  FEFO or FIFO picking under merchant policy → route/carrier handoff →
+  proof of delivery.
+- **Retailer:** customer-specific wholesale pricing → PO →
+  partial receipt → shelf/location stock → sale/return → reorder suggestion.
+- **Cross-company:** purchase-order and invoice numbers, currency, terms,
+  EDI/CSV imports, delivery exceptions, payment status from the merchant's
+  provider, dispute/credit-note workflow and activity feed.
+
+Use Creator Studio for owned product images/packaging and Growth Studio for
+approved product campaigns. Neither gets direct authority to alter money or stock.
+
+### 4. Release proof
+
+Mandatory negative and concurrency tests:
+1. Buyer A cannot see Buyer B's stock, pricing, invoices or receipts;
+   the seller cannot access the buyer's private inventory.
+2. Duplicate or concurrent receipt with one idempotency key creates exactly
+   one receipt and stock entry.
+3. Concurrent shipments cannot oversell the same location/lot.
+4. Partial receipt, wrong lot, wrong unit, damaged goods, expiry and recall
+   quarantine cannot bypass checks.
+5. Return, cancellation, reversal and refund never mint or double-credit stock.
+6. A manager draft cannot commit purchasing spend without the approved policy.
+7. Reconciliation compares supplier PO, receipt, invoice and provider evidence.
+8. Accessibility, scanner input, keyboard-only workflow, offline conflict
+   handling, replay and restore evidence pass.
+9. No release if exact-head CI, migrations, rollback tests or RLS adversarial
+   tests fail.
+
+Production activation: **off** until migration review, CI, security, staging
+concurrency tests, one-tenant canary and an approved customer/provider flow.
+
+## Sector nuances
+
+Food and beverage need lot/expiry, cold-chain readings, recalls and
+farm-to-table critical tracking event evidence. Manufacturing needs material
+transformation, units and QC. Wholesale needs buyer-specific price lists, cases
+and delivery scheduling. Retail needs barcode/PLU, store transfers, point of
+sale, returns and stock counting. Regulated pharmaceuticals/medical devices
+must undergo separate legal and operational review rather than inheriting
+generic food/retail compliance claims.
+
+For covered foods, the FDA says its Food Traceability Rule involves
+Critical Tracking Events and Key Data Elements. The FDA currently says it
+will not enforce the rule before **July 20, 2028**, in line with a 2026
+Congressional directive. The FDA page also contains older text listing
+January 20, 2026; use its current enforcement statement and obtain a
+current industry-specific legal review before advertising compliance.
+
+## Baseline product and operating KPIs
+
+| Role | Leading KPIs | Don't mistake for proof |
+| --- | --- | --- |
+| Producer | material shortage rate; yield variance; QC failure rate; lead time | BOM plans are not production completion |
+| Distributor | fill rate; on-time-in-full; receiving variance; inventory accuracy | shipping labels are not delivery proof |
+| Retailer | stockout rate; sell-through; shrinkage; gross margin after returns | paid checkout alone is not reconciliation |
+| Shared | duplicate-side-effect rate; traceability coverage; time to recall; tenant authorization denials | schema presence is not customer adoption |
+
+First commercial pilot: one producer, one distributor and one retailer with
+approved test tenants and synthetic products. Pass shipment → partial receipt →
+stock update → sale → return → invoice reconciliation and reproduce the
+audit trail from durable records. Only then add additional customers and
+provider integrations.
+
+## Primary references
+
+- GS1 GTIN, GLN, SSCC and identification keys: https://www.gs1.org/standards/id-keys
+- GS1 EPCIS 2.0 and Core Business Vocabulary: https://www.gs1.org/standards/epcis
+- FDA Food Traceability Rule: https://www.fda.gov/food/food-safety-modernization-act-fsma/fsma-final-rule-requirements-additional-traceability-records-certain-foods
+- NIST cyber supply-chain risk: https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final
+
+These sources establish design requirements, not SONARA regulatory
+certification or live provider support.
