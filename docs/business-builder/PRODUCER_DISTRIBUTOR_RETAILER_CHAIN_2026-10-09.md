@@ -390,6 +390,26 @@ transfer and reservation integrity controls before customer rollout.
 Native PostgreSQL replay, backfill timing, data migration checks and
 authenticated actor-reviewer proof remain release blockers.
 
+### Deterministic count preflight alignment
+
+`lib/sonara-stock-reconciliation.cjs` also requires the caller to provide
+**explicit `item.locationId` and `count.locationId`** (either a UUID or
+an explicit `null` for unassigned). A missing location is rejected as
+`warehouse_snapshot_missing`; two different sites fail with
+`warehouse_snapshot_mismatch`. The proposal now returns the checked
+`locationId` so an eventual server approval can store
+`expected_location_id` without guessing. Existing reservation records are
+still item-scoped, and the backend must independently check that held
+quantities represent the authoritative organization/item balance.
+
+**Verification:** 17 focused stock preflight tests and 16 staged journal
+source contract tests passed in an isolated JavaScript harness. Alongside the
+three earlier focused suites, **71 assertions passed**. None of these results
+establish a passing native PostgreSQL migration or external tenant-authorization
+test. The native database replay includes revised approval fixtures with
+`expected_unit` and `expected_location_id`, plus a savepoint-based unit
+change/rollback probe.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
