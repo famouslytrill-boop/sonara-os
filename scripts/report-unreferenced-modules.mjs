@@ -71,6 +71,8 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-procurement-three-way-match.cjs",
+    "Test-only deterministic PO/received/invoice comparison. No payment initiation, trusted database source, tenant authorization, customer API, or approval action; waits for scoped provider evidence and a reviewed invoice dashboard."],
   ["lib/sonara-physical-supply-chain.cjs",
     "Staged deterministic production, B2B receipt and retailer replenishment preflight. Not customer routed: waits for reviewed tenant/partner authorization, locked idempotent stock receipt transactions, RLS, and staging canary."],
   ["lib/sonara-mobile-billing-classification.cjs",
