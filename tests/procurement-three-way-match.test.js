@@ -22,6 +22,7 @@ function sample() {
       approvalVersion: 2, approvalDecidedBy: ACTOR, approvalDecidedAt: "2026-10-09T05:00:00Z",
       lines: [{ id: LINE, organizationId: ORG, quantityMilli: 10000, unitCostCents: 250, unit: "each" }]
     },
+    priorInvoiceAllocations: [],
     receipts: [{
       id: RECEIPT, organizationId: ORG, purchaseOrderId: PO,
       purchaseOrderLineId: LINE, unit: "each",
@@ -144,6 +145,46 @@ describe("Deterministic three-way PO / accepted receipt / supplier invoice match
     const data = sample();
     data.receipts.push({ ...data.receipts[0], id: RECEIPT_B, acceptedQuantityMilli: 3000 });
     assert.throws(() => assessThreeWayMatch(data), /receipts_exceed_ordered/);
+  });
+  it("holds a second invoice when earlier committed invoices consume the accepted stock", () => {
+    const data = sample();
+    data.priorInvoiceAllocations.push({
+      organizationId: ORG, purchaseOrderId: PO, vendorId: VENDOR,
+      invoiceId: OTHER, invoiceLineId: RECEIPT_B, purchaseOrderLineId: LINE,
+      unit: "each", quantityMilli: 5000, status: "approved"
+    });
+    const result = assessThreeWayMatch(data);
+    assert.equal(result.status, "hold_for_review");
+    assert.ok(result.issues.includes("invoice_exceeds_unbilled_receipts"));
+    data.supplierInvoice.lines[0].quantityMilli = 2000;
+    data.supplierInvoice.lines[0].lineTotalCents = 500;
+    data.supplierInvoice.subtotalCents = 500;
+    data.supplierInvoice.totalCents = 500;
+    assert.equal(assessThreeWayMatch(data).status, "ready_for_human_review");
+  });
+  it("rejects omitted prior invoice history, duplicate allocations and already committed current invoices", () => {
+    const data = sample();
+    delete data.priorInvoiceAllocations;
+    assert.throws(() => assessThreeWayMatch(data), /prior_invoice_allocation_history_required/);
+    data.priorInvoiceAllocations = [{
+      organizationId: ORG, purchaseOrderId: PO, vendorId: VENDOR,
+      invoiceId: OTHER, invoiceLineId: RECEIPT_B, purchaseOrderLineId: LINE,
+      unit: "each", quantityMilli: 1000, status: "paid"
+    }];
+    data.priorInvoiceAllocations.push({...data.priorInvoiceAllocations[0]});
+    assert.throws(() => assessThreeWayMatch(data), /duplicate_prior_invoice_line/);
+    data.priorInvoiceAllocations.pop();
+    data.priorInvoiceAllocations[0].invoiceId = INVOICE;
+    assert.throws(() => assessThreeWayMatch(data), /current_invoice_already_allocated/);
+  });
+  it("refuses cross-organization prior allocations even when their invoice totals match", () => {
+    const data = sample();
+    data.priorInvoiceAllocations.push({
+      organizationId: OTHER, purchaseOrderId: PO, vendorId: VENDOR,
+      invoiceId: OTHER, invoiceLineId: RECEIPT_B, purchaseOrderLineId: LINE,
+      unit: "each", quantityMilli: 1000, status: "approved"
+    });
+    assert.throws(() => assessThreeWayMatch(data), /prior_invoice_scope_mismatch/);
   });
   it("uses exact integer monetary arithmetic with half-up fractional rounding", () => {
     assert.equal(extendedCents(1000, 250), 250);
