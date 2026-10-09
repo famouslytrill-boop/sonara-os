@@ -3582,6 +3582,105 @@ paths:
         '403': { description: Creator authorization required }
         '404': { description: Project or World Bible not found }
         '503': { description: Persistence disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/draft:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorSavedStoryDraft
+      tags: [Creator Studio]
+      summary: Read latest private revision-controlled interactive story draft.
+      description: Default-off until reviewed SQL RPC and tenant controls. Returns null when no draft exists; stale World Bible drafts are recovery-only and cannot be simulated without reconciliation. Never returns provider credentials.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Authorized latest story snapshot and current World Bible revision }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project or World Bible not found }
+        '422': { description: World Bible medium is not game or interactive }
+        '503': { description: Storage not enabled or verified }
+    post:
+      operationId: saveCreatorStoryDraftRevision
+      tags: [Creator Studio]
+      summary: Atomically save canonical interactive story and an append-only revision.
+      description: Default-off. Requires JSON, same-origin and x-sonara-intent story-save. Checks source World Bible revision, authored reference schema, project archival and 0..99 expected story revision; committed revision must atomically match server RPC response.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: x-sonara-intent
+          in: header
+          required: true
+          schema: { type: string, enum: [story-save] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision, expectedWorldRevision, story]
+              properties:
+                expectedRevision: { type: integer, minimum: 0, maximum: 99 }
+                expectedWorldRevision: { type: integer, minimum: 1 }
+                story:
+                  type: object
+                  required: [version, startSceneId, state, scenes]
+                  properties:
+                    version: { type: integer, const: 1 }
+                    startSceneId: { type: string }
+                    state: { type: array, maxItems: 16, items: { type: object } }
+                    scenes: { type: array, maxItems: 64, items: { type: object } }
+      responses:
+        '200': { description: Confirmed new private story draft revision }
+        '400': { description: Invalid story content or revision preconditions }
+        '403': { description: Permission denied or cross-origin mutation }
+        '404': { description: Project or World Bible not found }
+        '409': { description: Conflict, archived project, changed World Bible or revision ceiling }
+        '413': { description: Payload too large }
+        '415': { description: JSON and story-save intent header required }
+        '422': { description: World Bible medium must be game or interactive }
+        '503': { description: Storage disabled, unsupported or unconfirmed }
+  /api/creator-studio/projects/{id}/world-bible/interactive/revisions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: listCreatorStoryDraftRevisions
+      tags: [Creator Studio]
+      summary: List metadata for 1..25 private saved story revisions, newest first.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 25, default: 25 }
+      responses:
+        '200': { description: Tenant-authorized revision metadata, no story bytes }
+        '400': { description: Invalid revision limit }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project or World Bible not found }
+        '503': { description: Feature disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/revisions/{revision}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: revision
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 100 }
+    get:
+      operationId: getCreatorStoryDraftRevision
+      tags: [Creator Studio]
+      summary: Recover a specific private historical story snapshot without changing current revision.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Authorized historical authored story, with World Bible stale warning }
+        '400': { description: Invalid revision }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project, World Bible or requested revision not found }
+        '503': { description: Feature disabled or storage unavailable }
   /api/creator-studio/projects/{id}/world-bible/interactive/preview:
     parameters:
       - name: id
