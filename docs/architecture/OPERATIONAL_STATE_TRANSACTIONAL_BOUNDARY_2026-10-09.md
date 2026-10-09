@@ -38,6 +38,39 @@ Required trusted operations, all inside **one** transaction:
 
 The coordinator never changes provider credentials, starts a process, runs cleanup, applies a migration or bypasses CI. Without a trusted adapter and schema it cannot affect a live service. A caller cannot make its result authoritative by supplying fake callbacks; the backend must own the dependencies and control the connection.
 
+## New PostgreSQL transaction adapter — Pass 11 (still not wired)
+
+File: `lib/sonara-postgres-operational-store.cjs`.
+
+This pass adds a Node-style `pool.connect()` / `client.query()` adapter using a single pinned SQL client per logical transition. It requires an explicitly supplied server-selected `environmentKey` from `local`, `preview`, `staging` or `production`. The current public deployment does **not** import or instantiate this adapter. No credentials or SQL text are obtained from user-supplied lifecycle commands.
+
+The adapter references a future private schema with these literal names:
+
+- `sonara_operations.operational_scope_state` — `id`, `environment_key`, `scope`, `organization_id`, `mode`, `revision`, `updated_at`.
+- `sonara_operations.operational_approvals` — `id`, `state_id`, `status`, `from_mode`, `to_mode`, `expected_revision`, `approved_by`, `issued_at`, `expires_at`, `revoked_at`, `consumed_at`, `consumed_event_id`.
+- `sonara_operations.operational_transition_events` — `id`, `state_id`, `approval_id`, `revision`, `from_mode`, `to_mode`, `actor_id`, `recorded_at`.
+
+**Migration is still required; these objects are not claimed to exist.** All user-specific values, environment scopes, revisions, actor IDs and UUID receipt IDs use bound parameters. The adapter locks the authoritative state row and approval, rechecks approval expiry during consumption using the database clock, uses `UPDATE ... WHERE revision = $n RETURNING id` for compare-and-swap, and inserts one unique event. Every step must return exactly one affected row.
+
+The adapter uses `BEGIN`, session-local 2-second lock and 10-second statement limits, then `COMMIT` on the same client. On a rejected write or error before COMMIT, it issues ROLLBACK. If COMMIT itself errors, the outcome is **indeterminate** because the database might already have applied the transaction; the module raises the sanitized `SONARA_COMMIT_OUTCOME_UNKNOWN` code. The coordinator translates that into `commit_outcome_unknown_reconciliation_required`. The event ID is the durable reconciliation key. **Never auto-retry the same approval after an uncertain commit.**
+
+The adapter exposes `tx.authorizedQuery` **only to server-owned authorizer and evidence verifier implementations** inside that transaction. Such implementations are not delivered in this pass and must be security-reviewed against SONARA's canonical sessions, membership tables, independent owner approval and incident records. Those trusted callbacks must not accept arbitrary SQL from a client or expose the PostgreSQL pool. Running the module alone does not authenticate an actor or establish access-control correctness.
+
+The coordinator now requires UUID event/approval IDs, verifies `revokedAtMs` is absent and only returns `applied:true` after the transaction adapter promises a successful COMMIT.
+
+**Focused test coverage:** 10 adapter and coordinator regression cases passed 170 assertions in an isolated V8 harness, including bound query parameters, one-client sequencing, rollback on staged failures, concurrent-write conflict results, cross-tenant and forged-evidence rejection, revoked or stale approval refusal, ambiguous COMMIT, and coordinator-to-adapter compatibility using mocked PostgreSQL results. This does **not** prove that actual SQL runs, authorization is enforced, schema exists, tests pass under Node 24, or operations are safe on production.
+
+### Critical database integration constraints
+
+1. Schema grants must be reviewed for `PUBLIC`, `anon`, `authenticated`, `service_role` and any dedicated backend role. Private schema not exposed via PostgREST; RLS defense in depth and privilege checks needed.
+2. Use UUID primary keys for approval/event IDs; previous opaque IDs in the pure audit replay remain non-authoritative and cannot be substituted for SQL receipt IDs without normalization.
+3. Enforce uniqueness for state per `(environment,scope,organization)`, event per `(state_id,revision)` and one-use `approval_id`; ensure approval `state_id` foreign key and approved-by lookup.
+4. Verify real `pg` driver `rowCount`, bigint parsing and transaction semantics in a disposable database. Stage owner approval and incident evidence inside the **same transaction**.
+5. Run two independently connected clients racing for one state and simulate loss of COMMIT acknowledgment; query event receipt to distinguish committed from not committed before any retry.
+6. Do not add a production route or service-role action to invoke the adapter until migrations, RLS tests, human authorization and full CI are verified.
+
+Research: PostgreSQL `UPDATE ... RETURNING` and conditional updates (https://www.postgresql.org/docs/current/sql-update.html), RLS and privileges (https://www.postgresql.org/docs/current/ddl-rowsecurity.html), and Supabase RLS guidance (https://supabase.com/docs/guides/database/postgres/row-level-security).
+
 ## Schema design for review (NOT an executable migration)
 
 Generate a dated migration using the real installed Supabase CLI before committing DDL. Reconcile existing database migrations and the production target first. The relational model needs **three** operator-only tables, preferably in a non-exposed schema:
