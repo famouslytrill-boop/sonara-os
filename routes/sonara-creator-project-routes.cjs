@@ -22,6 +22,10 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
+  // No dead navigation: keep editorial entry hidden until the operator enables
+  // its workspace, save/read and export routes for this deployment.
+  const editorialAvailable = () => typeof deps.editorialWorkbenchEnabled === "function"
+    && deps.editorialWorkbenchEnabled() === true;
   const field = (name, label, type = "text", attrs = "") => `<label>${esc(label)}<input name="${name}" type="${type}" ${attrs} required></label>`;
   const hidden = (name, value) => `<input type="hidden" name="${name}" value="${esc(value)}">`;
   const number = (name, label, min = 0) => field(name, label, "number", `min="${min}" max="86400000" step="1"`);
@@ -29,7 +33,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   function page(res, heading, sections, status = 200) {
     return res.status(status).type("html").send(layout({ title: heading, eyebrow: "Creator Studio", heading,
       body: "Connect your assets, arrange clips, and write timed captions. Download your work without a connected provider.",
-      sections, actions: [linkAction(base, "Projects"), linkAction("/creator-studio/assets", "Asset library"), linkAction("/creator-studio/dashboard", "Creator workspace")] }));
+      sections, actions: [linkAction(base, "Projects"), ...(editorialAvailable() ? [linkAction("/creator-studio/editorial", "Write, storyboard and plan")] : []), linkAction("/creator-studio/assets", "Asset library"), linkAction("/creator-studio/dashboard", "Creator workspace")] }));
   }
   function answer(req, res, result, fallback) {
     // context contains server-only credentials; it never crosses this seam.
