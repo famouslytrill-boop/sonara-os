@@ -1057,7 +1057,7 @@ for (const pattern of [
 // Proposed Creator tables do not belong in migration authority and are never
 // counted as deployed/ready. Review-only contracts are checked independently
 // for DDL, RLS, privilege revocation, server adapter, and disabled feature flag.
-const pendingCreatorNames = new Set(PENDING_CREATOR_SCHEMA.map((x) => x.table));
+const pendingCreatorNames = new Set(PENDING_CREATOR_SCHEMA.map((x) => x.proposalTable));
 for (const problem of inspectPendingCreatorSchema({
   envExample: read(path.join(root, ".env.example")),
   routeSource: read(path.join(root, "routes/sonara-creator-project-routes.cjs")),
