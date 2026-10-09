@@ -27,8 +27,12 @@ function harness() {
   async function fetch(url, options) {
     const parsed = new URL(url);
     assert.equal(parsed.pathname, "/rest/v1/creator_world_bibles");
-    assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
-    if (options.method !== "POST") assert.equal(parsed.searchParams.get("project_id"), "eq." + PID);
+    // Reads and CAS PATCH requests use tenant query filters. POST creation
+    // supplies its tenant and project fields in the JSON body instead.
+    if (options.method !== "POST") {
+      assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
+      assert.equal(parsed.searchParams.get("project_id"), "eq." + PID);
+    }
     calls.push({ method: options.method || "GET", url });
     if (offline) return null;
     const row = rows.find((x) => x.organization_id === ORG && x.project_id === PID);
