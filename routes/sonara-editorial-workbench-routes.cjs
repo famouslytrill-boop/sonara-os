@@ -123,6 +123,7 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
     "getSupabaseServerConfig","getCustomerPrimaryOrganization","supabaseHeaders","createRateLimiter"];
   for(const key of required)if(typeof deps[key]!=="function")throw new TypeError("Editorial workbench requires "+key);
   const enabled=typeof deps.isEnabled==="function"?deps.isEnabled:()=>false;
+  const doFetch=typeof deps.fetch==="function"?deps.fetch:fetch;
   const on=(req,res,next)=>enabled()===true?next():res.status(404).json({ok:false,code:"not_found"});
   const creator=deps.requireWorkspaceAccess(PRODUCT);
   const limiter=deps.createRateLimiter({
@@ -152,7 +153,7 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
   async function requestRows(config,tail,method="GET",payload=null) {
     const opts={method,headers:deps.supabaseHeaders(config,method==="POST"?{prefer:"return=representation"}:{})};
     if(payload!==null){opts.headers={...opts.headers,"Content-Type":"application/json"};opts.body=JSON.stringify(payload)}
-    const response=await fetch(config.url+"/rest/v1/"+TABLE+tail,opts).catch(()=>null);
+    const response=await doFetch(config.url+"/rest/v1/"+TABLE+tail,opts).catch(()=>null);
     if(!response?.ok)return {ok:false,status:response?.status||503};
     const rows=await response.json().catch(()=>null);
     if(!Array.isArray(rows))return {ok:false,status:502};
@@ -230,9 +231,12 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
     const outcome=await save(req,req.body,result);
     res.status(outcome.ok?201:outcome.status).json(outcome);
   });
-  const formPost= (action) => (req,res,next)=>{
+  // A browser form save requires a same-origin/same-site Fetch Metadata
+  // signal. Unknown origin is refused instead of trusting a cookie alone.
+  const formPost= () => (req,res,next)=>{
     const site=String(req.headers?.["sec-fetch-site"]||"");
-    if(site==="cross-site")return res.status(403).json({ok:false,code:"cross_site_write_denied"});
+    if(site!=="same-origin" && site!=="same-site")
+      return res.status(403).json({ok:false,code:"cross_site_write_denied"});
     next();
   };
   app.post(ROUTE+"/preview",on,creator,limiter,noCache,formPost(),async(req,res)=>{
