@@ -113,3 +113,23 @@ A mismatch was discovered and fixed: the Express-wide no-store middleware also m
 ### Reproducible evidence and pending blockers
 
 The latest source-level Mocha-style test file, tested against the exact GitHub worker blob with a standalone V8 synthetic Node/Headers/URL adapter, passed **10 of 10 assertions** (not a full Node 24/Mocha invocation). The latest **real CI workflows remained queued/pending**, so no claim of passing Chromium/Firefox/WebKit or full Node/replay pipelines is justified. No production or database mutation was made. The release remains blocked until exact-head CI, branch protection and independent browser/device/tenant reviews are completed.
+
+
+## 2026-10-09 follow-up: stale public-cache revocation and HTTP revalidation
+
+The earlier stale-while-revalidate worker would retain an older public CacheStorage response even after a successful network response reported that the asset had become private, changed its MIME type, was redirected, or was removed. Cache API entries do **not** automatically honor new HTTP cache directives. This is an authorization and lifecycle inconsistency, not proof that actual customer data leaked.
+
+The `public/sw.js` worker now invalidates its own cached public asset when a subsequent response definitely changes its eligibility: HTTP 200 with non-public cache policy or wrong MIME, a redirect, or 401/403/404/410/451. Temporary 5xx/429 responses, 206 partial responses, and 304 revalidation do not trigger eviction. If the entry's `cache.delete(request)` fails, the fallback deletes only the `sonara-public-...` cache namespace, not caches owned by other modules. Namespace v6 evicts the earlier v5 store during service-worker activation.
+
+**Important revalidation finding:** the server uses long-lived immutable HTTP caching for versioned static resources. Merely calling `fetch(publicRequest)` could return an unvalidated browser HTTP-cache hit, preventing the worker from observing an origin-side policy change. The worker now uses `fetch(publicRequest, { cache: "no-cache" })`: the browser performs conditional HTTP validation when applicable instead of blindly trusting a fresh immutable HTTP cache, preserving transfer efficiency for unchanged ETag/Last-Modified assets. This does not override an incorrectly configured intermediary CDN or prove live production purging.
+
+**Known strategy limit:** stale-while-revalidate can deliver a previously cached *public* asset one final time while the revalidation and revocation run in the background. Never use this public cache for sensitive or private responses. A strict immediately-effective revocation would require network-first access or an out-of-band invalidation protocol. Customer content remains outside this worker's allowed URL namespace.
+
+### Source verification
+The exact GitHub service-worker and Mocha source blobs were exercised using a synthetic V8 Node/URL/Headers adapter: **13 of 13 defined test cases passed**, including newly added revocation-policy changes, permanent removal, temporary error preservation, per-entry deletion failure isolation, anonymous request handling and forced HTTP revalidation. This is **not** real Node 24, Mocha, PostgreSQL, Chromium, Firefox, WebKit, Android or iOS verification. The draft PR must not merge without those mandatory exact-head controls and manual review.
+
+References:
+- https://cheatsheetseries.owasp.org/cheatsheets/Web_Cache_Security_Cheat_Sheet.html
+- https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete
+- https://developer.mozilla.org/en-US/docs/Web/API/Request/cache
+- https://developer.mozilla.org/en-US/docs/Web/API/FetchEvent
