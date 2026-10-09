@@ -125,6 +125,17 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
     assert.equal((await h.call("POST",API+"/preview",doc(),{limit:true})).statusCode,429);
     assert.equal(h.saved.length,0);
   });
+  it("refuses cross-site and sibling-subdomain JSON saves despite the intent header",async()=>{
+    const h=makeHarness();
+    for(const site of ["cross-site","same-site"]) {
+      const res=await h.call("POST",API+"/save",doc(),{
+        intent:"save-editorial-draft",site
+      });
+      assert.equal(res.statusCode,403);
+      assert.equal(res.body.code,"cross_site_write_denied");
+    }
+    assert.equal(h.saved.length,0);
+  });
   it("requires explicit non-simple intent header before JSON draft writes",async()=>{
     const h=makeHarness();
     const denied=await h.call("POST",API+"/save",doc());
