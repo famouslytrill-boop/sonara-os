@@ -5,6 +5,19 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
+// Component fixtures only need a same-origin document for IndexedDB and
+// same-origin scripts, not the full marketing /tools page. Route fulfillment
+// removes a second-tab Firefox load race without replacing the shipped JS.
+async function primeComponentOrigin(page) {
+  const url = `${BASE_URL}/tools`;
+  const fixture = (route) => route.fulfill({
+    status: 200, contentType: "text/html",
+    body: "<!doctype html><html><head><title>Browser component fixture</title></head><body></body></html>"
+  });
+  await page.route(url, fixture);
+  try { await page.goto(url, { waitUntil: "domcontentloaded" }); }
+  finally { await page.unroute(url, fixture); }
+}
 async function mountLocalComponent(page, markup, scriptPath) {
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -19,7 +32,7 @@ const draftProject = () => ({ id: projectId(100), title: "My original film", med
 async function mountDraft(page, project = draftProject(), scope = `${projectId(101)}:${projectId(102)}`) {
   const { offlineDraftForm } = require("../routes/sonara-creator-project-routes.cjs");
   const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-  await page.goto(`${BASE_URL}/tools`);
+  await primeComponentOrigin(page);
   await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js");
   await page.addScriptTag({ url: `${BASE_URL}/creator-project-device-store.js` });
   await page.addScriptTag({ url: `${BASE_URL}/creator-project-draft.js` });
@@ -422,7 +435,7 @@ test.describe("device media and bounded image processing", () => {
   const USER = "33333333-3333-4333-8333-333333333333";
   const media = require("../routes/creator-generation-routes.cjs");
   async function mountMedia(page, permission = { allowed: true }) {
-    await page.goto(`${BASE_URL}/tools`);
+    await primeComponentOrigin(page);
     await page.route("**/api/account/device-permissions", async (route) => {
       if (permission.delay) await new Promise((resolve) => setTimeout(resolve, permission.delay));
       if (permission.offline) return route.fulfill({ status: 503, json: { ok: false } });
@@ -457,6 +470,24 @@ test.describe("device media and bounded image processing", () => {
       };
     });
   }
+  // Playwright's Linux WebKit may lack generated canvas streams and
+  // MediaRecorder codecs. Never label unavailable hardware as successful:
+  // assert the product's safe fallback, while the browser with a working
+  // stream must still complete the full photo and revocation workflow.
+  async function startFixtureCamera(page, browserName) {
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    const photoButton = page.getByRole("button", { name: "Take photo", exact: true });
+    try { await expect(photoButton).toBeVisible({ timeout: 2500 }); return true; }
+    catch (error) {
+      if (browserName !== "webkit") throw error;
+      await expect(page.locator("[data-local-capture] [role=status]"))
+        .toContainText(/Camera preview is unavailable|Capture is unavailable in this browser/);
+      expect(await page.evaluate(() => window.captureCalls)).toBe(1);
+      await expect(page.locator("[data-local-capture] video")).toBeHidden();
+      await expect(page.locator("[data-capture-download]")).toBeHidden();
+      return false;
+    }
+  }
   async function imageFile(page, width = 3840, height = 2160) {
     const bytes = await page.evaluate(async ({ width, height }) => {
       const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
@@ -473,11 +504,10 @@ test.describe("device media and bounded image processing", () => {
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
     expect(await page.evaluate(() => window.captureCalls)).toBe(0);
   });
-  test("a camera photo enters the image editor without selecting or uploading a file", async ({ page }) => {
+  test("a camera photo enters the image editor without selecting or uploading a file", async ({ page, browserName }) => {
     const errors = []; page.on("pageerror", (error) => errors.push(error.message));
     await mountMedia(page);
-    await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    if (!await startFixtureCamera(page, browserName)) return;
     await page.getByRole("button", { name: "Take photo", exact: true }).click();
     await expect(page.locator("[data-local-image] [role=status]")).toContainText("2 × 2 image ready");
     await page.getByRole("button", { name: "Process image", exact: true }).click();
@@ -486,9 +516,19 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
     await expect(page.locator("[data-capture-download]")).toBeVisible(); expect(errors).toEqual([]);
   });
-  test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page }) => {
+  test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page, browserName }) => {
     await mountMedia(page);
+    const available = await page.evaluate(() => typeof MediaRecorder === "function");
     await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    if (!available) {
+      // This is an unsupported engine capability, not a successful recording.
+      expect(browserName).toBe("webkit");
+      await expect(page.locator("[data-local-capture] [role=status]"))
+        .toContainText("Voice recording is unavailable in this browser.");
+      expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+      await expect(page.locator("[data-capture-download]")).toBeHidden();
+      return;
+    }
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
     await page.waitForTimeout(700);
     await page.getByRole("button", { name: "Stop capture", exact: true }).click();
@@ -519,9 +559,9 @@ test.describe("device media and bounded image processing", () => {
     await expect.poll(() => page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
   });
-  test("revoked account permission stops active capture on the next check", async ({ page }) => {
+  test("revoked account permission stops active capture on the next check", async ({ page, browserName }) => {
     const permission = { allowed: true }; await mountMedia(page, permission);
-    await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    if (!await startFixtureCamera(page, browserName)) return;
     permission.allowed = false;
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Capture stopped", { timeout: 9000 });
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
@@ -549,14 +589,15 @@ test.describe("device media and bounded image processing", () => {
     await mountMedia(page); await page.evaluate(() => Object.defineProperty(navigator, "deviceMemory", { value: 2, configurable: true })); await imageFile(page);
     await expect(page.locator("[data-local-image] [role=status]")).toContainText("up to 4 megapixels"); await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeDisabled();
   });
-  test("leaving the visible page stops capture and discards temporary playback", async ({ page }) => {
-    await mountMedia(page); await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+  test("leaving the visible page stops capture and discards temporary playback", async ({ page, browserName }) => {
+    await mountMedia(page); if (!await startFixtureCamera(page, browserName)) return;
     await page.evaluate(() => { Object.defineProperty(document, "hidden", { value: true, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden(); await expect(page.locator("[data-capture-download]")).toBeHidden();
   });
-  test("the camera automatically stops at its 60-second limit", async ({ page }) => {
-    await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
+  test("the camera automatically stops at its 60-second limit", async ({ page, browserName }) => {
+    await mountMedia(page); await page.clock.install();
+    if (!await startFixtureCamera(page, browserName)) return;
+    await page.clock.fastForward(60001);
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
 });
