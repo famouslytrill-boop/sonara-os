@@ -2353,7 +2353,7 @@ function registerRestResource(app, path, resource, deps, middleware) {
       }
       if (submitted.amount_cents !== undefined) {
         const value = String(submitted.amount_cents);
-        if (!/^\\d{1,10}$/.test(value) || Number(value) > 2147483647) {
+        if (!/^[0-9]{1,10}$/.test(value) || Number(value) > 2147483647) {
           return respond(400, { ok: false, code: "quote_amount_invalid" });
         }
       }
