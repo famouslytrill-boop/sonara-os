@@ -9,21 +9,36 @@ const vm = require("node:vm");
 
 const workerSource = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
 
-function harness({ status = 200, headers = {}, type = "basic", existingCaches = [] } = {}) {
+function harness({ status = 200, headers = {}, type = "basic", redirected = false, existingCaches = [], overrides = {} } = {}) {
   const handlers = new Map();
   const stored = [];
   const removed = [];
   let networkRequests = 0;
-  const response = {
-    ok: status >= 200 && status < 300,
-    status,
-    type,
-    headers: new Headers(headers),
-    clone() { return this; }
-  };
+  function makeResponse(target) {
+    const pathname = new URL(typeof target === "string" ? target : target.url, "https://sonaraindustries.com").pathname;
+    const mimeTypes = {
+      css: "text/css", js: "text/javascript", svg: "image/svg+xml",
+      png: "image/png", ico: "image/x-icon", webmanifest: "application/manifest+json",
+      woff2: "font/woff2"
+    };
+    const extension = pathname.split(".").pop();
+    const specific = overrides[pathname] || {};
+    const code = specific.status ?? status;
+    return {
+      ok: code >= 200 && code < 300,
+      status: code,
+      type: specific.type || type,
+      redirected: specific.redirected ?? redirected,
+      headers: new Headers({
+        "content-type": pathname === "/offline" ? "text/html; charset=utf-8" : (mimeTypes[extension] || "text/html"),
+        ...headers, ...(specific.headers || {})
+      }),
+      clone() { return this; }
+    };
+  }
   const cache = {
     match: async () => undefined,
-    put: async (request) => { stored.push(request.url); },
+    put: async (request) => { stored.push(typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url); },
     add: async () => undefined
   };
   const context = {
@@ -39,7 +54,7 @@ function harness({ status = 200, headers = {}, type = "basic", existingCaches = 
       keys: async () => existingCaches,
       delete: async (name) => { removed.push(name); return true; }
     },
-    fetch: async () => { networkRequests += 1; return response; },
+    fetch: async (target) => { networkRequests += 1; return makeResponse(target); },
     URL,
     Set,
     Promise
@@ -48,6 +63,7 @@ function harness({ status = 200, headers = {}, type = "basic", existingCaches = 
 
   async function request(target, { mode = "cors", cacheMode = "default", requestHeaders = {} } = {}) {
     let handled;
+    const waits = [];
     const event = {
       request: {
         url: new URL(target, context.self.location.origin).href,
@@ -56,10 +72,12 @@ function harness({ status = 200, headers = {}, type = "basic", existingCaches = 
         cache: cacheMode,
         headers: new Headers(requestHeaders)
       },
-      respondWith: (promise) => { handled = promise; }
+      respondWith: (promise) => { handled = promise; },
+      waitUntil: (promise) => { waits.push(promise); }
     };
     handlers.get("fetch")(event);
     if (handled) await handled;
+    await Promise.all(waits);
     return Boolean(handled);
   }
   async function activate() {
@@ -67,7 +85,12 @@ function harness({ status = 200, headers = {}, type = "basic", existingCaches = 
     handlers.get("activate")({ waitUntil: (promise) => { completion = promise; } });
     await completion;
   }
-  return { request, activate, stored, removed, networkRequests: () => networkRequests };
+  async function install() {
+    let completion;
+    handlers.get("install")({ waitUntil: (promise) => { completion = promise; } });
+    await completion;
+  }
+  return { request, activate, install, stored, removed, networkRequests: () => networkRequests };
 }
 
 describe("PWA cache contains public assets only", () => {
@@ -137,13 +160,34 @@ describe("PWA cache contains public assets only", () => {
       { headers: { vary: "*" } },
       { status: 206 },
       { status: 404 },
-      { type: "opaque" }
+      { type: "opaque" },
+      { redirected: true },
+      { headers: { "content-type": "text/html; charset=utf-8" } },
+      { headers: { "content-type": "application/json" } }
     ]) {
       const worker = harness(scenario);
       assert.equal(await worker.request("/sonara-one.js"), true);
       assert.equal(worker.networkRequests(), 1, JSON.stringify(scenario));
       assert.equal(worker.stored.length, 0, JSON.stringify(scenario));
     }
+  });
+
+  it("precache never stores a login-page response as JavaScript", async () => {
+    const worker = harness({ overrides: {
+      "/sonara-one.js": { headers: { "content-type": "text/html" } },
+      "/sonara-depth.js": { headers: { "set-cookie": "session=not-public" } }
+    } });
+    await worker.install();
+    assert.ok(worker.stored.some((item) => item.endsWith("/offline")));
+    assert.equal(worker.stored.some((item) => item.includes("/sonara-one.js")), false);
+    assert.equal(worker.stored.some((item) => item.includes("/sonara-depth.js")), false);
+    assert.ok(worker.stored.some((item) => item.includes("/sonara-application-ui.css")));
+  });
+
+  it("rejects an unsafe offline fallback instead of silently installing a personalized page", async () => {
+    const worker = harness({ overrides: { "/offline": { headers: { "set-cookie": "private=1" } } } });
+    await assert.rejects(() => worker.install(), /Public offline fallback unavailable/);
+    assert.equal(worker.stored.length, 0);
   });
 
   it("never caches private navigation; public navigation remains network-first", async () => {
