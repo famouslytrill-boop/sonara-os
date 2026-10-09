@@ -111,6 +111,14 @@ describe("cross-suite evidence-gated decision and communication previews", () =>
       ...recipient.grants[0], active: false
     }] } }).code, "consent_not_granted");
   });
+  it("rejects conflicting active and revoked consent for the same scope", () => {
+    assert.equal(comm({ recipient: { ...recipient,
+      grants: [recipient.grants[0], { ...recipient.grants[0], active: false }]
+    } }).code, "consent_not_granted");
+    assert.equal(comm({ recipient: { ...recipient,
+      grants: [recipient.grants[0], { ...recipient.grants[0], verified: false }]
+    } }).code, "consent_not_granted");
+  });
   it("enforces cross-midnight quiet hours in the actual recipient time zone", () => {
     const now = "2026-10-10T03:00:00Z"; // Friday 23:00 in New York
     const c = comm({ nowUtc: now,
