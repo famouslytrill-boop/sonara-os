@@ -51,6 +51,22 @@ const DIVIDING = Object.freeze([
   { key: "inventory_turnover", real: { cost_of_goods_sold: 6000, average_inventory_value: 1500 }, zero: { cost_of_goods_sold: 6000, average_inventory_value: 0 }, expected: 4 }
 ]);
 
+// Generic smoke data still has to respect each formula's declared domain.
+// These inputs accept fractions/probabilities (or, for correlation, a bounded
+// coefficient) where 2 would be deliberately invalid. 0.5 is non-zero and
+// valid for every entry, so this test continues checking execution rather than
+// weakening the production validators to satisfy a fixture.
+const UNIT_INTERVAL_SAMPLE_INPUTS = new Set([
+  "event_probability",
+  "alpha",
+  "utilization_rate",
+  "discount_rate",
+  "waste_rate",
+  "power_factor",
+  "probability_one",
+  "correlation_coefficient"
+]);
+
 describe("a figure nobody can work out is not zero", () => {
   it("has the formulas it is testing", () => {
     const definitions = listFormulaDefinitions();
@@ -97,14 +113,15 @@ describe("a figure nobody can work out is not zero", () => {
 
   it("leaves every definition evaluating within its input domain", () => {
     // The blunt check that the change did not break the library. Every required
-    // input is set to 2, except probabilities and smoothing weights whose
-    // valid domain is 0–1. Invalid probabilities must remain refused.
+    // input receives a non-zero value inside its declared domain. The bounded
+    // fractions/probabilities/correlation coefficient use 0.5; invalid values
+    // outside those domains must remain refused by the production evaluator.
     const definitions = listFormulaDefinitions();
     const failures = [];
     for (const definition of definitions) {
       const inputs = Object.fromEntries(definition.requiredInputs.map((key) => [
         key,
-        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : ["event_probability", "alpha"].includes(key) ? 0.5 : 2,
+        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : UNIT_INTERVAL_SAMPLE_INPUTS.has(key) ? 0.5 : 2,
       ]));
       const result = evaluateFormula(definition.formulaKey, inputs);
       if (!result.ok) failures.push(`${definition.formulaKey}: ${result.code}`);
