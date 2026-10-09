@@ -460,6 +460,58 @@ function main() {
     `, ["procure_race_stock_4", "procure_race_receipts_2", "procure_race_ledger_2",
         "procure_race_duplicate_fulfilled_1", "procure_race_overorder_partial_1"]);
 
+    // Universal stock-version journaling and reviewed corrections must survive
+    // a real database execution, including two independent connection races.
+    behaves(psql, "stock change journaling and reviewed correction safety",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-journal.sql"), "utf8"),
+      ["stock_version_journal_approvals_and_holds_passed"]);
+    behaves(psql, "stock adjustment race fixture",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-concurrency.sql"), "utf8"),
+      ["stock_adjustment_concurrency_ready"]);
+
+    for (const scenario of ["duplicate", "stale_version"]) {
+      const approvals = scenario === "duplicate" ? ["031", "031"] : ["032", "033"];
+      const keys = scenario === "duplicate"
+        ? ["concurrent-dup-001", "concurrent-dup-001"]
+        : ["concurrent-race-002", "concurrent-race-003"];
+      const commands = approvals.map((approval, index) => {
+        const version = scenario === "duplicate" ? 0 : 1;
+        const counted = scenario === "duplicate" ? 8 : index === 0 ? 7 : 6;
+        const file = path.join(socketDir, `stock-adjustment-${scenario}-${index}.sql`);
+        fs.writeFileSync(file, `begin;
+          set local role service_role;
+          do $race$ begin
+            begin
+              perform public.sonara_apply_stock_count_adjustment(
+                '26000000-0000-4000-8000-000000000003',
+                '26000000-0000-4000-8000-000000000010',
+                '26000000-0000-4000-8000-000000000001',
+                '26000000-0000-4000-8000-000000000002',
+                '${keys[index]}', 'cycle_count', ${version}, ${counted},
+                '26000000-0000-4000-8000-000000000${approval}');
+            exception when others then
+              if '${scenario}' <> 'stale_version' or sqlerrm <> 'stock_version_conflict' then raise; end if;
+            end;
+            perform pg_sleep(0.2);
+          end $race$;
+          commit;`);
+        if (owner) execFileSync("chown", [owner, file]);
+        return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+      });
+      const raced = shell(`${commands[0]} & first=$!; ${commands[1]} & second=$!; wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+      if (raced.status !== 0) stop(`Stock adjustment ${scenario} concurrency failed: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "duplicate adjustments and stale snapshot races change stock exactly once", `
+      select 'stock_race_version_' || stock_version from public.inventory_items
+        where id='26000000-0000-4000-8000-000000000010';
+      select 'stock_race_adjustments_' || count(*) from public.inventory_stock_adjustments
+        where organization_id='26000000-0000-4000-8000-000000000003';
+      select 'stock_race_events_' || count(*) from public.inventory_stock_events
+        where inventory_item_id='26000000-0000-4000-8000-000000000010';
+      select 'stock_race_counted_valid_' || (quantity in (6,7)) from public.inventory_items
+        where id='26000000-0000-4000-8000-000000000010';
+    `, ["stock_race_version_2", "stock_race_adjustments_2",
+        "stock_race_events_3", "stock_race_counted_valid_t"]);
     // The case the stock functions exist for: two buyers, one mug left, two real
     // sessions at the same moment. Exactly one may hold it.
     const stockOrg = "20000000-0000-4000-8000-000000000009";
