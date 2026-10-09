@@ -9,9 +9,10 @@ const vm = require("node:vm");
 
 const workerSource = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
 
-function harness({ status = 200, headers = {}, type = "basic" } = {}) {
+function harness({ status = 200, headers = {}, type = "basic", existingCaches = [] } = {}) {
   const handlers = new Map();
   const stored = [];
+  const removed = [];
   let networkRequests = 0;
   const response = {
     ok: status >= 200 && status < 300,
@@ -29,9 +30,15 @@ function harness({ status = 200, headers = {}, type = "basic" } = {}) {
     self: {
       location: { origin: "https://sonaraindustries.com" },
       addEventListener: (name, handler) => handlers.set(name, handler),
-      skipWaiting: () => undefined
+      skipWaiting: () => undefined,
+      clients: { claim: async () => undefined }
     },
-    caches: { open: async () => cache, match: async () => undefined, keys: async () => [] },
+    caches: {
+      open: async () => cache,
+      match: async () => undefined,
+      keys: async () => existingCaches,
+      delete: async (name) => { removed.push(name); return true; }
+    },
     fetch: async () => { networkRequests += 1; return response; },
     URL,
     Set,
@@ -55,10 +62,22 @@ function harness({ status = 200, headers = {}, type = "basic" } = {}) {
     if (handled) await handled;
     return Boolean(handled);
   }
-  return { request, stored, networkRequests: () => networkRequests };
+  async function activate() {
+    let completion;
+    handlers.get("activate")({ waitUntil: (promise) => { completion = promise; } });
+    await completion;
+  }
+  return { request, activate, stored, removed, networkRequests: () => networkRequests };
 }
 
 describe("PWA cache contains public assets only", () => {
+  it("evicts the previous extension-matched public cache during activation", async () => {
+    const staleName = "sonara-public-sonara-ui-20261007-v23-native-navigation";
+    const worker = harness({ existingCaches: [staleName, "unrelated-cache"] });
+    await worker.activate();
+    assert.deepEqual(worker.removed, [staleName]);
+  });
+
   it("retains same-origin public assets and their single revision token", async () => {
     const worker = harness();
     for (const asset of [
