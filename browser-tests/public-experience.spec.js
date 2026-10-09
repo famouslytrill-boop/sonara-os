@@ -15,7 +15,7 @@ async function mountShippedScript(page, scriptPath) {
       scriptPath.includes("..")) {
     throw new Error("Invalid browser fixture script path");
   }
-  const response = await page.request.get(`${BASE_URL}${scriptPath}`);
+  const response = await page.request.get(`${BASE_URL}${scriptPath}`, { maxRedirects: 0 });
   expect(response.status(), `${scriptPath} must be served from the app`).toBe(200);
   expect(response.headers()["content-type"] || "", `${scriptPath} must be JavaScript`).toMatch(/(?:java|ecma)script/i);
   const source = await response.text();
