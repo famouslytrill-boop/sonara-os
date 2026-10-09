@@ -49,7 +49,7 @@ function registerFinancialScenarioPages(app, deps = {}) {
     ["benefit_value", "Estimated goods or services given in return ($)", ""]
   ];
 
-  function fieldsHtml(fields, values, namePrefix) {
+  function fieldsHtml(fields, values) {
     return fields.map(([key, label, sample]) => {
       const value = values[key] ?? sample;
       return '<label style="display:block;margin:0.7rem 0">' + escapeHtml(label) +
@@ -62,7 +62,7 @@ function registerFinancialScenarioPages(app, deps = {}) {
   function form(kind, title, fields, values = {}) {
     return '<form action="' + PAGE + '" method="post"><fieldset><legend>' +
       escapeHtml(title) + '</legend><input name="kind" type="hidden" value="' +
-      kind + '">' + fieldsHtml(fields, values, kind) +
+      kind + '">' + fieldsHtml(fields, values) +
       (kind === "nonprofit" ? '<label><input type="checkbox" name="restricted" value="yes"' +
         (values.restricted === "yes" ? ' checked' : "") + '> Funds have a restricted purpose</label>' : "") +
       '</fieldset><button type="submit">Review draft scenario</button></form>';
