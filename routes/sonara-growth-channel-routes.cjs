@@ -496,49 +496,12 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     return res.redirect(303, back(written.ok ? { done: "posted" } : { problem: "save_failed" }));
   });
 
-  app.post("/api/growth/channels/posts/remove", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const now = new Date().toISOString();
-    const patched = await write(scope.config,
-      `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
-      { state: "removed", removed_at: now, updated_at: now }, "PATCH");
-    if (!patched.ok) return res.redirect(303, back({ problem: "save_failed" }));
-
-    // The post is down whatever happens next; the reports catching up is
-    // bookkeeping, and a failure there does not put the post back.
-    await write(scope.config,
-      `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
-      { state: "actioned", decided_at: now }, "PATCH");
-    return res.redirect(303, back({ done: "removed" }));
-  });
-
-  app.post("/api/growth/channels/posts/restore", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const patched = await write(scope.config,
-      `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
-      { state: "published", removed_at: null, updated_at: new Date().toISOString() }, "PATCH");
-    return res.redirect(303, back(patched.ok ? { done: "restored" } : { problem: "save_failed" }));
-  });
-
-  app.post("/api/growth/channels/reports/dismiss", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const patched = await write(scope.config,
-      `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
-      { state: "dismissed", decided_at: new Date().toISOString() }, "PATCH");
-    return res.redirect(303, back(patched.ok ? { done: "dismissed" } : { problem: "save_failed" }));
-  });
+  app.post("/api/growth/channels/posts/remove", guard, (req, res) =>
+    moderatePost(req, res, "remove"));
+  app.post("/api/growth/channels/posts/restore", guard, (req, res) =>
+    moderatePost(req, res, "restore"));
+  app.post("/api/growth/channels/reports/dismiss", guard, (req, res) =>
+    moderatePost(req, res, "dismiss"));
 
   // ---------------------------------------------------------------------------
   // The public pages
