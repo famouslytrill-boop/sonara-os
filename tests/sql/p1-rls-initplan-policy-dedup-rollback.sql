@@ -5,7 +5,7 @@
 -- checks as initplans. The former test expected the OLD, pre-migration values
 -- and therefore rejected all 25 correctly-hardened policies.
 -- This proves exact current role scope, command, USING and WITH CHECK on those
--- 25 policies, then dry-runs subscription duplicate removal inside a rollback.
+-- 25 policies, and separately validates 3 distinct subscription policies.
 -- Never replace equality with approximate matching or skip tenant-denial probes.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -42,6 +42,21 @@ INSERT INTO expected_rls_p1 VALUES
     ('sonara_platforms', 'sonara_platforms_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL);
+
+-- These are THREE distinct, not duplicate, policies in the replayed
+-- canonical subscriptions schema. Never drop one based on its human-readable
+-- name or a count; preserve their exact role and expression differences.
+CREATE TEMP TABLE expected_subscription_rls (
+  policy_name text NOT NULL, permissive text NOT NULL,
+  roles text NOT NULL, cmd text NOT NULL, qualifier text, check_expr text
+) ON COMMIT DROP;
+INSERT INTO expected_subscription_rls VALUES
+  ('org members can read subscriptions', 'PERMISSIVE', '{public}', 'SELECT',
+    '((organization_id IS NOT NULL) AND is_org_member(organization_id))', NULL),
+  ('service role can manage subscriptions', 'PERMISSIVE', '{service_role}', 'ALL',
+    'true', 'true'),
+  ('subscriptions_select_member', 'PERMISSIVE', '{authenticated}', 'SELECT',
+    '(is_org_member(organization_id) OR is_admin_or_founder())', NULL);
 
 DO $drift$
 DECLARE
@@ -95,27 +110,22 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
+ -- Each policy must match its migrated form, without treating separate
+ -- member, authenticated and service-role predicates as duplicates.
  IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   -- Diagnose only. This remains a hard error until the two policies have
-   -- been compared in every dimension against migration authority.
-   FOR item IN
-     SELECT policyname, permissive, roles::text AS roles, cmd, qual, with_check
-     FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
-     ORDER BY policyname
-   LOOP
-     RAISE NOTICE 'P1 subscriptions policy=% permissive=% roles=% cmd=% USING=% CHECK=%',
-       item.policyname, item.permissive, item.roles, item.cmd,
-       item.qual, item.with_check;
-   END LOOP;
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+     WHERE schemaname='public' AND tablename='subscriptions') <> 3
+ OR (SELECT count(*) FROM expected_subscription_rls e
+     LEFT JOIN pg_policies p
+       ON p.schemaname='public' AND p.tablename='subscriptions'
+       AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL
+       OR p.permissive IS DISTINCT FROM e.permissive
+       OR p.roles::text IS DISTINCT FROM e.roles
+       OR p.cmd IS DISTINCT FROM e.cmd
+       OR p.qual IS DISTINCT FROM e.qualifier
+       OR p.with_check IS DISTINCT FROM e.check_expr) <> 0
+ THEN
+   RAISE EXCEPTION 'P1 subscription role or predicate drift; abort';
  END IF;
 END
 $drift$;
@@ -124,7 +134,7 @@ $drift$;
 -- Do not modify them in this probe; preflight attests exact security context.
 -- Dry-run only the remaining duplicate subscription SELECT policy below.
 
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+-- No subscription policy DDL: canonical member and service policies differ.
 
 DO $postflight$
 DECLARE
@@ -167,15 +177,18 @@ BEGIN
  END IF;
 
  IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)') <> 1
- OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription') <> 0
- THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
+     WHERE schemaname='public' AND tablename='subscriptions') <> 3
+ OR (SELECT count(*) FROM expected_subscription_rls e
+     LEFT JOIN pg_policies p
+       ON p.schemaname='public' AND p.tablename='subscriptions'
+       AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL
+       OR p.permissive IS DISTINCT FROM e.permissive
+       OR p.roles::text IS DISTINCT FROM e.roles
+       OR p.cmd IS DISTINCT FROM e.cmd
+       OR p.qual IS DISTINCT FROM e.qualifier
+       OR p.with_check IS DISTINCT FROM e.check_expr) <> 0
+ THEN RAISE EXCEPTION 'P1 subscription policy postflight drift'; END IF;
 END
 $postflight$;
 SELECT 'p1_rls_hygiene_staging_passed';
