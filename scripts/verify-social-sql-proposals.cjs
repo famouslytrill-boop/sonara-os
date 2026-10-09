@@ -73,14 +73,14 @@ function verifyProposalSql(filename, sql) {
     if (!rls.test(stripped)) issues.push(name + ":missing_rls");
     if (!revoke.test(stripped)) issues.push(name + ":missing_client_revoke");
     const privilegeReset = new RegExp(
-      "revoke\\\\s+all\\\\s+on\\\\s+public\\\\." + name +
-      "\\\\s+from\\\\s+(?:public),\\\\s*anon,\\\\s*authenticated,\\\\s*service_role", "i");
+      "revoke\\s+all\\s+on\\s+public\\." + name +
+      "\\s+from\\s+(?:public),\\s*anon,\\s*authenticated,\\s*service_role", "i");
     if (!privilegeReset.test(stripped)) issues.push(name + ":missing_service_role_default_revoke");
     const expected = EXPECTED_SERVICE_ROLE_GRANTS[name];
     if (expected) {
-      const grantMatch = new RegExp("grant\\\\s+([a-z,\\\\s]+)\\\\s+on\\\\s+public\\\\." +
-        name + "\\\\s+to\\\\s+service_role\\\\s*;", "i").exec(stripped);
-      const actual = grantMatch ? grantMatch[1].toLowerCase().replace(/\\s+/g, "").split(",").sort().join(",") : "";
+      const grantMatch = new RegExp("grant\\s+([a-z,\\s]+)\\s+on\\s+public\\." +
+        name + "\\s+to\\s+service_role\\s*;", "i").exec(stripped);
+      const actual = grantMatch ? grantMatch[1].toLowerCase().replace(/\s+/g, "").split(",").sort().join(",") : "";
       const allowed = expected.split(",").sort().join(",");
       if (actual !== allowed) issues.push(name + ":unexpected_service_role_privileges");
     }
