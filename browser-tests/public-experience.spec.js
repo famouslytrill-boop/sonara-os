@@ -32,6 +32,17 @@ async function mountLocalComponent(page, markup, scriptPath) {
   await page.setContent(inertMarkup);
   await mountShippedScript(page, scriptPath);
 }
+test("isolated fixture loader requires shipped JavaScript, not a missing-route fallback", async ({ page }) => {
+  await page.goto(`${BASE_URL}/tools`);
+  await mountShippedScript(page, "/creator-image-core.js");
+  expect(await page.evaluate(() => typeof window.SonaraImageCore)).toBe("object");
+  // An unavailable script must fail, not inject the site's HTML 404/fallback
+  // as if it were a valid Creator processing engine.
+  await expect(mountShippedScript(page, "/nonexistent-sonara-fixture.js")).rejects.toThrow();
+  // File scope is intentionally restricted to shipped public JS assets.
+  await expect(mountShippedScript(page, "/../secrets.js")).rejects.toThrow("Invalid browser fixture script path");
+});
+
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const draftProject = () => ({ id: projectId(100), title: "My original film", medium: "video", revision: 1, graph: { version: 1, nodes: [] }, archived_at: null });
 async function mountDraft(page, project = draftProject(), scope = `${projectId(101)}:${projectId(102)}`) {
