@@ -87,7 +87,7 @@ const doc=(extra={})=>({
 describe("Creator Studio editorial access, preview and draft persistence",()=>{
   it("registers authoring, preview, save, list and reopen routes",()=>{
     const h=makeHarness();
-    for(const k of ["GET "+ROUTE,"GET "+ROUTE+"/drafts/:id","GET "+API+"/drafts",
+    for(const k of ["GET "+ROUTE,"GET "+ROUTE+"/drafts","GET "+ROUTE+"/drafts/:id","GET "+API+"/drafts",
       "POST "+API+"/preview","POST "+API+"/save",
       "GET "+API+"/drafts/:id","GET "+ROUTE+"/drafts/:id/export.md",
       "POST "+ROUTE+"/preview","POST "+ROUTE+"/save"]) {
