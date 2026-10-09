@@ -116,4 +116,47 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.equal(rows.length, 0);
   });
 
+  it("downloads private CSV, OTIO gap placeholders and marker-only MIDI from one saved World Bible", async () => {
+    const { app } = setup(true);
+    const base = `/api/creator-studio/projects/${PID}/world-bible`;
+    const saved = await request(app).post(base).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft });
+    assert.equal(saved.status, 200);
+    const cue = await request(app).get(`${base}/export/csv`).set("x-paid", "yes");
+    assert.equal(cue.status, 200);
+    assert.match(cue.headers["content-disposition"], /world-bible-.*\.csv/);
+    assert.match(cue.text, /"Opening"/);
+    assert.match(cue.headers["cache-control"], /no-store/);
+    const otio = await request(app).get(`${base}/export/otio?fps=30`).set("x-paid", "yes");
+    assert.equal(otio.status, 200);
+    const timeline = typeof otio.body === "object" && otio.body.OTIO_SCHEMA ? otio.body : JSON.parse(otio.text);
+    assert.equal(timeline.OTIO_SCHEMA, "Timeline.1");
+    assert.equal(timeline.tracks.children[0].children[0].OTIO_SCHEMA, "Gap.1");
+    assert.equal(timeline.tracks.children[0].children[0].source_range.duration.value, 1800);
+    const midi = await request(app).get(`${base}/export/midi`).set("x-paid", "yes");
+    assert.equal(midi.status, 200);
+    assert.equal(Buffer.from(midi.body).toString("ascii", 0, 4), "MThd");
+    assert.equal(Buffer.from(midi.body).toString("ascii", 14, 18), "MTrk");
+    assert.equal((await request(app).get(`${base}/export/midi`)).status, 403);
+    assert.equal((await request(app).get(`${base}/export/otio`).set("x-paid", "yes").set("x-workspace", "other")).status, 404);
+  });
+  it("rejects unsupported frame rates and unknown timing but preserves untimed cue sheets", async () => {
+    const { app } = setup(true);
+    const base = `/api/creator-studio/projects/${PID}/world-bible`;
+    const untimed = { ...draft, scenes: [{ id: "one", title: "Unscheduled opening" }] };
+    assert.equal((await request(app).post(base).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft: untimed })).status, 200);
+    const csv = await request(app).get(`${base}/export/csv`).set("x-paid", "yes");
+    assert.equal(csv.status, 200);
+    assert.match(csv.text, /"unknown"/);
+    const otio = await request(app).get(`${base}/export/otio`).set("x-paid", "yes");
+    assert.equal(otio.status, 422);
+    assert.equal(otio.body.code, "world_bible_export_needs_valid_timing");
+    assert.equal((await request(app).get(`${base}/export/midi`).set("x-paid", "yes")).status, 422);
+    const invalid = await request(app).get(`${base}/export/otio?fps=29.97`).set("x-paid", "yes");
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.code, "invalid_export_frame_rate");
+    assert.equal((await request(app).get(`${base}/export/unknown`).set("x-paid", "yes")).status, 400);
+  });
+
 });
