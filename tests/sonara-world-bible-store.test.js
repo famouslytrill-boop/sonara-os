@@ -3,6 +3,7 @@
 "use strict";
 const assert = require("node:assert/strict");
 const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
+const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const PID = "00000000-0000-4000-8000-000000000010";
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER = "00000000-0000-4000-8000-000000000002";
@@ -55,6 +56,19 @@ function harness() {
 }
 
 describe("Creator World Bible storage phase 2", () => {
+  it("exports an author-editable outline, not HTML or rendered media", () => {
+    const unsafe = draft();
+    unsafe.title = "<script>alert(1)</script>";
+    unsafe.entities[0].name = "<img src=x>";
+    const output = renderWorldBibleMarkdown({ draft: unsafe });
+    assert.equal(output.extension, "md");
+    assert.match(output.data, /## Ordered story beats/);
+    assert.match(output.data, /Preview fingerprint:/);
+    assert.doesNotMatch(output.data, /<script>/);
+    assert.doesNotMatch(output.data, /<img src=/);
+    assert.match(output.data, /Publishing: not authorized/);
+  });
+
   it("strips untrusted/secret keys and stores only declared world data", () => {
     const input = draft();
     input.serviceRoleKey = "SECRET";
