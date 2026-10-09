@@ -157,10 +157,11 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
         <form id="sonara-push-form">
           <div class="sonara-push-topics">${checkboxes}</div>
           <button class="action" type="submit" data-sonara-push-subscribe>Turn on notifications for this browser</button>
+          <button class="action" type="button" data-sonara-push-unsubscribe>Turn off notifications for this browser</button>
           <p class="sonara-push-status" data-sonara-push-status role="status"></p>
         </form>
       </article>`,
-      `<script type="application/json" id="sonara-push-config">${JSON.stringify({ publicKey: readiness.publicKey, endpoint: `${PAGE}/subscribe` })}</script>`,
+      `<script type="application/json" id="sonara-push-config">${JSON.stringify({ publicKey: readiness.publicKey, endpoint: `${PAGE}/subscribe`, unsubscribeEndpoint: `${PAGE}/unsubscribe` })}</script>`,
       // A separate file, because the Content-Security-Policy here is
       // `script-src 'self'` with no bundler and no inline script.
       `<script src="/sonara-push.js" defer></script>`
@@ -207,9 +208,15 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
   app.post(`${PAGE}/unsubscribe`, requireCustomer, async (req, res) => {
     const mod = moduleDeps();
     if (!mod) return res.status(503).json({ ok: false, code: "not_configured" });
+    const organizationId = await organizationFor(req);
+    if (!organizationId) return res.status(403).json({ ok: false, code: "no_organization" });
+    const userId = req.sonaraUser?.id || req.sonaraAccess?.user?.id;
+    if (!userId) return res.status(403).json({ ok: false, code: "no_user" });
     const endpoint = req.body && typeof req.body === "object" ? req.body.endpoint : null;
-    if (!endpoint) return res.status(400).json({ ok: false, code: "no_endpoint" });
-    const removed = await store.remove(mod, endpoint);
+    if (typeof endpoint !== "string" || !endpoint.startsWith("https://")) {
+      return res.status(400).json({ ok: false, code: "no_endpoint" });
+    }
+    const removed = await store.remove(mod, { organizationId, endpoint, createdBy: userId });
     if (!removed.ok) return res.status(500).json({ ok: false, code: removed.code });
     return res.status(200).json({ ok: true });
   });
