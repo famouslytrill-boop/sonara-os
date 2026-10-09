@@ -37,6 +37,15 @@ function registerEngineeringPreviewRoutes(app, deps = {}) {
     throw new TypeError("Engineering preview authorization and rate limits must be middleware");
   }
 
+  // The deployment owner must explicitly enable this experimental intake.
+  // Missing/unavailable flag fails closed. Authorization and throttling remain
+  // mandatory even when enabled; client requests cannot set the flag.
+  const enabled = typeof deps.isEnabled === "function" ? deps.isEnabled : () => false;
+  const featureGate = (req, res, next) => {
+    if (enabled() !== true) return res.status(404).json({ ok: false, code: "not_found" });
+    return next();
+  };
+
   // Post-auth before computation, and shared limiter across all three routes.
   // JSON parser is registered upstream with a 1 MB body ceiling; these stricter
   // route-level caps defend against missing/misconfigured upstream limits.
@@ -62,11 +71,11 @@ function registerEngineeringPreviewRoutes(app, deps = {}) {
     return res.status(outcome.ok ? 200 : 400).json(outcome);
   };
 
-  app.post(PREVIEW_ROUTES.dxf, guardBusiness, limiter,
+  app.post(PREVIEW_ROUTES.dxf, featureGate, guardBusiness, limiter,
     preview((body) => tryParseAsciiDxf(body.dxfText), DXF_BYTES_MAX, "dxfText"));
-  app.post(PREVIEW_ROUTES.estimate, guardBusiness, limiter,
+  app.post(PREVIEW_ROUTES.estimate, featureGate, guardBusiness, limiter,
     preview((body) => tryLinearMaterialEstimate(body), DXF_BYTES_MAX, "dxfText"));
-  app.post(PREVIEW_ROUTES.pose, guardCreator, limiter,
+  app.post(PREVIEW_ROUTES.pose, featureGate, guardCreator, limiter,
     preview((body) => tryParsePoseWorldLandmarks(body), POSE_JSON_BYTES_MAX));
 }
 
