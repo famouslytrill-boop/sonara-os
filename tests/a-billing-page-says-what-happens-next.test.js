@@ -18,7 +18,7 @@ const { createBilling } = require("../lib/sonara-billing.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 
-function billingWith(rows, { readable = true } = {}) {
+function billingWith(rows, { readable = true, activeRows, activeReadable = true, jsonError = false, onRead = () => {} } = {}) {
   const module = createBilling({
     STRIPE_PLANS: { free: { name: "Free", amount: 0 }, workspace_monthly: { name: "One workspace", amount: 2900 } },
     getEnv: () => "",
@@ -30,9 +30,19 @@ function billingWith(rows, { readable = true } = {}) {
     formatMetric: (label, value) => `${label}: ${value}`,
     insertActivityEvent: async () => ({ ok: true })
   });
-  global.fetch = async () => (readable
-    ? { ok: true, status: 200, json: async () => rows }
-    : { ok: false, status: 503, json: async () => ({}) });
+  global.fetch = async (url) => {
+    const activeQuery = String(url).includes("status=in.(active,trialing)");
+    onRead(String(url));
+    if (!(activeQuery ? activeReadable : readable)) return { ok: false, status: 503, json: async () => ({}) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => {
+        if (jsonError) throw new SyntaxError("Invalid JSON");
+        return activeQuery && activeRows !== undefined ? activeRows : rows;
+      }
+    };
+  };
   return module.getBillingPanelSummary(ORGANIZATION_ID);
 }
 
@@ -121,5 +131,49 @@ describe("a billing page says what happens next", () => {
     const summary = await billingWith([]);
     assert.equal(summary.ok, true);
     assert.equal(summary.status, "No active paid plan found.");
+  });
+
+  it("does not treat a 200 with an invalid PostgREST body as proof of no paid plan", async () => {
+    for (const badRows of [
+      { code: "PGRST500", message: "unexpected singular response" },
+      null, false, "[]",
+      [null], [{ plan_slug: "workspace_monthly" }],
+      [{ plan_slug: "workspace_monthly", status: null }],
+      [{ plan_slug: null, status: "active" }]
+    ]) {
+      const summary = await billingWith(badRows);
+      assert.equal(summary.ok, false, JSON.stringify(badRows));
+      assert.match(summary.status, /could not check your plan/i);
+      assert.doesNotMatch(summary.status, /No active paid plan/, "missing data was reported as unpaid");
+    }
+    const corrupt = await billingWith([], { jsonError: true });
+    assert.equal(corrupt.ok, false);
+    assert.match(corrupt.status, /could not check your plan/i);
+  });
+
+  it("checks older active subscriptions beyond the recent five before claiming none", async () => {
+    const history = Array.from({ length: 5 }, () => ({ plan_slug: "workspace_monthly", status: "canceled" }));
+    const observed = [];
+    const summary = await billingWith(history, { activeRows: [RENEWS], onRead: (url) => observed.push(url) });
+    assert.equal(summary.ok, true);
+    assert.match(summary.status, /One workspace: Active/);
+    assert.equal(summary.rows.length, 5, "historical display remains bounded");
+    assert.equal(observed.length, 2, "one history read plus one active-state read");
+    assert.ok(observed[0].includes("organization_id=eq." + ORGANIZATION_ID));
+    assert.ok(observed[1].includes("organization_id=eq." + ORGANIZATION_ID));
+    assert.match(observed[1], /status=in\.\(active,trialing\)/);
+  });
+
+  it("refuses to say no plan if the active-subscription read fails or is malformed", async () => {
+    for (const options of [
+      { activeReadable: false },
+      { activeRows: { code: "PGRST500" } },
+      { activeRows: [{ status: "active" }] }
+    ]) {
+      const summary = await billingWith([], options);
+      assert.equal(summary.ok, false);
+      assert.match(summary.status, /could not check your plan/i);
+      assert.doesNotMatch(summary.status, /No active paid plan/);
+    }
   });
 });
