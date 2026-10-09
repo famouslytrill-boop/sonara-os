@@ -235,8 +235,10 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
     if(!result.ok||!result.rows[0]?.id)return {ok:false,code:"not_saved",status:503};
     return {ok:true,saved:true,id:result.rows[0].id,visibility:"authorized_workspace_members_only"};
   }
-  function htmlPage(input,result,savedNotice,records=null) {
-    const sections=[savedNotice?'<p>'+esc(savedNotice)+'</p>':"",renderResult(result),form(input)];
+  function htmlPage(input,result,savedNotice,records=null,downloadId=null) {
+    const sections=[savedNotice?'<p>'+esc(savedNotice)+'</p>':"",renderResult(result),
+      downloadId?'<p><a href="'+ROUTE+'/drafts/'+esc(downloadId)+'/export.md">Download Markdown revision</a></p>':"",
+      form(input)];
     if(records?.ok){
       sections.push('<article class="card"><h2>Recent workspace drafts</h2><ul>'+
         records.records.map(row=>'<li><a href="'+ROUTE+'/drafts/'+esc(row.id)+'">'+
@@ -258,10 +260,8 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
   app.get(ROUTE+"/drafts/:id",on,creator,noCache,async(req,res)=>{
     const found=await readOne(req,req.params.id);
     if(!found.ok)return res.status(found.status).type("html").send(htmlPage({},null,"Draft not available.",null));
-    const text=htmlPage(found.record.input_payload,
-      found.record.output_payload,"Saved revision from "+String(found.record.created_at||"the workspace"),null);
-    const download='<p><a href="'+ROUTE+'/drafts/'+esc(req.params.id)+'/export.md">Download Markdown revision</a></p>';
-    return res.status(200).type("html").send(text.replace("</main>",download+"</main>"));
+    return res.status(200).type("html").send(htmlPage(found.record.input_payload,
+      found.record.output_payload,"Saved revision from "+String(found.record.created_at||"the workspace"),null,req.params.id));
   });
   app.get(API+"/drafts",on,creator,noCache,async(req,res)=>{
     const read=await list(req);res.status(read.ok?200:read.status).json(read);
