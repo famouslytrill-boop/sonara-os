@@ -179,6 +179,53 @@ select pg_temp.require_true(
   'privileged forged historical adjustment did not post');
 
 
+
+-- Attack 2: even in the SAME transaction as a change, an approval created
+-- after that movement must not retroactively label the movement as approved.
+-- Also show callers cannot forge approved_at='2001...' to backdate consent.
+update public.inventory_items set quantity=5
+  where id='25000000-0000-4000-8000-000000000010';
+select pg_sleep(0.005);
+insert into public.inventory_stock_adjustment_approvals(
+  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,counted_quantity,decision,
+  approved_at
+) values(
+  '25000000-0000-4000-8000-000000000035',
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-fake-005','cycle_count',3,5,'approved','2001-01-01T00:00:00Z');
+select pg_temp.require_true(
+  (select approved_at > '2026-01-01T00:00:00Z'::timestamptz
+   from public.inventory_stock_adjustment_approvals
+   where id='25000000-0000-4000-8000-000000000035'),
+  'approval timestamp cannot be backdated by the supplied payload');
+select pg_temp.expect_error($q$
+  insert into public.inventory_stock_adjustments(
+    organization_id,inventory_item_id,stock_event_id,approval_id,
+    actor_user_id,reviewer_user_id,idempotency_key,reason,
+    stock_version_before,stock_version_after,balance_before,balance_after,
+    delta_quantity,held_quantity_at_post)
+  select '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000010',e.id,
+    '25000000-0000-4000-8000-000000000035',
+    '25000000-0000-4000-8000-000000000001',
+    '25000000-0000-4000-8000-000000000002',
+    'stock-fake-005','cycle_count',3,4,6,5,-1,3
+  from public.inventory_stock_events e
+    where e.inventory_item_id='25000000-0000-4000-8000-000000000010'
+      and e.version_after=4
+$q$, 'stock_adjustment_approval_lineage_invalid');
+select pg_temp.require_true(
+  (select quantity=5 and stock_version=4 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where organization_id='25000000-0000-4000-8000-000000000003'),
+  'post-factum approval did not rewrite the ledger');
+
+
 reset role;
 select pg_temp.require_true(
   (select quantity=5 from public.inventory_items
