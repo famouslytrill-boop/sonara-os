@@ -3511,6 +3511,56 @@ paths:
           description: Project and graph without server credentials
         '404':
           description: Project not found in this workspace
+  /api/creator-studio/projects/{id}/world-bible:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Read the private World Bible for a tenant-authorized Creator project.
+      description: Feature is disabled by default; requires independently applied and verified World Bible schema. Returns null when no record exists.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Tenant-scoped World Bible and its version, or null }
+        '401': { description: Sign-in required }
+        '403': { description: Creator subscription or owner authorization required }
+        '404': { description: Project unavailable within workspace }
+        '503': { description: Feature disabled or storage unavailable }
+    post:
+      operationId: saveCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Save a validated World Bible using revision CAS, never silently overwriting concurrent edits.
+      description: Default-off and unavailable pending database migration and security evidence. Does not publish, generate media or authorize usage rights.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision, draft]
+              properties:
+                expectedRevision: { type: integer, minimum: 0 }
+                draft:
+                  type: object
+                  required: [title, medium, scenes]
+                  properties:
+                    title: { type: string, maxLength: 160 }
+                    medium: { type: string, enum: [game, interactive, film, book, podcast, vlog, stream, music] }
+                    entities: { type: array, maxItems: 128 }
+                    scenes: { type: array, minItems: 1, maxItems: 64 }
+                    resources: { type: object }
+      responses:
+        '200': { description: Saved revision and fingerprint }
+        '400': { description: Invalid revision or draft }
+        '401': { description: Sign-in required }
+        '403': { description: Creator subscription or owner authorization required }
+        '404': { description: Project not found within this tenant }
+        '409': { description: Revision conflict or archived project }
+        '503': { description: Feature disabled or storage unavailable }
   /api/creator-studio/projects/{id}/commands:
     parameters:
       - name: id
