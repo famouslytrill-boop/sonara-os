@@ -182,7 +182,7 @@ describe("person-level SQL proposal static safety requirements",()=>{
   it("enables RLS, denies direct access and keeps reports private",()=>{
     for(const table of ["sonara_social_user_blocks","sonara_social_profile_reports"]){
       assert.ok(source.includes("alter table public."+table+" enable row level security;"));
-      assert.ok(source.includes("revoke all on public."+table+" from PUBLIC, anon, authenticated;"));
+      assert.ok(source.includes("revoke all on public."+table+" from PUBLIC, anon, authenticated, service_role;"));
     }
   });
   it("blocks direct follower writes, removes existing follows and deduplicates reports",()=>{
