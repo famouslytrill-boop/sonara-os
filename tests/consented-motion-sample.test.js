@@ -8,6 +8,7 @@ const {
   PRECISION_STEP,
   normalizeMotionSample
 } = require("../lib/sonara-motion-sample.cjs");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
 
 const ROOT = path.join(__dirname, "..");
 
@@ -54,8 +55,11 @@ describe("consented bounded motion capture", () => {
     assert.ok(start >= 0 && end > start, "device feedback page block moved");
     const page = routes.slice(start, end);
 
-    assert.match(page, /accelerometer=\(self\)/);
-    assert.match(page, /gyroscope=\(self\)/);
+    assert.match(page, /permissionsPolicyFor\("device_feedback"\)/);
+    const policy = permissionsPolicyFor("device_feedback");
+    assert.match(policy, /accelerometer=\(self\)/);
+    assert.match(policy, /gyroscope=\(self\)/);
+    assert.match(policy, /camera=\(\)/);
     assert.match(page, /data-sonara-motion-start/);
     assert.match(page, /data-sonara-motion-cancel/);
     assert.match(page, /sonara-motion-capture\.js/);
