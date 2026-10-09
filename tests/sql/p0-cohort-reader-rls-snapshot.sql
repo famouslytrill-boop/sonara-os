@@ -5,6 +5,25 @@
 -- temporary policy/grant fixtures; cleans up after the read-only session.
 \set ON_ERROR_STOP on
 
+-- This fixture performs CREATE ROLE, GRANT and INSERT. Never permit it to
+-- start unless running as the throwaway native replay's owner over a local
+-- Unix socket in the expected database. This must be evaluated BEFORE writes.
+DO $replay_only$
+BEGIN
+  IF current_database() <> 'replay'
+     OR current_user <> 'postgres'
+     OR session_user <> 'postgres'
+     OR inet_server_addr() IS NOT NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_catalog.pg_roles
+       WHERE rolname = current_user AND rolsuper = true
+     )
+  THEN
+    RAISE EXCEPTION 'cohort RLS fixture is restricted to local disposable native replay';
+  END IF;
+END
+$replay_only$;
+
 BEGIN;
 SET LOCAL statement_timeout = '20s';
 
@@ -96,6 +115,29 @@ $cohort_proof$;
 SELECT 'p0_cohort_reader_rls_snapshot_passed';
 ROLLBACK;
 RESET SESSION AUTHORIZATION;
+
+-- MUTATION PROBE: show that a newly applicable permissive PUBLIC policy
+-- would leak synthetic tenant B, and that the read-only cohort isolation
+-- assertion above was not vacuous. All schema mutations here are rolled
+-- back before cleanup. Do not leave the intentional leak in the fixture.
+BEGIN;
+CREATE POLICY sonara_cohort_fixture_mutant_public
+  ON public.organizations FOR SELECT TO PUBLIC USING (true);
+CREATE POLICY sonara_cohort_fixture_mutant_events
+  ON public.activity_events FOR SELECT TO PUBLIC USING (true);
+SET LOCAL ROLE sonara_cohort_reader;
+DO $cohort_policy_mutation$
+BEGIN
+  IF (SELECT count(*) FROM public.organizations
+      WHERE id = 'c4444444-4444-4444-8444-444444444444') <> 1
+    OR (SELECT count(*) FROM public.activity_events
+      WHERE organization_id = 'c4444444-4444-4444-8444-444444444444') <> 1
+  THEN
+    RAISE EXCEPTION 'cohort negative RLS guard not sensitive to a permissive policy leak';
+  END IF;
+END
+$cohort_policy_mutation$;
+ROLLBACK;
 
 -- Cleanup is explicit even though the native replay cluster is destroyed.
 -- On assertion failure psql stops, and its throwaway cluster is discarded.
