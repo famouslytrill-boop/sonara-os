@@ -34,10 +34,11 @@ describe("Post-hardening Creator release-gate contract", () => {
     assert.match(SQL, /p\.qual IS DISTINCT FROM e\.qualifier/);
     assert.match(SQL, /p\.with_check IS DISTINCT FROM e\.check_expr/);
     assert.match(SQL, /P1 policy definition drift on % policies; abort/);
-    assert.match(SQL, /P1 subscription dedup failed/);
+    assert.match(SQL, /P1 subscription role or predicate drift; abort/);
+    assert.match(SQL, /P1 subscription policy postflight drift/);
     assert.match(SQL, /IF service_count <> 21 OR ownership_count <> 4/);
     assert.match(SQL.trimEnd(), /ROLLBACK;$/);
-    assert.equal(SQL.includes("DROP POLICY \"Users can view their own subscription\""), true);
+    assert.equal(SQL.includes("DROP POLICY"), false);
     assert.equal(SQL.includes("ALTER POLICY"), false);
   });
 });
