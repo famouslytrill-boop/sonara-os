@@ -56,6 +56,19 @@ describe("SONARA versioned engineering measurement pipeline", () => {
     assert.deepEqual(transformPointMeters({x:5,y:0,z:0}, FRAME), [1.524,0,0]);
   });
 
+  it("requires explicit destination frame provenance after a 3D transform", () => {
+    const transform = {
+      uniformScale: 1, rotationXYZW: [0, 0, 0, 1],
+      translationMeters: { x: 1, y: 0, z: 0 }
+    };
+    refused({ ...motion(), frame: { ...FRAME, transform } }, "invalid_measurement");
+    const output = runMeasurementPipeline({
+      ...motion(), frame: { ...FRAME, transform, targetFrameId: "world-model-02" }
+    });
+    assert.equal(output.motion.sourceFrameId, "model-reference-01");
+    assert.equal(output.motion.referenceFrameId, "world-model-02");
+  });
+
   it("aligns timestamps at rational frame rates without 29.97 float drift", () => {
     assert.equal(frameIndexAtTimestamp(1000000,0,30000,1001),29);
     assert.equal(frameIndexAtTimestamp(1001000,0,30000,1001),30);
@@ -72,6 +85,7 @@ describe("SONARA versioned engineering measurement pipeline", () => {
     close(one.motion.totalDistanceMeters,1.524);
     close(one.motion.averageSpeedMetersPerSecond,1.524);
     assert.equal(one.motion.referenceFrameId,"model-reference-01");
+    assert.equal(one.motion.sourceFrameId,"model-reference-01");
     assert.equal(one.media,undefined);
     assert.match(one.evidence.inputDigest,/^[0-9a-f]{64}$/);
     assert.deepEqual(one.evidence.assumptions.includes("calibrated_measured_inputs_required"),true);
