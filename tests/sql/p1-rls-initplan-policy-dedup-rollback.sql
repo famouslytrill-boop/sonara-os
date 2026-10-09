@@ -1,3 +1,8 @@
+-- HISTORICAL PRE-HARDENING EXPERIMENT. NOT THE CURRENT REPLAY BASELINE.
+-- Only run against a deliberately provisioned old-policy fixture that
+-- matches its exact PUBLIC/auth.role() preconditions. The current database
+-- already has service_role-only grants and scalar auth.uid() InitPlans.
+-- Current release replay must run p1-current-policy-contract.sql instead.
 -- Staging-only P1 draft. This is NOT a Supabase migration.
 -- Script intentionally ends with ROLLBACK and is invoked by native replay.
 -- Generate a forward migration through Supabase CLI only after live/fixture
