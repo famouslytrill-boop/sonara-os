@@ -25,6 +25,7 @@ create table public.inventory_stock_events (
   balance_after numeric not null,
   delta_quantity numeric not null,
   recorded_at timestamptz not null default now(),
+  posting_xid xid8 not null default pg_current_xact_id(),
   constraint inventory_stock_event_quantity_math check (
     delta_quantity = balance_after - balance_before
     and balance_before::text not in ('NaN','Infinity','-Infinity')
@@ -195,6 +196,7 @@ begin
       and e.organization_id = new.organization_id
       and e.inventory_item_id = new.inventory_item_id
       and e.source = 'unattributed_quantity_change'
+      and e.posting_xid = pg_current_xact_id()
       and e.version_before = new.stock_version_before
       and e.version_after = new.stock_version_after
       and e.balance_before = new.balance_before
@@ -202,6 +204,17 @@ begin
       and e.delta_quantity = new.delta_quantity
   ) then
     raise exception 'stock_adjustment_event_lineage_invalid';
+  end if;
+  -- A valid old event is not permission to fabricate an adjustment later:
+  -- it must be the latest state of this item and belong to this transaction.
+  if not exists (
+    select 1 from public.inventory_items i
+    where i.id = new.inventory_item_id
+      and i.organization_id = new.organization_id
+      and i.stock_version = new.stock_version_after
+      and i.quantity = new.balance_after
+  ) then
+    raise exception 'stock_adjustment_current_item_mismatch';
   end if;
   if not exists (
     select 1 from public.inventory_stock_adjustment_approvals a
@@ -215,6 +228,7 @@ begin
        and a.expected_stock_version = new.stock_version_before
        and a.counted_quantity = new.balance_after
        and a.decision = 'approved'
+       and a.approved_at <= new.created_at
   ) then
     raise exception 'stock_adjustment_approval_lineage_invalid';
   end if;
