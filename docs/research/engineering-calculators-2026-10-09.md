@@ -103,3 +103,26 @@ The feature branch has not been merged or deployed, migration replay has not bee
 **Test evidence:** 35/35 isolated JavaScript assertions passed, all 25 engineering keys appear in the additive SQL definition seed and all 25 accepted the generated HTML form's sample inputs. This does NOT establish a pnpm/Mocha CI pass, live migration correctness, accessibility compliance, financial/legal suitability or operational production readiness. Exact-head CI and protected main branch remain release requirements.
 
 **Next engineering process:** verify exact-commit GitHub Actions gates, replay migration on a disposable database, exercise authenticated cross-tenant save/read in the full Mocha/HTTP test lane, then require owner-approved deployment with rollback plan. Make one canonical currency and measurement-unit model before regulated engineering or payroll usage.
+
+## Phase 4: request-boundary hardening and deny-by-default (October 9, 2026)
+
+### Findings and repository changes
+- `getFormulaDefinition` no longer performs unguarded string conversion on JSON object keys. JSON objects with a noncallable `toString` field are refused as unknown formulas rather than throwing.
+- The evaluator rejects non-object `inputValues` (`null`, arrays, strings, numbers) using a structured `invalid_input` response before reading required fields. Whitespace-only required fields retain the existing `missing_inputs` outcome.
+- Engineering formula numbers now require bounded decimal or scientific notation (`1.25`, `.5`, `1e-8`), not JavaScript-specific hexadecimal, binary, octal or other implicit numeric conversions. Values remain subject to the formula-specific physical and economic bounds.
+- Generated HTML forms no longer try to stringify nested JSON objects or unbounded arrays; valid text, finite numeric values and bounded primitive arrays continue to work.
+- **Private route fail-closed**: missing `requireWorkspaceAccess` injection now produces a 503 refusal rather than installing an allow-all middleware. Saving and reading also require `req.sonaraUser.id`; a falsely permissive middleware cannot bypass that identity check. Public stateless formula evaluation is unaffected.
+- Supabase save metadata is bounded by type: nonstring source table falls back to the manual-input label; a nonstring UUID is set to null. Both avoid coercion failures before the database insert.
+- Added calculator unit/regression tests and HTTP integration tests for guard absence, bypassed middleware, malformed metadata and unchanged public evaluation.
+
+### References and access-control principles
+- OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+- OWASP Authorization Cheat Sheet (deny by default, permissions on every request): https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html
+- OWASP Authorization Patterns (enforcement close to protected resources): https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Patterns_Cheat_Sheet.html
+- NIST TN 1297, correlated measurement uncertainty propagation remains the scientific reference: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-law-propagation-uncertainty
+
+### Verification levels
+- Isolated Node-like execution of the engineering tests and generated public-form evaluations passes; this does **not** execute the full installed Express/Supertest/Mocha test suite.
+- A lightweight route-registration harness confirmed `503` on both private endpoints when the authorization middleware is absent. The new integration tests must still pass CI with the actual Express stack.
+- The branch had 12 GitHub Actions workflows queued/pending and no assigned runner for observed jobs. GitHub repo Actions run history shows a heavy run backlog; the cause is not yet proven and should not be labeled an application test failure without actual job logs.
+- Live Supabase migration replay, production RLS tests, branch protection and deployment remain blocked pending exact-head green CI and operational evidence. No production change was made.
