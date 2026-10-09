@@ -1,6 +1,6 @@
 # Release gates: source-license false positive, generated handoff count and remaining blockers
 **Verified October 9, 2026; source:** actual GitHub Actions job logs for PRs #574, #576 and #577.
-**Status:** two deterministic repository corrections prepared in a CI-only draft branch; full release remains blocked.
+**Status:** two deterministic documentation repairs plus staging-only read diagnostics; full release remains blocked.
 
 ## Evidence and decisions
 
@@ -38,3 +38,11 @@ Use a read-only staging query or dump to collect `schemaname`, `tablename`, `pol
 - CI jobs and the docs may change concurrently; rerun against the final commit before changing status.
 
 **Sources:** https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches and https://www.postgresql.org/docs/current/view-pg-policies.html.
+
+
+### Staging-only diagnostic addition
+
+The test-only SQL file `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` now emits a read-only diff of policy names and mismatched attribute labels (`policy_missing`, `permissive`, `roles`, `command`, `using_expression`, `check_expression`) before the existing `DO $drift$` guard raises an error. It deliberately does **not** print full policy predicates, expand grants, or apply the proposed changes on a drifting database. The guard still aborts on a nonzero difference and the file retains its final `ROLLBACK`.
+
+Success criterion for this diagnostic: on the next exact-head native replay, the job must show actionable table+policy mismatch classifications and still fail closed when drift exists. This is not a policy fix or a successful migration replay. No PostgreSQL execution of this edited probe was available from the connected tooling before PR creation.
+
