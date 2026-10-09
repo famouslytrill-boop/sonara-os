@@ -125,7 +125,6 @@ describe("cross-device workspace navigation", () => {
   });
 
   it("versions the page shell, fonts, and service-worker cache together", () => {
-    const version = "sonara-ui-20261008-v24-cross-device";
     const html = render({ authenticated: true });
     const sources = [html, workerSource, fontSource];
     for (const source of sources) {

@@ -41,7 +41,7 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
 DO $drift$
-DECLARE bad int;
+DECLARE bad int; mismatch_detail text;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -53,7 +53,37 @@ BEGIN
     OR p.qual IS DISTINCT FROM e.qualifier
     OR p.with_check IS DISTINCT FROM e.check_expr;
  IF bad <> 0 THEN
-   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad;
+   -- Report the dimensions of policy drift, not merely the number of rows.
+   -- Keep the guard fail-closed; this is a disposable database rollback probe.
+   SELECT string_agg(
+      format('%s.%s missing=%s permissive=%s roles=%s cmd=%s using=%s check=%s',
+        d.tbl, d.policy_name, d.actual_policy IS NULL,
+        d.actual_permissive IS DISTINCT FROM d.permissive,
+        d.actual_roles::text IS DISTINCT FROM d.roles,
+        d.actual_cmd IS DISTINCT FROM d.cmd,
+        d.actual_qual IS DISTINCT FROM d.qualifier,
+        d.actual_check IS DISTINCT FROM d.check_expr),
+      '; ')
+     INTO mismatch_detail
+   FROM (
+     SELECT e.*, p.policyname AS actual_policy,
+            p.permissive AS actual_permissive, p.roles AS actual_roles,
+            p.cmd AS actual_cmd, p.qual AS actual_qual,
+            p.with_check AS actual_check
+     FROM expected_rls_p1 e
+     LEFT JOIN pg_policies p
+       ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL
+       OR p.permissive IS DISTINCT FROM e.permissive
+       OR p.roles::text IS DISTINCT FROM e.roles
+       OR p.cmd IS DISTINCT FROM e.cmd
+       OR p.qual IS DISTINCT FROM e.qualifier
+       OR p.with_check IS DISTINCT FROM e.check_expr
+     ORDER BY e.tbl, e.policy_name
+     LIMIT 8
+   ) AS d;
+   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort', bad
+     USING DETAIL = COALESCE(mismatch_detail, 'No mismatch detail available');
  END IF;
  IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';

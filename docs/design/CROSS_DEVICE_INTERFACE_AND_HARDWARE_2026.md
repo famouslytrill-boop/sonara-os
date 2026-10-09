@@ -237,3 +237,13 @@ Official references:
 - Removed the unused SKIP_WAITING message receiver because a forced activation can mix old pages with a new worker and retire cache entries still needed by the prior release. Repository search found no caller for that message.
 - Three regression cases added for invalid stylesheet MIME, missing explicit public policy on offline HTML and absence of the force-activation message. Full exact-head CI, real browser lifecycle, and production evidence remain outstanding.
 - Source: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting ; https://web.dev/articles/service-worker-mindset
+
+
+## Phase 9: exact-head CI and guarded database diagnostics
+
+- The Node 24 lint gate identified an unused test-only `version` variable in `tests/cross-device-workspace-navigation.test.js`. The declaration was removed without altering the existing cache-version assertions.
+- Native replay blocked on 25 policy definition mismatches inside the rollback-only P1 InitPlan proposal. The preflight continues to abort on any mismatch, but now includes diagnostic dimensions for up to eight offending policies: missing policy, permissive mode, roles, command, USING and WITH CHECK.
+- This is a read-only diagnostic inside the original staging-only rollback transaction; no grant, migration, policy or production database object was modified.
+- Do not bypass this guard to obtain green CI. Use the next exact-head Node/PostgreSQL matrix results to decide whether the mismatch reflects representation differences or actual RLS changes; require owner/security review before any policy modification.
+- PostgreSQL pg_policies docs: https://www.postgresql.org/docs/current/view-pg-policies.html
+- Supabase RLS guidance: https://supabase.com/docs/guides/database/postgres/row-level-security
