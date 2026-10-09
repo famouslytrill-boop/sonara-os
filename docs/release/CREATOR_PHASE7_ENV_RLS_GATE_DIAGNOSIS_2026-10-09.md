@@ -36,3 +36,19 @@ This is a *test-fixture reconciliation*, not a production migration, bypass of t
 References:
 - Supabase RLS, grants and testing: https://supabase.com/docs/guides/database/postgres/row-level-security
 - PostgreSQL `pg_policies`: https://www.postgresql.org/docs/current/view-pg-policies.html
+
+## Follow-on policy proof, 2026-10-09
+
+**Native replay evidence (PostgreSQL 16, 17, 18):** once the 25 legacy-policy expectations were reconciled, the next preflight revealed that the assumed pair of `"Users can view own subscriptions"` policies does not exist in the current table. The live migration history produces **three different policies**, confirmed by the native log:
+
+| Policy | Roles | Command | Exact USING / WITH CHECK |
+| --- | --- | --- | --- |
+| `org members can read subscriptions` | `{public}` | SELECT | `((organization_id IS NOT NULL) AND is_org_member(organization_id))` / NULL |
+| `service role can manage subscriptions` | `{service_role}` | ALL | `true` / `true` |
+| `subscriptions_select_member` | `{authenticated}` | SELECT | `(is_org_member(organization_id) OR is_admin_or_founder())` / NULL |
+
+These three are **not identical duplicate authorizations**. The new replay fixture asserts all roles, actions and predicates exactly both before and after its dry-run phase, verifies the count is exactly three and deliberately executes **no DROP POLICY or ALTER POLICY**. Any changed policy remains blocking. This is a read-only attestation on the disposable replay database, not a new security grant.
+
+**Node test evidence after the environment fix:** the previous branch run reached Mocha and reported 15 failures. The cause was not just environment classification. Specific observed defects corrected on this draft branch are an unclassified advanced worldbuilding JSON-preview endpoint in the form-reachability inventory, POST test mocks erroneously checking nonexistent query filters rather than posted tenant identifiers, raw HTML metacharacters in authored Markdown exports, and a stale handoff test-file count of 513 vs the observed 525. A new SQL contract test initially counted 25+3 rows together; it now scopes the population to exactly 25.
+
+**Pending:** Current full CI and native PostgreSQL replay must independently prove these corrections. Do not describe previously failing suites as passing until a complete exact-head result reports success.
