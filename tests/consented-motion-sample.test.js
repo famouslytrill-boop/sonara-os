@@ -55,7 +55,7 @@ describe("consented bounded motion capture", () => {
     assert.ok(start >= 0 && end > start, "device feedback page block moved");
     const page = routes.slice(start, end);
 
-    assert.match(page, /permissionsPolicyFor\("device_feedback"\)/);
+    assert.match(page, /permissionsPolicyFor\(motionPermission\.ok \? "device_feedback" : "default"\)/);
     const policy = permissionsPolicyFor("device_feedback");
     assert.match(policy, /accelerometer=\(self\)/);
     assert.match(policy, /gyroscope=\(self\)/);
