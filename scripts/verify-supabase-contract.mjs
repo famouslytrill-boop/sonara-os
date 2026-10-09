@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { runtimeSourceFiles, blindnessReason } = require("../lib/sonara-runtime-source-files.cjs");
+const { PENDING_CREATOR_SCHEMA, inspectPendingCreatorSchema } = require("../lib/sonara-pending-creator-schema-contract.cjs");
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
@@ -1053,37 +1054,17 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-// Review-only Creator schema is not an applied migration. Allow exactly these
-// default-off adapters through the runtime inventory, not as deployed tables.
-const pendingCreatorContracts = [
-  ["creator_world_bibles","creator-world-bibles-2026-10-09.sql","SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED"],
-  ["creator_story_drafts","creator-story-draft-revisions-2026-10-09.sql","SONARA_STORY_REVISION_PERSISTENCE_ENABLED"],
-  ["creator_story_draft_revisions","creator-story-draft-revisions-2026-10-09.sql","SONARA_STORY_REVISION_PERSISTENCE_ENABLED"]
-];
-const pendingCreatorNames = new Set(pendingCreatorContracts.map(([name]) => name));
-const proposalExample = read(path.join(root, ".env.example"));
-const proposalRoutes = read(path.join(root, "routes/sonara-creator-project-routes.cjs"));
-if (pendingCreatorNames.size !== 3) fail("Creator proposal inventory is not distinct");
-for (const [name, file, flag] of pendingCreatorContracts) {
-  const source = path.join(root, "docs/sql-proposals", file);
-  if (!fs.existsSync(source)) { fail("missing Creator proposal: " + source); continue; }
-  const sql = read(source).toLowerCase();
-  if (!new RegExp("create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\." + name + "\\s*\\(").test(sql) ||
-      !sql.includes("alter table public." + name + " enable row level security;") ||
-      !sql.includes("revoke all on public." + name + " from public, anon, authenticated, service_role;"))
-    fail("Creator proposal missing DDL/RLS/grant-revocation contract: " + name);
-  if (new RegExp("create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\." + name + "\\s*\\(").test(allSql))
-    fail("Creator pending table now migrated: promote reviewed contract " + name);
-  if (!proposalExample.split("\n").includes(flag + "=false") || !proposalRoutes.includes(flag))
-    fail("Creator proposal not behind a default-off route flag: " + name);
-  const adapterPath = name === "creator_world_bibles"
-    ? "lib/sonara-world-bible-store.cjs" : "lib/sonara-interactive-story-store.cjs";
-  const adapterSource = read(path.join(root, adapterPath));
-  if (!adapterSource.includes('"' + name + '"'))
-    fail("Creator pending table lacks a matching server adapter: " + name);
-}
-// The story revision history constant is checked here even though it does
-// not match the runtime scanner's legacy *_TABLE pattern.
+// Proposed Creator tables do not belong in migration authority and are never
+// counted as deployed/ready. Review-only contracts are checked independently
+// for DDL, RLS, privilege revocation, server adapter, and disabled feature flag.
+const pendingCreatorNames = new Set(PENDING_CREATOR_SCHEMA.map((x) => x.table));
+for (const problem of inspectPendingCreatorSchema({
+  envExample: read(path.join(root, ".env.example")),
+  routeSource: read(path.join(root, "routes/sonara-creator-project-routes.cjs")),
+  migrationsSql: allSql,
+  readProposal: (file) => read(path.join(root, file)),
+  readAdapter: (file) => read(path.join(root, file))
+})) fail(problem);
 const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...INVENTORY_STOCK_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES, ...MARKETPLACE_SALE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
