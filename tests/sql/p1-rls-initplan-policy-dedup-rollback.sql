@@ -40,6 +40,29 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
+-- Read-only diagnostics from the same comparisons as the stop condition below.
+-- Output identifies failing attributes but intentionally excludes entire policy
+-- expressions from logs; the original fail-closed guard remains authoritative.
+-- This helps distinguish a missing policy from format/role/predicate drift.
+SELECT e.tbl AS table_name, e.policy_name,
+  CASE WHEN p.policyname IS NULL THEN 'policy_missing'
+       ELSE concat_ws(',',
+         CASE WHEN p.permissive IS DISTINCT FROM e.permissive THEN 'permissive' END,
+         CASE WHEN p.roles::text IS DISTINCT FROM e.roles THEN 'roles' END,
+         CASE WHEN p.cmd IS DISTINCT FROM e.cmd THEN 'command' END,
+         CASE WHEN p.qual IS DISTINCT FROM e.qualifier THEN 'using_expression' END,
+         CASE WHEN p.with_check IS DISTINCT FROM e.check_expr THEN 'check_expression' END)
+  END AS differing_attributes
+FROM expected_rls_p1 e LEFT JOIN pg_policies p
+  ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+WHERE p.policyname IS NULL
+   OR p.permissive IS DISTINCT FROM e.permissive
+   OR p.roles::text IS DISTINCT FROM e.roles
+   OR p.cmd IS DISTINCT FROM e.cmd
+   OR p.qual IS DISTINCT FROM e.qualifier
+   OR p.with_check IS DISTINCT FROM e.check_expr
+ORDER BY e.tbl, e.policy_name;
+
 DO $drift$
 DECLARE bad int;
 BEGIN
