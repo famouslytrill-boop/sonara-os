@@ -217,7 +217,7 @@ describe("a replayed Stripe event changes nothing twice", () => {
       assert.match(sql, /create or replace function public\.sonara_reject_stale_provider_event\(\)/);
       assert.match(sql, /new\.provider_event_at = old\.provider_event_at/);
       assert.match(sql, /old\.status = 'canceled' and new\.status <> 'canceled'/);
-      assert.match(sql, /new\.status := 'paused'/);
+      assert.match(sql, /new\.status := 'reconciliation_required'/);
       assert.match(sql, /new\.status := 'disabled'/);
       assert.match(sql, /same_second_conflict/);
       assert.match(sql, /return old/);
@@ -233,8 +233,8 @@ describe("a replayed Stripe event changes nothing twice", () => {
         "newer_stamped_terminal_canceled",
         "same_second_failure_past_due",
         "next_second_recovery_active",
-        "workspace_collision_paused_true",
-        "plan_collision_paused",
+        "workspace_collision_reconciliation_required_true",
+        "plan_collision_reconciliation_required",
         "entitlement_same_second_disabled",
         "entitlement_collision_disabled_true",
         "older_event_kept_active"
