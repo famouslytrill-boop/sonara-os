@@ -139,6 +139,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     if (!blocks.ok || blocks.rows.length > safety.MAX_BLOCKED || !safety.visibleDirectory([], blocks.rows).ok) {
       return failedPage(res, "Your blocked channels cannot be read just now. Nothing was changed.", 503);
     }
+    res.setHeader("Cache-Control", "private, no-store");
     const directory = await rest(config,
       `${DIRECTORY_TABLE}?select=channel_id,handle,title&limit=${DIRECTORY_CAP + 1}`);
     if (!directory.ok) return failedPage(res, "We could not load channel names. Your blocks are still in place.", 503);
@@ -580,7 +581,9 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       ? [brandCard(`${rows.length}${listed.rows.length > DIRECTORY_CAP ? "+" : ""} public ${rows.length === 1 ? "channel" : "channels"}`,
         "<ul>" + rows.map((row) => `<li><a href="/channels/${escapeHtml(enc(row.handle))}">${escapeHtml(row.title || row.handle)}</a>`
           + `${row.about ? ` -- ${escapeHtml(String(row.about).slice(0, 200))}` : ""}</li>`).join("") + "</ul>")]
-      : [brandCard("No public channels yet", "Businesses on SONARA One can start a channel from Growth Studio. When one is made public it is listed here.")];
+      : [brandCard("No channels shown",
+        blockRead.rows.length ? "Your block preferences hide the available channels in this view. Manage your blocks to show them again."
+          : "No public channels are available in this view yet.")];
     return publicPage(res, {
       eyebrow: "Growth Studio",
       surface: "marketing",
