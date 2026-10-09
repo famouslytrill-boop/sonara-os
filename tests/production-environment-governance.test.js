@@ -169,6 +169,52 @@ describe("production GitHub governance must be independently enforced", () => {
     assert.equal(result.code, "github_release_metadata_unavailable");
   });
 
+  it("keeps provider credentials out of job-wide scope and unrelated CI steps", () => {
+    const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
+      "controlled-production-deploy.yml"), "utf8");
+    const begin = workflow.indexOf("  validate-migrate-deploy:");
+    const stepsAt = workflow.indexOf("\n    steps:", begin);
+    assert.ok(begin >= 0 && stepsAt > begin);
+    const jobHeader = workflow.slice(begin, stepsAt);
+    const secrets = ["VERCEL_TOKEN", "SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"];
+    for (const key of secrets) {
+      assert.doesNotMatch(jobHeader, new RegExp("^      " + key + ":", "m"));
+    }
+
+    const expected = {
+      "Require protected production credentials":
+        ["VERCEL_TOKEN", "SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"],
+      "Verify production project identity": ["SUPABASE_ACCESS_TOKEN"],
+      "Link and preview production database migrations":
+        ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"],
+      "Pull production environment for configuration verification": ["VERCEL_TOKEN"],
+      "Synchronize verified Stripe runtime secret to Vercel production": ["VERCEL_TOKEN"],
+      "Record pre-migration rollback checkpoint":
+        ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"],
+      "Apply production database migrations": ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"],
+      "Deploy validated source to Vercel production": ["VERCEL_TOKEN"]
+    };
+    const matches = [...workflow.matchAll(/^      - name: (.+)$/gm)];
+    const seen = new Set();
+    for (let i = 0; i < matches.length; i++) {
+      const name = matches[i][1];
+      const section = workflow.slice(matches[i].index,
+        i + 1 < matches.length ? matches[i + 1].index : workflow.length);
+      const envHeader = /^        env:\n((?:          [A-Za-z_]+: .*\n)*)/m.exec(section);
+      const scoped = envHeader ? envHeader[1] : "";
+      const permitted = expected[name] || [];
+      for (const key of secrets) {
+        const actual = new RegExp("^          " + key + ":", "m").test(scoped);
+        assert.equal(actual, permitted.includes(key), name + " / " + key);
+        if (actual) {
+          assert.ok(scoped.includes(key + ": " + "$" + "{{ secrets." + key + " }}"));
+        }
+      }
+      if (permitted.length) seen.add(name);
+    }
+    assert.deepEqual([...seen].sort(), Object.keys(expected).sort());
+  });
+
   it("runs the governance check before production credentials and any migrations", () => {
     const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows",
       "controlled-production-deploy.yml"), "utf8");
