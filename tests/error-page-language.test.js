@@ -144,3 +144,34 @@ describe("the page shown when the browser is offline", () => {
     assert.deepEqual(unreachable, [], `the offline page links to pages that are not precached: ${unreachable.join(", ")}`);
   });
 });
+
+
+describe("generic offline HTML public-cache contract", () => {
+  it("marks only the fixed offline page public for credential-free service-worker installation", async () => {
+    const offline = await request(app).get("/offline").set("Accept", "text/html");
+    assert.equal(offline.status, 200);
+    assert.match(offline.headers["content-type"] || "", /^text\/html/i);
+    assert.match(offline.headers["cache-control"] || "", /(?:^|,)\s*public\s*(?:,|$)/i);
+    assert.doesNotMatch(offline.headers["cache-control"] || "", /no-store|private|no-cache/i);
+    assert.equal(offline.headers["set-cookie"], undefined);
+    assert.doesNotMatch(offline.headers.vary || "", /(?:^|,)\s*(?:cookie|authorization|\*)\s*(?:,|$)/i);
+  });
+
+  it("preserves no-store for ordinary parent and product HTML pages", async () => {
+    for (const path of ["/", "/pricing", "/business-builder", "/creator-studio", "/growth-studio"]) {
+      const page = await request(app).get(path).set("Accept", "text/html");
+      assert.equal(page.status, 200, path);
+      assert.match(page.headers["cache-control"] || "", /no-store/i, path);
+      assert.doesNotMatch(page.headers["cache-control"] || "", /(?:^|,)\s*public\s*(?:,|$)/i, path);
+    }
+  });
+
+  it("does not personalize the public offline fallback when a browser sends a cookie", async () => {
+    const anonymous = await request(app).get("/offline").set("Accept", "text/html");
+    const withCookie = await request(app).get("/offline").set("Accept", "text/html")
+      .set("Cookie", "sonara_test_session_should_be_ignored=dummy");
+    assert.equal(anonymous.status, 200);
+    assert.equal(withCookie.status, 200);
+    assert.equal(withCookie.text, anonymous.text, "public offline HTML must not vary by cookie");
+  });
+});
