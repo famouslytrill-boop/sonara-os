@@ -761,6 +761,9 @@ test.describe("cross-device adaptive workspace browser contract", () => {
   });  // This runs in an actual Playwright browser with a real service worker,
   // unlike the VM-only unit tests. No live sign-in or user data is involved.
   test("installed public worker isolates retired caches and private responses", async ({ browser }) => {
+    // Playwright's service-worker inspection support is Chromium-only.
+    // Firefox/WebKit remain covered by the existing standard browser suites.
+    test.skip(browser.browserType().name() !== "chromium", "Native service-worker lifecycle proof runs in Chromium");
     const context = await browser.newContext({ serviceWorkers: "allow" });
     try {
       const page = await context.newPage();
