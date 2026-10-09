@@ -173,6 +173,10 @@
 
   async function startCapture() {
     if (active || permissionPending) return;
+    if (config.applicationPermissionAllowed !== true) {
+      setStatus(config.applicationPermissionMessage || "Motion is off in Device permissions.");
+      return;
+    }
     if (!endpoint || !endpoint.startsWith("/")) {
       setStatus("Motion capture is not configured.");
       return;
@@ -248,4 +252,8 @@
 
   showCapabilities();
   setButtons(false);
+  if (config.applicationPermissionAllowed !== true) {
+    startButton.disabled = true;
+    setStatus(config.applicationPermissionMessage || "Motion is off in Device permissions.");
+  }
 })();
