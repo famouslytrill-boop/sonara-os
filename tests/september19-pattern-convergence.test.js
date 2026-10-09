@@ -98,6 +98,7 @@ const {
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 const { SONARA_BRAND_REGISTRY, getBrandProduct } = require("../lib/sonara-brand-registry.cjs");
 const { operationalTransitionCoordinator } = require("../lib/sonara-operational-transition-coordinator.cjs");
+const { createPostgresOperationalStore } = require("../lib/sonara-postgres-operational-store.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -666,7 +667,8 @@ describe("September 19 platform pattern convergence", () => {
     const approverId = "22222222-2222-4222-8222-222222222222";
     const command = {
       scope: "tenant", organizationId: org, expectedRevision: 7,
-      to: "paused", eventId: "evt_test_1", approvalId: "approval_test_1"
+      to: "paused", eventId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      approvalId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
     };
     let committed = {
       state: { scope: "tenant", organizationId: org, mode: "active", revision: 7 },
@@ -779,7 +781,8 @@ describe("September 19 platform pattern convergence", () => {
       [{ approval: { organizationId: "44444444-4444-4444-8444-444444444444" } },
         "server_validated", "approval_missing_expired_or_reused"],
       [{ approval: { expectedRevision: 6 } }, "server_validated", "approval_missing_expired_or_reused"],
-      [{ approval: { consumedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"]
+      [{ approval: { consumedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { revokedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"]
     ]) {
       const f = operationalCoordinatorFixture(settings);
       const result = await f.coordinator.transition({ session, command: f.command });
@@ -805,6 +808,19 @@ describe("September 19 platform pattern convergence", () => {
       assert.equal(f.view().state.revision, 7);
       assert.equal(f.view().approval.consumedAtMs, null);
       assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("refuses forged non-UUID operational event and approval identifiers", async () => {
+    const f = operationalCoordinatorFixture();
+    for (const key of ["eventId", "approvalId"]) {
+      const command = { ...f.command, [key]: "arbitrary_opaque_id" };
+      const result = await f.coordinator.transition({
+        session: "server_validated", command
+      });
+      assert.equal(result.applied, false);
+      assert.equal(result.reason, "invalid_operational_command");
+      assert.equal(f.view().state.revision, 7);
     }
   });
 
@@ -850,6 +866,109 @@ describe("September 19 platform pattern convergence", () => {
       session: "server_validated", command: { ...start.command, to: "active" }
     });
     assert.equal(startResult.reason, "policy_denied_no_op_transition");
+  });
+
+  it("binds all PostgreSQL state and approval identifiers, preserving one connection", async () => {
+    const sqlLog = [];
+    let released = 0;
+    const org = "33333333-3333-4333-8333-333333333333";
+    const approval = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const event = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const actor = "11111111-1111-4111-8111-111111111111";
+    const client = {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (/^select floor\(extract\(epoch from clock_timestamp/.test(sql))
+          return { rowCount: 1, rows: [{ now_ms: "2000" }] };
+        if (/^select id, scope, organization_id, mode/.test(sql))
+          return { rowCount: 1, rows: [{ scope: "tenant", organization_id: org,
+            mode: "active", revision: "7" }] };
+        if (/^select a.id, a.status/.test(sql))
+          return { rowCount: 1, rows: [{ id: approval, status: "approved",
+            consumed_at: null, revoked_at: null, scope: "tenant",
+            organization_id: org, from_mode: "active", to_mode: "paused",
+            expected_revision: "7", approved_by: "22222222-2222-4222-8222-222222222222",
+            issued_ms: "1900", expires_ms: "2600" }] };
+        if (/^(update|insert) sonara_operations/.test(sql))
+          return { rowCount: 1, rows: [{ id: "fixture_id" }] };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    };
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return client; } }, environmentKey: "staging"
+    });
+    const state = await store.withTransaction(async tx => {
+      assert.equal(await tx.nowMs(), 2000);
+      assert.equal((await tx.readStateForUpdate({ scope: "tenant", organizationId: org })).revision, 7);
+      const approved = await tx.readApprovalForUpdate({
+        approvalId: approval, scope: "tenant", organizationId: org
+      });
+      assert.equal(approved.id, approval);
+      assert.equal(approved.approvedBy, "22222222-2222-4222-8222-222222222222");
+      assert.equal(await tx.consumeApproval({ approvalId: approval, eventId: event,
+        scope: "tenant", organizationId: org, expectedRevision: 7 }), 1);
+      assert.equal(await tx.compareAndSwapState({ scope: "tenant", organizationId: org,
+        expectedMode: "active", expectedRevision: 7, nextMode: "paused", nextRevision: 8 }), 1);
+      assert.equal(await tx.appendAuditEvent({ eventId: event, approvalId: approval, actorId: actor,
+        scope: "tenant", organizationId: org, from: "active", to: "paused", revision: 8 }), 1);
+      return "prepared";
+    });
+    assert.equal(state, "prepared");
+    assert.equal(released, 1);
+    assert.equal(sqlLog[0].sql, "BEGIN");
+    assert.equal(sqlLog[sqlLog.length - 1].sql, "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    const secured = sqlLog.filter(x => x.values.includes(org));
+    assert.equal(secured.length, 5);
+    for (const q of secured) {
+      assert.equal(q.sql.includes(org), false);
+      assert.equal(q.values.includes("staging"), true);
+      assert.ok(q.sql.includes("sonara_operations."));
+    }
+    assert.equal(sqlLog.some(x => x.sql.includes("is not distinct from")), true);
+    assert.equal(sqlLog.some(x => x.sql.includes("revision + 1 = $7::bigint")), true);
+    assert.equal(sqlLog.some(x => x.sql.includes("on conflict do nothing returning id")), true);
+  });
+
+  it("rolls back PostgreSQL adapter callbacks and flags uncertain COMMIT results", async () => {
+    const runs = [];
+    for (const stage of ["callback", "commit"]) {
+      const statements = [];
+      let released = 0;
+      const store = createPostgresOperationalStore({
+        pool: { async connect() { return {
+          async query(sql) {
+            statements.push(sql);
+            if (stage === "commit" && sql === "COMMIT") {
+              const err = new Error("lost_commit_ack_with_possible_write");
+              err.code = "ECONNRESET";
+              throw err;
+            }
+            return { rowCount: 0, rows: [] };
+          },
+          release() { released++; }
+        }; } },
+        environmentKey: "staging"
+      });
+      let error;
+      try {
+        await store.withTransaction(async () => {
+          if (stage === "callback") throw new Error("failed_audit_write");
+          return "ready";
+        });
+      } catch (e) { error = e; }
+      assert.ok(error);
+      assert.equal(error.code === "SONARA_COMMIT_OUTCOME_UNKNOWN", stage === "commit");
+      assert.equal(statements.includes("ROLLBACK"), true);
+      assert.equal(released, 1);
+      runs.push(statements);
+    }
+    assert.equal(runs[0].includes("COMMIT"), false);
+    assert.equal(runs[1].includes("COMMIT"), true);
+    assert.throws(() => createPostgresOperationalStore({
+      pool: { connect() {} }, environmentKey: "random_schema"
+    }), /trusted_postgres_pool_and_environment_required/);
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
