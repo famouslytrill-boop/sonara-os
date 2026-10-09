@@ -69,6 +69,7 @@ describe("consented bounded motion capture", () => {
     assert.match(client, /sampleWindowMs = Math\.min\(5000/);
     assert.match(client, /sampleIntervalMs = Math\.min\(1000, Math\.max\(100/);
     assert.match(client, /maxSamples = Math\.min\(50/);
+    assert.ok(client.includes('if (raw === null || raw === undefined || raw === "") continue;'));
     assert.doesNotMatch(client, /setInterval\(/);
   });
 
