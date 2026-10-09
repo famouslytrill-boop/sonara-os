@@ -34,14 +34,57 @@ function parseForm(body) {
   return input;
 }
 function savedInput(raw) {
-  // No text supplied exclusively for reference comparison is persisted.
-  const clean={kind:raw.kind,title:raw.title,body:raw.body||"",language:raw.language||"en",
-    topic:raw.topic||"",platform:raw.platform||"",style:raw.style||""};
-  for(const key of ["durationSeconds","sceneCount"])if(raw[key]!==undefined)clean[key]=raw[key];
-  if(raw.assets)clean.assets=raw.assets;
-  if(raw.travel)clean.travel=raw.travel;
+  // Only fields validated by draft() may be persisted. Never copy arbitrary
+  // nested user-provided objects or passage comparison source text.
+  const clean={
+    kind:raw.kind,title:raw.title,body:raw.body||"",language:raw.language||"en",
+    topic:raw.topic||"",platform:raw.platform||"",style:raw.style||""
+  };
+  for(const key of ["durationSeconds","sceneCount"])
+    if(raw[key]!==undefined) clean[key]=raw[key];
+  if(Array.isArray(raw.assets)){
+    clean.assets=raw.assets.map(asset=>({
+      name:asset.name,status:asset.status,evidence:asset.evidence||""
+    }));
+  }
+  if(raw.travel){
+    const t=raw.travel;
+    clean.travel={
+      destination:t.destination,country:t.country,startDate:t.startDate,
+      endDate:t.endDate,currency:t.currency,
+      stops:Array.isArray(t.stops)?t.stops.slice():[],
+      budget:Array.isArray(t.budget)?t.budget.map(b=>({category:b.category,amount:b.amount})):[]
+    };
+  }
   return clean;
 }
+function exportMarkdown(row) {
+  const preview=row.output_payload||{};
+  const original=row.input_payload||{};
+  const text=(s)=>String(s??"");
+  const lines=[
+    "# "+text(original.title||"Untitled draft"),
+    "",
+    "> SONARA Creator Studio — private workspace draft (not published)",
+    "> Format: "+text(original.kind||"note"),
+    "",
+    text(original.body||""), ""
+  ];
+  if(preview.storyboard?.shotList){
+    lines.push("## Storyboard", "",text(preview.storyboard.shotList).split("  ||  ").join("\n"),"");
+  }
+  if(preview.travel){
+    lines.push("## Travel research checklist", "",
+      "Destination: "+text(preview.travel.destination)+", "+text(preview.travel.country),
+      "Dates: "+text(preview.travel.startDate)+" – "+text(preview.travel.endDate),
+      "User-estimated budget: "+text(preview.travel.budget?.total)+" "+text(preview.travel.budget?.currency),
+      "No live travel advisories, booking availability, prices or entry rules were verified.", "");
+  }
+  lines.push("## Copyright and publication review","",
+    "Rights status: manual review required. This draft has not been published.","");
+  return lines.join("\n");
+}
+
 function esc(v) {
   return String(v??"").replace(/[&<>"']/g,c=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -215,11 +258,23 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
   app.get(ROUTE+"/drafts/:id",on,creator,noCache,async(req,res)=>{
     const found=await readOne(req,req.params.id);
     if(!found.ok)return res.status(found.status).type("html").send(htmlPage({},null,"Draft not available.",null));
-    return res.status(200).type("html").send(htmlPage(found.record.input_payload,
-      found.record.output_payload,"Saved revision from "+String(found.record.created_at||"the workspace"),null));
+    const text=htmlPage(found.record.input_payload,
+      found.record.output_payload,"Saved revision from "+String(found.record.created_at||"the workspace"),null);
+    const download='<p><a href="'+ROUTE+'/drafts/'+esc(req.params.id)+'/export.md">Download Markdown revision</a></p>';
+    return res.status(200).type("html").send(text.replace("</main>",download+"</main>"));
   });
   app.get(API+"/drafts",on,creator,noCache,async(req,res)=>{
     const read=await list(req);res.status(read.ok?200:read.status).json(read);
+  });
+  app.get(API+"/drafts/:id",on,creator,noCache,async(req,res)=>{
+    const record=await readOne(req,req.params.id);
+    return res.status(record.ok?200:record.status).json(record);
+  });
+  app.get(ROUTE+"/drafts/:id/export.md",on,creator,noCache,async(req,res)=>{
+    const record=await readOne(req,req.params.id);
+    if(!record.ok)return res.status(record.status).json({ok:false,code:record.code});
+    res.setHeader("Content-Disposition",'attachment; filename="sonara-editorial-draft.md"');
+    return res.status(200).type("text/markdown; charset=utf-8").send(exportMarkdown(record.record));
   });
   app.post(API+"/preview",on,creator,limiter,noCache,jsonOnly,(req,res)=>{
     const result=draft(req.body);
