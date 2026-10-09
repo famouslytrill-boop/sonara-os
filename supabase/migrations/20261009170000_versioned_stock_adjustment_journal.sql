@@ -24,7 +24,7 @@ create table public.inventory_stock_events (
   balance_before numeric not null,
   balance_after numeric not null,
   delta_quantity numeric not null,
-  recorded_at timestamptz not null default now(),
+  recorded_at timestamptz not null default clock_timestamp(),
   posting_xid xid8 not null default pg_current_xact_id(),
   constraint inventory_stock_event_quantity_math check (
     delta_quantity = balance_after - balance_before
@@ -62,10 +62,28 @@ create table public.inventory_stock_adjustment_approvals (
   counted_quantity numeric not null check (counted_quantity>=0 and counted_quantity<=999999999.999
     and counted_quantity=trunc(counted_quantity,3) and counted_quantity::text not in ('NaN','Infinity','-Infinity')),
   decision text not null check (decision='approved'),
-  approved_at timestamptz not null default now(),
+  approved_at timestamptz not null default clock_timestamp(),
   constraint stock_approval_distinct_people check (actor_user_id<>reviewer_user_id),
   constraint stock_approval_request_once unique(organization_id,idempotency_key)
 );
+
+-- A reviewer cannot backdate approval by supplying their own timestamp
+-- through a privileged insert. PostgreSQL now() would also be insufficient
+-- to order two statements inside one transaction; clock_timestamp() records
+-- the actual insert time (subject to clock discipline).
+create function public.sonara_stamp_stock_review_approval()
+returns trigger language plpgsql security invoker set search_path = ''
+as $function$
+begin
+  new.approved_at := clock_timestamp();
+  return new;
+end;
+$function$;
+revoke all on function public.sonara_stamp_stock_review_approval()
+  from public,anon,authenticated;
+create trigger inventory_stock_approval_stamped
+before insert on public.inventory_stock_adjustment_approvals
+for each row execute function public.sonara_stamp_stock_review_approval();
 
 -- Immutable correction evidence is distinct from the universal change audit.
 create table public.inventory_stock_adjustments (
