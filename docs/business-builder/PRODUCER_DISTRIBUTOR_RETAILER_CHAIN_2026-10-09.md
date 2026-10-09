@@ -478,6 +478,60 @@ harness. Native PostgreSQL execution and the full repo CI are **unverified**.
 **Production is unchanged.** No live tables, approval rows, stock balances
 or provider payments were modified. Code and tests remain in draft PR #566.
 
+## Phase 10: native replay release-chain failure investigation and repair
+
+**Actual evidence, 2026-10-09:** Earlier PR #566 head
+`ec6b417eee90c65befe3a034b98244abf83bab33` completed GitHub
+Actions. All 9 combinations of Node 22/24/26 and PostgreSQL 16/17/18 in
+"Native migration replay" failed at the **same pre-existing P1 policy
+rewrite probe**, before reaching the new procurement and stock fixtures:
+
+```text
+ERROR: the behaviour probe "P1 RLS initplan and policy-overlap guarded rollback proof" would not run
+ERROR: P1 policy definition drift on 25 policies; abort
+```
+
+This is **not** a database permissions fix to be made by broadening RLS.
+The old probe expects 25 historical policies with PUBLIC service access
+and unoptimized `auth.role()` or `auth.uid()` predicates. The
+**current** schema instead has service-role-only `ALL/true/true`
+policies for 21 service access rules and exact user-ID-scoped scalar
+InitPlans for 4 user read policies. Supabase `pg_policies` confirmed the
+25 modern identities in a **read-only** SQL comparison: 25 examined,
+0 mismatched.
+
+**Repair in source:** A new
+`tests/sql/p1-current-policy-contract.sql` strictly checks the current
+25 policy names, full role scopes, command types, predicates, and two
+unchanged subscription policies. Missing or widened policy definitions
+raise a hard error. `scripts/verify-migration-replay.mjs` now runs this
+attestation in native PostgreSQL replay. The historical, rolled-back
+rewrite experiment is preserved as an explicit pre-hardening-only
+fixture, not silently modified to weaken checks. The new
+`tests/p1-current-policy-contract.test.js` verifies that this gate
+cannot shrink its expected rows or accidentally re-enable a policy
+rewrite. Four source contract assertions passed.
+
+**Additional GitHub CI errors on the previous head:** Main CI and
+Node-compatibility jobs stopped in an applied-migration checksum
+self-test, because the two new draft migrations were not listed in
+`supabase/applied-migration-checksums.json`. Both were pinned using
+SHA-256 after validating that the hashing procedure reproduced an
+existing migration's stored checksum; **historical checksums were
+unchanged**. The earlier test failure also caused an unrelated
+`after()` cleanup to invoke `rmSync(undefined)`, masking the initial
+error. Teardown now checks whether its temporary working directory
+exists before removing it.
+
+**Verification boundaries:** The live Supabase query proves only that
+the 25-policy baseline is consistent on the connected project; it does
+not prove the new standalone native PostgreSQL fixture or the
+unapplied stock migration works. All 9 earlier native replay failures
+occurred before procurement and stock SQL was exercised. The PR must
+remain a draft until fresh **exact-head** full CI, native PostgreSQL
+replay, cross-tenant and concurrency tests, controlled rollout and
+release approval actually pass.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
