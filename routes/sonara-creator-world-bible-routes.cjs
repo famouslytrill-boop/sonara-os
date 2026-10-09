@@ -14,7 +14,7 @@ module.exports = function registerCreatorWorldBibleRoutes(app, deps) {
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const enabled = deps.worldStorageEnabled === true || (deps.worldStorageEnabled === undefined
     && process.env.SONARA_CREATOR_WORLD_STORAGE_ENABLED === "true");
-  const store = deps.worldBibleStore || createCreatorWorldBibleStore({ projectStore, supabaseHeaders, fetch: deps.fetch });
+  const store = enabled ? (deps.worldBibleStore || createCreatorWorldBibleStore({ projectStore, supabaseHeaders, fetch: deps.fetch })) : null;
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
   const unavailable = { ok: false, status: 503, code: "world_storage_not_enabled",
