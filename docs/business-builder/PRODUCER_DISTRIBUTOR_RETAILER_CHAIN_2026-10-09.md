@@ -15,7 +15,7 @@ GS1 GTIN, unit, lot/serial provenance and owner-specific locations. Separate the
 seller's dispatch from the buyer's receipt and separate financial settlement from
 physical acceptance.
 
-\`\`\`text
+```text
 producer: material availability → approved production run → quality release
       → outbound sales order / shipment → dispatch evidence
 distributor: independently approved trading partner → PO → incoming ASN
@@ -25,7 +25,7 @@ retailer: approved supplier → replenishment draft → PO → goods receipt
       → available-to-promise → POS / online order → fulfillment → return
 shared: identity + custody events + immutable receipts + scoped permissions
       + audit trails + external payment references + reconciliation
-\`\`\`
+```
 
 A B2B transfer across organizations is **not** an internal warehouse transfer.
 Each organization owns its own inventory and accounting books. Never grant a
@@ -34,27 +34,27 @@ product, purchase-order or shipment ID.
 
 ## Implemented deterministic boundary
 
-\`lib/sonara-physical-supply-chain.cjs\` implements five pure functions:
+`lib/sonara-physical-supply-chain.cjs` implements five pure functions:
 
 | Function | Role | Guarantee / boundary |
 | --- | --- | --- |
-| \`isValidGtin\` | All | Validates 8/12/13/14-digit GTIN check digits; does not issue or verify ownership of a GTIN |
-| \`normalizeTradeItem\` | All | Preserves SKU/GTIN/lot/unit without inventing GS1 IDs |
-| \`proposeProductionRun\` | Producer | Computes BOM base-unit material requirements, duplicate detection and shortfalls without consuming inventory |
-| \`proposeShipmentReceipt\` | Distributor and buyer | Checks lot/quantity consistency, partial receipts and idempotency payload conflicts against an authoritative receipt snapshot; never writes a stock movement |
-| \`proposeReplenishment\` | Retailer | Computes stock available to promise and a draft reorder quantity without creating a PO or spending money |
+| `isValidGtin` | All | Validates 8/12/13/14-digit GTIN check digits; does not issue or verify ownership of a GTIN |
+| `normalizeTradeItem` | All | Preserves SKU/GTIN/lot/unit without inventing GS1 IDs |
+| `proposeProductionRun` | Producer | Computes BOM base-unit material requirements, duplicate detection and shortfalls without consuming inventory |
+| `proposeShipmentReceipt` | Distributor and buyer | Checks lot/quantity consistency, partial receipts and idempotency payload conflicts against an authoritative receipt snapshot; never writes a stock movement |
+| `proposeReplenishment` | Retailer | Computes stock available to promise and a draft reorder quantity without creating a PO or spending money |
 
-The corresponding tests are \`tests/physical-supply-chain.test.js\`.
+The corresponding tests are `tests/physical-supply-chain.test.js`.
 Count quantities are nonnegative safe integers measured in **one explicit base
 unit per stock item**. Gram/ml/each conversion must occur in a separately reviewed
 unit-of-measure contract; never silently mix kilograms, grams, cases and units.
 
-\`available_to_promise = max(0, on_hand - reserved - quarantined - safety_stock)\`
+`available_to_promise = max(0, on_hand - reserved - quarantined - safety_stock)`
 
-\`projected_available = available_to_promise + approved_incoming\`
+`projected_available = available_to_promise + approved_incoming`
 
-\`draft_reorder = projected_available <= reorder_point
-  ? max(0, target_stock - projected_available) : 0\`
+`draft_reorder = projected_available <= reorder_point
+  ? max(0, target_stock - projected_available) : 0`
 
 Incoming quantities must be undelivered, approved and not double-counted as
 on-hand. Quarantined and reserved values must refer to non-overlapping stock.
@@ -69,20 +69,20 @@ against the live migration history before authoring an **append-only** change.
 These records are conceptual; do not create duplicates if source tables already
 provide the required contract:
 
-- \`trading_partner_grants\`: organization, counterparty, scope,
+- `trading_partner_grants`: organization, counterparty, scope,
   status, approver, expiry; each party independently authorizes data exchange.
-- \`product_lots\`: organization, inventory product, lot/serial,
+- `product_lots`: organization, inventory product, lot/serial,
   producer reference, quantity unit, expiry, QC/quarantine status.
-- \`b2b_shipments\` and \`b2b_shipment_lines\`: seller-owned dispatch
+- `b2b_shipments` and `b2b_shipment_lines`: seller-owned dispatch
   linked to a seller order, product version/identity and shipping label/SSCC.
-- \`b2b_receipt_lines\`: buyer-owned immutable accepted/rejected quantities,
+- `b2b_receipt_lines`: buyer-owned immutable accepted/rejected quantities,
   server-issued receipt ID, provider/actor evidence and idempotency key.
-- \`inventory_ledger_entries\`: immutable tenant/location/product/lot deltas
+- `inventory_ledger_entries`: immutable tenant/location/product/lot deltas
   with event type, source, timestamp, actor, correlation ID and reversal link.
-- \`b2b_invoice_matches\`: separate PO, receipt, invoice, tax/currency and
+- `b2b_invoice_matches`: separate PO, receipt, invoice, tax/currency and
   verified external-payment status; never represent a self-reported transfer as paid.
 
-Every \`organization_id\` foreign key and row-level security policy must be
+Every `organization_id` foreign key and row-level security policy must be
 tenant safe. For multi-tenant references use matching composite
 organization/record keys where the existing schema allows. Revoke direct
 authenticated writes to authoritative stock and receipts. Deny browser-supplied
