@@ -304,6 +304,88 @@ select pg_temp.require_true(
   'post-factum approval did not rewrite the ledger');
 
 
+
+-- An authorized employee queues an immutable physical count. Only a separate
+-- active owner can approve and post it in the same transactional RPC call.
+insert into public.inventory_items(id,organization_id,name,quantity,unit,status)
+values ('25000000-0000-4000-8000-000000000013',
+  '25000000-0000-4000-8000-000000000003','Reviewed stock',10,'each','active');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,9)->>'code')='review_requested',
+  'employee request is durable but does not adjust stock');
+select pg_temp.require_true(
+  (select stock_version=0 and quantity=10 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013')
+  and (select count(*)=1 from public.inventory_stock_count_requests
+    where organization_id='25000000-0000-4000-8000-000000000003'
+      and inventory_item_id='25000000-0000-4000-8000-000000000013'),
+  'submission did not authorize a stock mutation');
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,9)->>'code')='already_requested',
+  'identical worker retry does not create a second review');
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,8)$q$,
+  'stock_count_request_key_conflict');
+
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key='employee-count-001'),
+    '25000000-0000-4000-8000-000000000002')->>'code')='adjustment_recorded',
+  'independent owner review posts an atomic correction');
+select pg_temp.require_true(
+  (select quantity=9 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013')
+  and (select count(*)=1 from public.inventory_stock_adjustments a
+    join public.inventory_stock_adjustment_approvals r on r.id=a.approval_id
+    join public.inventory_stock_count_requests q on q.id=r.stock_count_request_id
+    where a.inventory_item_id='25000000-0000-4000-8000-000000000013'
+      and q.actor_user_id='25000000-0000-4000-8000-000000000001'
+      and r.reviewer_user_id='25000000-0000-4000-8000-000000000002'),
+  'full actor request, reviewer decision and stock posting lineage');
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key='employee-count-001'),
+    '25000000-0000-4000-8000-000000000002')->>'code')='already_recorded',
+  'reviewer retry posts no duplicate movement');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000002',
+    'owner-self-001',1,8)->>'code')='review_requested',
+  'owner may submit count but cannot approve the same count');
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key='owner-self-001'),
+    '25000000-0000-4000-8000-000000000002')$q$,
+  'stock_review_self_approval_forbidden');
+select pg_temp.require_true(
+  (select quantity=9 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013'),
+  'self-review did not mutate stock');
+
+
 reset role;
 select pg_temp.require_true(
   (select quantity=5 from public.inventory_items
