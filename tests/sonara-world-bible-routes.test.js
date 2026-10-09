@@ -8,8 +8,10 @@ const register = require("../routes/sonara-creator-project-routes.cjs");
 const PID = "00000000-0000-4000-8000-000000000099";
 const UID = "00000000-0000-4000-8000-000000000001";
 const ORG = "00000000-0000-4000-8000-000000000002";
-function setup(enabled = true, interactive = false) {
+function setup(enabled = true, interactive = false, storyPersistent = false) {
   const rows = [];
+  const storyRevisions = [];
+  let latestStory = null;
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
@@ -20,7 +22,38 @@ function setup(enabled = true, interactive = false) {
       ctx: { organizationId: ORG, user: { id: UID }, config: { url: "https://db.example", serviceKey: "PRIVATE_SECRET" } } };
   } };
   async function fetch(url, opts = {}) {
+    if (url.endsWith("/rpc/sonara_save_story_draft")) {
+      const rpc = JSON.parse(opts.body);
+      const now = "2026-10-09T20:00:00Z";
+      if (rpc.p_organization_id !== ORG || rpc.p_project_id !== PID ||
+        rpc.p_expected_revision !== (latestStory?.revision || 0) ||
+        (latestStory && latestStory.world_fingerprint !== rpc.p_world_fingerprint)) {
+        return { ok: false, status: 409 };
+      }
+      latestStory = { project_id: PID, organization_id: ORG,
+        revision: rpc.p_expected_revision + 1, fingerprint: rpc.p_fingerprint,
+        world_fingerprint: rpc.p_world_fingerprint, story: rpc.p_story,
+        updated_at: now, created_at: now };
+      storyRevisions.push({ ...latestStory });
+      return { ok: true, status: 200, json: async () => [{
+        revision: latestStory.revision, fingerprint: latestStory.fingerprint,
+        world_fingerprint: latestStory.world_fingerprint, updated_at: now
+      }] };
+    }
     const parsed = new URL(url);
+    if (url.includes("/creator_story_drafts?")) {
+      assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
+      assert.equal(parsed.searchParams.get("project_id"), "eq." + PID);
+      return { ok: true, status: 200, json: async () => latestStory ? [latestStory] : [] };
+    }
+    if (url.includes("/creator_story_draft_revisions?")) {
+      assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
+      assert.equal(parsed.searchParams.get("project_id"), "eq." + PID);
+      const exact = parsed.searchParams.get("revision");
+      const list = exact ? storyRevisions.filter((x) => x.revision === Number(exact.slice(3)))
+        : [...storyRevisions].reverse().slice(0, Number(parsed.searchParams.get("limit") || 25));
+      return { ok: true, status: 200, json: async () => list };
+    }
     assert.equal(parsed.searchParams.get("organization_id"), "eq." + ORG);
     const existing = rows[0];
     if (!opts.method) return { ok: true, status: 200, json: async () => existing ? [existing] : [] };
@@ -40,13 +73,14 @@ function setup(enabled = true, interactive = false) {
     projectStore: db, supabaseHeaders: () => ({ apikey: "PRIVATE_SECRET" }), fetch,
     worldBiblePersistenceEnabled: enabled,
     interactiveDraftPreviewEnabled: interactive,
+    storyRevisionPersistenceEnabled: storyPersistent,
     requirePaidOrOwnerAccess: () => (req, res, next) => req.get("x-paid") ? next() : res.status(403).json({ ok: false }),
     wantsJson: () => true, escapeHtml: esc,
     brandCard: (name, body) => `<article>${esc(name)} ${esc(body)}</article>`,
     linkAction: (url, title) => `<a href="${esc(url)}">${esc(title)}</a>`,
     layout: ({ title, body, sections = [] }) => `<!doctype html><title>${esc(title)}</title><p>${esc(body)}</p>${sections.join("")}`
   });
-  return { app, rows };
+  return { app, rows, storyRevisions, get latestStory() { return latestStory; } };
 }
 const draft = { title: "Draft", medium: "film", entities: [], scenes: [{ id: "one", title: "Opening", durationSeconds: 60 }], resources: {} };
 
