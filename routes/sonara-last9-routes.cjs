@@ -37,6 +37,7 @@ const recordArchive = require("../lib/sonara-record-archive.cjs");
 const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
+const { normalizeMotionSample } = require("../lib/sonara-motion-sample.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -1979,18 +1980,29 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   });
 
   app.get("/settings/device-feedback", requireCustomer, (req, res) => {
+    // Device motion is a powerful sensor surface. Keep the site-wide default
+    // narrow and allow accelerometer/gyroscope only on this signed-in page,
+    // where capture still requires a visible user action and browser permission.
+    res.set("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self), accelerometer=(self), gyroscope=(self)");
+    const motionConfig = JSON.stringify({
+      endpoint: "/api/motion/events",
+      sampleWindowMs: 5000,
+      sampleIntervalMs: 100,
+      maxSamples: 50
+    }).replaceAll("<", "\\u003c");
     return res.status(200).type("html").send(ui.layout({
       title: "Device Feedback",
       eyebrow: "Premium app feel",
       heading: "Sound, Vibration, Motion, and Location",
       body: "Test supported device features. Nothing starts automatically. Sounds, vibration, motion, and GPS need user action and browser permission.",
       sections: [
-        `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" onclick="window.SONARA?.sensoryDevice?.feedback('success')">Test success feedback</button><p class="fine" id="deviceCaps"></p></div>`,
+        `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" data-sonara-feedback-test>Test success feedback</button><p class="fine" role="status" aria-live="polite" data-sonara-feedback-status></p><p class="fine" data-sonara-device-capabilities></p></div>`,
+        `<div class="card"><h2>Record one motion sample</h2><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p></div>`,
         ui.card("Privacy", "Location and motion data should be used only for clock-ins, job-site check-ins, routes, inspections, delivery stops, and approved creator cue workflows."),
         ui.card("Fallbacks", "If vibration, motion, or GPS is unsupported, the app must show a plain setup or unsupported message.")
       ],
       actions: [ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
-    }).replace("</body>", `<script src="/sensory-device-client.js"></script><script>if(window.SONARA&&SONARA.sensoryDevice){document.getElementById('deviceCaps').textContent=JSON.stringify(SONARA.sensoryDevice.supports());}</script></body>`));
+    }).replace("</body>", '<script src="/sensory-device-client.js"></script><script src="/sonara-motion-capture.js"></script></body>'));
   });
 
   Object.entries(RESOURCE_MAP).forEach(([path, resource]) => registerRestResource(app, path, resource, deps, requireBusinessManager));
@@ -2225,21 +2237,45 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+
+    const normalized = normalizeMotionSample(req.body || {});
+    if (!normalized.ok) return res.status(400).json(normalized);
+
+    // Keep metadata as evidence about the bounded sample, not as an arbitrary
+    // client-controlled telemetry bag. Counts/timing are capped to the exact
+    // client contract and the precision is always server-owned.
+    const incomingMetadata = sanitizeObject(req.body.metadata);
+    const boundedInteger = (value, min, max) => {
+      const number = Number(value);
+      return Number.isInteger(number) && number >= min && number <= max ? number : null;
+    };
+    const metadata = {
+      aggregation: incomingMetadata.aggregation === "mean" ? "mean" : "summary",
+      sample_count: boundedInteger(incomingMetadata.sample_count, 1, 50),
+      sample_window_ms: boundedInteger(incomingMetadata.sample_window_ms, 1000, 5000),
+      sample_interval_ms: boundedInteger(incomingMetadata.sample_interval_ms, 100, 1000),
+      precision_step: normalized.precisionStep,
+      source_page: incomingMetadata.source_page === "settings_device_feedback"
+        ? "settings_device_feedback"
+        : "other_explicit_client"
+    };
+
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
-      event_type: sanitizeChoice(req.body.event_type, "device_motion"),
-      alpha: toNumberOrNull(req.body.alpha),
-      beta: toNumberOrNull(req.body.beta),
-      gamma: toNumberOrNull(req.body.gamma),
-      acceleration_x: toNumberOrNull(req.body.acceleration_x || req.body.accelerationX),
-      acceleration_y: toNumberOrNull(req.body.acceleration_y || req.body.accelerationY),
-      acceleration_z: toNumberOrNull(req.body.acceleration_z || req.body.accelerationZ),
-      rotation_alpha: toNumberOrNull(req.body.rotation_alpha || req.body.rotationAlpha),
-      rotation_beta: toNumberOrNull(req.body.rotation_beta || req.body.rotationBeta),
-      rotation_gamma: toNumberOrNull(req.body.rotation_gamma || req.body.rotationGamma),
-      gesture_label: sanitizeText(req.body.gesture_label),
-      metadata: sanitizeObject(req.body.metadata)
+      source: "browser",
+      event_type: normalized.eventType,
+      alpha: normalized.values.alpha,
+      beta: normalized.values.beta,
+      gamma: normalized.values.gamma,
+      acceleration_x: normalized.values.acceleration_x,
+      acceleration_y: normalized.values.acceleration_y,
+      acceleration_z: normalized.values.acceleration_z,
+      rotation_alpha: normalized.values.rotation_alpha,
+      rotation_beta: normalized.values.rotation_beta,
+      rotation_gamma: normalized.values.rotation_gamma,
+      gesture_label: normalized.gestureLabel,
+      metadata
     };
     return res.status(200).json(await supabaseInsert(config, "motion_sensor_events", payload));
   });
