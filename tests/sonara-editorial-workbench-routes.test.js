@@ -202,6 +202,8 @@ describe("Creator Studio editorial access, preview and draft persistence",()=>{
     assert.match(r.body,/Review your draft/);
     const refused=await h.call("POST",ROUTE+"/save",{kind:"note",title:"test",body:"text",language:"en"},{site:"cross-site"});
     assert.equal(refused.statusCode,403);
+    const sameSite=await h.call("POST",ROUTE+"/save",{kind:"note",title:"test",body:"text",language:"en"},{site:"same-site"});
+    assert.equal(sameSite.statusCode,403);
     assert.equal(h.saved.length,0);
   });
   it("browser draft saves redirect only after confirmed storage and preserve editability",async()=>{
