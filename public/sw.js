@@ -8,7 +8,7 @@ const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
 // Separate cache namespace to evict previously stored extension-matched URLs
 // when this tighter public-asset policy activates.
-const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v2";
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v3";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -98,15 +98,28 @@ function hasExpectedMediaType(url, response) {
   return expected.includes(mediaType);
 }
 
-function isCacheableResponse(response, url) {
+function isSensitiveResponse(response) {
   if (!response || response.status !== 200 || !response.ok ||
-      response.type === "opaque" || response.redirected ||
-      !hasExpectedMediaType(url, response)) return false;
+      response.type === "opaque" || response.redirected) return true;
   const cacheControl = response.headers.get("cache-control") || "";
   const vary = response.headers.get("vary") || "";
-  return !/(private|no-store)/i.test(cacheControl) &&
-    !/(^|,)\s*(\*|cookie|authorization)\s*(,|$)/i.test(vary) &&
-    !response.headers.has("set-cookie");
+  return /(?:^|,)\s*(?:private|no-store|no-cache)(?:\s*[,=]|\s*$)/i.test(cacheControl) ||
+    /(?:^|,)\s*(?:\*|cookie|authorization)\s*(?:,|$)/i.test(vary) ||
+    response.headers.has("set-cookie");
+}
+
+function isCacheableResponse(response, url) {
+  if (isSensitiveResponse(response) || !hasExpectedMediaType(url, response)) return false;
+  // Public assets must be deliberately cacheable; an unrelated route that
+  // happens to serve .js and has no cache policy is not public by default.
+  const cacheControl = response.headers.get("cache-control") || "";
+  return /(?:^|,)\s*public\s*(?:,|$)/i.test(cacheControl);
+}
+
+function isPublicOfflineResponse(response) {
+  if (isSensitiveResponse(response)) return false;
+  const mediaType = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  return mediaType === "text/html";
 }
 
 self.addEventListener("install", (event) => {
@@ -115,10 +128,7 @@ self.addEventListener("install", (event) => {
       // Never precache session-aware responses. Offline is a fixed public
       // page requested without cookies; a missing fallback must fail install.
       const offlineResponse = await fetch(OFFLINE_URL, { credentials: "omit", cache: "no-store" });
-      if (!offlineResponse.ok || offlineResponse.status !== 200 ||
-          offlineResponse.redirected ||
-          !(offlineResponse.headers.get("content-type") || "").toLowerCase().startsWith("text/html") ||
-          offlineResponse.headers.has("set-cookie")) {
+      if (!isPublicOfflineResponse(offlineResponse)) {
         throw new Error("Public offline fallback unavailable");
       }
       await cache.put(OFFLINE_URL, offlineResponse);
