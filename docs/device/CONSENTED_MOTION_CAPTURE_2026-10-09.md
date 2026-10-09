@@ -26,7 +26,9 @@ The server repeats the privacy boundary rather than trusting the browser. `lib/s
 
 ## Permission boundary
 
-The site-wide Permissions-Policy remains unchanged. Only `/settings/device-feedback` adds `accelerometer=(self)` and `gyroscope=(self)`; camera stays denied on this page. That keeps the additional sensor authority scoped to the one signed-in surface that exposes the control.
+The site-wide Permissions-Policy now explicitly sets `accelerometer=()` and `gyroscope=()`. This matters because both directives otherwise default to `self` in the web platform, so omission would still leave same-origin sensor access enabled.
+
+`/settings/device-feedback` replaces that default with the complete named `device_feedback` preset, which changes only accelerometer and gyroscope to `(self)`; camera remains denied. Creator Generation uses a separate complete preset for camera/microphone capture and explicitly keeps accelerometer/gyroscope denied. Route-specific policies are centralized in `lib/sonara-permissions-policy.cjs` so an override cannot silently re-enable a default-`self` feature by omission.
 
 ## Research basis
 
