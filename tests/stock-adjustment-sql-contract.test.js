@@ -26,6 +26,17 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/unique \(inventory_item_id,version_after\)/i);
     assert.match(migration,/if new\.quantity is distinct from old\.quantity then/i);
   });
+  it("versions catalog-unit and warehouse changes to prevent stale approval replay", () => {
+    assert.ok(migration.includes("or new.unit is distinct from old.unit"));
+    assert.ok(migration.includes("or new.location_id is distinct from old.location_id"));
+    assert.ok(migration.includes("'catalog_identity_change'"));
+    assert.ok(migration.includes("expected_unit text not null"));
+    assert.ok(migration.includes("expected_location_id uuid"));
+    assert.ok(migration.includes("stock_adjustment_item_identity_changed"));
+    assert.ok(behavior.includes("savepoint identity_probe"));
+    assert.ok(behavior.includes("rollback to savepoint identity_probe"));
+    assert.ok(behavior.includes("source='catalog_identity_change' and delta_quantity=0 and version_after=1"));
+  });
   it("keeps the audit independent of inventory item deletion", () => {
     assert.match(migration,/create table public\.inventory_stock_events \([\s\S]*?inventory_item_id uuid not null references public\.inventory_items\(id\),/i);
     assert.doesNotMatch(migration,/inventory_item_id uuid not null references public\.inventory_items\(id\) on delete cascade/i);
