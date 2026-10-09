@@ -4,6 +4,7 @@
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
 const { validateInteractiveStory, simulateInteractiveStory, MAX_BYTES } = require("../lib/sonara-interactive-story-draft.cjs");
+const { createInteractiveStoryDraftStore } = require("../lib/sonara-interactive-story-store.cjs");
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
 const { renderNarrativeDot, renderFountainBeatOutline, renderQuestPrerequisiteJson,
@@ -47,6 +48,10 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   const worldStore = worldEnabled ? createWorldBibleStore({ ...deps, projectStore: store }) : null;
   const interactivePreviewEnabled = deps.interactiveDraftPreviewEnabled === true
     || process.env.SONARA_INTERACTIVE_DRAFT_PREVIEW_ENABLED === "true";
+  const storyRevisionEnabled = deps.storyRevisionPersistenceEnabled === true
+    || process.env.SONARA_STORY_REVISION_PERSISTENCE_ENABLED === "true";
+  const storyStore = worldStore && storyRevisionEnabled
+    ? createInteractiveStoryDraftStore({ ...deps, projectStore: store, worldStore }) : null;
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
@@ -101,6 +106,10 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
         `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/fountain">Download screenplay beat outline (Fountain)</a></p>`] : []),
       ...(current && ["game", "interactive"].includes(current.draft.medium) ?
         [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/quest">Download game design prerequisites (JSON)</a></p>`] : []),
+      ...(storyStore && current && ["game", "interactive"].includes(current.draft.medium) ? [
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/interactive/draft">Read saved interactive story JSON (private)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/interactive/revisions">Review stored revision history (private)</a></p>`
+      ] : []),
       ...(timelineReady ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
         `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
       ...(current && !timelineReady ? [brandCard("Timed exports not available",
@@ -250,6 +259,46 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       }
       return res.status(503).json({ ok: false, code: "world_bible_export_unavailable" });
     }
+  });
+  // Persistent story sidecar remains separately default-off. Writes go only
+  // through the proposed atomic RPC; the browser receives no DB credentials.
+  app.get(`${api}/:id/world-bible/interactive/draft`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const result = await storyStore.get(req, req.params.id);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.get(`${api}/:id/world-bible/interactive/revisions`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const limit = req.query.limit === undefined ? 25 : Number(req.query.limit);
+    const result = await storyStore.revisions(req, req.params.id, limit);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.get(`${api}/:id/world-bible/interactive/revisions/:revision`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const revision = /^(?:[1-9][0-9]{0,2})$/.test(req.params.revision)
+      ? Number(req.params.revision) : NaN;
+    const result = await storyStore.getRevision(req, req.params.id, revision);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.post(`${api}/:id/world-bible/interactive/draft`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403).json({ ok: false, code: "cross_origin_story_write_denied" });
+    if (!req.is("application/json") || req.get("x-sonara-intent") !== "story-save")
+      return res.status(415).json({ ok: false, code: "json_story_save_intent_required" });
+    const data = req.body;
+    if (!data || typeof data !== "object" || Array.isArray(data)
+      || !Number.isSafeInteger(data.expectedWorldRevision)
+      || !Number.isSafeInteger(data.expectedRevision))
+      return res.status(400).json({ ok: false, code: "story_expected_revisions_required" });
+    let bytes;
+    try { bytes = Buffer.byteLength(JSON.stringify(data), "utf8"); } catch { bytes = Infinity; }
+    if (bytes > MAX_BYTES + 4096) return res.status(413).json({ ok: false, code: "story_save_too_large" });
+    const result = await storyStore.save(req, req.params.id, data);
+    return res.status(result.ok ? 200 : result.status).json(result);
   });
   app.post(`${api}/:id/world-bible/interactive/preview`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
