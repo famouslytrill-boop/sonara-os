@@ -8,7 +8,7 @@ const register = require("../routes/sonara-creator-project-routes.cjs");
 const PID = "00000000-0000-4000-8000-000000000099";
 const UID = "00000000-0000-4000-8000-000000000001";
 const ORG = "00000000-0000-4000-8000-000000000002";
-function setup(enabled = true) {
+function setup(enabled = true, interactive = false) {
   const rows = [];
   const app = express();
   app.use(express.json());
@@ -39,6 +39,7 @@ function setup(enabled = true) {
   register(app, {
     projectStore: db, supabaseHeaders: () => ({ apikey: "PRIVATE_SECRET" }), fetch,
     worldBiblePersistenceEnabled: enabled,
+    interactiveDraftPreviewEnabled: interactive,
     requirePaidOrOwnerAccess: () => (req, res, next) => req.get("x-paid") ? next() : res.status(403).json({ ok: false }),
     wantsJson: () => true, escapeHtml: esc,
     brandCard: (name, body) => `<article>${esc(name)} ${esc(body)}</article>`,
@@ -218,6 +219,88 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.equal(parsed.externalAssetsIncluded, false);
     const world = await request(app).get(`/creator-studio/projects/${PID}/world-bible`).set("x-paid", "yes");
     assert.match(world.text, /world-bible\/export\/quest/);
+  });
+
+  it("keeps the interactive preview off independently of World Bible storage", async () => {
+    const { app } = setup(true, false);
+    const path = `/api/creator-studio/projects/${PID}/world-bible/interactive/preview`;
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .send({ expectedWorldRevision: 1, story: {}, decisions: [] })).status, 503);
+    assert.equal((await request(app).post(path)
+      .send({ expectedWorldRevision: 1, story: {}, decisions: [] })).status, 403);
+  });
+  it("privately simulates authored choices with version matching, no persistence and controlled scope", async () => {
+    const { app, rows } = setup(true, true);
+    const api = `/api/creator-studio/projects/${PID}/world-bible`;
+    const document = { title: "Branching Series", medium: "game",
+      entities: [{ id: "hero", kind: "character", name: "Hero" }],
+      scenes: [{ id: "start", title: "Start" }, { id: "finish", title: "Finish" }], resources: {} };
+    assert.equal((await request(app).post(api).set("x-paid", "yes")
+      .send({ expectedRevision: 0, draft: document })).status, 200);
+    const body = { expectedWorldRevision: 1, decisions: ["walk"], story: {
+      version: 1, startSceneId: "start", state: [{ id: "trust", initial: 0, min: 0, max: 2 }],
+      scenes: [{ sceneId: "start", prose: "Step forward.",
+        dialogue: [{ speakerId: "hero", text: "Let's go." }],
+        choices: [{ id: "walk", label: "Walk", targetSceneId: "finish",
+          effect: { stateId: "trust", delta: 1 } }] },
+      { sceneId: "finish", prose: "Done.", dialogue: [], choices: [] }]
+    } };
+    const path = `${api}/interactive/preview`;
+    const preview = await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview").send(body);
+    assert.equal(preview.status, 200);
+    assert.equal(preview.body.ok, true);
+    assert.equal(preview.body.sourceSaved, false);
+    assert.equal(preview.body.preview.status, "authored_end");
+    assert.equal(preview.body.preview.state.trust, 1);
+    assert.deepEqual(preview.body.preview.visitedSceneIds, ["start", "finish"]);
+    assert.equal(preview.body.preview.boundary.gameCompiled, false);
+    assert.equal(JSON.stringify(preview.body).includes("PRIVATE_SECRET"), false);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].revision, 1);
+    assert.equal(rows[0].draft.medium, "game");
+    assert.match(preview.headers["cache-control"], /no-store/);
+    const page = await request(app).get(`/creator-studio/projects/${PID}/world-bible`)
+      .set("x-paid", "yes");
+    assert.match(page.text, /data-sonara-interactive-preview/);
+    assert.match(page.text, /Not saved/);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview")
+      .send({ ...body, expectedWorldRevision: 2 })).status, 409);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview").set("x-workspace", "other")
+      .send(body)).status, 404);
+  });
+  it("rejects malicious previews, cross-origin attempts and malformed request intent", async () => {
+    const { app } = setup(true, true);
+    const api = `/api/creator-studio/projects/${PID}/world-bible`;
+    assert.equal((await request(app).post(api).set("x-paid", "yes").send({
+      expectedRevision: 0, draft: { title: "Choices", medium: "interactive", entities: [],
+        scenes: [{ id: "start", title: "Beginning" }], resources: {} }
+    })).status, 200);
+    const path = `${api}/interactive/preview`;
+    const payload = { expectedWorldRevision: 1, decisions: [], story: {
+      version: 1, startSceneId: "start", state: [],
+      scenes: [{ sceneId: "start", prose: "", dialogue: [], choices: [] }]
+    } };
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .send(payload)).status, 415);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview")
+      .set("Origin", "https://attacker.example").send(payload)).status, 403);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview")
+      .set("Sec-Fetch-Site", "same-site").send(payload)).status, 403);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview").send({
+        ...payload, story: { ...payload.story, script: "process.env" }
+      })).status, 400);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview").send({
+        ...payload, decisions: ["injected"]
+      })).status, 400);
+    assert.equal((await request(app).post(path).set("x-paid", "yes")
+      .set("x-sonara-intent", "interactive-preview").send(payload)).status, 200);
   });
 
 });
