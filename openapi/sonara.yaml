@@ -1627,6 +1627,79 @@ paths:
         "400": { description: "Invalid channel identifier." }
         "403": { description: "Cross-origin state change denied." }
         "503": { description: "Persistence not available or failed." }
+  /account/social-safety:
+    get:
+      operationId: getPersonalSocialSafety
+      tags: [SONARA One]
+      summary: Read only the signed-in account's saved creator blocks.
+      description: Feature-disabled until validated migration, consent and private canary.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: "Private account safety management page or honest feature-disabled state." }
+        "503": { description: "Safety database unavailable or preferences unreadable." }
+  /api/social/creator-profiles/{id}/block:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: blockCreatorProfileUser
+      tags: [SONARA One]
+      summary: Atomically block a creator's linked account and revoke existing follows.
+      description: Requires authenticated account, exact configured HTTPS origin, active feature flag, and verified profile owner.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Persisted user block, redirect to account safety settings." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/creator-profiles/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockCreatorProfileUser
+      tags: [SONARA One]
+      summary: Remove an account-level user block.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Persisted unblock, redirect to account safety settings." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/creator-profiles/{id}/report:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: reportCreatorProfile
+      tags: [SONARA One]
+      summary: Submit an idempotent confidential profile report to platform moderation intake.
+      description: Reporting does not automatically hide or ban the accused user.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Saved a report or safely deduplicated the same report request." }
+        "400": { description: "Invalid reason, request id or details." }
+        "429": { description: "Report rate limit reached." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/blocked-users/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockPreviouslyBlockedUser
+      tags: [SONARA One]
+      summary: Unblock a user when their creator profile is no longer public.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Unblocked a stored user ID belonging to the signed-in member's block list." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
   /api/business/storefront:
     post:
       operationId: saveMerchantStorefront
