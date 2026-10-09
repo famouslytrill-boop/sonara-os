@@ -11,6 +11,23 @@ Engineering pass: October 9, 2026. Status: **feature branch, not deployed, not c
   /business-builder/owner/catering/estimate; owner-scoped JSON POST
   /api/business/catering/estimate. Integrated into existing manager middleware
   and /business-builder/owner/operations navigation.
+- Authenticated business owner page GET/POST /business-builder/owner/financial-scenarios
+  for transaction-cost and nonprofit disclosure planning, with no provider
+  checkout, funds movement, securities trading or tax-deductibility claim.
+- Owner-scoped JSON read-only scenario APIs:
+  POST /api/business/finance/microtransaction-scenario,
+  POST /api/business/nonprofits/contribution-review,
+  POST /api/business/events/resource-scenario.
+  The event engine uses interval sweep-line peak occupancy, detects overlapping
+  held reservations and unknown capacity, and explicitly cannot book resources.
+- Owner-scoped SEO draft APIs:
+  POST /api/business/marketing/restaurant-seo-preview and
+  POST /api/business/marketing/event-seo-preview. They use whitelisted fields,
+  Google-documented restaurant menu property, HTTPS public URL constraints,
+  accurate time/date validation and no fabricated ratings or ticket offers.
+  They never publish content or assert Google eligibility or verification.
+- Cross-workspace navigation from catering to existing recipes, bookings, staff
+  schedules, Growth Studio events and Creator Studio.
 - No database migration, stock reservation, payment collection, automatic
   emails, booking, tax certification or external provider activity.
 - An absent stock quantity or venue capacity is unknown, not zero. All estimates
