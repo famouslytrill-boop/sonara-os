@@ -547,6 +547,25 @@ describe("billing webhook HTTP retry contract", () => {
           ? [{ stripe_customer_id: "cus_retry", organization_id: "00000000-0000-0000-0000-000000000051", user_id: "user_test" }] : []
       });
       assert.equal((await send()).status, 200);
+
+      // Even a cryptographically valid webhook must not bypass the database
+      // ordering trigger by supplying an absent/null Stripe Event.created.
+      // This must return 503 for provider reconciliation, with zero DB I/O.
+      const unversioned = JSON.stringify({ ...JSON.parse(payload), created: null, id: "evt_unversioned" });
+      const unversionedSignature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET)
+        .update(`${timestamp}.${unversioned}`).digest("hex");
+      let unversionedDatabaseCalls = 0;
+      global.fetch = async () => {
+        unversionedDatabaseCalls += 1;
+        throw Error("unversioned provider event reached persistence");
+      };
+      const refused = await request(app).post("/api/webhooks/stripe")
+        .set("Content-Type", "application/json")
+        .set("stripe-signature", `t=${timestamp},v1=${unversionedSignature}`)
+        .send(unversioned);
+      assert.equal(refused.status, 503);
+      assert.equal(refused.body.code, "billing_sync_retry_required");
+      assert.equal(unversionedDatabaseCalls, 0);
     } finally {
       global.fetch = previousFetch;
       keys.forEach((key, index) => { if (saved[index] === undefined) delete process.env[key]; else process.env[key] = saved[index]; });
