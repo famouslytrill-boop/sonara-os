@@ -15,7 +15,8 @@ const ORG = "11111111-1111-4111-8111-111111111111";
 const BUSINESS = "22222222-2222-4222-8222-222222222222";
 const USER = "33333333-3333-4333-8333-333333333333";
 const CONNECTION = "44444444-4444-4444-8444-444444444444";
-const SERVICE = "service-role-test-value";
+const SERVICE = "legacy-service-role-test-value";
+const SECRET_API = "sb_secret_provider_broker_test_value";
 const BROKER = "dedicated-provider-broker-token-that-is-long-enough";
 const CONTEXT = Object.freeze({
   organizationId: ORG,
@@ -39,6 +40,7 @@ function configured(overrides = {}) {
     getSupabaseServerConfig: () => ({
       ok: true,
       url: "https://project-ref.supabase.co",
+      secretKey: SECRET_API,
       serviceRoleKey: SERVICE
     }),
     getBrokerToken: () => BROKER,
@@ -56,7 +58,7 @@ describe("server-only provider broker client", () => {
     );
   });
 
-  it("calls only the fixed Edge Function with service JWT plus a body-bound HMAC signature", async () => {
+  it("calls only the fixed Edge Function with a server API key plus a body-bound HMAC signature", async () => {
     let call = null;
     const out = await invokeGoogleSearchConsoleBroker({
       operation: "read_daily",
@@ -79,8 +81,8 @@ describe("server-only provider broker client", () => {
     assert.equal(call.url, "https://project-ref.supabase.co/functions/v1/google-search-console-broker");
     assert.equal(call.options.method, "POST");
     assert.equal(call.options.redirect, "error");
-    assert.equal(call.options.headers.authorization, `Bearer ${SERVICE}`);
-    assert.equal(call.options.headers.apikey, SERVICE);
+    assert.equal(call.options.headers.authorization, undefined);
+    assert.equal(call.options.headers.apikey, SECRET_API);
     assert.equal(call.options.headers["x-sonara-provider-broker-token"], undefined);
     assert.equal(call.options.headers["x-sonara-provider-broker-timestamp"], "1791495000");
     assert.equal(
@@ -169,6 +171,29 @@ describe("server-only provider broker client", () => {
     assert.equal(body.payload.verifier.length, 43);
   });
 
+  it("falls back to the legacy service-role API key only when a new secret key is not configured", async () => {
+    let headers = null;
+    const out = await invokeGoogleSearchConsoleBroker({
+      operation: "review_sites",
+      context: CONTEXT,
+      payload: {},
+      getSupabaseServerConfig: () => ({
+        ok: true,
+        url: "https://project-ref.supabase.co",
+        serviceRoleKey: SERVICE
+      }),
+      getBrokerToken: () => BROKER,
+      nowImpl: () => Date.parse("2026-10-08T21:30:00.000Z"),
+      fetchImpl: async (_url, options) => {
+        headers = options.headers;
+        return response(200, { ok: true, operation: "review_sites", sites: [] });
+      }
+    });
+    assert.equal(out.ok, true);
+    assert.equal(headers.apikey, SERVICE);
+    assert.equal(headers.authorization, undefined);
+  });
+
   it("fails closed when Supabase or the dedicated broker token is unavailable", async () => {
     let out = await invokeGoogleSearchConsoleBroker({
       operation: "read_daily",
@@ -185,6 +210,7 @@ describe("server-only provider broker client", () => {
       getSupabaseServerConfig: () => ({
         ok: true,
         url: "https://project-ref.supabase.co",
+        secretKey: SECRET_API,
         serviceRoleKey: SERVICE
       }),
       getBrokerToken: () => "short"
@@ -309,6 +335,8 @@ describe("server-only provider broker client", () => {
     const contract = getProviderBrokerClientContract();
     assert.equal(contract.transport, "supabase_edge_function");
     assert.equal(contract.auth.browserCallable, false);
+    assert.equal(contract.auth.apiKey, "supabase_secret_key_preferred_legacy_service_role_fallback");
+    assert.equal(contract.auth.platformJwtVerification, false);
     assert.equal(contract.auth.requestHmac, "v1");
     assert.equal(contract.auth.sharedSecretTransmitted, false);
     assert.equal(contract.auth.maximumClockSkewSeconds, 120);
