@@ -85,10 +85,9 @@
     if (!active || document.hidden) return;
     const now = performance.now();
     if (now - active.lastAcceptedAt < sampleIntervalMs) return;
-    active.lastAcceptedAt = now;
     if (active.sampleCount >= maxSamples) return;
 
-    active.sampleCount += 1;
+    let accepted = false;
     for (const key of numericKeys) {
       const raw = sample[key];
       // Number(null) and Number("") are both zero. Missing sensor fields are
@@ -98,7 +97,11 @@
       if (!Number.isFinite(value)) continue;
       active.sums[key] = (active.sums[key] || 0) + value;
       active.counts[key] = (active.counts[key] || 0) + 1;
+      accepted = true;
     }
+    if (!accepted) return;
+    active.sampleCount += 1;
+    active.lastAcceptedAt = now;
   }
 
   function coarseMean(key) {
