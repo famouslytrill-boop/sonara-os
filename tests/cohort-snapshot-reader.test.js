@@ -62,6 +62,7 @@ function report(client, extra = {}) {
     connect: async () => client,
     classifyEligibility: () => true,
     approvedReportingRole: "sonara_cohort_reader",
+    expectedOrganizationIds: [ID_A],
     from, to, asOf, ...extra
   });
 }
@@ -77,6 +78,7 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.report.verifiedPaidConversionRate, null);
     assert.equal(result.sourceConsistency, "dedicated_repeatable_read_read_only_transaction");
     assert.equal(result.snapshotCapturedAt, "2026-10-08T22:00:00.000Z");
+    assert.equal(result.authorizedRosterSize, 1);
     assert.equal(client.calls[0].sql, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.organizations'")));
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.activity_events'")));
@@ -86,6 +88,9 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(selects.length, 2);
     assert.ok(selects.every((call) => !/insert|update|delete/i.test(call.sql)));
     assert.ok(selects.every((call) => call.params[0] === from && call.params[1] === to));
+    assert.ok(selects.every((call) => call.sql.includes("= any(")));
+    assert.deepEqual(selects[0].params[2], [ID_A]);
+    assert.deepEqual(selects[1].params[3], [ID_A]);
     assert.equal(JSON.stringify(result).includes(ID_A), false);
   });
 
@@ -100,7 +105,7 @@ describe("server-only customer cohort snapshot contract", () => {
   it("does not connect with invalid windows or missing trusted policy", async () => {
     let connections = 0;
     const connect = async () => { connections += 1; return fakeClient(); };
-    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", from, to, asOf: from });
+    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], from, to, asOf: from });
     assert.equal(invalid.code, "observation_window_invalid");
     assert.equal(connections, 0);
     const missing = await readCohortFromSnapshot({ connect, from, to, asOf });
@@ -137,6 +142,40 @@ describe("server-only customer cohort snapshot contract", () => {
       assert.equal(result.code, "trusted_operator_dependencies_missing");
     }
     assert.equal(connections, 0);
+  });
+
+  it("refuses absent, duplicate, invalid or oversized organization-roster evidence before connecting", async () => {
+    let connected = 0;
+    const connect = async () => { connected += 1; return fakeClient(); };
+    for (const expectedOrganizationIds of [undefined, [], [ID_A, ID_A], [ID_A, ID_A.toUpperCase()], ["garbage"], Array(10_001).fill(ID_A)]) {
+      const result = await readCohortFromSnapshot({ connect, classifyEligibility: () => true,
+        approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds, from, to, asOf });
+      assert.equal(result.code, "approved_cohort_roster_invalid");
+    }
+    assert.equal(connected, 0);
+  });
+
+  it("rejects incomplete or extra organization rows under otherwise valid RLS identity", async () => {
+    const missing = fakeClient({ organizations: [] });
+    assert.equal((await report(missing)).code, "snapshot_read_failed");
+    assert.equal(missing.calls.at(-1).sql, "ROLLBACK");
+    const extra = fakeClient({ organizations: [{ id: ID_A, created_at: create }, { id: ID_B, created_at: create }] });
+    assert.equal((await report(extra)).code, "snapshot_read_failed");
+    const duplicate = fakeClient({ organizations: [{ id: ID_A, created_at: create }, { id: ID_A, created_at: create }] });
+    assert.equal((await report(duplicate)).code, "snapshot_read_failed");
+  });
+
+  it("preserves exact completeness when reading a reviewed multi-organization roster", async () => {
+    const client = fakeClient({ organizations: [{ id: ID_A, created_at: create }, { id: ID_B, created_at: create }],
+      events: [{ organization_id: ID_A, event_type: "account.organization_created", created_at: create },
+        { organization_id: ID_B, event_type: "account.organization_created", created_at: create }] });
+    const result = await report(client, { expectedOrganizationIds: [ID_A, ID_B] });
+    assert.equal(result.ok, true);
+    assert.equal(result.authorizedRosterSize, 2);
+    assert.equal(result.report.eligibleOrganizations, 2);
+    assert.equal(result.report.activatedOrganizations, 2);
+    assert.equal(JSON.stringify(result).includes(ID_A), false);
+    assert.equal(JSON.stringify(result).includes(ID_B), false);
   });
 
   it("refuses a read-write session and cleans up", async () => {
