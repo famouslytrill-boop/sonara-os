@@ -46,14 +46,13 @@ describe("Physical goods: staged procurement SQL contract", () => {
     const boundaries = sql.match(/language plpgsql\s+security invoker\s+set search_path = ''/g) || [];
     assert.equal(functions.length, 3);
     assert.equal(boundaries.length, functions.length);
-    // Regression: trigger bodies were once committed as "as $" / "end; $;",
-    // which passes a keyword-only check but fails PostgreSQL parsing.
-    const openQuotes = (sql.match(/\\bas \\$\\$/g) || []).length;
-    const closedQuotes = (sql.match(/\\$\\$;/g) || []).length;
-    assert.equal(openQuotes, functions.length, "every PL/pgSQL body must use $");
-    assert.equal(closedQuotes, functions.length, "every PL/pgSQL body must close $");
-    assert.doesNotMatch(sql, /\\bas \\$\\s*\\n/i);
-    assert.doesNotMatch(sql, /\\n\\$;/);
+    // Match exact dollar delimiters; a single dollar is invalid SQL.
+    const dollar = String.fromCharCode(36);
+    const delimiter = dollar + dollar;
+    assert.equal(sql.split(" as " + delimiter).length - 1, functions.length);
+    assert.equal(sql.split("end;" + String.fromCharCode(10) + delimiter + ";").length - 1, functions.length);
+    assert.ok(!sql.includes(" as " + dollar + String.fromCharCode(10)));
+    assert.ok(!sql.includes("end;" + String.fromCharCode(10) + dollar + ";"));
     assert.match(sql, /create trigger procurement_receipt_enforce_tenant/i);
     assert.match(sql, /create trigger procurement_ledger_enforce_receipt/i);
   });
