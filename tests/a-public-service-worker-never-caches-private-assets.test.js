@@ -32,7 +32,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
       redirected: specific.redirected ?? redirected,
       headers: new Headers({
         "content-type": pathname === "/offline" ? "text/html; charset=utf-8" : (mimeTypes[extension] || "text/html"),
-        "cache-control": pathname === "/offline" ? "max-age=0" : "public, max-age=300",
+        "cache-control": pathname === "/offline" ? "public, max-age=0" : "public, max-age=300",
         ...headers, ...(specific.headers || {})
       }),
       clone() { return this; }
@@ -242,6 +242,7 @@ describe("PWA cache contains public assets only", () => {
       { headers: { "cache-control": "no-store" } },
       { headers: { "cache-control": "private" } },
       { headers: { "cache-control": "no-cache" } },
+      { headers: { "cache-control": "max-age=0" } },
       { headers: { "content-type": "application/json" } },
       { redirected: true }
     ]) {
