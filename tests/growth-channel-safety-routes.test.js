@@ -25,7 +25,8 @@ function setup() {
     requireWorkspaceAccess:()=>middleware,
     getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:ORG}),
     getSupabaseServerConfig:()=>({ok:true,url:"https://database.example.invalid"}),
-    supabaseHeaders:()=>({}), createRateLimiter:()=>middleware
+    supabaseHeaders:()=>({}), createRateLimiter:()=>middleware,
+    getEnv:(name)=>name==="NEXT_PUBLIC_SITE_URL"?"https://sonara.test":""
   });
   return handlers;
 }
@@ -131,6 +132,25 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
     const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
     assert.equal(res.statusCode,404);
     assert.equal(res.redirectTo,undefined);
+  });
+
+  it("rejects a forged Host header when the canonical site is different",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const request=req({id:VISIBLE});
+    request.get=()=> "evil.example";
+    request.headers.origin="https://evil.example";
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",request);
+    assert.equal(res.statusCode,403);
+    assert.equal(calls.length,0);
+  });
+
+  it("rejects cross-site fetch metadata despite a matching Origin",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const request=req({id:VISIBLE});
+    request.headers["sec-fetch-site"]="cross-site";
+    const res=await invoke(setup(),"POST","/api/growth/channels/:id/block",request);
+    assert.equal(res.statusCode,403);
+    assert.equal(calls.length,0);
   });
 
   it("rejects cross-origin block attempts without writes",async()=>{
