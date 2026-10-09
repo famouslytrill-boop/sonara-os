@@ -8,7 +8,7 @@ const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
 // Separate cache namespace to evict previously stored extension-matched URLs
 // when this tighter public-asset policy activates.
-const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v4";
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v5";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -120,7 +120,10 @@ function isCacheableResponse(response, url) {
 function isPublicOfflineResponse(response) {
   if (isSensitiveResponse(response)) return false;
   const mediaType = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-  return mediaType === "text/html";
+  // Only the explicitly public, generic /offline page is eligible. Other
+  // HTML routes keep no-store and never enter the service-worker cache.
+  const policy = response.headers.get("cache-control") || "";
+  return mediaType === "text/html" && /(?:^|,)\s*public\s*(?:,|$)/i.test(policy);
 }
 
 self.addEventListener("install", (event) => {
