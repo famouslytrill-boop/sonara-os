@@ -104,6 +104,19 @@ BEGIN
        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
        AND with_check IS NULL) <> 2 THEN
+   -- Diagnose only. This remains a hard error until the two policies have
+   -- been compared in every dimension against migration authority.
+   FOR item IN
+     SELECT policyname, permissive, roles::text AS roles, cmd, qual, with_check
+     FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
+       AND policyname IN ('Users can view own subscriptions',
+         'Users can view their own subscription')
+     ORDER BY policyname
+   LOOP
+     RAISE NOTICE 'P1 subscriptions policy=% permissive=% roles=% cmd=% USING=% CHECK=%',
+       item.policyname, item.permissive, item.roles, item.cmd,
+       item.qual, item.with_check;
+   END LOOP;
    RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
  END IF;
 END
