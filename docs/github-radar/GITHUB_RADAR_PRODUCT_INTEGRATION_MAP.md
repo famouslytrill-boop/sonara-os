@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-269 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 269.
+270 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 270.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -148,7 +148,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-43 repositories.
+44 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -189,6 +189,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
+| [Supabase Server](https://github.com/supabase/server) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | AGPL-3.0; most of the repository is AGPLv3, Enterprise-marked fi | Licence unresolved | 2026 repository sweep research-only |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
@@ -200,7 +201,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-173 repositories.
+174 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -360,6 +361,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
 | [Stripe Node SDK](https://github.com/stripe/stripe-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Supabase JavaScript Client](https://github.com/supabase/supabase-js) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [Supabase Server](https://github.com/supabase/server) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Temporal TypeScript SDK](https://github.com/temporalio/sdk-typescript) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [TidyFactor Styler](https://github.com/TidyFactor/Styler) | Apache-2.0 | Read only | Claude Code skill |
