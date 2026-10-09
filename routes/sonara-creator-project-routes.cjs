@@ -4,7 +4,7 @@
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
-const { planBeatGrid, beatGridCsv, FRAME_RATES } = require("../lib/sonara-creator-beat-grid.cjs");
+const { planBeatGrid, beatGridCsv, beatGridChaptersVtt, beatGridManifest, FRAME_RATES } = require("../lib/sonara-creator-beat-grid.cjs");
 function offlineDraftForm(project, scope, esc) {
   if (project.archived_at) return "";
   const snapshot = { version: 1, projectId: project.id, title: project.title, medium: project.medium, revision: project.revision, graph: project.graph };
@@ -55,10 +55,18 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     let grid;
     try { grid = planBeatGrid(req.query); }
     catch (error) { return page(res, "Beat grid settings need correction", [brandCard("Invalid settings", error.message), `<p><a href="${base}/beat-grid">Return to the beat planner</a></p>`], 400); }
-    if (req.query.format && req.query.format !== "csv") return page(res, "Unsupported export format", [brandCard("Export", "Only CSV beat markers are available.")], 400);
+    if (req.query.format && !["csv", "vtt", "json"].includes(req.query.format)) return page(res, "Unsupported export format", [brandCard("Export", "Choose CSV markers, WebVTT chapters, or JSON interchange.")], 400);
     if (req.query.format === "csv") {
       res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.csv"');
       return res.type("text/csv").send(beatGridCsv(grid));
+    }
+    if (req.query.format === "vtt") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-chapters.vtt"');
+      return res.type("text/vtt").send(beatGridChaptersVtt(grid));
+    }
+    if (req.query.format === "json") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.json"');
+      return res.type("application/json").send(beatGridManifest(grid));
     }
     const fields = [
       ["bpm", "Tempo (beats per minute)", grid.bpm, 20, 320],
@@ -66,12 +74,13 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       ["bars", "Number of bars", grid.bars, 1, 128],
       ["offsetFrames", "Start frame offset", grid.offsetFrames, 0, 2000000]
     ].map(([key, label, value, min, max]) => `<label>${esc(label)}<input name="${key}" type="number" min="${min}" max="${max}" step="1" value="${value}" required></label>`).join("");
+    const changes = grid.tempoChanges.map(({ bar, bpm }) => `${bar}:${bpm}`).join(",");
     const options = Object.keys(FRAME_RATES).map((rate) => `<option value="${esc(rate)}"${grid.frameRate === rate ? " selected" : ""}>${esc(rate)} fps</option>`).join("");
-    const params = new URLSearchParams({ bpm: String(grid.bpm), beatsPerBar: String(grid.beatsPerBar), bars: String(grid.bars), offsetFrames: String(grid.offsetFrames), frameRate: grid.frameRate });
+    const params = new URLSearchParams({ bpm: String(grid.bpm), beatsPerBar: String(grid.beatsPerBar), bars: String(grid.bars), offsetFrames: String(grid.offsetFrames), frameRate: grid.frameRate, tempoChanges: changes });
     const rows = grid.markers.map((row) => `<tr><th scope="row">${row.bar}</th><td>${row.beat}</td><td>${row.frame}</td><td>${row.seconds.toFixed(3)}</td></tr>`).join("");
     return page(res, "Film and music beat grid", [
-      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter tempo pulses per minute, how many of those pulses are in each bar, and a film frame rate. A 6/8 measure often uses two dotted-quarter pulses. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
-      `<section class="card"><h2>Marker results</h2><p>${grid.bars} bars · ${grid.approximateDurationSeconds} seconds of music · ${grid.durationFrames} frames of picture after the offset.</p><p>${esc(grid.note)}</p><p><a class="action" href="${base}/beat-grid?${params.toString()}&format=csv">Download beat-marker CSV</a></p><div class="table-scroll"><table><thead><tr><th scope="col">Bar</th><th scope="col">Beat index</th><th scope="col">Absolute frame</th><th scope="col">Timeline seconds</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
+      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter tempo pulses per minute, how many of those pulses are in each bar, and a film frame rate. A 6/8 measure often uses two dotted-quarter pulses. Tempo changes take effect at the beginning of the specified bar. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Tempo changes by bar (optional; e.g. 5:90,9:140)<input type="text" name="tempoChanges" maxlength="160" value="${esc(changes)}" placeholder="5:90,9:140"></label><label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
+      `<section class="card"><h2>Marker results</h2><p>${grid.bars} bars · ${grid.approximateDurationSeconds} seconds of music · ${grid.durationFrames} frames of picture after the offset · ${grid.tempoChanges.length} planned tempo changes.</p><p>${esc(grid.note)}</p><p><a class="action" href="${base}/beat-grid?${params.toString()}&format=csv">Download beat-marker CSV</a> · <a href="${base}/beat-grid?${params.toString()}&format=vtt">Download WebVTT chapters</a> · <a href="${base}/beat-grid?${params.toString()}&format=json">Download timing JSON</a></p><div class="table-scroll"><table><thead><tr><th scope="col">Bar</th><th scope="col">Beat index</th><th scope="col">Absolute frame</th><th scope="col">Timeline seconds</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
       `<p><a href="${base}">Return to your projects</a> · <a href="/creator-studio/tools/storyboard">Storyboard builder</a> · <a href="/business-builder/tools/reorder-point">Reorder-point calculator</a></p>`
     ]);
   });
