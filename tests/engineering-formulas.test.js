@@ -1,0 +1,54 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
+"use strict";
+const assert = require("node:assert/strict");
+const { FORMULAS, EVALUATORS } = require("../lib/sonara-engineering-formulas.cjs");
+const { evaluateFormula, listFormulaDefinitions } = require("../lib/sonara-formula-library.cjs");
+describe("engineering formula library (deterministic and unit-labelled)", () => {
+  const examples = [
+    ["fully_burdened_labor_cost", {paid_hours:8,hourly_wage:20,benefits_per_hour:5,payroll_taxes_per_hour:2,overhead_per_hour:3},240],
+    ["trade_bid_price",{productive_hours:8,utilization_rate:0.8,burdened_cost_per_paid_hour:30,materials_cost:100,other_direct_cost:0,markup_rate:0.2},480],
+    ["economic_profit",{chosen_net_benefit:1500,best_foregone_net_benefit:1200},300],
+    ["project_net_present_value",{upfront_cost:1000,annual_net_cash_flow:600,discount_rate:0,years:2},200],
+    ["material_quantity_with_waste",{net_quantity:100,waste_rate:0.1},110],
+    ["concrete_volume_m3",{length_meters:4,width_meters:3,depth_meters:0.2},2.4],
+    ["roofing_squares",{roof_area_square_feet:1500,waste_rate:0.1},16.5],
+    ["paint_gallons",{surface_square_feet:800,coats:2,waste_rate:0,coverage_square_feet_per_gallon:400},4],
+    ["single_phase_ac_real_power_watts",{rms_volts:120,rms_amps:10,power_factor:0.8},960],
+    ["pipe_flow_m3_s",{inside_diameter_meters:0.1,fluid_speed_meters_per_second:2},Math.PI*0.005],
+    ["square_feet_to_square_meters",{area_square_feet:100},9.290304],
+    ["byte_transfer_seconds",{payload_bytes:125000000,effective_bits_per_second:100000000},10],
+    ["compute_job_cost",{runtime_seconds:3600,compute_rate_per_hour:2,storage_gib:10,storage_rate_per_gib_month:0.1,months_stored:1},3],
+    ["satellite_orbital_period_seconds",{semi_major_axis_meters:7000000,gravitational_parameter_m3_s2:3.986004418e14},5828.516637686015],
+    ["telescope_rayleigh_arcseconds",{wavelength_nanometers:550,aperture_meters:0.2},0.692],
+    ["quantum_ideal_one_probability",{rotation_radians:Math.PI},1],
+    ["quantum_sampling_standard_error",{probability_one:0.5,shots:100},0.05]
+  ];
+  it("registers every evaluator on the existing public calculator", () => {
+    const keys = new Set(listFormulaDefinitions().map(d=>d.formulaKey));
+    for(const formula of FORMULAS){ assert.ok(keys.has(formula.formulaKey),formula.formulaKey); assert.equal(typeof EVALUATORS[formula.formulaKey],"function");}
+  });
+  for (const [key, input, expected] of examples) {
+    it(key + " returns a stable numerical answer", () => {
+      const r = evaluateFormula(key, input);
+      assert.equal(r.ok,true,JSON.stringify(r));
+      assert.ok(Math.abs(r.resultValue - expected) < 0.01, key+" = "+r.resultValue);
+      assert.deepEqual(Object.keys(r.inputValues).sort(),Object.keys(input).sort());
+    });
+  }
+  it("refuses invalid, missing and unsafe denominators without inventing zero", () => {
+    assert.equal(evaluateFormula("paint_gallons",{surface_square_feet:100,coats:1,waste_rate:0,coverage_square_feet_per_gallon:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("trade_bid_price",{productive_hours:1,utilization_rate:0,burdened_cost_per_paid_hour:1,materials_cost:1,other_direct_cost:1,markup_rate:1}).code,"invalid_input");
+    assert.equal(evaluateFormula("quantum_sampling_standard_error",{probability_one:0.5,shots:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("project_net_present_value",{upfront_cost:100,annual_net_cash_flow:10,discount_rate:0.05,years:1.2}).code,"invalid_input");
+    assert.equal(evaluateFormula("concrete_volume_m3",{length_meters:2,width_meters:1}).code,"missing_inputs");
+    assert.equal(evaluateFormula("fully_burdened_labor_cost",{paid_hours:"oops",hourly_wage:1,benefits_per_hour:1,payroll_taxes_per_hour:1,overhead_per_hour:1}).code,"invalid_input");
+    assert.equal(evaluateFormula("single_phase_ac_real_power_watts",{rms_volts:1,rms_amps:1,power_factor:1.2}).code,"invalid_input");
+    assert.equal(evaluateFormula("satellite_orbital_period_seconds",{semi_major_axis_meters:1,gravitational_parameter_m3_s2:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("telescope_rayleigh_arcseconds",{wavelength_nanometers:1e9,aperture_meters:1}).code,"invalid_input");
+  });
+  it("does not assume actual QPU noise or engineering certification",()=> {
+    assert.equal(evaluateFormula("quantum_ideal_one_probability",{rotation_radians:0}).resultValue,0);
+    assert.equal(evaluateFormula("quantum_sampling_standard_error",{probability_one:0.5,shots:10000}).resultValue,0.005);
+  });
+});
