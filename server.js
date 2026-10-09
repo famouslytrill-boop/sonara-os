@@ -649,7 +649,10 @@ registerSonaraFormulaRoutes(app, {
   insertActivityEvent
 });
 
-registerEngineeringPreviewRoutes(app, { requireWorkspaceAccess, createRateLimiter, getSupabaseServerConfig });
+registerEngineeringPreviewRoutes(app, {
+  requireWorkspaceAccess, createRateLimiter, getSupabaseServerConfig,
+  isEnabled: () => getEnv("SONARA_ENGINEERING_PREVIEWS_ENABLED") === "true"
+});
 
 registerCreatorMusicSystemReadOnlyRoutes(app, {
   layout,
