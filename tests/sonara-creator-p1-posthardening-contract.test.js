@@ -28,6 +28,20 @@ describe("Post-hardening Creator release-gate contract", () => {
     assert.equal(rows.some((row) => row.includes("'{public}'")), false);
     assert.equal(rows.some((row) => row.includes("'(auth.role() = ")), false);
   });
+  it("pins exactly three distinct subscription policies without treating role scopes as duplicates", () => {
+    const block = SQL.split("INSERT INTO expected_subscription_rls VALUES")[1]
+      ?.split("DO $drift$")[0] || "";
+    const subscriptions = block.split("\n").filter((line) => /^\s*\('/.test(line));
+    assert.equal(subscriptions.length, 3);
+    assert.equal(subscriptions.some((s) => s.includes("org members can read subscriptions")
+      && s.includes("'{public}', 'SELECT'")), true);
+    assert.equal(subscriptions.some((s) => s.includes("service role can manage subscriptions")
+      && s.includes("'{service_role}', 'ALL'")), true);
+    assert.equal(subscriptions.some((s) => s.includes("subscriptions_select_member")
+      && s.includes("'{authenticated}', 'SELECT'")), true);
+    assert.match(SQL, /P1 subscription role or predicate drift; abort/);
+    assert.equal(SQL.includes("DROP POLICY"), false);
+  });
   it("keeps an exact security preflight, postflight, tenant proof and rollback", () => {
     assert.match(SQL, /p\.permissive IS DISTINCT FROM e\.permissive/);
     assert.match(SQL, /p\.roles::text IS DISTINCT FROM e\.roles/);
