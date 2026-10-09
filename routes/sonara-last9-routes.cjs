@@ -39,6 +39,7 @@ const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
 const { normalizeMotionSample } = require("../lib/sonara-motion-sample.cjs");
 const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
+const devicePermissions = require("../lib/sonara-device-permissions.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -241,6 +242,32 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         getSupabaseServerConfig: deps.getSupabaseServerConfig
       })
     : passthrough;
+
+  const motionSampleLimiter = typeof deps.createRateLimiter === "function"
+    ? deps.createRateLimiter({
+        name: "device.motion_sample",
+        windowSeconds: 60,
+        maxAttempts: 12,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig: deps.getSupabaseServerConfig
+      })
+    : passthrough;
+
+  async function accountMotionPermission(config, userId) {
+    if (!config?.ok || !userId) {
+      return devicePermissions.mayAsk({ grants: [], readable: false }, "motion");
+    }
+    const listed = await supabaseList(
+      config,
+      "device_permission_grants",
+      `?select=capability,state,decided_at&user_id=eq.${encodeURIComponent(userId)}&capability=eq.motion&order=decided_at.desc&limit=20`
+    );
+    return devicePermissions.mayAsk(
+      { grants: listed.ok ? listed.rows : [], readable: listed.ok },
+      "motion"
+    );
+  }
 
   registerVerticalTemplates(app, deps, ui);
 
@@ -1980,17 +2007,27 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
   });
 
-  app.get("/settings/device-feedback", requireCustomer, (req, res) => {
-    // Device motion is a powerful sensor surface. Keep the site-wide default
-    // narrow and allow accelerometer/gyroscope only on this signed-in page,
-    // where capture still requires a visible user action and browser permission.
+  app.get("/settings/device-feedback", requireCustomer, async (req, res) => {
+    // Device motion is a powerful sensor surface. The browser policy is only
+    // one gate: the account-level permission must also be granted, and a failed
+    // permission read is treated as off rather than as "never asked".
     res.set("Permissions-Policy", permissionsPolicyFor("device_feedback"));
+    const config = getConfig(deps);
+    const motionPermission = await accountMotionPermission(config, req.sonaraUser?.id);
     const motionConfig = JSON.stringify({
       endpoint: "/api/motion/events",
       sampleWindowMs: 5000,
       sampleIntervalMs: 100,
-      maxSamples: 50
+      maxSamples: 50,
+      applicationPermissionAllowed: motionPermission.ok === true,
+      applicationPermissionState: motionPermission.state,
+      applicationPermissionMessage: motionPermission.ok
+        ? "SONARA motion permission is on. Your browser still decides whether the sensor may be used."
+        : motionPermission.message
     }).replaceAll("<", "\\u003c");
+    const motionPermissionCopy = motionPermission.ok
+      ? "Your SONARA motion permission is on. The browser still asks separately when required."
+      : `${motionPermission.message} Change this under Device permissions before asking the browser.`;
     return res.status(200).type("html").send(ui.layout({
       title: "Device Feedback",
       eyebrow: "Premium app feel",
@@ -1998,11 +2035,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       body: "Test supported device features. Nothing starts automatically. Sounds, vibration, motion, and GPS need user action and browser permission.",
       sections: [
         `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" data-sonara-feedback-test>Test success feedback</button><p class="fine" role="status" aria-live="polite" data-sonara-feedback-status></p><p class="fine" data-sonara-device-capabilities></p></div>`,
-        `<div class="card"><h2>Record one motion sample</h2><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p></div>`,
+        `<div class="card"><h2>Record one motion sample</h2><p>${ui.escape(motionPermissionCopy)}</p><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p></div>`,
         ui.card("Privacy", "Location and motion data should be used only for clock-ins, job-site check-ins, routes, inspections, delivery stops, and approved creator cue workflows."),
         ui.card("Fallbacks", "If vibration, motion, or GPS is unsupported, the app must show a plain setup or unsupported message.")
       ],
-      actions: [ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
+      actions: [ui.link("/account/permissions", "Device permissions"), ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
     }).replace("</body>", '<script src="/sensory-device-client.js"></script><script src="/sonara-motion-capture.js"></script></body>'));
   });
 
@@ -2233,11 +2270,27 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.status(200).json(saved);
   });
 
-  app.post("/api/motion/events", requireCustomer, async (req, res) => {
+  app.post("/api/motion/events", requireCustomer, motionSampleLimiter, async (req, res) => {
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+
+    const motionPermission = await accountMotionPermission(config, org.userId);
+    if (!motionPermission.ok) {
+      const unreadable = motionPermission.state === devicePermissions.STATE.unreadable;
+      const code = unreadable
+        ? "motion_permission_unreadable"
+        : motionPermission.state === devicePermissions.STATE.denied
+          ? "motion_permission_denied"
+          : "motion_permission_required";
+      return res.status(unreadable ? 503 : 403).json({
+        ok: false,
+        code,
+        state: motionPermission.state,
+        message: motionPermission.message
+      });
+    }
 
     const normalized = normalizeMotionSample(req.body || {});
     if (!normalized.ok) return res.status(400).json(normalized);
