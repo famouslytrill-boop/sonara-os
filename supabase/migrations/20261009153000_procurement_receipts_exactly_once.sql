@@ -13,10 +13,10 @@ begin;
 create table public.procurement_receipt_entries (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  purchase_order_id uuid not null references public.purchase_orders(id) on delete restrict,
-  purchase_order_line_id uuid not null references public.purchase_order_lines(id) on delete restrict,
-  inventory_item_id uuid not null references public.inventory_items(id) on delete restrict,
-  actor_user_id uuid not null references auth.users(id) on delete restrict,
+  purchase_order_id uuid not null references public.purchase_orders(id),
+  purchase_order_line_id uuid not null references public.purchase_order_lines(id),
+  inventory_item_id uuid not null references public.inventory_items(id),
+  actor_user_id uuid references auth.users(id) on delete set null,
   idempotency_key text not null check (char_length(idempotency_key) between 8 and 128 and idempotency_key = btrim(idempotency_key)),
   lot_code text not null check (char_length(btrim(lot_code)) between 1 and 80),
   unit text not null check (char_length(btrim(unit)) between 1 and 32),
@@ -37,8 +37,8 @@ create index procurement_receipt_line_idx
 create table public.inventory_procurement_receipt_ledger (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  receipt_id uuid not null unique references public.procurement_receipt_entries(id) on delete restrict,
-  inventory_item_id uuid not null references public.inventory_items(id) on delete restrict,
+  receipt_id uuid not null unique references public.procurement_receipt_entries(id),
+  inventory_item_id uuid not null references public.inventory_items(id),
   lot_code text not null,
   unit text not null,
   delta_quantity numeric(12,3) not null check (delta_quantity > 0),
@@ -126,7 +126,7 @@ begin
   if found then
     if v_existing.purchase_order_id <> p_purchase_order_id
        or v_existing.purchase_order_line_id <> p_purchase_order_line_id
-       or v_existing.actor_user_id <> p_actor_user_id
+       or v_existing.actor_user_id is distinct from p_actor_user_id
        or v_existing.lot_code <> btrim(p_lot_code)
        or lower(v_existing.unit) <> lower(btrim(p_unit))
        or v_existing.accepted_quantity <> p_accepted_quantity
