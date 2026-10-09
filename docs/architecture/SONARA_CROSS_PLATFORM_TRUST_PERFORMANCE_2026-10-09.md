@@ -84,3 +84,21 @@ Resource policy: no automatic camera/microphone/location/notifications on page l
 3. Confirm a previously cached private-looking URL is not available after activation, that authorization-sensitive responses never enter CacheStorage and that all static assets still load on constrained/mobile networks.
 4. Manually verify a signed Android build and Safari installed mode; document findings and product-specific limitations.
 5. Merge only after branch governance is active and recorded. Deploy via the controlled procedure, record deployed commit, monitor and retain rollback evidence. Never turn on customer sends, payments or durable workers just because PWA tests pass.
+
+
+## 2026-10-09 follow-up: fail-closed cache-control admission (draft PR #570)
+
+OWASP explicitly treats cache authorization state, URL-to-content-type agreement and cache-key design as part of preventing web cache deception. MDN describes `FetchEvent.waitUntil()` as the service-worker lifetime mechanism for revalidation work. Relevant references:
+- https://cheatsheetseries.owasp.org/cheatsheets/Web_Cache_Security_Cheat_Sheet.html
+- https://developer.mozilla.org/en-US/docs/Web/API/FetchEvent
+- https://developer.mozilla.org/en-US/docs/Web/API/Cache
+
+This branch now rejects static-response caching unless **all** conditions are true: public root/brand/font asset path, accepted query format, no authenticated/no-store request, HTTP 200 without redirect/opaque response, extension-matched MIME, explicit `Cache-Control: public`, no `private`/`no-store`/`no-cache`, no `Vary: Cookie`/`Authorization`/*, and no visible `Set-Cookie`. Public Express static assets currently use `Cache-Control: public, max-age=300, stale-while-revalidate=86400` or the explicit immutable revision policy. Ordinary dynamic responses no longer implicitly qualify just because an extension matches.
+
+The generic offline HTML is deliberately a different exception: it is fetched with `credentials: "omit"`, must be 200, HTML, unredirected and without session-sensitive headers. It does not require a `public` directive, as it is an explicit, fixed public offline route, but is denied when `private`, `no-store`, `no-cache`, `Vary: Cookie/Authorization/*` or `Set-Cookie` is present. No other navigation HTML is cached.
+
+### Source-level proof versus integration proof
+
+The latest service-worker blob was exercised with **13 synthetic fetch/install/activation assertions**, all passing: public script retention; three product-private path exclusions; authorization and token bypass; HTML-as-script rejection; no-store and non-public cache policy rejection; cookie-vary rejection; safe offline install; unsafe offline refusal; old cache namespace eviction. These were in-process mock runtime checks of the exact GitHub source, **not** a substitute for GitHub CI or Playwright browser evidence.
+
+The committed Mocha and Playwright suites are intended to independently verify these properties. All exact-head GitHub CI checks still require completed and passing runs before approval. Main branch protection, native PostgreSQL migration replay, handoff document consistency, Android/iOS device checks and production connectivity are separate blocked release gates. No live migrations, deployments, provider sends, customer operations or production availability changes were made here.
