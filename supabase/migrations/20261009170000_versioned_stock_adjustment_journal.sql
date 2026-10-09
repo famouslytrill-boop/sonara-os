@@ -37,6 +37,16 @@ create table public.inventory_stock_events (
 create index inventory_stock_events_org_item_time_idx
   on public.inventory_stock_events(organization_id,inventory_item_id,recorded_at desc);
 
+-- Snapshot every pre-existing item at migration time without pretending any
+-- historical movement has been reconstructed. All existing rows begin at v0.
+insert into public.inventory_stock_events(
+  organization_id,inventory_item_id,source,version_before,version_after,
+  balance_before,balance_after,delta_quantity
+)
+select i.organization_id,i.id,'opening_snapshot',0,0,
+       coalesce(i.quantity,0),coalesce(i.quantity,0),0
+from public.inventory_items i;
+
 -- Persistent evidence of independent reviewer approval, written only by
 -- an authenticated server workflow after the reviewer actually confirms.
 create table public.inventory_stock_adjustment_approvals (
@@ -149,7 +159,7 @@ begin
   if tg_op = 'UPDATE' and new.quantity is not distinct from old.quantity then
     return new;
   end if;
-  v_before := case when tg_op = 'INSERT' then 0 else coalesce(old.quantity,0) end;
+  v_before := case when tg_op = 'INSERT' then coalesce(new.quantity,0) else coalesce(old.quantity,0) end;
   v_after := coalesce(new.quantity,0);
   if v_before::text in ('NaN','Infinity','-Infinity')
      or v_after::text in ('NaN','Infinity','-Infinity') then
