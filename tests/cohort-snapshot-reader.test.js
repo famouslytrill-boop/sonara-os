@@ -5,6 +5,7 @@
 const assert = require("node:assert/strict");
 const { generateKeyPairSync, sign } = require("node:crypto");
 const { readCohortFromSnapshot } = require("../lib/sonara-cohort-snapshot-reader.cjs");
+const { verifyCohortRosterAttestation } = require("../lib/sonara-cohort-roster-attestation.cjs");
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 const ID_B = "22222222-2222-4222-8222-222222222222";
@@ -233,6 +234,50 @@ describe("server-only customer cohort snapshot contract", () => {
       to: "2026-09-03T00:00:00.000Z", rosterAttestation: valid });
     assert.equal(mismatchedTime.code, "roster_attestation_invalid");
     assert.equal(connections, 0);
+  });
+
+  it("verifies Ed25519 using public KeyObject or PEM but rejects private key custody", () => {
+    const attestation = signedRoster();
+    const base = { attestation, approvedReportingRole: "sonara_cohort_reader",
+      expectedOrganizationIds: [ID_A], from, to, asOf };
+    assert.equal(verifyCohortRosterAttestation({
+      ...base, trustedKeys: { ops_test_key: rosterPublic }
+    }).ok, true);
+    assert.equal(verifyCohortRosterAttestation({
+      ...base, trustedKeys: { ops_test_key: rosterPublic.export({ format: "pem", type: "spki" }) }
+    }).ok, true);
+    assert.equal(verifyCohortRosterAttestation({
+      ...base, trustedKeys: { ops_test_key: rosterPrivate }
+    }).ok, false);
+    assert.equal(verifyCohortRosterAttestation({
+      ...base, trustedKeys: { ops_test_key: rosterPrivate.export({ format: "pem", type: "pkcs8" }) }
+    }).ok, false);
+  });
+
+  it("rejects untrusted approval fields, clock replay, invalid issuer evidence and signing overlong", () => {
+    const payload = {
+      asOf, audience: "sonara.cohort.snapshot.v1", evidenceSha256: "a".repeat(64),
+      expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      from, issuedAt: new Date(Date.now() - 60_000).toISOString(),
+      organizationIds: [ID_A], reportingRole: "sonara_cohort_reader", to
+    };
+    const opts = { trustedKeys: trustStore, approvedReportingRole: "sonara_cohort_reader",
+      expectedOrganizationIds: [ID_A], from, to, asOf };
+    const seal = (claims) => {
+      const bytes = Buffer.from(JSON.stringify(claims));
+      return { keyId: "ops_test_key", payloadB64: bytes.toString("base64url"),
+        signatureB64: sign(null, bytes, rosterPrivate).toString("base64url") };
+    };
+    for (const edited of [
+      { ...payload, arbitraryScope: true },
+      { ...payload, evidenceSha256: "not-a-sha256" },
+      { ...payload, issuedAt: new Date(Date.now() + 60_000).toISOString() },
+      { ...payload, expiresAt: new Date(Date.now() + 4 * 86_400_000).toISOString() },
+      { ...payload, audience: "sonara.other.purpose" }
+    ]) {
+      assert.equal(verifyCohortRosterAttestation({ ...opts,
+        attestation: seal(edited) }).ok, false);
+    }
   });
 
   it("refuses a read-write session and cleans up", async () => {
