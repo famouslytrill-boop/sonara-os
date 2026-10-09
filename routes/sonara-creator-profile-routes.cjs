@@ -127,8 +127,12 @@ function registerCreatorProfileRoutes(app, deps = {}) {
     }));
     if (!found.rows.length) return res.status(404).type("html").send(noProfilePage());
 
-    const view = publicProfileView(found.rows[0], await followerCount(config, found.rows[0].id));
-    if (!view) return res.status(404).type("html").send(noProfilePage());
+    // Validate the public profile shape first, but delay reading follower
+    // counts until AFTER the signed-in viewer's block state is authorized.
+    // A person blocked by the creator must not trigger a follower-list read.
+    if (!publicProfileView(found.rows[0], null)) {
+      return res.status(404).type("html").send(noProfilePage());
+    }
 
     // Whether the person looking is already following. Resolved without
     // requiring a session: a stranger sees the profile and an invitation to make
@@ -171,6 +175,8 @@ function registerCreatorProfileRoutes(app, deps = {}) {
       }));
     }
 
+    const view = publicProfileView(found.rows[0],
+      await followerCount(config, found.rows[0].id));
     let followState = { signedIn: Boolean(viewer), following: false, known: true };
     if (viewer?.id) {
       const mine = await rest(
