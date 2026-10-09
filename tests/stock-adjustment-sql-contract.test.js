@@ -20,6 +20,8 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/create trigger inventory_items_stock_change_journal\s+after insert or update on public\.inventory_items/i);
     assert.match(migration,/unattributed_quantity_change/i);
     assert.match(migration,/opening_snapshot/i);
+    assert.match(migration,/from public\\.inventory_items i;/i);
+    assert.match(migration,/coalesce\\(i\\.quantity,0\\),coalesce\\(i\\.quantity,0\\),0/i);
     assert.match(migration,/unique \(inventory_item_id,version_after\)/i);
     assert.match(migration,/if new\.quantity is distinct from old\.quantity then/i);
   });
@@ -74,6 +76,10 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/stock_event_id uuid not null unique references public\.inventory_stock_events\(id\)/i);
     assert.match(migration,/approval_id uuid not null unique references public\.inventory_stock_adjustment_approvals\(id\)/i);
     assert.match(migration,/create trigger inventory_adjustment_event_lineage/i);
+    assert.match(migration,/a\\.organization_id = new\\.organization_id/i);
+    assert.match(migration,/a\\.actor_user_id = new\\.actor_user_id/i);
+    assert.match(migration,/a\\.counted_quantity = new\\.balance_after/i);
+    assert.match(migration,/stock_adjustment_approval_lineage_invalid/i);
     assert.match(migration,/e\.version_before = new\.stock_version_before/i);
     assert.match(migration,/e\.balance_after = new\.balance_after/i);
   });
