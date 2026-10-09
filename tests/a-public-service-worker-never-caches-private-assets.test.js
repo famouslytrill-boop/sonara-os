@@ -90,7 +90,8 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
       networkRequests += 1;
       network.push({
         url: typeof target === "string" ? target : target.url,
-        credentials: options.credentials || (typeof target === "string" ? "same-origin" : target.credentials)
+        credentials: options.credentials || (typeof target === "string" ? "same-origin" : target.credentials),
+        cacheMode: options.cache || (typeof target === "string" ? "default" : target.cache)
       });
       return makeResponse(target);
     },
@@ -156,6 +157,8 @@ describe("PWA cache contains public assets only", () => {
     assert.equal(worker.stored.length, 5);
     assert.ok(worker.stored.every((entry) => entry.credentials === "omit"));
     assert.ok(worker.network.every((entry) => entry.credentials === "omit"));
+    assert.ok(worker.network.every((entry) => entry.cacheMode === "no-cache"),
+      "public assets must revalidate with origin rather than trust immutable HTTP cache");
   });
 
   it("does not intercept tenant content, deep routes or private APIs with static extensions", async () => {
@@ -199,6 +202,7 @@ describe("PWA cache contains public assets only", () => {
     const worker = harness();
     assert.equal(await worker.request("/sonara-one.js", { credentials: "include" }), true);
     assert.deepEqual(worker.network.map((entry) => entry.credentials), ["omit"]);
+    assert.deepEqual(worker.network.map((entry) => entry.cacheMode), ["no-cache"]);
     assert.deepEqual(worker.stored.map((entry) => entry.credentials), ["omit"]);
     assert.equal(await worker.request("/sonara-application-ui.css"), true);
     assert.ok(worker.network.every((entry) => entry.credentials === "omit"));
