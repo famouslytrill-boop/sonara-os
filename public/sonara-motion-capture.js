@@ -24,6 +24,8 @@
   const cancelButton = document.querySelector("[data-sonara-motion-cancel]");
   const statusNode = document.querySelector("[data-sonara-motion-status]");
   const capsNode = document.querySelector("[data-sonara-device-capabilities]");
+  const feedbackButton = document.querySelector("[data-sonara-feedback-test]");
+  const feedbackStatus = document.querySelector("[data-sonara-feedback-status]");
   const device = window.SONARA && window.SONARA.sensoryDevice;
 
   if (!startButton || !cancelButton || !statusNode || !device) return;
@@ -205,6 +207,18 @@
     active.timer = setTimeout(finishCapture, sampleWindowMs);
     setButtons(true);
     setStatus("Sampling motion for up to five seconds. Keep this page visible, or cancel.");
+  }
+
+  if (feedbackButton) {
+    feedbackButton.addEventListener("click", async function () {
+      if (feedbackStatus) feedbackStatus.textContent = "Testing feedback…";
+      const result = await device.feedback("success");
+      if (feedbackStatus) {
+        feedbackStatus.textContent = result && result.ok
+          ? "Feedback test completed."
+          : "Sound or vibration feedback is not supported here.";
+      }
+    });
   }
 
   startButton.addEventListener("click", startCapture);
