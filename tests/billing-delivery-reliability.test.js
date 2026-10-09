@@ -314,6 +314,76 @@ describe("billing delivery reliability", () => {
     assert.equal(count, 0);
   });
 
+  it("does not invent a subscription owner when historical cancellation proof is missing or ambiguous", async () => {
+    const ev = {
+      type: "customer.subscription.deleted",
+      data: { object: { id: "sub_cancel", customer: "cus_original", status: "canceled" } }
+    };
+    const valid = {
+      provider_subscription_ref: "sub_cancel", provider_customer_ref: "cus_original",
+      organization_id: "org_original", plan_slug: "workspace_monthly", metadata: {}
+    };
+    for (const rows of [
+      [],
+      [valid, valid],
+      { code: "postgrest_singular" },
+      null,
+      [{ ...valid, provider_customer_ref: "cus_wrong" }]
+    ]) {
+      let calls = 0;
+      global.fetch = async (url) => {
+        calls += 1;
+        assert.match(String(url), /billing_subscriptions\?select=/);
+        return { ok: true, json: async () => rows };
+      };
+      const result = await billing().synchronizeBillingFromStripeEvent(ev);
+      assert.equal(result.ok, false);
+      assert.match(result.code, /stripe_cancellation_subscription_(unreadable|mismatch)/);
+      assert.equal(calls, 1, "invalid historical identity must not write any billing row");
+    }
+  });
+
+  it("does not use the cancellation-only fallback for inactive subscription updates", async () => {
+    const calls = [];
+    global.fetch = async (url) => {
+      calls.push(String(url));
+      return { ok: true, json: async () => [] };
+    };
+    const response = await billing().synchronizeBillingFromStripeEvent({
+      type: "customer.subscription.updated",
+      data: { object: {
+        id: "sub_cancel", customer: "cus_original", status: "canceled",
+        metadata: { organization_id: "org_original", plan: "workspace_monthly" }
+      } }
+    });
+    assert.deepEqual(response, { ok: false, code: "stripe_webhook_customer_mismatch" });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0], /stripe_customers\?/);
+  });
+
+  it("leaves canceled subscription reconciliation retryable when entitlement persistence fails", async () => {
+    const calls = [];
+    global.fetch = async (url, options) => {
+      calls.push(String(url));
+      if (String(url).includes("billing_subscriptions?select=")) return {
+        ok: true, json: async () => [{
+          organization_id: "org_original", provider_customer_ref: "cus_original",
+          provider_subscription_ref: "sub_cancel", plan_slug: "workspace_monthly", metadata: {}
+        }]
+      };
+      if (String(url).includes("/billing_entitlements?")) return { ok: false, status: 503 };
+      return { ok: true };
+    };
+    const result = await billing().synchronizeBillingFromStripeEvent({
+      type: "customer.subscription.deleted",
+      data: { object: { id: "sub_cancel", customer: "cus_original", status: "canceled" } }
+    });
+    assert.equal(result.ok, false);
+    assert.equal(calls.length, 3);
+    assert.match(calls[1], /billing_subscriptions\?on_conflict=/);
+    assert.match(calls[2], /billing_entitlements\?on_conflict=/);
+  });
+
   it("never creates a provider customer when the tenant mapping cannot be read", async () => {
     for (const response of [undefined, { ok: false }, { ok: true, json: async () => { throw Error("bad JSON"); } }, { ok: true, json: async () => ({}) }]) {
       const calls = [];
