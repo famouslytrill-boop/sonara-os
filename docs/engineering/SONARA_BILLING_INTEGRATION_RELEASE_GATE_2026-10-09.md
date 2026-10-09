@@ -248,3 +248,74 @@ processed.
 
 Official Stripe Event object `created` field:
 https://docs.stripe.com/api/events/object
+
+
+## P0: same-second Stripe subscription conflict quarantine (proposed additive migration)
+
+Stripe delivers Events without guaranteed order; the Event `created` value is
+a Unix-second timestamp, not a monotonically increasing per-subscription
+revision. The existing 20260903120000 migration rejects **older** timestamps,
+but accepted distinct events bearing the **same** second. Arrival order could
+reactivate a canceled subscription or leave an incorrect workspace/plan after
+out-of-order concurrent delivery.
+
+Proposed additive SQL migration:
+`supabase/migrations/20261009090000_stripe_equal_second_conflicts_fail_closed.sql`.
+It **replaces the existing row-lock trigger function** without modifying pinned
+historical migration files or adding tables/permissions. This is **committed
+source only**; it has not been applied to production.
+
+The conservative rules are:
+
+- A provider subscription ID with a non-null-stamped `canceled` state is
+  terminal, even if an `active` webhook later arrives with a newer or
+  identical whole-second stamp. Stripe cancellation requires a new subscription
+  ID for a later new purchase.
+- For equal timestamps, a disabled/nonactive subscription state takes precedence
+  over an active/trialing state. A genuinely later provider update in the *next*
+  second may recover `past_due` or other nonterminal statuses.
+- If equal-second active snapshots disagree about organization, Stripe customer,
+  plan, selected workspace or billing period, the record enters SONARA's
+  internal `reconciliation_required` status. **This is not a statement that
+  Stripe itself paused the subscription.** Paid access ignores this status.
+  The row's metadata records `same_second_conflict=true`.
+- The derived `billing_entitlements` projection likewise favors disabled on
+  equal-second collisions and flags conflicting active sources. The actual
+  `billing_subscriptions` rows remain authoritative for recurring access.
+- Identical same-second replay stays idempotent. The old SQL behavior for null
+  stamps is preserved only for legacy non-webhook callers. Webhook processing
+  already refuses null `Event.created`.
+
+Replay verification is wired to the disposable PostgreSQL migration runner in
+`scripts/verify-migration-replay.mjs` and uses
+`tests/sql/stripe-equal-second-conflicts.sql`. It checks 12 markers across
+terminal cancellation, newer-stamped attempted resurrection, access degradation,
+recovery on a later second, duplicate events, workspace/plan collisions,
+entitlement collisions, and strictly older replay.
+
+**Important residual limitation:** the first event at a timestamp can be
+accepted before another conflicting event appears. A timestamp alone cannot
+reconstruct the provider's actual order, so this is a **fail-closed collision
+mitigation**, not definitive reconciliation. An authorized operational process
+must retrieve the current subscription from Stripe, compare IDs/customer/plan/
+entitlements, and resolve quarantined rows with tenant-safe, auditable action.
+A single late webhook with an identical timestamp cannot clear a quarantine.
+
+**Release gates:**
+1. Execute the disposable **real PostgreSQL** migration replay and all tests,
+   not only static source contracts; measure the effect of the function
+   replacement on historical migration history and the latest schema.
+2. Exercise equal-second and concurrent delivery sequences in isolated
+   PostgreSQL, then with Stripe test-mode events. Include a failed transaction,
+   retry and cancelled-subscription ID that remains terminal.
+3. Verify alerting for rows where `metadata->>'same_second_conflict'='true'`
+   and `status='reconciliation_required'`, and design a human-approved
+   reconciliation runbook that does not invent tenant/customer associations.
+4. Compare pending SQL migration IDs/checksums against the **correct**
+   Supabase project, capture rollout/rollback evidence, obtain owner approval
+   before running production DDL, and require green exact-head protected CI.
+
+Research:
+- https://docs.stripe.com/api/events/object
+- https://docs.stripe.com/api/subscriptions/object
+- https://docs.stripe.com/api/subscriptions/retrieve
