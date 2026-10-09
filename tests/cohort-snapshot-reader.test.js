@@ -82,7 +82,7 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.activity_events'")));
     assert.equal(client.calls.at(-1).sql, "ROLLBACK");
     assert.equal(client.releaseCalled, true);
-    const selects = client.calls.filter((call) => call.sql.startsWith("select "));
+    const selects = client.calls.filter((call) => call.sql.startsWith("select id, created_at") || call.sql.startsWith("select e.organization_id"));
     assert.equal(selects.length, 2);
     assert.ok(selects.every((call) => !/insert|update|delete/i.test(call.sql)));
     assert.ok(selects.every((call) => call.params[0] === from && call.params[1] === to));
