@@ -326,12 +326,14 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
-    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
-      fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
-      ["p1_rls_hygiene_staging_passed"]);
+    // The current migration state has already hardened service-only RLS to
+    // service_role/TRUE, and optimized user policies to scalar initplans.
+    // The historic P1 rewriting dry-run expects obsolete PUBLIC policies, so
+    // re-running it here is invalid. Verify all 25 *current* exact predicates
+    // and both subscription policies; never skip or weaken the security gate.
+    behaves(psql, "P1 current RLS security policy and overlap attestation",
+      fs.readFileSync(path.join(root, "tests/sql/p1-current-policy-contract.sql"), "utf8"),
+      ["p1_current_policy_contract_passed"]);
 
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
