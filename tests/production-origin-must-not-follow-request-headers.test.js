@@ -110,7 +110,7 @@ describe("canonical SONARA origin for all company products", () => {
       );
       assert.equal(response.ok, false);
       assert.equal(response.code, "site_origin_not_configured");
-      assert.equal(calls.filter((url) => url.includes("/v1/checkout/sessions")).length, 0);
+      assert.equal(calls.length, 0, "untrusted return origin caused a Stripe API request");
     } finally {
       global.fetch = previousFetch;
     }
@@ -145,6 +145,83 @@ describe("canonical SONARA origin for all company products", () => {
       assert.equal(result.status, 503);
       assert.equal(result.body.code, "site_origin_not_configured");
       assert.equal(callCount, 0);
+    } finally {
+      global.fetch = previousFetch;
+    }
+  });
+
+  it("only accepts same-origin HTTPS checkout redirects, even when an override is configured", () => {
+    const { createBilling } = require("../lib/sonara-billing.cjs");
+    const redirects = (origin, overrides = {}) => createBilling({
+      STRIPE_PLANS: {},
+      getEnv: (name) => overrides[name] || "",
+      getPublicAppUrl: () => origin,
+      getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+      getSupabaseServerConfig: () => ({ ok: false }),
+      supabaseHeaders: () => ({}),
+      safeCountTable: async () => ({ ok: true, count: 0 }),
+      formatMetric: String,
+      insertActivityEvent: async () => ({ ok: true })
+    }).getCheckoutRedirectUrls({});
+
+    assert.deepEqual(redirects("https://sonaraindustries.com"), {
+      ok: true,
+      successUrl: "https://sonaraindustries.com/account",
+      cancelUrl: "https://sonaraindustries.com/pricing"
+    });
+    assert.deepEqual(redirects("https://sonaraindustries.com", {
+      STRIPE_SUCCESS_URL: "https://sonaraindustries.com/account?checkout=done",
+      STRIPE_CANCEL_URL: "https://sonaraindustries.com/pricing?checkout=cancelled"
+    }), {
+      ok: true,
+      successUrl: "https://sonaraindustries.com/account?checkout=done",
+      cancelUrl: "https://sonaraindustries.com/pricing?checkout=cancelled"
+    });
+    for (const bad of [
+      "https://attacker.example/account",
+      "http://sonaraindustries.com/account",
+      "https://sonaraindustries.com.attacker.example/account",
+      "https://user:pass@sonaraindustries.com/account",
+      "https://sonaraindustries.com/account#secret",
+      "/account",
+      "javascript:alert(1)"
+    ]) {
+      assert.deepEqual(redirects("https://sonaraindustries.com", { STRIPE_SUCCESS_URL: bad }), {
+        ok: false, code: "checkout_redirect_untrusted"
+      }, bad);
+    }
+    assert.deepEqual(redirects("https://sonaraindustries.com/other"), {
+      ok: false, code: "site_origin_not_configured"
+    });
+  });
+
+  it("does not call the Stripe price API when a checkout override sends customers off-site", async () => {
+    const { createBilling } = require("../lib/sonara-billing.cjs");
+    const previousFetch = global.fetch;
+    let calls = 0;
+    global.fetch = async () => {
+      calls += 1;
+      throw new Error("Stripe must not be contacted");
+    };
+    try {
+      const billing = createBilling({
+        STRIPE_PLANS: { workspace_monthly: { mode: "subscription", amountCents: 2900 } },
+        getEnv: (name) => name === "STRIPE_SUCCESS_URL" ? "https://attacker.example/paid" : "",
+        getPublicAppUrl: () => "https://sonaraindustries.com",
+        getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+        getSupabaseServerConfig: () => ({ ok: false }),
+        supabaseHeaders: () => ({}),
+        safeCountTable: async () => ({ ok: true, count: 0 }),
+        formatMetric: String,
+        insertActivityEvent: async () => ({ ok: true })
+      });
+      const result = await billing.createStripeCheckoutSession(
+        { body: { workspace: "business_builder" } }, "workspace_monthly",
+        "price_test", "org_test", { id: "user_test" }, "cus_test"
+      );
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "checkout_redirect_untrusted");
+      assert.equal(calls, 0, "a malformed redirect still triggered a Stripe API call");
     } finally {
       global.fetch = previousFetch;
     }
