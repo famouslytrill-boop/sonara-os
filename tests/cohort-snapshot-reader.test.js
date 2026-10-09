@@ -16,7 +16,9 @@ function fakeClient({ organizations = [{ id: ID_A, created_at: create }],
   events = [
     { organization_id: ID_A, event_type: "account.organization_created", created_at: create },
     { organization_id: ID_A, event_type: "creator_studio.output_downloaded", created_at: "2026-09-01T10:12:00.000Z" }
-  ], readOnly = "on", failOn = null, mismatch = false, rollbackFails = false } = {}) {
+  ], readOnly = "on", failOn = null, mismatch = false, rollbackFails = false,
+  dbRole = "sonara_cohort_reader", sessionRole = dbRole, roleSuper = false,
+  roleBypass = false, orgRls = true, activityRls = true } = {}) {
   const calls = [];
   const client = {
     calls,
@@ -28,6 +30,13 @@ function fakeClient({ organizations = [{ id: ID_A, created_at: create }],
       if (sql.startsWith("BEGIN") || sql.startsWith("SET LOCAL")) return { rows: [], rowCount: 0 };
       if (sql === "SHOW transaction_read_only") {
         return { rows: [{ transaction_read_only: readOnly }], rowCount: 1 };
+      }
+      if (sql.includes("from pg_catalog.pg_roles r where r.rolname = current_user")) {
+        return { rows: [{
+          role_name: dbRole, session_role: sessionRole,
+          role_superuser: roleSuper, role_bypasses_rls: roleBypass,
+          organizations_rls_active: orgRls, activity_events_rls_active: activityRls
+        }], rowCount: 1 };
       }
       if (sql === "SELECT transaction_timestamp() AS snapshot_at") {
         return { rows: [{ snapshot_at: "2026-10-08T22:00:00.000Z" }], rowCount: 1 };
@@ -52,6 +61,7 @@ function report(client, extra = {}) {
   return readCohortFromSnapshot({
     connect: async () => client,
     classifyEligibility: () => true,
+    approvedReportingRole: "sonara_cohort_reader",
     from, to, asOf, ...extra
   });
 }
@@ -68,6 +78,8 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.sourceConsistency, "dedicated_repeatable_read_read_only_transaction");
     assert.equal(result.snapshotCapturedAt, "2026-10-08T22:00:00.000Z");
     assert.equal(client.calls[0].sql, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.organizations'")));
+    assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.activity_events'")));
     assert.equal(client.calls.at(-1).sql, "ROLLBACK");
     assert.equal(client.releaseCalled, true);
     const selects = client.calls.filter((call) => call.sql.startsWith("select "));
@@ -88,11 +100,42 @@ describe("server-only customer cohort snapshot contract", () => {
   it("does not connect with invalid windows or missing trusted policy", async () => {
     let connections = 0;
     const connect = async () => { connections += 1; return fakeClient(); };
-    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, from, to, asOf: from });
+    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", from, to, asOf: from });
     assert.equal(invalid.code, "observation_window_invalid");
     assert.equal(connections, 0);
     const missing = await readCohortFromSnapshot({ connect, from, to, asOf });
     assert.equal(missing.code, "trusted_operator_dependencies_missing");
+    assert.equal(connections, 0);
+  });
+
+  it("rejects privileged PostgreSQL reporting identities before source SELECTs", async () => {
+    for (const overrides of [
+      { dbRole: "postgres", roleBypass: true },
+      { dbRole: "sonara_cohort_reader", roleBypass: true },
+      { dbRole: "sonara_cohort_reader", roleSuper: true },
+      { dbRole: "sonara_cohort_reader", sessionRole: "postgres" },
+      { dbRole: "sonara_cohort_reader", orgRls: false },
+      { dbRole: "sonara_cohort_reader", activityRls: false },
+      { dbRole: "another_reader" }
+    ]) {
+      const client = fakeClient(overrides);
+      const result = await report(client);
+      assert.equal(result.code, "snapshot_read_failed");
+      assert.equal(client.calls.at(-1).sql, "ROLLBACK");
+      assert.equal(client.releaseCalled, true);
+      assert.equal(client.calls.some(({ sql }) => sql.startsWith("select id, created_at")), false);
+    }
+  });
+
+  it("refuses missing or forbidden approved role before opening database connection", async () => {
+    let connections = 0;
+    const connect = async () => { connections += 1; return fakeClient(); };
+    for (const role of [undefined, "postgres", "service_role", "authenticated", "BAD;DROP"]) {
+      const result = await readCohortFromSnapshot({
+        connect, classifyEligibility: () => true, from, to, asOf, approvedReportingRole: role
+      });
+      assert.equal(result.code, "trusted_operator_dependencies_missing");
+    }
     assert.equal(connections, 0);
   });
 
