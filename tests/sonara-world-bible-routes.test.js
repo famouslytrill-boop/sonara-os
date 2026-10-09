@@ -401,6 +401,11 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.equal((await request(app).post(path).set("x-paid", "yes")
       .set("x-sonara-intent", "story-save").send(body)).status, 404);
     assert.equal((await request(app).post(path).send(body)).status, 403);
+    const seed = await request(app).post(`/api/creator-studio/projects/${PID}/world-bible`)
+      .set("x-paid", "yes").send({ expectedRevision: 0, draft: {
+        title: "Story", medium: "interactive", entities: [],
+        scenes: [{ id: "intro", title: "First" }], resources: {} } });
+    assert.equal(seed.status, 200);
     assert.equal((await request(app).post(path).set("x-paid", "yes")
       .set("x-sonara-intent", "story-save").send(body)).status, 400);
     assert.equal((await request(app).post(path).set("x-paid", "yes")
