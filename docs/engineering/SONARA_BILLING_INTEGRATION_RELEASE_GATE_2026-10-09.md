@@ -204,3 +204,47 @@ tests and all existing paid-access tests; Node 22/24 lanes; real PostgreSQL
 multiple-subscription reconciliation; stale-event replay; tenant-adversarial
 RLS tests; Stripe sandbox cancellation/retry checks; and protected merge review.
 No production migration, deployment, real payment, or website restore.
+
+
+## P0 provider-created timestamp is mandatory on subscription webhooks
+
+The database's existing `sonara_reject_stale_provider_event` trigger
+(`20260903120000_stripe_events_cannot_arrive_backwards.sql`) rejects rows
+whose non-null `provider_event_at` is older than the stored stamp. For
+backwards compatibility with legacy writers, the SQL trigger deliberately
+permits null timestamps. Previously `synchronizeBillingFromStripeEvent`
+computed `providerEventAt = null` when Stripe's `event.created` was
+missing, malformed or not numeric, so an unversioned webhook could bypass
+the ordering guard and overwrite a newer cancellation.
+
+**Implementation:** the runtime now requires `Number.isSafeInteger(event.created)`
+and a positive, ISO-convertible Unix-second timestamp (maximum
+253402300799) on `customer.subscription.created`, `.updated` and
+`.deleted`. It returns `stripe_event_timestamp_invalid` before any DB
+read/write for invalid stamps, including cancellation recovery. Validated
+event time is always encoded as a non-null ISO `provider_event_at` on
+both subscription and recurring entitlement upserts.
+
+This does **not** change the already-applied migration or its compatibility
+path for non-webhook legacy callers. It also does **not** solve same-second
+event collisions (Stripe Event.created is recorded in seconds); do not
+assert complete provider state ordering until a current-Stripe-state
+reconciliation strategy and its integration proof exist.
+
+**Regression coverage:** invalid timestamp forms (missing, null, string,
+fractional, NaN, infinity, negative, zero, beyond supported range and unsafe
+integer) for all three subscription event types; zero database operations;
+valid timestamps persisted identically to both tables; correctly signed HTTP
+delivery without a timestamp returns a retryable 503 without touching the
+database. Existing webhook, period and contract fixtures now provide
+explicit provider-created timestamps.
+
+**Verification:** 18/18 selected actual billing test callbacks passed in an
+isolated mock executor; 6/6 inspected JS files passed syntax compilation;
+6/6 source contract assertions passed. Full Node/Mocha, real PostgreSQL
+ordering replay, CI and sandbox lifecycle are unverified and remain release
+blockers. An invalid provider event must be reconciled, not silently marked
+processed.
+
+Official Stripe Event object `created` field:
+https://docs.stripe.com/api/events/object
