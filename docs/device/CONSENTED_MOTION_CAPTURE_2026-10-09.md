@@ -8,7 +8,9 @@ This change closes one concrete capability gap without widening background devic
 
 ## Implemented path
 
-`/settings/device-feedback` now contains an explicit **Save a 5-second motion sample** control. It loads `public/sonara-motion-capture.js` from the same origin.
+`/account/permissions` now includes **Motion sensors** in the existing `device_permission_grants` decision model. No row means off/not asked; `denied` remains off; only the latest `granted` decision allows SONARA to expose the capture control. This application-level choice is separate from the browser's own permission.
+
+`/settings/device-feedback` contains an explicit **Save a 5-second motion sample** control. When the account decision is not granted or cannot be read, the page receives the global sensor-deny Permissions-Policy and the control is disabled. When it is granted, the page receives the scoped `device_feedback` policy and the browser may still deny the sensor prompt. It loads `public/sonara-motion-capture.js` from the same origin.
 
 The client:
 
@@ -22,7 +24,7 @@ The client:
 - performs no automatic retry or background resume;
 - aborts an in-flight save if the page leaves the foreground.
 
-The server repeats the privacy boundary rather than trusting the browser. `lib/sonara-motion-sample.cjs` validates the database event vocabulary, refuses empty or non-finite samples, caps numeric values to the PostgreSQL `numeric(12,6)` domain, and quantizes stored sensor values to one decimal place. Organization and user IDs remain derived from the authenticated server context.
+The server repeats the privacy boundary rather than trusting the browser. Before parsing or storing a sample it re-reads the authenticated user's latest `motion` decision from `device_permission_grants`; denied/not-recorded returns 403 and an unreadable permission state returns 503. The endpoint is also rate-limited by IP and signed-in subject. `lib/sonara-motion-sample.cjs` validates the database event vocabulary, refuses empty or non-finite samples, caps numeric values to the PostgreSQL `numeric(12,6)` domain, and quantizes stored sensor values to one decimal place. Organization and user IDs remain derived from authenticated server context.
 
 ## Permission boundary
 
