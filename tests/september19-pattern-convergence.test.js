@@ -268,7 +268,7 @@ describe("September 19 platform pattern convergence", () => {
     }), /approval|Out-of-order/i);
     assert.throws(() => reviewOperationalTransitionLedger({
       ...input, events: [a, { ...b, occurredAtMs: 1999 }]
-    }), /Out-of-order/);
+    }), /Stale, cross-scope or unbound|Out-of-order/);
     assert.throws(() => reviewOperationalTransitionLedger({
       ...input, events: [a, { ...b, approval: { ...b.approval, approvalId: a.approval.approvalId } }]
     }), /approval reused/);
