@@ -199,7 +199,11 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(publicRequest).then((cached) => {
-        const refresh = fetch(publicRequest)
+        // Revalidate the underlying HTTP cache even when a versioned asset
+        // has a long immutable lifetime. Otherwise CacheStorage might see
+        // only the browser's year-old 200 and never learn about a revocation.
+        // Conditional HTTP validation limits transfer when the asset is unchanged.
+        const refresh = fetch(publicRequest, { cache: "no-cache" })
           .then(async (response) => {
             if (isCacheableResponse(response, url)) {
               // Cache failures must not hide a valid network response.
