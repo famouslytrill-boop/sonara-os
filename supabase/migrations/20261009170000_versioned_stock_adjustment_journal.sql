@@ -35,12 +35,32 @@ create table public.inventory_stock_events (
 create index inventory_stock_events_org_item_time_idx
   on public.inventory_stock_events(organization_id,inventory_item_id,recorded_at desc);
 
+-- Persistent evidence of independent reviewer approval, written only by
+-- an authenticated server workflow after the reviewer actually confirms.
+create table public.inventory_stock_adjustment_approvals (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  inventory_item_id uuid not null references public.inventory_items(id),
+  actor_user_id uuid not null references auth.users(id),
+  reviewer_user_id uuid not null references auth.users(id),
+  idempotency_key text not null check (char_length(idempotency_key) between 8 and 128 and idempotency_key=btrim(idempotency_key)),
+  reason text not null check (reason in ('cycle_count','damaged','expired','shrinkage','customer_return','supplier_correction')),
+  expected_stock_version bigint not null check (expected_stock_version>=0),
+  counted_quantity numeric not null check (counted_quantity>=0 and counted_quantity<=999999999.999
+    and counted_quantity=trunc(counted_quantity,3) and counted_quantity::text not in ('NaN','Infinity','-Infinity')),
+  decision text not null check (decision='approved'),
+  approved_at timestamptz not null default now(),
+  constraint stock_approval_distinct_people check (actor_user_id<>reviewer_user_id),
+  constraint stock_approval_request_once unique(organization_id,idempotency_key)
+);
+
 -- Immutable correction evidence is distinct from the universal change audit.
 create table public.inventory_stock_adjustments (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
   inventory_item_id uuid not null references public.inventory_items(id),
   stock_event_id uuid not null unique references public.inventory_stock_events(id),
+  approval_id uuid not null unique references public.inventory_stock_adjustment_approvals(id),
   actor_user_id uuid not null references auth.users(id),
   reviewer_user_id uuid not null references auth.users(id),
   idempotency_key text not null check (
@@ -71,11 +91,17 @@ create index inventory_stock_adjustment_item_time_idx
   on public.inventory_stock_adjustments(organization_id,inventory_item_id,created_at desc);
 
 alter table public.inventory_stock_events enable row level security;
+alter table public.inventory_stock_adjustment_approvals enable row level security;
 alter table public.inventory_stock_adjustments enable row level security;
 revoke all on public.inventory_stock_events from public,anon,authenticated,service_role;
+revoke all on public.inventory_stock_adjustment_approvals from public,anon,authenticated,service_role;
 revoke all on public.inventory_stock_adjustments from public,anon,authenticated,service_role;
 grant select on public.inventory_stock_events to service_role;
+grant select,insert on public.inventory_stock_adjustment_approvals to service_role;
 grant select,insert on public.inventory_stock_adjustments to service_role;
+create policy stock_events_service_read on public.inventory_stock_events for select to service_role using (true);
+create policy stock_approvals_service_read on public.inventory_stock_adjustment_approvals for select to service_role using (true);
+create policy stock_adjustments_service_read on public.inventory_stock_adjustments for select to service_role using (true);
 -- service_role is still an explicitly privileged server principal. The audit
 -- trigger uses SECURITY DEFINER for *one bounded insert only*, so legacy
 -- authorized item writers cannot silence the journal by lacking INSERT grants.
@@ -186,12 +212,14 @@ create function public.sonara_apply_stock_count_adjustment(
   p_idempotency_key text,
   p_reason text,
   p_expected_version bigint,
-  p_counted_quantity numeric
+  p_counted_quantity numeric,
+  p_approval_id uuid
 ) returns jsonb
 language plpgsql security invoker set search_path = ''
 as $function$
 declare
   v_item public.inventory_items%rowtype;
+  v_approval public.inventory_stock_adjustment_approvals%rowtype;
   v_existing public.inventory_stock_adjustments%rowtype;
   v_held numeric;
   v_after_version bigint;
@@ -200,7 +228,7 @@ declare
 begin
   if p_organization_id is null or p_inventory_item_id is null
      or p_actor_user_id is null or p_reviewer_user_id is null
-     or p_actor_user_id = p_reviewer_user_id
+     or p_actor_user_id = p_reviewer_user_id or p_approval_id is null
      or p_idempotency_key is null
      or char_length(p_idempotency_key) not between 8 and 128
      or p_idempotency_key <> btrim(p_idempotency_key)
@@ -228,6 +256,19 @@ begin
     raise exception 'stock_adjustment_actor_or_reviewer_unauthorized';
   end if;
 
+  select * into v_approval from public.inventory_stock_adjustment_approvals
+    where id=p_approval_id and organization_id=p_organization_id for update;
+  if not found or v_approval.inventory_item_id <> p_inventory_item_id
+     or v_approval.actor_user_id <> p_actor_user_id
+     or v_approval.reviewer_user_id <> p_reviewer_user_id
+     or v_approval.idempotency_key <> p_idempotency_key
+     or v_approval.reason <> p_reason
+     or v_approval.expected_stock_version <> p_expected_version
+     or v_approval.counted_quantity <> p_counted_quantity
+     or v_approval.decision <> 'approved' then
+    raise exception 'stock_adjustment_approval_evidence_missing';
+  end if;
+
   select * into v_item from public.inventory_items
     where id = p_inventory_item_id and organization_id = p_organization_id
     for update;
@@ -243,7 +284,8 @@ begin
        or v_existing.reviewer_user_id <> p_reviewer_user_id
        or v_existing.reason <> p_reason
        or v_existing.stock_version_before <> p_expected_version
-       or v_existing.balance_after <> p_counted_quantity then
+       or v_existing.balance_after <> p_counted_quantity
+       or v_existing.approval_id <> p_approval_id then
       raise exception 'stock_adjustment_idempotency_conflict';
     end if;
     return jsonb_build_object('ok',true,'code','already_recorded',
@@ -259,9 +301,6 @@ begin
   if v_item.stock_version <> p_expected_version then
     raise exception 'stock_version_conflict';
   end if;
-  if v_item.quantity = p_counted_quantity then
-    return jsonb_build_object('ok',true,'code','no_change','stock_posted',false);
-  end if;
 
   -- Hold writers in this repository lock the inventory item, so their writes
   -- serialize with this row lock. Legacy unguarded paths need a cutover audit.
@@ -273,6 +312,10 @@ begin
      or v_held < 0 or v_item.quantity < v_held
      or p_counted_quantity < v_held then
     raise exception 'stock_adjustment_violates_holds';
+  end if;
+
+  if v_item.quantity = p_counted_quantity then
+    return jsonb_build_object('ok',true,'code','no_change','stock_posted',false);
   end if;
 
   update public.inventory_items set quantity=p_counted_quantity,updated_at=now()
@@ -288,12 +331,12 @@ begin
   if v_event_id is null then raise exception 'stock_event_missing'; end if;
 
   insert into public.inventory_stock_adjustments(
-    organization_id,inventory_item_id,stock_event_id,
+    organization_id,inventory_item_id,stock_event_id,approval_id,
     actor_user_id,reviewer_user_id,idempotency_key,reason,
     stock_version_before,stock_version_after,balance_before,balance_after,
     delta_quantity,held_quantity_at_post
   ) values (
-    p_organization_id,p_inventory_item_id,v_event_id,
+    p_organization_id,p_inventory_item_id,v_event_id,p_approval_id,
     p_actor_user_id,p_reviewer_user_id,p_idempotency_key,p_reason,
     p_expected_version,v_after_version,v_item.quantity,p_counted_quantity,
     p_counted_quantity-v_item.quantity,v_held
@@ -305,14 +348,14 @@ begin
 end;
 $function$;
 revoke all on function public.sonara_apply_stock_count_adjustment(
-  uuid,uuid,uuid,uuid,text,text,bigint,numeric
+  uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid
 ) from public,anon,authenticated;
 grant execute on function public.sonara_apply_stock_count_adjustment(
-  uuid,uuid,uuid,uuid,text,text,bigint,numeric
+  uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid
 ) to service_role;
 
 comment on function public.sonara_apply_stock_count_adjustment(
-  uuid,uuid,uuid,uuid,text,text,bigint,numeric
+  uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid
 ) is 'Staged: service-only, count-based stock adjustment with expected version, held-quantity check and immutable evidence. Authenticated backend must bind real actors and obtain owner approval.';
 
 commit;
