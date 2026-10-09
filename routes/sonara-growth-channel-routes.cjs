@@ -111,6 +111,15 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   // Account-level block lists are private, server-read and must fail closed.
   // Anonymous readers have no account block state. RSS readers without a session
   // are also anonymous and must not be advertised as block-aware.
+  async function reviewerMembership(scope) {
+    if (!safety.isUuid(scope?.userId) || !safety.isUuid(scope?.organizationId)) return false;
+    const read = await rest(scope.config,
+      `organization_memberships?select=role,status&organization_id=eq.${enc(scope.organizationId)}&user_id=eq.${enc(scope.userId)}&status=eq.active&limit=1`);
+    // A failed membership read is NOT a moderator grant.
+    return read.ok && read.rows.some((row) =>
+      row.status === "active" && ["owner", "admin"].includes(row.role));
+  }
+
   async function viewerBlocks(req, res, config) {
     const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
     const viewer = session?.ok ? session.user : null;
@@ -195,6 +204,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
     const scope = await scopeFor(req);
     if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    if (!(await reviewerMembership(scope))) return res.status(403).type("text/plain").send("Moderator access required.");
     const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
     if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
     const intent = safety.moderationInput({
@@ -249,12 +259,13 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       return failedPage(res, "We could not reach your workspace just now. This is a problem on our side, and it is not telling you that you have no channels.", 503);
     }
     const org = `organization_id=eq.${enc(scope.organizationId)}`;
+    const canReview = await reviewerMembership(scope);
     const [list, posts, reports, events, audit] = await Promise.all([
       rest(scope.config, `${CHANNEL_TABLE}?select=id,handle,title,about,state,published_at&${org}&order=created_at.desc&limit=${CHANNEL_CAP + 1}`),
       rest(scope.config, `${POST_TABLE}?select=id,channel_id,kind,body,event_id,state,created_at&${org}&order=created_at.desc&limit=${POST_CAP + 1}`),
-      rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`),
+      canReview ? rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`) : Promise.resolve({ ok: true, rows: [] }),
       rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`),
-      rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`)
+      canReview ? rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`) : Promise.resolve({ ok: true, rows: [] })
     ]);
 
     // A failed read renders as a failed read. An empty page here is a sentence:
@@ -271,13 +282,13 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
 
     const sections = [];
-    sections.push(brandCard("Moderation decision history",
+    if (canReview) sections.push(brandCard("Moderation decision history",
       audit.rows.length
         ? "<ul>" + audit.rows.slice(0, 20).map((decision) =>
           `<li>${escapeHtml(decision.action)} on post ${escapeHtml(decision.post_id)} by ${escapeHtml(decision.actor_user_id)}
           at ${escapeHtml(String(decision.created_at))}</li>`).join("") + "</ul>"
         : "No moderation decisions have been recorded."));
-    if (audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
+    if (canReview && audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
     // A Growth channel is a basic free login-based SONARA social surface.
     // The subscription policy is shared across parent, Business Builder,
     // Creator Studio and Growth Studio; it is NOT a payment or publish grant.
@@ -307,7 +318,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       lines.push(channel.state === "public" ? hideForm(channel) : publishForm(channel));
       lines.push(postForm(channel, events.rows));
       if (own.length) {
-        lines.push("<ul>" + own.slice(0, 30).map((post) => postItem(post, summary.byPost.get(post.id))).join("") + "</ul>");
+        lines.push("<ul>" + own.slice(0, 30).map((post) => postItem(post, canReview ? summary.byPost.get(post.id) : null, canReview)).join("") + "</ul>");
         if (own.length > 30) lines.push(`<p>Showing the newest 30 of ${own.length}.</p>`);
       } else {
         lines.push("<p>Nothing posted yet.</p>");
@@ -378,14 +389,14 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       <button type="submit">Post</button>
     </form>`;
 
-  function postItem(post, flagged) {
+  function postItem(post, flagged, canReview = false) {
     const reasons = flagged
       ? Object.entries(flagged.reasons).map(([reason, count]) => `${escapeHtml(reason)} ${count}`).join(", ")
       : "";
-    const action = post.state === "removed"
+    const action = !canReview ? "" : post.state === "removed"
       ? `<form action="/api/growth/channels/posts/restore" method="post">${hidden("post_id", post.id)}<button type="submit">Put it back</button></form>`
       : `<form action="/api/growth/channels/posts/remove" method="post">${hidden("post_id", post.id)}<button type="submit">Take it down</button></form>`;
-    const dismiss = flagged && post.state !== "removed"
+    const dismiss = canReview && flagged && post.state !== "removed"
       ? `<form action="/api/growth/channels/reports/dismiss" method="post">${hidden("post_id", post.id)}<button type="submit">Leave it up and dismiss the reports</button></form>`
       : "";
     return `<li><p>${post.kind === "announcement" ? "<strong>Announcement.</strong> " : ""}${channels.bodyHtml(post.body, escapeHtml)}</p>`
