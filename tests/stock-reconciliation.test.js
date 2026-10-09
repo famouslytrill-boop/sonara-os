@@ -12,11 +12,11 @@ function fixture() {
   return {
     organizationId: ORG,
     item: {
-      id: ITEM, organizationId: ORG, unit: "each", stockVersion: 7,
+      id: ITEM, organizationId: ORG, unit: "each", locationId: null, stockVersion: 7,
       status: "active", onHandMilli: 12000, unitCostCents: 300
     },
     count: {
-      organizationId: ORG, itemId: ITEM, unit: "each",
+      organizationId: ORG, itemId: ITEM, unit: "each", locationId: null,
       snapshotVersion: 7, physicalCountMilli: 11000
     },
     reservations: { organizationId: ORG, itemId: ITEM, heldMilli: 8000 },
@@ -110,6 +110,22 @@ describe("Producer/distributor/retailer stock reconciliation preflight", () => {
       const p=fixture();modify(p);
       assert.throws(()=>proposeCycleCountAdjustment(p),/(organization_mismatch|reservation_scope_mismatch|policy_scope_mismatch)/);
     }
+  });
+  it("refuses counts for a different warehouse even with a matching item and version", () => {
+    const x=fixture();
+    x.item.locationId=FOREIGN;
+    assert.throws(()=>proposeCycleCountAdjustment(x),/warehouse_snapshot_mismatch/);
+    x.count.locationId=FOREIGN;
+    const result=proposeCycleCountAdjustment(x);
+    assert.equal(result.locationId,FOREIGN);
+  });
+  it("requires an explicit warehouse snapshot rather than assuming missing means unassigned", () => {
+    const x=fixture();
+    delete x.count.locationId;
+    assert.throws(()=>proposeCycleCountAdjustment(x),/warehouse_snapshot_missing/);
+    x.count.locationId=null;
+    delete x.item.locationId;
+    assert.throws(()=>proposeCycleCountAdjustment(x),/warehouse_snapshot_missing/);
   });
   it("rejects stale count snapshots and mismatched inventory item IDs or units", () => {
     const p=fixture();p.count.snapshotVersion=6;
