@@ -38,11 +38,24 @@ describe("proposed social database migration preflight", () => {
   it("requires table RLS, revoke, RPC grants, and invoker security", () => {
     const withoutRls = channel.replace("alter table public.growth_channel_blocks enable row level security;", "");
     assert.ok(verifyProposalSql("no-rls.sql", withoutRls).issues.some(e => e.includes("missing_rls")));
-    const withoutRevoke = channel.replace("revoke all on public.growth_channel_blocks from public, anon, authenticated;", "");
+    const withoutRevoke = channel.replace("revoke all on public.growth_channel_blocks from public, anon, authenticated, service_role;", "");
     assert.ok(verifyProposalSql("no-revoke.sql", withoutRevoke).issues.some(e => e.includes("missing_client_revoke")));
     const withDefiner = channel.replace("returns text language plpgsql security invoker",
       "returns text language plpgsql security definer");
     assert.ok(verifyProposalSql("definer.sql", withDefiner).issues.some(e => e.includes("unexpected_security_definer")));
+  });
+
+  it("rejects inherited service-role rights and unintended audit-history writes", () => {
+    const noServerRevoke = channel.replace(
+      "from public, anon, authenticated, service_role;",
+      "from public, anon, authenticated;");
+    assert.ok(verifyProposalSql("missing-service-revoke.sql", noServerRevoke).issues.some(
+      e => e.includes("missing_service_role_default_revoke")));
+    const overwriteAudit = channel.replace(
+      "grant select, insert on public.growth_channel_moderation_events to service_role;",
+      "grant select, insert, update, delete on public.growth_channel_moderation_events to service_role;");
+    assert.ok(verifyProposalSql("overgrant-audit.sql", overwriteAudit).issues.some(
+      e => e.includes("unexpected_service_role_privileges")));
   });
 
   it("does not claim to parse PostgreSQL or verify migrations", () => {
