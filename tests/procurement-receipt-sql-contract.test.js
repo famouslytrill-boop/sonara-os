@@ -78,6 +78,8 @@ describe("Physical goods: staged procurement SQL contract", () => {
       "receipt_exceeds_ordered_quantity", "receipt_balance_out_of_range"
     ]) assert.ok(sql.includes(value), value);
     assert.match(sql, /v_po\.approval_status is distinct from 'approved'/i);
+    assert.match(sql, /v_po\.approval_decided_by is null/i);
+    assert.match(sql, /v_po\.approval_version < 2/i);
     assert.match(sql, /v_po\.status not in \('sent', 'partially_received'\)/i);
     assert.match(sql, /v_line\.quantity_received, 0\) <> v_prior_accepted/i);
     assert.match(sql, /p_accepted_quantity <> trunc\(p_accepted_quantity, 3\)/i);
