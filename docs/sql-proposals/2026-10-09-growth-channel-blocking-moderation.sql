@@ -19,6 +19,56 @@ alter table public.growth_channel_blocks enable row level security;
 revoke all on public.growth_channel_blocks from public, anon, authenticated;
 grant select, insert, delete on public.growth_channel_blocks to service_role;
 
+-- Only the server-side RPC is an application write path. A lock keyed by actor
+-- serializes blocks against other channels and closes the concurrent quota race.
+-- Returning distinct reason codes lets HTTP deny a full account without showing
+-- a false "saved" receipt. A block cannot exceed the 500-row read boundary.
+create or replace function public.sonara_growth_channel_block_action(
+  p_actor_user_id uuid,
+  p_channel_id uuid,
+  p_action text
+)
+returns text language plpgsql security invoker
+set search_path = ''
+as $
+begin
+  if p_actor_user_id is null or p_channel_id is null
+    or p_action not in ('block', 'unblock')
+    or not exists (select 1 from auth.users u where u.id = p_actor_user_id)
+  then return 'denied'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(p_actor_user_id::text, 40105));
+
+  if p_action = 'unblock' then
+    delete from public.growth_channel_blocks
+     where viewer_user_id = p_actor_user_id and channel_id = p_channel_id;
+    return 'unblocked';
+  end if;
+
+  if not exists (
+    select 1 from public.growth_channels c
+    where c.id = p_channel_id and c.state = 'public'
+  ) then return 'unknown_channel'; end if;
+  if exists (
+    select 1 from public.growth_channel_blocks
+     where viewer_user_id = p_actor_user_id and channel_id = p_channel_id
+  ) then return 'blocked'; end if;
+  if (
+    select count(*) from public.growth_channel_blocks
+    where viewer_user_id = p_actor_user_id
+  ) >= 500 then return 'block_limit_reached'; end if;
+
+  insert into public.growth_channel_blocks(viewer_user_id, channel_id)
+  values (p_actor_user_id, p_channel_id);
+  return 'blocked';
+end;
+$;
+revoke all on function public.sonara_growth_channel_block_action(uuid,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.sonara_growth_channel_block_action(uuid,uuid,text)
+  to service_role;
+
 -- Moderation history is append-only. Do not delete or edit past decisions.
 create table if not exists public.growth_channel_moderation_events (
   id uuid primary key default gen_random_uuid(),
@@ -104,3 +154,8 @@ notify pgrst, 'reload schema';
 -- 4. No report identity columns appear on growth_post_reports.
 -- 5. Aborted writes create no audit and a failed audit rolls back the status.
 -- 6. Run full migration replay and access grants verifier before approval.
+
+-- Required negative tests: an actor with 500 saved blocks cannot add a 501st;
+-- re-blocking one of those 500 is idempotently successful; unblock still works;
+-- concurrent blocks against distinct channels cannot bypass quota; unknown
+-- or private channel IDs do not create rows; direct client grants stay revoked.
