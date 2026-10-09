@@ -97,6 +97,7 @@ const {
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 const { SONARA_BRAND_REGISTRY, getBrandProduct } = require("../lib/sonara-brand-registry.cjs");
+const { operationalTransitionCoordinator } = require("../lib/sonara-operational-transition-coordinator.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -657,6 +658,173 @@ describe("September 19 platform pattern convergence", () => {
       { eventId: "f", stepId: "ingest", action: "failed", attempt: 3 }
     ];
     assert.equal(evaluateWorkflowRetry({ ...input, events: exhausted }).reason, "attempt_budget_exhausted");
+  });
+
+  function operationalCoordinatorFixture(options = {}) {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const approverId = "22222222-2222-4222-8222-222222222222";
+    const command = {
+      scope: "tenant", organizationId: org, expectedRevision: 7,
+      to: "paused", eventId: "evt_test_1", approvalId: "approval_test_1"
+    };
+    let committed = {
+      state: { scope: "tenant", organizationId: org, mode: "active", revision: 7 },
+      approval: {
+        id: command.approvalId, status: "approved", consumedAtMs: null,
+        scope: "tenant", organizationId: org, from: "active", to: "paused",
+        expectedRevision: 7, approvedBy: approverId,
+        issuedAtMs: 1900, expiresAtMs: 2600
+      },
+      events: []
+    };
+    Object.assign(committed.approval, options.approval || {});
+    const store = {
+      async withTransaction(work) {
+        // The fixture, unlike production, is an in-memory transactional stand-in.
+        // Discard every staged change if ANY callback throws or denies.
+        const draft = structuredClone(committed);
+        const tx = {
+          async nowMs() { return options.nowMs ?? 2000; },
+          async readStateForUpdate() { return { ...draft.state }; },
+          async readApprovalForUpdate() { return { ...draft.approval }; },
+          async consumeApproval(input) {
+            if (options.consumeConflict || draft.approval.consumedAtMs != null ||
+                draft.approval.id !== input.approvalId) return 0;
+            draft.approval.consumedAtMs = options.nowMs ?? 2000;
+            return 1;
+          },
+          async compareAndSwapState(input) {
+            if (options.casConflict || draft.state.revision !== input.expectedRevision ||
+                draft.state.mode !== input.expectedMode) return 0;
+            draft.state.mode = input.nextMode;
+            draft.state.revision = input.nextRevision;
+            return 1;
+          },
+          async appendAuditEvent(input) {
+            if (options.auditConflict || draft.events.some(e => e.eventId === input.eventId)) return 0;
+            draft.events.push({ ...input });
+            return 1;
+          }
+        };
+        if (options.omitAuditWriter) delete tx.appendAuditEvent;
+        const result = await work(tx);
+        committed = draft;
+        return result;
+      }
+    };
+    const authorizer = {
+      async authorize({ session }) {
+        if (session !== "server_validated") return null;
+        return {
+          actorId, authorized: options.actorAuthorized !== false,
+          scope: "tenant", organizationId: options.principalOrg || org
+        };
+      },
+      async verifyApproval() { return options.approvalVerified !== false; }
+    };
+    const evidenceVerifier = {
+      async verify() { return options.proof ?? {}; }
+    };
+    return {
+      coordinator: operationalTransitionCoordinator({ store, authorizer, evidenceVerifier }),
+      command, view() { return structuredClone(committed); }
+    };
+  }
+
+  it("commits reviewed operational state, consumed approval and audit as one transaction", async () => {
+    const f = operationalCoordinatorFixture();
+    let result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+    assert.equal(result.applied, true);
+    assert.equal(result.reason, "transaction_commit_requested");
+    assert.equal(result.revision, 8);
+    assert.equal(result.transitionExecuted, false);
+    assert.equal(result.commitResultRequiresDatabaseProof, true);
+    assert.equal(f.view().state.mode, "paused");
+    assert.equal(f.view().state.revision, 8);
+    assert.equal(f.view().events.length, 1);
+    assert.equal(f.view().events[0].eventId, f.command.eventId);
+    assert.ok(f.view().approval.consumedAtMs !== null);
+    result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+    assert.equal(result.applied, false);
+    assert.equal(result.reason, "stale_or_unavailable_operational_state");
+    assert.equal(f.view().events.length, 1);
+  });
+
+  it("refuses caller-supplied proofs, foreign identities and stale or forged approvals", async () => {
+    for (const key of [
+      "actorId", "ownerApproved", "actorAuthorized", "evidence",
+      "scopeVerified", "releaseGatesVerified", "overrideReleaseGate"
+    ]) {
+      const f = operationalCoordinatorFixture();
+      const result = await f.coordinator.transition({
+        session: "server_validated", command: { ...f.command, [key]: true }
+      });
+      assert.equal(result.reason, "untrusted_evidence_or_command_shape");
+      assert.equal(f.view().state.revision, 7);
+    }
+    for (const [settings,session,expected] of [
+      [{}, "forged", "actor_authorization_unverified"],
+      [{ principalOrg: "44444444-4444-4444-8444-444444444444" }, "server_validated", "actor_authorization_unverified"],
+      [{ actorAuthorized: false }, "server_validated", "actor_authorization_unverified"],
+      [{ approvalVerified: false }, "server_validated", "independent_approval_unverified"],
+      [{ nowMs: 2700 }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { approvedBy: "11111111-1111-4111-8111-111111111111" } },
+        "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { organizationId: "44444444-4444-4444-8444-444444444444" } },
+        "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { expectedRevision: 6 } }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { consumedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"]
+    ]) {
+      const f = operationalCoordinatorFixture(settings);
+      const result = await f.coordinator.transition({ session, command: f.command });
+      assert.equal(result.reason, expected);
+      assert.equal(result.applied, false);
+      assert.equal(f.view().state.revision, 7);
+      assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("rolls back consumed approval and changed mode when CAS or audit fails", async () => {
+    for (const [settings, expected] of [
+      [{ consumeConflict: true }, "approval_claim_conflict"],
+      [{ casConflict: true }, "operational_revision_conflict"],
+      [{ auditConflict: true }, "operational_audit_conflict"],
+      [{ omitAuditWriter: true }, "transaction_contract_missing"]
+    ]) {
+      const f = operationalCoordinatorFixture(settings);
+      const result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+      assert.equal(result.applied, false);
+      assert.equal(result.reason, expected);
+      assert.equal(f.view().state.mode, "active");
+      assert.equal(f.view().state.revision, 7);
+      assert.equal(f.view().approval.consumedAtMs, null);
+      assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("requires separately verified lockdown, recovery and release facts", async () => {
+    const f = operationalCoordinatorFixture({
+      approval: { to: "lockdown" }, proof: {}
+    });
+    const lock = { ...f.command, to: "lockdown" };
+    const denial = await f.coordinator.transition({ session: "server_validated", command: lock });
+    assert.equal(denial.reason, "policy_denied_incident_evidence_missing");
+    assert.equal(f.view().state.revision, 7);
+    const ok = operationalCoordinatorFixture({
+      approval: { to: "lockdown" }, proof: { verifiedSecurityIncident: true }
+    });
+    const success = await ok.coordinator.transition({ session: "server_validated", command: lock });
+    assert.equal(success.applied, true);
+    assert.equal(ok.view().state.mode, "lockdown");
+    const start = operationalCoordinatorFixture({
+      approval: { to: "active" }, proof: { healthVerified: true,
+        releaseGatesVerified: true, incidentClearedVerified: true }
+    });
+    const startResult = await start.coordinator.transition({
+      session: "server_validated", command: { ...start.command, to: "active" }
+    });
+    assert.equal(startResult.reason, "policy_denied_no_op_transition");
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
