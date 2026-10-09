@@ -5,6 +5,9 @@
 -- definitions and failed against every replayed database (25/25).
 -- This probe fails closed on drift, proves the exact post-hardening definitions,
 -- checks a duplicate subscription SELECT policy can be dropped, and rolls back.
+-- Exact direct auth.uid()=user_id and InitPlan variants are semantically
+-- equivalent and permitted; every changed role, table, command, policy count,
+-- or widened predicate remains a hard failure.
 -- No permanent schema, grants, policy, role, or data changes are made.
 -- Script intentionally ends with ROLLBACK and is invoked by native replay.
 -- Generate a forward migration through Supabase CLI only after live/fixture
@@ -74,9 +77,29 @@ BEGIN
        AND policyname IN ('Users can view own subscriptions',
                           'Users can view their own subscription')
        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+       AND cmd='SELECT'
+       -- Both are exact representations of the same owner-only predicate.
+       -- A fresh migration replay can preserve the direct auth.uid() form,
+       -- while active preview has the noncorrelated SELECT InitPlan form.
+       -- Any wider predicate, changed role or extra operation still aborts.
+       AND qual IN ('(auth.uid() = user_id)',
+                    '(( SELECT auth.uid() AS uid) = user_id)')
        AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort. Actual: %',
+     (SELECT jsonb_agg(jsonb_build_object(
+       'name', policyname, 'roles', roles, 'cmd', cmd,
+       'qual', qual, 'with_check', with_check) ORDER BY policyname)
+      FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
+      AND policyname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription'));
+ END IF;
+ -- One policy per exact name is required: duplicate equivalent predicates
+ -- do not authorize accidentally dropping an unrelated broad role policy.
+ IF (SELECT count(DISTINCT policyname) FROM pg_policies
+     WHERE schemaname='public' AND tablename='subscriptions'
+       AND policyname IN ('Users can view own subscriptions',
+                          'Users can view their own subscription')) <> 2 THEN
+   RAISE EXCEPTION 'subscription owner policies missing';
  END IF;
 END
 $drift$;
@@ -107,7 +130,9 @@ BEGIN
        AND policyname='Users can view own subscriptions'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
+       AND qual IN ('(auth.uid() = user_id)',
+                    '(( SELECT auth.uid() AS uid) = user_id)')
+       AND with_check IS NULL)<>1
  OR (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='Users can view their own subscription')<>0
