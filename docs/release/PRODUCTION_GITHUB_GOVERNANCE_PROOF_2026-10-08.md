@@ -50,6 +50,22 @@ After reading `/branches/main`, the gate now reads GitHub's read-only `/rules/br
 
 Source: https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch ; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
 
+## Least-privilege production workflow secret isolation — 9 October 2026
+
+This draft also narrows the credential process-exposure window in `.github/workflows/controlled-production-deploy.yml`.
+
+**Before:** `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` were injected at the top of the entire `validate-migrate-deploy` job. Thus checkout, dependency installation, tests, source scans, builds, and unrelated diagnostic steps inherited these secrets, regardless of whether those steps needed them. The release remained protected by the production GitHub environment authorization and manual dispatch; this was a separate process-level least-privilege weakness.
+
+**After (draft only):** the job-wide injection of those three secrets is removed. Exactly eight credential-consuming steps have explicit narrow `env` entries: credential preflight, Supabase project identity, Supabase migration preview, Vercel environment pull, explicitly approved Stripe runtime-secret synchronization, pre-migration schema checkpoint, reviewed migration execution, and controlled Vercel deployment. Each step receives only the relevant credential(s). The existing service-role key and Stripe keys were already step-scoped and remain so. Non-authentication project refs, URLs, and Vercel project IDs remain job-level configuration.
+
+GitHub's documented distinction between `jobs.<job_id>.env` and `jobs.<job_id>.steps[*].env` ensures later steps do not automatically inherit tokens declared on previous steps. This is process-environment reduction, not isolation from a malicious or compromised runner, and it does not eliminate deployment-environment approval requirements or erase sensitive configuration files pulled for explicit verification.
+
+**Regression enforcement:** `tests/production-environment-governance.test.js` checks that no token/password remains in the job-wide env, that the exact eight allowed step names contain required credential variables, and that every other named step is credential-free. The test compares actual expressions to expected protected-secret mappings, rejecting accidental insertion into unrelated build/test steps. In an isolated JS test harness, the 11 governance test cases passed 162 assertions; full GitHub Actions execution is still queued and has not been established as green.
+
+**No production secret values were accessed or changed**, and the workflow was not manually dispatched. The existing canary, exact SHA, branch governance, project identity, authorization and rollback requirements remain mandatory.
+
+Official reference: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
 ## Owner/admin changes that remain mandatory
 
 ### Settings → Rules → Rulesets (or Branches)
