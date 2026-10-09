@@ -244,7 +244,7 @@ async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getC
     formula_key: evaluated.formulaKey,
     organization_id: organization.organizationId,
     user_id: req.sonaraUser?.id || null,
-    source_table: String(req.body?.sourceTable || req.body?.source_table || "manual_formula_input").slice(0, 120),
+    source_table: normalizeSourceTable(req.body?.sourceTable || req.body?.source_table),
     source_record_id: normalizeUuid(req.body?.sourceRecordId || req.body?.source_record_id),
     input_values: evaluated.inputValues,
     result_value: evaluated.resultValue,
@@ -277,8 +277,14 @@ function saveFailure(response, body) {
   return { code: "database_unavailable", service: "sonara_formula_results", status: 503 };
 }
 
+function normalizeSourceTable(value) {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, 120) : "manual_formula_input";
+}
+
 function normalizeUuid(value) {
-  const cleaned = String(value || "").trim();
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim();
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned) ? cleaned : null;
 }
 
