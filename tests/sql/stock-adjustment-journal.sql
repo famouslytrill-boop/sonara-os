@@ -140,6 +140,45 @@ select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment
   'stock-req-003','cycle_count',2,7,'25000000-0000-4000-8000-000000000033')$q$,
   'stock_adjustment_violates_holds');
 
+
+-- A previously recorded unattributed edit must NOT be relabelled as a
+-- reviewer-authorized correction via a new privileged INSERT.
+update public.inventory_reservations set quantity=3
+  where organization_id='25000000-0000-4000-8000-000000000003'
+    and inventory_item_id='25000000-0000-4000-8000-000000000010';
+update public.inventory_items set quantity=6
+  where id='25000000-0000-4000-8000-000000000010';
+insert into public.inventory_stock_adjustment_approvals(
+  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000034','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-fake-004','cycle_count',1,7,'approved');
+select pg_temp.expect_error($q$
+  insert into public.inventory_stock_adjustments(
+    organization_id,inventory_item_id,stock_event_id,approval_id,
+    actor_user_id,reviewer_user_id,idempotency_key,reason,
+    stock_version_before,stock_version_after,balance_before,balance_after,
+    delta_quantity,held_quantity_at_post)
+  select '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000010',e.id,
+    '25000000-0000-4000-8000-000000000034',
+    '25000000-0000-4000-8000-000000000001',
+    '25000000-0000-4000-8000-000000000002',
+    'stock-fake-004','cycle_count',1,2,8,7,-1,3
+  from public.inventory_stock_events e
+    where e.inventory_item_id='25000000-0000-4000-8000-000000000010'
+      and e.version_after=2
+$q$, 'stock_adjustment_current_item_mismatch');
+select pg_temp.require_true(
+  (select quantity=6 and stock_version=3 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where organization_id='25000000-0000-4000-8000-000000000003'),
+  'privileged forged historical adjustment did not post');
+
+
 reset role;
 select pg_temp.require_true(
   (select quantity=5 from public.inventory_items
