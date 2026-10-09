@@ -31,7 +31,7 @@ const failed = () => ({ ok: false, status: 500, json: async () => ({}) });
 
 // `entitlements` and `subscriptions` are what each billing table answers: an
 // array of rows, or "failed" for a read that did not answer.
-function build({ entitlements = [], subscriptions = [], organization = ORGANIZATION } = {}) {
+function build({ entitlements = [], subscriptions = [], organization = ORGANIZATION, allowedKeys = ["all_three_monthly", "team_monthly"] } = {}) {
   global.fetch = async (url) => {
     const target = String(url);
     if (target.includes("/billing_entitlements")) return entitlements === "failed" ? failed() : ok(entitlements);
@@ -42,7 +42,7 @@ function build({ entitlements = [], subscriptions = [], organization = ORGANIZAT
     getCustomerPrimaryOrganization: async () => organization,
     getSupabaseServerConfig: () => CONFIG,
     supabaseHeaders: () => ({ apikey: CONFIG.serviceRoleKey }),
-    getPaidEntitlementKeys: () => ["all_three_monthly", "team_monthly"]
+    getPaidEntitlementKeys: () => allowedKeys
   });
 }
 
@@ -51,11 +51,87 @@ describe("a paying customer is not shown a paywall we cannot justify", () => {
   beforeEach(() => { originalFetch = global.fetch; });
   afterEach(() => { global.fetch = originalFetch; });
 
-  it("opens the product on an active entitlement", async () => {
-    const read = build({ entitlements: [{ entitlement_key: "all_three_monthly", status: "active" }] });
-    const result = await read(USER, "creator_studio");
+  it("preserves separately granted historical one-time purchase access", async () => {
+    const read = build({
+      allowedKeys: ["business_builder_one_time", "workspace_monthly"],
+      entitlements: [{ entitlement_key: "business_builder_one_time", status: "active" }]
+    });
+    const result = await read(USER, "business_builder");
     assert.equal(result.ok, true);
     assert.equal(result.source, "billing_entitlements");
+  });
+
+  it("does not accept an active recurring entitlement when every subscription is canceled", async () => {
+    const result = await build({
+      entitlements: [{ entitlement_key: "all_three_monthly", status: "active" }],
+      subscriptions: []
+    })(USER, "creator_studio");
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "upgrade_required");
+    assert.equal(result.reason, "billing_state_missing");
+  });
+
+  it("uses the matching active subscription instead of the first workspace's subscription", async () => {
+    const read = build({
+      allowedKeys: ["workspace_monthly"],
+      entitlements: [{ entitlement_key: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" } }],
+      subscriptions: [
+        { plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" } },
+        { plan_slug: "workspace_monthly", status: "trialing", metadata: { workspace: "creator_studio" } }
+      ]
+    });
+    const result = await read(USER, "creator_studio");
+    assert.equal(result.ok, true);
+    assert.equal(result.source, "billing_subscriptions");
+    assert.equal(result.entitlementKey, "workspace_monthly");
+  });
+
+  it("keeps searching across different active plans instead of denying on the first mismatch", async () => {
+    const result = await build({
+      allowedKeys: ["workspace_monthly", "all_three_monthly"],
+      subscriptions: [
+        { plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "growth_studio" } },
+        { plan_slug: "all_three_monthly", status: "active", metadata: {} }
+      ]
+    })(USER, "creator_studio");
+    assert.equal(result.ok, true);
+    assert.equal(result.entitlementKey, "all_three_monthly");
+  });
+
+  it("fails closed when more active subscriptions exist than can be evaluated", async () => {
+    const subscriptions = Array.from({ length: 101 }, (_, index) => ({
+      plan_slug: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" },
+      sequence: index
+    }));
+    const result = await build({
+      allowedKeys: ["workspace_monthly"], subscriptions
+    })(USER, "creator_studio");
+    assert.equal(result.ok, false);
+    assert.equal(result.status, 503);
+    assert.equal(result.reason, "subscription_scan_incomplete");
+  });
+
+  it("does not misreport an unreadable subscription as a different-workspace paywall", async () => {
+    const result = await build({
+      allowedKeys: ["workspace_monthly"],
+      entitlements: [{ entitlement_key: "workspace_monthly", status: "active", metadata: { workspace: "business_builder" } }],
+      subscriptions: "failed"
+    })(USER, "creator_studio");
+    assert.equal(result.status, 503);
+    assert.equal(result.code, "entitlement_unreadable");
+  });
+
+  it("rejects malformed returned entitlement or subscription rows", async () => {
+    for (const candidate of [
+      { entitlements: [null] },
+      { entitlements: [{ entitlement_key: "unrecognized", status: "active" }] },
+      { subscriptions: [null] },
+      { subscriptions: [{ plan_slug: "unknown", status: "active" }] }
+    ]) {
+      const result = await build(candidate)(USER, "creator_studio");
+      assert.equal(result.status, 503);
+      assert.equal(result.code, "entitlement_unreadable");
+    }
   });
 
   it("opens the product on an active subscription", async () => {
