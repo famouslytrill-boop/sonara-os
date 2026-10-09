@@ -1168,7 +1168,7 @@ describe("the billing module stands on its own", () => {
       getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co" })
     }));
     const result = await billing.synchronizeBillingFromStripeEvent({
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       data: { object: { id: "sub_1", customer: "cus_1", status: "active", metadata: { organization_id: "org-1" } } }
     });
     assert.deepEqual(result, { ok: false, code: "invalid_plan_metadata" });
