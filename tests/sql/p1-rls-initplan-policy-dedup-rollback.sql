@@ -42,6 +42,7 @@ INSERT INTO expected_rls_p1 VALUES
 
 DO $drift$
 DECLARE bad int;
+DECLARE item record;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -53,6 +54,37 @@ BEGIN
     OR p.qual IS DISTINCT FROM e.qualifier
     OR p.with_check IS DISTINCT FROM e.check_expr;
  IF bad <> 0 THEN
+   -- Keep this security gate fail-closed. Make each mismatching policy visible
+   -- with both the migration-authority expectation and the database reality.
+   -- A count without these details cannot distinguish policy drift from
+   -- PostgreSQL pg_policies formatting differences across major versions.
+   FOR item IN
+     SELECT e.tbl, e.policy_name,
+       CASE WHEN p.policyname IS NULL THEN 'missing'
+         ELSE concat_ws(',',
+           CASE WHEN p.permissive IS DISTINCT FROM e.permissive THEN 'permissive' END,
+           CASE WHEN p.roles::text IS DISTINCT FROM e.roles THEN 'roles' END,
+           CASE WHEN p.cmd IS DISTINCT FROM e.cmd THEN 'command' END,
+           CASE WHEN p.qual IS DISTINCT FROM e.qualifier THEN 'using' END,
+           CASE WHEN p.with_check IS DISTINCT FROM e.check_expr THEN 'with_check' END)
+       END AS fields,
+       e.roles expected_roles, p.roles::text actual_roles,
+       e.qualifier expected_using, p.qual actual_using,
+       e.check_expr expected_check, p.with_check actual_check
+     FROM expected_rls_p1 e
+     LEFT JOIN pg_policies p ON p.schemaname='public'
+       AND p.tablename=e.tbl AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL OR p.permissive IS DISTINCT FROM e.permissive
+       OR p.roles::text IS DISTINCT FROM e.roles OR p.cmd IS DISTINCT FROM e.cmd
+       OR p.qual IS DISTINCT FROM e.qualifier
+       OR p.with_check IS DISTINCT FROM e.check_expr
+     ORDER BY e.tbl, e.policy_name
+   LOOP
+     RAISE NOTICE 'P1 drift %.% field(s)=% roles expected=% actual=% USING expected=% actual=% CHECK expected=% actual=%',
+       item.tbl, item.policy_name, item.fields, item.expected_roles,
+       item.actual_roles, item.expected_using, item.actual_using,
+       item.expected_check, item.actual_check;
+   END LOOP;
    RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad;
  END IF;
  IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
