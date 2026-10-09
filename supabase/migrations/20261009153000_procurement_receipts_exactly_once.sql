@@ -68,6 +68,58 @@ create policy procurement_receipt_service_only on public.procurement_receipt_ent
 create policy inventory_procurement_ledger_service_only on public.inventory_procurement_receipt_ledger
   for all to service_role using (true) with check (true);
 
+-- Foreign keys to globally unique IDs alone do not enforce that the copied
+-- organization is the same as the referenced record's organization. Validate
+-- seller/buyer-owned lineage even on a direct privileged insert.
+create function public.sonara_guard_procurement_receipt_tenant()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  if not exists (
+    select 1
+      from public.purchase_order_lines l
+      join public.purchase_orders o
+        on o.id = l.purchase_order_id and o.organization_id = l.organization_id
+      join public.inventory_items i
+        on i.id = l.inventory_item_id and i.organization_id = l.organization_id
+     where l.id = new.purchase_order_line_id
+       and l.purchase_order_id = new.purchase_order_id
+       and l.organization_id = new.organization_id
+       and i.id = new.inventory_item_id
+  ) then
+    raise exception 'procurement_receipt_tenant_lineage_invalid';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.sonara_guard_procurement_receipt_tenant() from public, anon, authenticated;
+grant execute on function public.sonara_guard_procurement_receipt_tenant() to service_role;
+create trigger procurement_receipt_enforce_tenant
+before insert on public.procurement_receipt_entries
+for each row execute function public.sonara_guard_procurement_receipt_tenant();
+
+create function public.sonara_guard_procurement_ledger_receipt()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  if not exists (
+    select 1 from public.procurement_receipt_entries r
+    where r.id = new.receipt_id
+      and r.organization_id = new.organization_id
+      and r.inventory_item_id = new.inventory_item_id
+      and r.lot_code = new.lot_code
+      and lower(r.unit) = lower(new.unit)
+      and r.accepted_quantity = new.delta_quantity
+  ) then
+    raise exception 'procurement_ledger_receipt_lineage_invalid';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.sonara_guard_procurement_ledger_receipt() from public, anon, authenticated;
+grant execute on function public.sonara_guard_procurement_ledger_receipt() to service_role;
+create trigger procurement_ledger_enforce_receipt
+before insert on public.inventory_procurement_receipt_ledger
+for each row execute function public.sonara_guard_procurement_ledger_receipt();
+
 -- Strict server service-role RPC. Important ordering: purchase order ->
 -- purchase order line -> inventory item. This serializes partial receipts for
 -- the PO, then shares the item's lock with existing stock order/job functions.
