@@ -12,7 +12,7 @@ function source(name) { return fs.readFileSync(path.join(ROOT, name), "utf8"); }
 function valid() {
   return {
     registeredRouteIds: CREATOR_ROUTE_DATA_CONTRACTS.map(x=>x.route),
-    pendingTables: PENDING_CREATOR_SCHEMA.map(x=>x.table),
+    pendingTables: PENDING_CREATOR_SCHEMA.map(x=>x.proposalTable),
     creatorProjectRoutesSource: source("routes/sonara-creator-project-routes.cjs"),
     creatorPlannerRoutesSource: source("routes/creator-music-system-readonly.cjs"),
     worldAdapter: source("lib/sonara-world-bible-store.cjs"),
