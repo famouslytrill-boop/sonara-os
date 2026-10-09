@@ -252,7 +252,11 @@ describe("canonical SONARA origin for all company products", () => {
     function redirects() {
       return createBilling({
         STRIPE_PLANS: {},
-        getEnv: () => "",
+        // Billing uses the injected environment reader, not ambient process
+        // access. This fixture must expose the production/hosted flags that
+        // the local-only origin regression toggles below.
+        getEnv: (name) => ["NODE_ENV", "VERCEL_ENV", "VERCEL"].includes(name)
+          ? (process.env[name] || "") : "",
         getPublicAppUrl: () => "http://localhost:5000",
         getSafeAbsoluteUrl: (value, fallback) => value || fallback,
         getSupabaseServerConfig: () => ({ ok: false }),
