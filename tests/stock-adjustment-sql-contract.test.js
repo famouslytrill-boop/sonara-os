@@ -20,7 +20,7 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/create trigger inventory_items_stock_change_journal\s+after insert or update on public\.inventory_items/i);
     assert.match(migration,/unattributed_quantity_change/i);
     assert.match(migration,/opening_snapshot/i);
-    assert.match(migration,/from public\\.inventory_items i;/i);
+    assert.match(migration,/from public\.inventory_items i;/i);
     assert.match(migration,/coalesce\(i\.quantity,0\),coalesce\(i\.quantity,0\),0/i);
     assert.match(migration,/unique \(inventory_item_id,version_after\)/i);
     assert.match(migration,/if new\.quantity is distinct from old\.quantity then/i);
