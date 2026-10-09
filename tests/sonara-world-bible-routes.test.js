@@ -99,4 +99,21 @@ describe("Feature-gated Creator World Bible project routes", () => {
     assert.doesNotMatch(read.text, /<script>x<\/script>/);
     assert.match(read.text, /&lt;script&gt;/);
   });
+  it("rejects cross-site World Bible form and API writes before reaching the database", async () => {
+    const { app, rows } = setup(true);
+    const endpoint = `/api/creator-studio/projects/${PID}/world-bible`;
+    const malicious = await request(app).post(endpoint).set("x-paid", "yes")
+      .set("Origin", "https://attacker.example").send({ expectedRevision: 0, draft });
+    assert.equal(malicious.status, 403);
+    assert.equal(malicious.body.code, "cross_origin_world_write_denied");
+    const sameSiteSubdomain = await request(app).post(endpoint).set("x-paid", "yes")
+      .set("Sec-Fetch-Site", "same-site").send({ expectedRevision: 0, draft });
+    assert.equal(sameSiteSubdomain.status, 403);
+    const forgedForm = await request(app).post(`/creator-studio/projects/${PID}/world-bible`)
+      .set("x-paid", "yes").set("Sec-Fetch-Site", "cross-site").type("form")
+      .send({ expectedRevision: "0", draft: JSON.stringify(draft) });
+    assert.equal(forgedForm.status, 403);
+    assert.equal(rows.length, 0);
+  });
+
 });
