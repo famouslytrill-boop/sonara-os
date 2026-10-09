@@ -18,7 +18,7 @@ create table public.inventory_stock_events (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references public.organizations(id) on delete cascade,
   inventory_item_id uuid not null references public.inventory_items(id),
-  source text not null check (source in ('opening_snapshot','unattributed_quantity_change')),
+  source text not null check (source in ('opening_snapshot','unattributed_quantity_change','catalog_identity_change')),
   version_before bigint not null check (version_before >= 0),
   version_after bigint not null check (version_after >= version_before),
   balance_before numeric not null,
@@ -150,7 +150,9 @@ begin
   if new.organization_id is distinct from old.organization_id then
     raise exception 'inventory_tenant_reassignment_forbidden';
   end if;
-  if new.quantity is distinct from old.quantity then
+  if new.quantity is distinct from old.quantity
+     or new.unit is distinct from old.unit
+     or new.location_id is distinct from old.location_id then
     if old.stock_version = 9223372036854775807 then
       raise exception 'inventory_stock_version_exhausted';
     end if;
@@ -177,7 +179,9 @@ declare
   v_before numeric;
   v_after numeric;
 begin
-  if tg_op = 'UPDATE' and new.quantity is not distinct from old.quantity then
+  if tg_op = 'UPDATE' and new.quantity is not distinct from old.quantity
+     and new.unit is not distinct from old.unit
+     and new.location_id is not distinct from old.location_id then
     return new;
   end if;
   v_before := case when tg_op = 'INSERT' then coalesce(new.quantity,0) else coalesce(old.quantity,0) end;
@@ -191,7 +195,9 @@ begin
     balance_before,balance_after,delta_quantity
   ) values(
     new.organization_id,new.id,
-    case when tg_op = 'INSERT' then 'opening_snapshot' else 'unattributed_quantity_change' end,
+    case when tg_op = 'INSERT' then 'opening_snapshot'
+      when new.quantity is distinct from old.quantity then 'unattributed_quantity_change'
+      else 'catalog_identity_change' end,
     case when tg_op = 'INSERT' then 0 else old.stock_version end,
     new.stock_version,v_before,v_after,v_after-v_before
   );
