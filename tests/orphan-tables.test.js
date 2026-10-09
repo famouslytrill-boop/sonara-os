@@ -56,9 +56,17 @@ describe("the tables nothing queries", () => {
         sandbox.file(path.join("supabase", "migrations", "99999999999999_orphan_gate_selftest.sql")),
         "create table if not exists public.sonara_orphan_gate_selftest (\n  id uuid primary key default gen_random_uuid()\n);\n"
       );
+      // A private-schema table is still a table. Earlier the parser called
+      // sonara_private the table name and silently hid all private tables.
+      fs.writeFileSync(
+        sandbox.file(path.join("supabase", "migrations", "99999999999998_private_orphan_gate_selftest.sql")),
+        "create table if not exists sonara_private.sonara_private_gate_probe (id uuid primary key);\n"
+      );
       const { ok, output } = sandbox.run("scripts/report-orphan-tables.mjs", ["--check"]);
       assert.equal(ok, false, "the gate passed with an unread table in the migrations; it can no longer fail");
       assert.match(output, /sonara_orphan_gate_selftest/, "the gate failed without naming the table it objected to");
+      assert.match(output, /sonara_private_gate_probe/, "private schema tables were not detected");
+      assert.doesNotMatch(output, /\\n  sonara_private\\s*\\n/, "the schema name was incorrectly counted as a table");
     } finally {
       sandbox.cleanup();
     }
