@@ -30,7 +30,7 @@ select pg_temp.require_true(
   (select stock_version=0 from public.inventory_items where id='25000000-0000-4000-8000-000000000010')
   and (select count(*)=1 from public.inventory_stock_events
       where inventory_item_id='25000000-0000-4000-8000-000000000010'
-        and source='opening_snapshot' and balance_before=0 and balance_after=10 and delta_quantity=10),
+        and source='opening_snapshot' and balance_before=10 and balance_after=10 and delta_quantity=0),
   'opening quantity is explicitly a snapshot, not a historical receipt');
 
 select pg_temp.require_true(
