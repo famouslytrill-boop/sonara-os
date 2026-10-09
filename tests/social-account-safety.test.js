@@ -140,6 +140,14 @@ describe("person-level block and report routes with isolated persistence mock",(
     assert.equal(calls[0].payload.p_reason,"impersonation");
     assert.equal(calls[0].payload.p_detail,"Misleading profile");
   });
+  it("never treats a reused report receipt with changed evidence as submitted",async()=>{
+    const calls=[];global.fetch=stub(calls,"idempotency_conflict");
+    const res=await invoke(setup(),"POST","/api/social/creator-profiles/:id/report",
+      request({id:B},{reason:"harassment",detail:"Different evidence",request_id:NONCE}));
+    assert.equal(res.statusCode,409);
+    assert.doesNotMatch(String(res.body),/Your report was saved/);
+    assert.equal(calls.length,1);
+  });
   it("does not mark denied, missing or rate-limited writes successful",async()=>{
     const calls=[];global.fetch=stub(calls,"denied");
     const denied=await invoke(setup(),"POST","/api/social/creator-profiles/:id/block",request({id:B}));
@@ -181,6 +189,11 @@ describe("person-level SQL proposal static safety requirements",()=>{
     assert.match(source,/before insert on public.creator_follows/);
     assert.match(source,/delete from public.creator_follows/);
     assert.match(source,/unique \(reporter_user_id, request_id\)/);
+    assert.match(source,/idempotency_conflict/);
+    assert.match(source,/v_existing\.subject_profile_id = p_profile_id/);
+    assert.match(source,/v_existing\.detail is not distinct from p_detail/i);
+    assert.match(source,/p_reason is null or p_reason not in/i);
+    assert.match(source,/p_decision is null or p_decision not in/i);
     assert.match(source,/pg_advisory_xact_lock/);
     assert.doesNotMatch(source,/security definer/i);
   });
