@@ -94,3 +94,46 @@ References:
 - https://docs.stripe.com/webhooks
 - https://docs.stripe.com/api/checkout/sessions/create
 - https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
+
+## Controlled subscription-deletion recovery (additional P0 hardening)
+
+The original strict `stripe_customers` binding prevented access grants from
+unmapped customer IDs, but also prevented *revocation* when that customer
+mapping had been legitimately deleted while a paid subscription record
+remained. Stripe documents `customer.subscription.deleted` as an event sent
+when the subscription ends. Customer mapping and cancellation reliability
+must not be a circular dependency.
+
+This integration now treats `customer.subscription.deleted` as a
+**revocation-only** event when the object reports `status: "canceled"`.
+Before any update it fetches one `billing_subscriptions` record using both
+`provider=stripe` and the unique provider subscription ID. It requires an
+exact match for the persisted provider customer ID and subscription ID,
+a stored organization ID and canonical subscription plan. If the incoming
+event still carries organization/plan/workspace metadata, those claims may
+not conflict with the persisted record. Missing event metadata is recovered
+only from the already persisted subscription row, never invented.
+
+The saved organization/plan/workspace are then used to persist a canceled
+subscription and a disabled entitlement, with the existing `provider_event_at`
+stamp and SQL stale-event ordering protections unchanged. The fallback
+**cannot** activate paid access, is **not** used by `subscription.updated`,
+and cannot create a new tenant mapping. An absent, malformed, duplicate or
+unreadable existing subscription fails for operational reconciliation; a
+disagreement about provider customer or tenant identity fails without a write.
+
+New tests prove recovery after customer-map deletion, recovery when incoming
+metadata is absent, refusal of cross-tenant or conflicting plan/workspace
+claims, refusal of ambiguous or missing historical rows, no fallback for
+`subscription.updated`, and retry on entitlement write failure. In isolated
+mocked callback execution, 16 selected billing tests passed. This remains
+**unverified against real PostgreSQL, Stripe sandbox and full Mocha/CI**.
+
+Follow-up release gates: simulate customer-map removal before cancellation in
+Stripe test mode; verify `customer.subscription.deleted` status, event stamp,
+real historical subscription ID and customer ID; check PostgREST select shape,
+RLS and idempotent retry, stale event replay, and operator reconciliation on
+missing legacy records. Do not backfill an account association from webhook
+metadata alone.
+
+Reference: https://docs.stripe.com/api/events/types
