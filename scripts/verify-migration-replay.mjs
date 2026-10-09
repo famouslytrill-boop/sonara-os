@@ -512,6 +512,16 @@ function main() {
         where id='26000000-0000-4000-8000-000000000010';
     `, ["stock_race_version_2", "stock_race_adjustments_2",
         "stock_race_events_3", "stock_race_counted_valid_t"]);
+    // Two separate psql connections and committed transactions are required
+    // to catch evidence forgery: a prior UNATTRIBUTED event must not be
+    // relabelled as a fresh owner-approved adjustment after the fact.
+    behaves(psql, "persist historical stock movement for cross-transaction forgery probe",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-cross-tx-prep.sql"), "utf8"),
+      ["cross_tx_seeded_1"]);
+    behaves(psql, "reject cross-transaction adjustment provenance forgery",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-cross-tx-check.sql"), "utf8"),
+      ["cross_tx_spoof_blocked_2"]);
+
     // The case the stock functions exist for: two buyers, one mug left, two real
     // sessions at the same moment. Exactly one may hold it.
     const stockOrg = "20000000-0000-4000-8000-000000000009";
