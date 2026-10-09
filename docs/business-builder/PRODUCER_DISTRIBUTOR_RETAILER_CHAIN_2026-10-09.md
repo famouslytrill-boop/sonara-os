@@ -97,6 +97,13 @@ on October 9. Do not assume historic migrations and live state agree.
 
 **Validation:** `tests/procurement-receipt-sql-contract.test.js` checks source
 security and transaction structure, not live isolation or PostgreSQL execution.
+The mandatory native replay in `scripts/verify-migration-replay.mjs` now loads
+`tests/sql/procurement-receipt.sql` in a rolled-back fixture and independently
+races two PostgreSQL sessions using `tests/sql/procurement-receipt-concurrency.sql`.
+The suite must demonstrate exact-once receipt, accepted/rejected stock logic,
+foreign-tenant denial, approval gating, idempotency payload conflict and
+ordered-quantity serialization. These are **written tests**, not reported
+passing PostgreSQL results until hosted CI executes them successfully.
 A disposable database must run migration replay, tenant-negative tests, two
 concurrent sessions, exact replay, changed-payload replay, wrong-unit, partial
 receipt, rejection, damaged/expired lot, zero-stock, cancellation and deletion
