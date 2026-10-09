@@ -16,6 +16,8 @@ const {
   shardRequirement,
   replicaRequirement,
   boundedLoopStatus,
+  planWorkflowSequence,
+  replayWorkflowTrace,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
 const {
@@ -170,6 +172,71 @@ describe("September 19 platform pattern convergence", () => {
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, verified: true }), { continue: false, reason: "verified" });
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, blocked: true }), { continue: false, reason: "policy_blocked" });
     assert.deepEqual(boundedLoopStatus({ attempt: 3, maxIterations: 3 }), { continue: false, reason: "iteration_budget_exhausted" });
+  });
+
+  it("plans stable dependency stages, reports the critical path, and rejects graph hazards", () => {
+    const steps = [
+      { id: "publish", dependsOn: ["review"], estimatedMs: 3 },
+      { id: "review", dependsOn: ["render"], estimatedMs: 8, maxAttempts: 2 },
+      { id: "render", estimatedMs: 20 },
+      { id: "bill", estimatedMs: 5 }
+    ];
+    const plan = planWorkflowSequence(steps);
+    assert.deepEqual(plan.order, ["bill", "render", "review", "publish"]);
+    assert.deepEqual(plan.stages, [["bill", "render"], ["review"], ["publish"]]);
+    assert.equal(plan.criticalPathMs, 31);
+    assert.deepEqual(plan.criticalPath, ["render", "review", "publish"]);
+    assert.deepEqual(planWorkflowSequence([...steps].reverse()), plan);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }, { id: "b", dependsOn: ["a"] }]), /cycle/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }]), /Unknown dependency/);
+    assert.throws(() => planWorkflowSequence([{ id: "a" }, { id: "a" }]), /Duplicate step/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", maxAttempts: 100 }]), /maxAttempts/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["a"] }]), /Self-dependency/);
+  });
+
+  it("replays step traces without duplicate effects or out-of-order transitions", () => {
+    const plan = planWorkflowSequence([
+      { id: "publish", dependsOn: ["review"] },
+      { id: "review", dependsOn: ["render"], maxAttempts: 2 },
+      { id: "render" },
+      { id: "bill" }
+    ]);
+    assert.deepEqual(replayWorkflowTrace(plan, []).eligible, ["bill", "render"]);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      { eventId: "z", stepId: "publish", action: "started", attempt: 1 }
+    ]), /Out-of-sequence/);
+
+    const events = [
+      { eventId: "a", stepId: "render", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "c", stepId: "review", action: "started", attempt: 1 },
+      { eventId: "d", stepId: "review", action: "failed", attempt: 1 },
+      { eventId: "e", stepId: "review", action: "started", attempt: 2 },
+      { eventId: "f", stepId: "review", action: "succeeded", attempt: 2 },
+      { eventId: "g", stepId: "publish", action: "started", attempt: 1 },
+      { eventId: "h", stepId: "publish", action: "succeeded", attempt: 1 },
+      { eventId: "i", stepId: "bill", action: "started", attempt: 1 },
+      { eventId: "j", stepId: "bill", action: "succeeded", attempt: 1 }
+    ];
+    const replay = replayWorkflowTrace(plan, events);
+    assert.equal(replay.complete, true);
+    assert.equal(replay.replayedEvents, 1);
+    assert.equal(replay.acceptedEvents, 10);
+    assert.deepEqual(replay.eligible, []);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      events[0], { ...events[0], action: "failed" }
+    ]), /Conflicting replay event id/);
+
+    const singleAttempt = planWorkflowSequence([{ id: "once", maxAttempts: 1 }]);
+    const failed = [
+      { eventId: "start", stepId: "once", action: "started", attempt: 1 },
+      { eventId: "fail", stepId: "once", action: "failed", attempt: 1 }
+    ];
+    assert.deepEqual(replayWorkflowTrace(singleAttempt, failed).exhausted, ["once"]);
+    assert.throws(() => replayWorkflowTrace(singleAttempt, [
+      ...failed, { eventId: "retry", stepId: "once", action: "started", attempt: 2 }
+    ]), /Out-of-sequence/);
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
