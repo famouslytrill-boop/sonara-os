@@ -1345,13 +1345,13 @@ app.post("/api/billing/create-portal-session", async (req, res) => {
     headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       customer: stripeCustomer.stripeCustomerId,
-      return_url: `${getPublicAppUrl(req)}/business-builder/billing`
+      return_url: `${getPublicAppUrl(req)}/billing`
     }).toString()
   }).catch(() => undefined);
   if (!response?.ok) return sendSetupRequired(req, res, 502, "stripe_customer_portal", "portal_unavailable");
   const portal = await response.json().catch(() => ({}));
   if (wantsJson(req)) return res.status(200).json({ ok: true, portal_url: portal.url });
-  return res.redirect(303, portal.url || "/business-builder/billing");
+  return res.redirect(303, portal.url || "/billing");
 });
 
 app.get("/api/billing/status", (req, res) => {
@@ -1384,7 +1384,38 @@ app.get("/settings", requireCustomer, (req, res) => {
   );
 });
 
-app.get("/billing", requireCustomer, (req, res) => res.redirect(303, "/business-builder/billing"));
+// SONARA billing belongs to the customer account, not to any one workspace.
+// Creator-only and Growth-only customers must be able to see and manage their
+// subscription without passing Business Builder's access gate.
+app.get("/billing", requireCustomer, async (req, res) => {
+  const readiness = getReadiness();
+  const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+  const billing = organization.ok
+    ? await getBillingPanelSummary(organization.organizationId)
+    : { ok: false, status: organization.code, rows: [] };
+  return res.status(200).type("html").send(
+    layout({
+      title: "SONARA Billing",
+      eyebrow: "Your SONARA account",
+      heading: "Subscription and billing",
+      body: "Manage your SONARA subscription across Business Builder, Creator Studio and Growth Studio. Billing belongs to your account, not to a particular workspace.",
+      sections: [
+        accountNoticeCard(req),
+        billingPanel(readiness, billing),
+        brandCard("Current plan", billing.status || "We could not check your plan just now. Try again shortly."),
+        brandCard("Customer portal", readiness.services.stripe === "configured"
+          ? "Stripe's billing portal opens after your customer account is connected."
+          : "Setup required: payment connection is missing.")
+      ],
+      actions: [
+        linkAction("/pricing", "View pricing"),
+        linkAction("/account", "Account"),
+        linkAction("/dashboard", "All workspaces"),
+        logoutAction()
+      ]
+    })
+  );
+});
 
 app.get("/business-builder/billing", requireWorkspaceAccess("business_builder"), async (req, res) => {
   const readiness = getReadiness();
