@@ -6,7 +6,9 @@
 // Static assets use stale-while-revalidate; public navigations use network-first.
 const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
-const CACHE_NAME = CACHE_PREFIX + VERSION;
+// Separate cache namespace to evict previously stored extension-matched URLs
+// when this tighter public-asset policy activates.
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v1";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -51,14 +53,38 @@ const PUBLIC_STAGE = [
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
 
+// An extension is not proof of public access. For example, a tenant report
+// served at /api/tenant/chart.png must never enter the origin-wide Cache API.
+// The Express public/ tree uses root assets, /brand/ and /fonts/ only.
+function isPublicStaticAsset(url, request) {
+  if (!STATIC_PATTERN.test(url.pathname) || url.pathname === "/sw.js") return false;
+  const publicRoot = /^\/[^/]+\.(?:css|js|svg|png|ico|webmanifest|woff2)$/.test(url.pathname);
+  const publicDirectory = url.pathname.startsWith("/brand/") || url.pathname.startsWith("/fonts/");
+  if (!publicRoot && !publicDirectory) return false;
+
+  // Asset revisions use ?v=... . Any other query (token, signature, session,
+  // redirect, etc.) bypasses the Cache API; never retain bearer-style URLs.
+  if (url.search) {
+    const keys = [...url.searchParams.keys()];
+    if (keys.length !== 1 || keys[0] !== "v" ||
+        !/^[a-z0-9._-]{1,100}$/i.test(url.searchParams.get("v") || "")) return false;
+  }
+  if (request.cache === "no-store" ||
+      (request.headers && request.headers.has("authorization"))) return false;
+  return true;
+}
+
 function isPublicNavigation(pathname) {
   return PUBLIC_NAVIGATION_PATHS.has(pathname) || pathname.startsWith("/legal/");
 }
 
 function isCacheableResponse(response) {
-  if (!response || !response.ok || response.type === "opaque") return false;
+  if (!response || response.status !== 200 || !response.ok || response.type === "opaque") return false;
   const cacheControl = response.headers.get("cache-control") || "";
-  return !/(private|no-store)/i.test(cacheControl) && !response.headers.has("set-cookie");
+  const vary = response.headers.get("vary") || "";
+  return !/(private|no-store)/i.test(cacheControl) &&
+    !/(^|,)\s*(\*|cookie|authorization)\s*(,|$)/i.test(vary) &&
+    !response.headers.has("set-cookie");
 }
 
 self.addEventListener("install", (event) => {
@@ -106,14 +132,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname === "/sw.js" || !STATIC_PATTERN.test(url.pathname)) return;
+  if (url.pathname === "/sw.js" || !isPublicStaticAsset(url, event.request)) return;
 
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(event.request).then((cached) => {
         const refresh = fetch(event.request)
           .then((response) => {
-            if (isCacheableResponse(response)) cache.put(event.request, response.clone());
+            if (isCacheableResponse(response)) cache.put(event.request, response.clone()).catch(() => {});
             return response;
           })
           .catch(() => cached);
