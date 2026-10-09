@@ -743,6 +743,63 @@ function main() {
       "Creator SQL proposals enforce RLS, grants, revision history and archive refusal",
       fs.readFileSync(path.join(root, "tests/sql/creator-story-proposal-proof.sql"), "utf8"),
       ["creator_story_proposal_privileges_rls_cas_archive_passed"]);
+    // Phase 10: hold two real PostgreSQL connections open against the cloned
+    // Creator fixture. The first writer delays COMMIT while the second tries
+    // the identical revision 0; exactly one is allowed to commit.
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator concurrent writer fixture",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-concurrency-fixture.sql"), "utf8"),
+      ["creator_race_fixture_ready"]);
+    const raceSql = (digest, hold) => [
+      "begin;",
+      "set local role service_role;",
+      "select revision from public.sonara_save_story_draft(" +
+        "'c3333333-3333-4333-8333-333333333333'," +
+        "'c2222222-2222-4222-8222-222222222222'," +
+        "'c1111111-1111-4111-8111-111111111111'," +
+        "0,repeat('a',64),repeat('" + digest + "',64)," +
+        "jsonb_build_object('schema','sonara.interactive-story.v1','version',1," +
+          "'worldFingerprint',repeat('a',64),'startSceneId','intro'," +
+          "'state',jsonb_build_array(),'scenes',jsonb_build_array(" +
+            "jsonb_build_object('sceneId','intro','prose','Racing authored text'," +
+            "'dialogue',jsonb_build_array(),'choices',jsonb_build_array()))));",
+      ...(hold ? ["select pg_sleep(0.65);"] : []),
+      "commit;"
+    ].join("\n");
+    const raceFiles = [0, 1].map((i) => {
+      const input = path.join(socketDir, "creator-race-" + i + ".sql");
+      const error = path.join(socketDir, "creator-race-" + i + ".err");
+      const output = path.join(socketDir, "creator-race-" + i + ".out");
+      fs.writeFileSync(input, raceSql(i === 0 ? "b" : "c", i === 0));
+      if (owner) execFileSync("chown", [owner, input]);
+      return { input, error, output };
+    });
+    const raceCommand = (i) =>
+      "psql -h " + sh(socketDir) + " -p " + port + " -U postgres -d " +
+      sh(creatorDb) + " -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -q -f " +
+      sh(raceFiles[i].input) + " >" + sh(raceFiles[i].output) +
+      " 2>" + sh(raceFiles[i].error);
+    const race = shell(raceCommand(0) +
+      " & first=$!; sleep 0.10; " + raceCommand(1) +
+      " & second=$!; wait \"$first\"; left=$?; wait \"$second\"; right=$?; " +
+      "echo \"$left,$right\"");
+    const statuses = String(race.stdout || "").trim().split("\n").at(-1);
+    if (race.status !== 0 || (statuses !== "0,3" && statuses !== "3,0"))
+      stop("Creator two-session CAS race did not produce one success and one " +
+        "rejection: " + statuses + "; " + (race.stderr || ""));
+    const loser = statuses === "0,3" ? 1 : 0;
+    const rejected = fs.readFileSync(raceFiles[loser].error, "utf8");
+    if (!rejected.includes("PT409"))
+      stop("Creator CAS losing writer did not fail with PostgreSQL PT409: " + rejected);
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator two-connection CAS leaves one latest and one history row",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-concurrency-verify.sql"), "utf8"),
+      ["creator_two_connections_one_history_revision"]);
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator history append failure must roll back latest revision",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-history-rollback.sql"), "utf8"),
+      ["creator_story_history_failure_rolls_back_latest"]);
+
     console.log("Creator draft SQL proposals validated in a separate disposable clone; " +
       "they are still NOT canonical migrations or deployed production tables.");
 
