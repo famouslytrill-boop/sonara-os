@@ -2,6 +2,7 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
+const { createWorldBibleStore } = require("../lib/sonara-world-bible-store.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 function offlineDraftForm(project, scope, esc) {
@@ -19,6 +20,11 @@ function audioRenderForm(project, esc) {
 module.exports = function registerCreatorProjectRoutes(app, deps) {
   const { layout, brandCard, linkAction, escapeHtml: esc, requirePaidOrOwnerAccess, wantsJson } = deps;
   const store = deps.projectStore || createCreatorProjectStore(deps);
+  // A separate SQL proposal must be independently applied and verified first.
+  // Disabled by default even when the route exists. No implicit migration.
+  const worldEnabled = deps.worldBiblePersistenceEnabled === true
+    || process.env.SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED === "true";
+  const worldStore = worldEnabled ? createWorldBibleStore({ ...deps, projectStore: store }) : null;
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
@@ -48,6 +54,46 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       ...(result.truncated ? [brandCard("Latest 100 projects", "This list shows your 100 most recently updated projects.")] : [])
     ]);
   });
+
+  const worldUnavailable = () => ({ ok: false, status: 503, code: "world_bible_migration_not_verified" });
+  // Accessible JSON-text editor and sibling API, scoped by the same paid/owner
+  // Creator project guard used by all existing project mutation endpoints.
+  app.get(`${base}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return page(res, "World Bible storage unavailable",
+      [brandCard("Not enabled", "This project attachment is disabled until database security and release gates pass.")], 503);
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return page(res, "World Bible unavailable", [brandCard("Storage", result.code)], result.status);
+    const current = result.worldBible;
+    const initial = current?.draft || { title: "Original world", medium: "film",
+      entities: [], scenes: [{ id: "opening", title: "Opening" }], resources: {} };
+    return page(res, "World Bible", [
+      brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
+      `<section class="card"><h2>Edit structured World Bible JSON</h2>
+<form method="post" action="${base}/${esc(req.params.id)}/world-bible">
+<input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
+<label>World Bible JSON<textarea name="draft" rows="20" maxlength="65536" required>${esc(JSON.stringify(initial, null, 2))}</textarea></label>
+<button type="submit">Save this revision</button></form></section>`
+    ]);
+  });
+  app.post(`${base}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return page(res, "World Bible storage unavailable",
+      [brandCard("Not enabled", "Migration and release approval are required.")], 503);
+    const raw = req.body?.draft;
+    const revision = req.body?.expectedRevision;
+    let draft;
+    if (typeof raw !== "string" || Buffer.byteLength(raw, "utf8") > 65536 ||
+        typeof revision !== "string" || !/^(0|[1-9][0-9]{0,8})$/.test(revision)) {
+      return page(res, "World Bible not saved", [brandCard("Validation", "Provide a bounded JSON document and the current revision.")], 400);
+    }
+    try { draft = JSON.parse(raw); } catch {
+      return page(res, "World Bible not saved", [brandCard("Validation", "The document is not valid JSON.")], 400);
+    }
+    const result = await worldStore.save(req, req.params.id, { expectedRevision: Number(revision), draft });
+    if (!result.ok) return page(res, "World Bible not saved", [brandCard("Validation", result.code)], result.status);
+    return res.redirect(303, `${base}/${req.params.id}/world-bible`);
+  });
   app.get(`${base}/:id`, guard, async (req, res) => {
     const result = await store.get(req, req.params.id);
     if (!result.ok) return page(res, "Project unavailable", [brandCard("Project", result.message)], result.status);
@@ -58,6 +104,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const timeline = summarizeTimeline(project.graph);
     const sections = [brandCard("Your project", `Revision ${project.revision}. ${nodes.length} entries. Source durations are supplied by you; exports describe edits and do not render a film or verify rights.`),
       `<p><a href="/creator-studio/generation?project=${project.id}">Generate media for this project</a></p>`,
+      ...(worldEnabled ? [`<p><a href="${base}/${esc(project.id)}/world-bible">Edit project World Bible</a></p>`] : []),
       `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/srt">Download SRT captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
     sections.push(brandCard("Timeline summary", `${timeline.durationMs} ms total · ${timeline.clipCount} clips · ${timeline.captionCount} captions · ${timeline.unusedSourceCount} unused sources · ${timeline.mutedClipCount} muted clips. ${timeline.gapMs} ms without clips; ${timeline.overlapMs} ms with overlapping clips. Gaps and overlaps describe placement, not audio silence or errors.`));
     if (!project.archived_at) {
@@ -85,6 +132,17 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     sections.push(audioRenderForm(project, esc));
     if (result.ctx?.user?.id && result.ctx.organizationId) sections.push(offlineDraftForm(project, `${result.ctx.user.id}:${result.ctx.organizationId}`, esc));
     return page(res, project.title, sections);
+  });
+
+  app.get(`${api}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const result = worldStore ? await worldStore.get(req, req.params.id) : worldUnavailable();
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const result = worldStore ? await worldStore.save(req, req.params.id, req.body) : worldUnavailable();
+    return res.status(result.ok ? 200 : result.status).json(result);
   });
   app.get(api, guard, async (req, res) => {
     const result = await store.list(req);
