@@ -82,3 +82,24 @@ The original shared formula result pipeline rounded **all** values to 4 decimal 
 ### Not production-verified
 
 The feature branch has not been merged or deployed, migration replay has not been run on a live managed database, and the full pnpm CI suite is a release gate. Isolated engine checks do not establish build, payment, RLS or science certification readiness.
+
+## Phase 3: numerical stability, covariance and customer-facing limitations (October 9, 2026)
+
+**Change implemented on the draft PR branch (not production):**
+
+1. **Near-zero discount rates** — the uniform end-of-year annuity factor now uses `-expm1(-years*log1p(rate))/rate` for positive rates, with an exact `years` fallback when the rate is zero. This avoids cancellation when `rate` is near machine precision. Variable-year cash flows likewise use `exp(-t*log1p(rate))`. In the fixture, $250/year for three years at a `1e-16` discount rate with a $100 upfront cost correctly returns $650 rather than a spurious negative NPV.
+2. **Correlated standard uncertainties** — `correlated_standard_uncertainty` evaluates `sqrt(u_a²+u_b²+2*rho*u_a*u_b)`, with `rho` in [-1,1] and both standard uncertainties in the *same units*. For `rho=-1`, it uses `abs(u_a-u_b)` directly to avoid cancellation; for `rho=1`, it uses `u_a+u_b`. This is a narrow two-input method: it does not estimate correlation, calibrate sensors, or report a coverage interval.
+3. **First-class UI warnings** — the generated public formula page now renders escaped, formula-specific "Assumptions and limits" next to the input form and calculated result. A default research/estimate warning applies to newly added engineering calculators without explicit copy. Original nonengineering pages remain unchanged.
+4. **Tiny percentages** — nonzero percentage values below 0.005% now render using exponent notation rather than silently showing 0%.
+5. **Labor-survey guardrail** — ECEC benefits include legally required benefits; customers must not add an employer-tax amount again if that amount is already included in their chosen benefit figure. The labor calculator takes separately entered amounts and does not assume the national BLS average is a trade's actual wage.
+
+**Source evidence:**
+
+- NIST TN 1297, 5. Combined Standard Uncertainty: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty
+- NIST TN 1297, Appendix A, Eq. (A-3), covariance terms: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-law-propagation-uncertainty
+- NIST TN 1297, 7. Reporting Uncertainty: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
+- BLS, ECEC June 2026, released September 9 2026: https://www.bls.gov/news.release/ecec.nr0.htm
+
+**Test evidence:** 35/35 isolated JavaScript assertions passed, all 25 engineering keys appear in the additive SQL definition seed and all 25 accepted the generated HTML form's sample inputs. This does NOT establish a pnpm/Mocha CI pass, live migration correctness, accessibility compliance, financial/legal suitability or operational production readiness. Exact-head CI and protected main branch remain release requirements.
+
+**Next engineering process:** verify exact-commit GitHub Actions gates, replay migration on a disposable database, exercise authenticated cross-tenant save/read in the full Mocha/HTTP test lane, then require owner-approved deployment with rollback plan. Make one canonical currency and measurement-unit model before regulated engineering or payroll usage.
