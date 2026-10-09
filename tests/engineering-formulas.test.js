@@ -66,7 +66,7 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     const zero = evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[100,200],discount_rate:0,upfront_cost:50});
     assert.equal(zero.resultValue,250);
     assert.equal(zero.resultUnit,"money");
-    assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[],discount_rate:0.2,upfront_cost:0}).code,"invalid_input");
+    assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[],discount_rate:0.2,upfront_cost:0}).code,"missing_inputs");
     assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[100,"NaN"],discount_rate:0.2,upfront_cost:0}).code,"invalid_input");
   });
   it("refuses invalid nonphysical and incompatible sampling domains",()=>{
