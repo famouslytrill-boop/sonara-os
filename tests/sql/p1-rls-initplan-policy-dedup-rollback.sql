@@ -1,9 +1,11 @@
--- Staging-only P1 draft. This is NOT a Supabase migration.
+-- Staging-only RLS hardening verification. This is NOT a Supabase migration.
 -- Script intentionally ends with ROLLBACK and is invoked by native replay.
--- Generate a forward migration through Supabase CLI only after live/fixture
--- schema comparison, role-denial regression, approval and exact-head CI.
--- Changes: 25 non-row-dependent scalar auth InitPlans; one *exactly*
--- duplicate subscriptions SELECT policy. No role, grant or row modifications.
+-- The 20261008100000 migration already hardened these 25 policies; replay
+-- must validate their POST-migration state rather than require pre-migration
+-- predicates and falsely report drift on every policy.
+-- Assert the exact roles/commands/predicates for 25 policies and, in a
+-- rolled-back transaction, verify one strictly identical duplicate
+-- subscriptions SELECT policy could be dropped. No production DDL occurs.
 \set ON_ERROR_STOP on
 BEGIN;
 SET LOCAL lock_timeout='2s';
@@ -14,31 +16,31 @@ CREATE TEMP TABLE expected_rls_p1 (
  roles text NOT NULL, cmd text NOT NULL, qualifier text, check_expr text
 ) ON COMMIT DROP;
 INSERT INTO expected_rls_p1 VALUES
-    ('agent_pending_actions', 'service role manages agent_pending_actions', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('agent_schedules', 'service role manages agent_schedules', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_employee_profiles', 'business_employee_profiles_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
-    ('business_sub_app_records', 'service role can manage business_sub_app_records', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_work_order_assignments', 'service role manages business_work_order_assignments', 'PERMISSIVE', '{service_role}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_work_order_events', 'service role manages business_work_order_events', 'PERMISSIVE', '{service_role}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_work_order_evidence', 'service role manages business_work_order_evidence', 'PERMISSIVE', '{service_role}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_work_order_materials', 'service role manages business_work_order_materials', 'PERMISSIVE', '{service_role}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('business_work_orders', 'service role manages business_work_orders', 'PERMISSIVE', '{service_role}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('creator_follows', 'service role can manage creator_follows', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('customer_invoice_lines', 'service role can manage customer_invoice_lines', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('customer_invoice_payments', 'service role can manage customer_invoice_payments', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('customer_invoices', 'service role can manage customer_invoices', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_artifacts', 'service role manages generation_artifacts', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_attempts', 'service role manages generation_attempts', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_audit_events', 'service role manages generation_audit_events', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_callback_events', 'service role manages generation_callback_events', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_cost_events', 'service role manages generation_cost_events', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('generation_jobs', 'service role manages generation_jobs', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('merchant_product_variants', 'service role can manage merchant_product_variants', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('merchant_products', 'service role can manage merchant_products', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('shared_links', 'service role can manage shared_links', 'PERMISSIVE', '{public}', 'ALL', '(auth.role() = ''service_role''::text)', '(auth.role() = ''service_role''::text)'),
-    ('sonara_platforms', 'sonara_platforms_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
-    ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
-    ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
+    ('agent_pending_actions', 'service role manages agent_pending_actions', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('agent_schedules', 'service role manages agent_schedules', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_employee_profiles', 'business_employee_profiles_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
+    ('business_sub_app_records', 'service role can manage business_sub_app_records', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_work_order_assignments', 'service role manages business_work_order_assignments', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_work_order_events', 'service role manages business_work_order_events', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_work_order_evidence', 'service role manages business_work_order_evidence', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_work_order_materials', 'service role manages business_work_order_materials', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('business_work_orders', 'service role manages business_work_orders', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('creator_follows', 'service role can manage creator_follows', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('customer_invoice_lines', 'service role can manage customer_invoice_lines', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('customer_invoice_payments', 'service role can manage customer_invoice_payments', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('customer_invoices', 'service role can manage customer_invoices', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_artifacts', 'service role manages generation_artifacts', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_attempts', 'service role manages generation_attempts', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_audit_events', 'service role manages generation_audit_events', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_callback_events', 'service role manages generation_callback_events', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_cost_events', 'service role manages generation_cost_events', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('generation_jobs', 'service role manages generation_jobs', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('merchant_product_variants', 'service role can manage merchant_product_variants', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('merchant_products', 'service role can manage merchant_products', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('shared_links', 'service role can manage shared_links', 'PERMISSIVE', '{service_role}', 'ALL', 'true', 'true'),
+    ('sonara_platforms', 'sonara_platforms_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
+    ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
+    ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL);
 
 DO $drift$
 DECLARE bad int;
@@ -73,77 +75,9 @@ BEGIN
 END
 $drift$;
 
-ALTER POLICY "service role manages agent_pending_actions" ON public."agent_pending_actions"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages agent_schedules" ON public."agent_schedules"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "business_employee_profiles_select_own" ON public."business_employee_profiles"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "service role can manage business_sub_app_records" ON public."business_sub_app_records"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_assignments" ON public."business_work_order_assignments"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_events" ON public."business_work_order_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_evidence" ON public."business_work_order_evidence"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_materials" ON public."business_work_order_materials"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_orders" ON public."business_work_orders"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage creator_follows" ON public."creator_follows"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoice_lines" ON public."customer_invoice_lines"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoice_payments" ON public."customer_invoice_payments"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoices" ON public."customer_invoices"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_artifacts" ON public."generation_artifacts"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_attempts" ON public."generation_attempts"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_audit_events" ON public."generation_audit_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_callback_events" ON public."generation_callback_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_cost_events" ON public."generation_cost_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_jobs" ON public."generation_jobs"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage merchant_product_variants" ON public."merchant_product_variants"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage merchant_products" ON public."merchant_products"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage shared_links" ON public."shared_links"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "sonara_platforms_select_own" ON public."sonara_platforms"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "user_notifications_select_own" ON public."user_notifications"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "user_preferences_select_own" ON public."user_preferences"
-  USING (((select auth.uid()) = user_id));
+-- Service-only and ownership policies are already hardened by the immutable
+-- 20261008100000 migration. Changing them again here would regress that work.
+-- Exercise only the still-unapplied subscriptions dedup in this rollback test.
 
 DROP POLICY "Users can view their own subscription" ON public.subscriptions;
 
@@ -158,8 +92,8 @@ BEGIN
     OR p.roles::text IS DISTINCT FROM e.roles
     OR p.cmd IS DISTINCT FROM e.cmd
     OR p.permissive IS DISTINCT FROM e.permissive
-    OR (e.qualifier IS NOT NULL AND p.qual !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]')
-    OR (e.check_expr IS NOT NULL AND p.with_check !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]');
+    OR p.qual IS DISTINCT FROM e.qualifier
+    OR p.with_check IS DISTINCT FROM e.check_expr;
  IF bad <> 0 THEN
    RAISE EXCEPTION 'P1 postflight failed % policies',bad;
  END IF;
