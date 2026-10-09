@@ -47,17 +47,33 @@
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error("Capture is unavailable in this browser. You can still open your own files.");
       if (kind === "voice" && typeof MediaRecorder === "undefined") throw new Error("Voice recording is unavailable in this browser.");
       await window.SonaraDeviceAccess.verify(keys, panel.dataset.userId, controller.signal);
-      if (revision !== sequence || document.hidden) return;
+      // Some browsers report hidden before dispatching visibilitychange.
+      // Never leave an active attempt in the "checking" state indefinitely.
+      if (revision !== sequence) return;
+      if (document.hidden) {
+        abort("Capture stopped because this page is no longer visible.");
+        return;
+      }
       phase = "device";
       const captured = await navigator.mediaDevices.getUserMedia(kind === "camera"
         ? { audio: false, video: { width: { ideal: 1920, max: 4096 }, height: { ideal: 1080, max: 4096 }, facingMode: "environment" } }
         : { audio: true, video: false });
-      if (revision !== sequence || document.hidden) { captured.getTracks().forEach((track) => track.stop()); return; }
+      if (revision !== sequence || document.hidden) {
+        captured.getTracks().forEach((track) => track.stop());
+        if (revision === sequence && document.hidden)
+          abort("Capture stopped because this page is no longer visible.");
+        return;
+      }
       // The account decision can change while a browser prompt remains open.
       phase = "authorization";
       try { await window.SonaraDeviceAccess.verify(keys, panel.dataset.userId, controller.signal); }
       catch (error) { captured.getTracks().forEach((track) => track.stop()); throw error; }
-      if (revision !== sequence || document.hidden) { captured.getTracks().forEach((track) => track.stop()); return; }
+      if (revision !== sequence || document.hidden) {
+        captured.getTracks().forEach((track) => track.stop());
+        if (revision === sequence && document.hidden)
+          abort("Capture stopped because this page is no longer visible.");
+        return;
+      }
       stream = captured;
       stream.getTracks().forEach((track) => track.addEventListener("ended", () => { if (revision === sequence) abort("Capture ended. Nothing is being recorded."); }, { once: true }));
       let checking = false;
