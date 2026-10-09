@@ -8,7 +8,7 @@ const validStripeItems = () => ({
 function billing(plans = { workspace_monthly: { mode: "subscription", env: "STRIPE_PRICE_WORKSPACE_MONTHLY" } }) {
   return createBilling({
     STRIPE_PLANS: plans,
-    getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_fixture_workspace" : "", getPublicAppUrl: () => "https://example.com",
+    getEnv: (key) => ({ STRIPE_PRICE_WORKSPACE_MONTHLY: "price_fixture_workspace", STRIPE_PRICE_TEAM_MONTHLY: "price_fixture_team" })[key] || "", getPublicAppUrl: () => "https://example.com",
     getSafeAbsoluteUrl: (value, fallback) => value || fallback,
     getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.com" }),
     supabaseHeaders: () => ({}), safeCountTable: async () => 0,
@@ -60,6 +60,60 @@ describe("billing delivery reliability", () => {
         assert.equal(calls, 0, "an invalid Stripe timestamp bypassed the stale-event guard");
       }
     }
+  });
+
+  it("refuses forged higher-tier metadata when Stripe actually billed the cheaper Price", async () => {
+    let calls = 0;
+    global.fetch = async () => { calls += 1; throw Error("mismatched plan touched the database"); };
+    const plans = {
+      workspace_monthly: { mode: "subscription", env: "STRIPE_PRICE_WORKSPACE_MONTHLY" },
+      team_monthly: { mode: "subscription", env: "STRIPE_PRICE_TEAM_MONTHLY" }
+    };
+    const result = await billing(plans).synchronizeBillingFromStripeEvent({
+      type: "customer.subscription.updated", created: 1780000000,
+      data: { object: {
+        id: "sub_cheaper", customer: "cus_real", status: "active",
+        metadata: { organization_id: "org_real", plan: "team_monthly" },
+        items: validStripeItems()
+      } }
+    });
+    assert.deepEqual(result, { ok: false, code: "stripe_subscription_price_mismatch" });
+    assert.equal(calls, 0, "a metadata-only plan upgrade reached an entitlement write");
+  });
+
+  it("rejects unconfigured, incomplete, extra-item or unverified Stripe subscription purchases before DB I/O", async () => {
+    const base = {
+      id: "sub_unverified", customer: "cus_real", status: "active",
+      metadata: { organization_id: "org_real", plan: "workspace_monthly" },
+      items: validStripeItems()
+    };
+    const candidates = [
+      { items: undefined, code: "stripe_subscription_items_unverified" },
+      { items: { data: [] , has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: validStripeItems().data.concat(validStripeItems().data), has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: validStripeItems().data, has_more: true }, code: "stripe_subscription_items_unverified" },
+      { items: { data: validStripeItems().data }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: { id: "price_fixture_workspace" }, quantity: 2 }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: { id: "price_fixture_workspace" } }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: "price_fixture_workspace", quantity: 1 }], has_more: false }, code: "stripe_subscription_items_unverified" },
+      { items: { data: [{ price: { id: "price_different" }, quantity: 1 }], has_more: false }, code: "stripe_subscription_price_mismatch" }
+    ];
+    let calls = 0;
+    global.fetch = async () => { calls += 1; throw Error("unverified Price reached database"); };
+    for (const item of candidates) {
+      const result = await billing().synchronizeBillingFromStripeEvent({
+        type: "customer.subscription.created", created: 1780000000,
+        data: { object: { ...base, items: item.items } }
+      });
+      assert.deepEqual(result, { ok: false, code: item.code }, JSON.stringify(item.items));
+    }
+    const misconfigured = await billing({
+      workspace_monthly: { mode: "subscription", env: "STRIPE_PRICE_MISSING_CONFIGURATION" }
+    }).synchronizeBillingFromStripeEvent({
+      type: "customer.subscription.updated", created: 1780000000, data: { object: base }
+    });
+    assert.deepEqual(misconfigured, { ok: false, code: "stripe_subscription_price_unconfigured" });
+    assert.equal(calls, 0);
   });
 
   it("persists the exact Stripe-created event stamp for both subscription and entitlement writes", async () => {
