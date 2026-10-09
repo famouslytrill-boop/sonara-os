@@ -512,6 +512,32 @@ test.describe("device media and bounded image processing", () => {
     }, { width, height });
     await page.locator("[data-local-image] input[type=file]").setInputFiles({ name: "owned-4k-image.png", mimeType: "image/png", buffer: Buffer.from(bytes) });
   }
+  test("a stalled camera preview releases its stream and never reports success", async ({ page }) => {
+    await mountMedia(page);
+    await page.bringToFront();
+    await page.evaluate(() => {
+      // Exercise a permanently unsettled video.play Promise even on browsers
+      // where synthetic canvas capture or a real camera is unavailable.
+      Object.defineProperty(document, "hidden", { value: false, configurable: true });
+      const syntheticStream = new MediaStream();
+      const testTrack = new EventTarget();
+      testTrack.stop = () => { window.stoppedTracks++; };
+      syntheticStream.getTracks = () => [testTrack];
+      navigator.mediaDevices.getUserMedia = async () => {
+        window.captureCalls++;
+        return syntheticStream;
+      };
+      HTMLMediaElement.prototype.play = () => new Promise(() => {});
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]"))
+      .toContainText("Camera preview is unavailable in this browser or device.", { timeout: 10000 });
+    expect(await page.evaluate(() => window.captureCalls)).toBe(1);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Start camera", exact: true })).toBeEnabled();
+  });
   test("hidden page refuses capture without getting stuck checking permissions", async ({ page }) => {
     await mountMedia(page);
     await page.evaluate(() => Object.defineProperty(document, "hidden", { configurable: true, value: true }));
