@@ -1,9 +1,9 @@
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const { createBilling } = require("../lib/sonara-billing.cjs");
-function billing() {
+function billing(plans = { workspace_monthly: { mode: "subscription" } }) {
   return createBilling({
-    STRIPE_PLANS: { workspace_monthly: { mode: "subscription" } },
+    STRIPE_PLANS: plans,
     getEnv: () => "", getPublicAppUrl: () => "https://example.com",
     getSafeAbsoluteUrl: (value, fallback) => value || fallback,
     getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.com" }),
@@ -39,12 +39,97 @@ describe("billing delivery reliability", () => {
     assert.deepEqual(await billing().synchronizeBillingFromStripeEvent({ account: "acct_merchant", type: "customer.subscription.updated" }), { ok: true, ignored: true });
     assert.deepEqual(await billing().synchronizeCheckoutSessionCompleted({ account: "acct_merchant" }), { ok: true, ignored: true });
   });
-  it("does not acknowledge a paid checkout when its purchase write fails", async () => {
-    global.fetch = async (url) => ({ ok: !url.includes("/purchases?") });
-    const result = await billing().synchronizeBillingFromStripeEvent({ type: "checkout.session.async_payment_succeeded", data: { object: {
-      id: "cs_test", mode: "payment", payment_status: "paid", metadata: { organization_id: "org_test", plan: "legacy_purchase" }
-    } } });
+  it("does not acknowledge a correctly classified paid checkout when its purchase write fails", async () => {
+    const calls = [];
+    global.fetch = async (url) => {
+      calls.push(String(url));
+      return { ok: !String(url).includes("/purchases?") };
+    };
+    const result = await billing({ legitimate_one_time: { mode: "payment" } }).synchronizeBillingFromStripeEvent({
+      type: "checkout.session.async_payment_succeeded",
+      data: { object: {
+        id: "cs_test", mode: "payment", payment_status: "paid",
+        metadata: { organization_id: "org_test", plan: "legitimate_one_time" }
+      } }
+    });
     assert.equal(result.ok, false);
+    assert.equal(calls.length, 1, "the purchase write must be attempted in this failure test");
+    assert.match(calls[0], /\/purchases\?/);
+  });
+
+  it("never exchanges a one-time Checkout payment for recurring subscription entitlements", async () => {
+    const plans = {
+      workspace_monthly: { mode: "subscription" },
+      all_three_monthly: { mode: "subscription" },
+      team_monthly: { mode: "subscription" },
+      workspace_annual: { mode: "subscription" },
+      business_builder_one_time: { quoted: true, retired: true }
+    };
+    let calls = 0;
+    global.fetch = async () => { calls += 1; throw Error("unauthorized database mutation"); };
+    const service = billing(plans);
+    for (const plan of [...Object.keys(plans), "unknown_plan", "free"]) {
+      const response = await service.synchronizeBillingFromStripeEvent({
+        type: "checkout.session.completed",
+        data: { object: {
+          id: "cs_guard_" + plan, mode: "payment", payment_status: "paid",
+          metadata: { organization_id: "org_test", plan }
+        } }
+      });
+      assert.deepEqual(response, { ok: false, code: "checkout_plan_mode_mismatch" }, plan);
+    }
+    assert.equal(calls, 0, "payment/subscription plan mismatch wrote a purchase or entitlement");
+  });
+
+  it("requires identity for a paid one-time Checkout session before making database writes", async () => {
+    let calls = 0;
+    global.fetch = async () => { calls += 1; throw Error("payment without metadata wrote to database"); };
+    for (const session of [
+      { mode: "payment", payment_status: "paid", metadata: { organization_id: "org_test", plan: "setup_one_time" } },
+      { id: "cs_missing_org", mode: "payment", payment_status: "paid", metadata: { plan: "setup_one_time" } },
+      { id: "cs_missing_plan", mode: "payment", payment_status: "paid", metadata: { organization_id: "org_test" } }
+    ]) {
+      const result = await billing({ setup_one_time: { mode: "payment" } }).synchronizeCheckoutSessionCompleted({
+        data: { object: session }
+      });
+      assert.deepEqual(result, { ok: false, code: "checkout_metadata_missing" });
+    }
+    assert.equal(calls, 0);
+  });
+
+  it("fulfills only explicitly configured non-retired one-time plans after payment", async () => {
+    const calls = [];
+    global.fetch = async (url, init) => {
+      calls.push({ url: String(url), body: JSON.parse(init.body) });
+      return { ok: true };
+    };
+    const service = billing({ setup_one_time: { mode: "payment" }, workspace_monthly: { mode: "subscription" } });
+    const receipt = { id: "cs_paid_once", mode: "payment", payment_status: "paid",
+      payment_intent: "pi_test", metadata: { organization_id: "org_test", plan: "setup_one_time", user_id: "user_test" } };
+    const result = await service.synchronizeBillingFromStripeEvent({
+      type: "checkout.session.async_payment_succeeded", data: { object: receipt }
+    });
+    assert.equal(result.ok, true);
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].url, /\/purchases\?/);
+    assert.match(calls[1].url, /\/billing_entitlements\?/);
+    assert.equal(calls[0].body.organization_id, "org_test");
+    assert.equal(calls[1].body.organization_id, "org_test");
+    assert.equal(calls[1].body.entitlement_key, "setup_one_time");
+    assert.equal(calls[1].body.metadata.checkout_session_id, "cs_paid_once");
+  });
+
+  it("ignores non-payment sessions and unpaid one-time checkouts without fulfillment", async () => {
+    let calls = 0;
+    global.fetch = async () => { calls += 1; throw Error("unpaid session caused mutation"); };
+    const service = billing({ setup_one_time: { mode: "payment" } });
+    for (const session of [
+      { id: "cs_subscription", mode: "subscription", payment_status: "paid", metadata: { plan: "setup_one_time" } },
+      { id: "cs_unpaid", mode: "payment", payment_status: "unpaid", metadata: { plan: "setup_one_time" } }
+    ]) {
+      assert.deepEqual(await service.synchronizeCheckoutSessionCompleted({ data: { object: session } }), { ok: true, ignored: true });
+    }
+    assert.equal(calls, 0);
   });
 
   it("never creates a provider customer when the tenant mapping cannot be read", async () => {
