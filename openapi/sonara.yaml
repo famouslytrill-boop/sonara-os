@@ -2177,6 +2177,15 @@ paths:
       summary: List deterministic media workflow templates and execution safeguards.
       security: [{ bearerAuth: [] }]
       responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator/worldbuilding/plan:
+    post:
+      operationId: planCreatorWorldbuilding
+      tags: [Creator Studio]
+      summary: Validate a bounded world bible, ordered scenes and resource estimates without saving or rendering.
+      description: Requires Creator Studio workspace access. Does not create game files, recordings, streams, publications or rights clearances. Returns a SHA256 fingerprint of the deterministic preview, not an authenticated signature.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
   /api/creator/workflows/plan:
     post:
       operationId: planCreatorMediaWorkflow
