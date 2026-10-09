@@ -285,6 +285,9 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
     // CORS remains disabled by the application's existing policy.
     if(req.headers?.["x-sonara-intent"]!=="save-editorial-draft")
       return res.status(403).json({ok:false,code:"explicit_save_intent_required"});
+    const site=String(req.headers?.["sec-fetch-site"]||"");
+    if(site==="cross-site" || site==="same-site")
+      return res.status(403).json({ok:false,code:"cross_site_write_denied"});
     const result=draft(req.body);
     if(!result.ok)return res.status(400).json(result);
     const outcome=await save(req,req.body,result);
