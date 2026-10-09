@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: sonara-native-migration-replay-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   replay:
     name: Node ${{ matrix.node }} / PostgreSQL ${{ matrix.postgres }} replay

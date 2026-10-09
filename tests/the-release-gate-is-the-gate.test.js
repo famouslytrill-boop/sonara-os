@@ -111,11 +111,19 @@ describe("the release gate is actually the gate", () => {
     const industries = fs.readFileSync(path.join(workflowDir, "sonara-industries-ci.yml"), "utf8");
     const nodeCompatibility = fs.readFileSync(path.join(workflowDir, "node-runtime-compatibility.yml"), "utf8");
     const dependencies = fs.readFileSync(path.join(workflowDir, "dependency-scan.yml"), "utf8");
+    const nativeReplay = fs.readFileSync(path.join(workflowDir, "native-migration-replay.yml"), "utf8");
+    const docker = fs.readFileSync(path.join(workflowDir, "docker-image.yml"), "utf8");
+    const diagnostics = fs.readFileSync(path.join(workflowDir, "diagnose-generation-release-gates.yml"), "utf8");
+    const externalHealth = fs.readFileSync(path.join(workflowDir, "external-repository-health.yml"), "utf8");
 
     for (const [name, workflow] of [
       ["SONARA Industries CI", industries],
       ["Node Runtime Compatibility", nodeCompatibility],
-      ["dependency-scan", dependencies]
+      ["dependency-scan", dependencies],
+      ["Native migration replay", nativeReplay],
+      ["Docker Image CI", docker],
+      ["Diagnose unresolved release gates", diagnostics],
+      ["External Repository Health", externalHealth]
     ]) {
       assert.match(workflow, /concurrency:\s*[\s\S]*?cancel-in-progress:\s*true/, `${name} can leave a superseded head consuming a runner`);
     }
@@ -130,6 +138,11 @@ describe("the release gate is actually the gate", () => {
 
     assert.match(dependencies, /github\.head_ref \|\| github\.ref_name/);
     assert.equal((dependencies.match(/timeout-minutes:/g) || []).length, 6);
+
+    assert.match(nativeReplay, /replay:[\s\S]*?timeout-minutes: 15/);
+    assert.match(docker, /build:[\s\S]*?timeout-minutes: 20/);
+    assert.match(diagnostics, /diagnose:[\s\S]*?timeout-minutes: 20/);
+    assert.match(externalHealth, /verify-external-repositories:[\s\S]*?timeout-minutes: 15/);
   });
 
   it("names the chain length correctly where it is quoted at the owner", () => {

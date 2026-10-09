@@ -3,10 +3,15 @@
 Active:
 - HELD: GitHub Actions runner-capacity hardening -- Codex,
   branch `codex/ci-runner-capacity-20261008`, taken 2026-10-08.
-  Covers only `.github/workflows/sonara-industries-ci.yml`,
+  Covers only GitHub Actions capacity controls in
+  `.github/workflows/sonara-industries-ci.yml`,
   `.github/workflows/node-runtime-compatibility.yml`,
-  `.github/workflows/dependency-scan.yml`, and the existing release-gate
-  source test that verifies their concurrency/timeouts. No runtime, product,
+  `.github/workflows/dependency-scan.yml`,
+  `.github/workflows/native-migration-replay.yml`,
+  `.github/workflows/docker-image.yml`,
+  `.github/workflows/diagnose-generation-release-gates.yml`,
+  `.github/workflows/external-repository-health.yml`, and the existing
+  release-gate source test that verifies their concurrency/timeouts. No runtime, product,
   database, migration, provider, payment, generated handoff, or deployment
   changes. Release when the CI-hardening PR merges or closes.
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
