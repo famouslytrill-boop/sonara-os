@@ -171,8 +171,8 @@ describe("server-only provider broker client", () => {
     assert.equal(body.payload.verifier.length, 43);
   });
 
-  it("falls back to the legacy service-role API key only when a new secret key is not configured", async () => {
-    let headers = null;
+  it("refuses the legacy service-role key for this new broker component", async () => {
+    let calls = 0;
     const out = await invokeGoogleSearchConsoleBroker({
       operation: "review_sites",
       context: CONTEXT,
@@ -184,14 +184,14 @@ describe("server-only provider broker client", () => {
       }),
       getBrokerToken: () => BROKER,
       nowImpl: () => Date.parse("2026-10-08T21:30:00.000Z"),
-      fetchImpl: async (_url, options) => {
-        headers = options.headers;
-        return response(200, { ok: true, operation: "review_sites", sites: [] });
+      fetchImpl: async () => {
+        calls += 1;
+        return response(200, { ok: true });
       }
     });
-    assert.equal(out.ok, true);
-    assert.equal(headers.apikey, SERVICE);
-    assert.equal(headers.authorization, undefined);
+    assert.equal(out.ok, false);
+    assert.equal(out.code, "provider_broker_supabase_not_configured");
+    assert.equal(calls, 0);
   });
 
   it("fails closed when Supabase or the dedicated broker token is unavailable", async () => {
@@ -335,7 +335,7 @@ describe("server-only provider broker client", () => {
     const contract = getProviderBrokerClientContract();
     assert.equal(contract.transport, "supabase_edge_function");
     assert.equal(contract.auth.browserCallable, false);
-    assert.equal(contract.auth.apiKey, "supabase_secret_key_preferred_legacy_service_role_fallback");
+    assert.equal(contract.auth.apiKey, "supabase_secret_key_required");
     assert.equal(contract.auth.platformJwtVerification, false);
     assert.equal(contract.auth.requestHmac, "v1");
     assert.equal(contract.auth.sharedSecretTransmitted, false);
