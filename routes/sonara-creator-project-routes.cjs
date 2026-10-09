@@ -2,7 +2,7 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
-const { createWorldBibleStore } = require("../lib/sonara-world-bible-store.cjs");
+const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
@@ -82,14 +82,19 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const result = await worldStore.get(req, req.params.id);
     if (!result.ok) return page(res, "World Bible unavailable", [brandCard("Storage", result.code)], result.status);
     const current = result.worldBible;
+    const timelinePlan = current ? normalizedDraft(current.draft) : null;
+    const timelineReady = timelinePlan?.ok && timelinePlan.blueprint.medium !== "book"
+      && timelinePlan.blueprint.estimates.timingCoverage === "complete_plan";
     const initial = current?.draft || { title: "Original world", medium: "film",
       entities: [], scenes: [{ id: "opening", title: "Opening" }], resources: {} };
     return page(res, "World Bible", [
       brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
       ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/markdown">Download World Bible Markdown</a></p>`] : []),
-      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/csv">Download cue sheet (CSV)</a></p>`,
-        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/csv">Download cue sheet (CSV)</a></p>`] : []),
+      ...(timelineReady ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
         `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
+      ...(current && !timelineReady ? [brandCard("Timed exports not available",
+        "OTIO and MIDI require complete durations for a media or interactive project. Add scene timing before exporting.") ] : []),
       `<section class="card"><h2>Edit structured World Bible JSON</h2>
 <form method="post" action="${base}/${esc(req.params.id)}/world-bible">
 <input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
