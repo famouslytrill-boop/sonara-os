@@ -66,6 +66,9 @@ begin
   if not found then return false; end if;
 
   if p_action = 'remove' then
+    -- The post lock serializes concurrent attempts. Repeat remove succeeds
+    -- without a second audit event, even across two browser tabs.
+    if v_post.state = 'removed' then return true; end if;
     update public.growth_channel_posts
       set state = 'removed', removed_at = now(), updated_at = now()
       where id = p_post_id and organization_id = p_organization_id;
@@ -73,10 +76,12 @@ begin
       set state = 'actioned', decided_at = now()
       where post_id = p_post_id and organization_id = p_organization_id and state = 'open';
   elsif p_action = 'restore' then
+    if v_post.state = 'published' then return true; end if;
     update public.growth_channel_posts
       set state = 'published', removed_at = null, updated_at = now()
       where id = p_post_id and organization_id = p_organization_id;
   else
+    if v_post.state <> 'published' then return false; end if;
     update public.growth_post_reports
       set state = 'dismissed', decided_at = now()
       where post_id = p_post_id and organization_id = p_organization_id and state = 'open';
