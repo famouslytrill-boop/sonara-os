@@ -94,3 +94,16 @@ describe("Supabase tenant firewall: blocked channel actor-scope enforcement", ()
       JSON.stringify({ viewer_user_id: OWNER, channel_id: A, is_admin: true })).allowed, false);
   });
 });
+
+describe("Supabase tenant firewall: moderator audit reads", () => {
+  const { inspect } = require("../lib/sonara-tenant-guard.cjs");
+  const root = "https://database.example.invalid/rest/v1/growth_channel_moderation_events";
+  const query = "?select=post_id,actor_user_id,action,created_at&organization_id=eq." +
+    ORG + "&order=created_at.desc&limit=21";
+  it("admits only scoped, bounded owner audit queries", () => {
+    assert.equal(inspect("GET", root + query).allowed, true);
+    assert.equal(inspect("GET", root + "?select=*&organization_id=eq." + ORG).allowed, false);
+    assert.equal(inspect("GET", root + query.replace("organization_id=eq." + ORG, "organization_id=neq." + ORG)).allowed, false);
+    assert.equal(inspect("DELETE", root + query).allowed, false);
+  });
+});
