@@ -72,7 +72,7 @@ describe("browser push opt-out is scoped to its owner", () => {
       organizationId: "org-A", endpoint, createdBy: "user-A"
     }, async (url, init) => {
       requested = { url: new URL(url), init };
-      return { ok: true, status: 204 };
+      return { ok: true, status: 200, json: async () => [{ id: "deleted" }] };
     });
     assert.equal(result.ok, true);
     assert.equal(requested.init.method, "DELETE");
@@ -87,11 +87,27 @@ describe("browser push opt-out is scoped to its owner", () => {
       organizationId: "org-A", endpoint
     }, async (url) => {
       query = new URL(url).searchParams;
-      return { ok: true, status: 204 };
+      return { ok: true, status: 200, json: async () => [{ id: "deleted" }] };
     });
     assert.equal(result.ok, true);
     assert.equal(query.get("organization_id"), "eq.org-A");
     assert.equal(query.has("created_by"), false);
+  });
+
+  it("does not falsely confirm opt-out when zero rows were deleted", async () => {
+    const result = await store.remove(deps, {
+      organizationId: "org-A", endpoint, createdBy: "user-A"
+    }, async () => ({ ok: true, status: 200, json: async () => [] }));
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "not_found");
+  });
+
+  it("recognizes a confirmed delete only from returned rows", async () => {
+    const result = await store.remove(deps, {
+      organizationId: "org-A", endpoint, createdBy: "user-A"
+    }, async () => ({ ok: true, status: 200, json: async () => [{ id: "deleted" }] }));
+    assert.equal(result.ok, true);
+    assert.equal(result.count, 1);
   });
 
   it("the authenticated route never relies on a client-supplied tenant", async () => {
