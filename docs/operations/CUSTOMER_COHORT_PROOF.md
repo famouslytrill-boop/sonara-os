@@ -66,6 +66,29 @@ The reviewed draft now also includes `lib/sonara-cohort-snapshot-reader.cjs` wit
 
 **Important historical limitation:** `asOf` is an event-time cutoff, *not* a reconstruction of database state at an earlier historical time. Events inserted after that timestamp with backdated `created_at` may be observed by the current database snapshot. Independent immutable ingestion-time provenance is needed for historical reproducibility.
 
+## Database authorization gate (additional P0 evidence, 2026-10-08)
+
+**Observed administrative role:** A read-only, metadata-only query to the connected Supabase project returned `connection_role=postgres`, `rolbypassrls=true` and RLS inactive for that connection on both reporting tables. **Do not use the connected administrative SQL executor, owner/database admin, `service_role`, or other bypass-RLS identities as the cohort reader.** No credential or customer row was exposed, and no database role was created or modified.
+
+The snapshot adapter now requires a trusted server-side `approvedReportingRole`, uses `current_user` AND `session_user`, and fails before any customer table SELECT unless:
+- Both effective and authenticated database session identity **exactly equal** the reviewed dedicated role.
+- The database role is not a superuser and does not have `BYPASSRLS`.
+- `row_security_active('public.organizations'::regclass)` and `row_security_active('public.activity_events'::regclass)` are **both true for that session**.
+- Transaction read-only proof also passes.
+
+This role check is a necessary safeguard **but not sufficient authorization proof**: an RLS-enabled table can still have an overly broad policy. Do not invent or install a blanket `USING (true)` policy. A legitimate review must prove the dedicated role is allowed to read **only an explicit approved reporting population** and that the eligibility policy removes internal/test organizations. Since RLS filters the organizations used by the activity join, the allowed reporting scope must be consistent on both tables.
+
+### Nonproduction acceptance procedure (no production SQL changes)
+
+1. With the owner/database administrator, provision an isolated staging role using the approved role design, minimal `SELECT` grants and **reviewed RLS policies**. Document the issuer, role, scope and expiration; do not place its credentials in the repository.
+2. Under this role, run the exact metadata query in `lib/sonara-cohort-snapshot-reader.cjs` and verify all four boolean checks and exact session identity.
+3. Create two **synthetic** organizations and fixture activity records *only in an approved staging instance*. Grant access to one; verify that records and aggregated results for the other are denied. Revoke/expire access and verify the next run returns no previously accessible customer facts.
+4. Test concurrent writes while the reader holds a `REPEATABLE READ READ ONLY` transaction. Verify both queries reflect one stable snapshot. Check 10,001/200,001-row cap-plus-one behavior and failure rollback.
+5. Run the actual `node`/Mocha focused tests, then full exact-head CI. Retain audit evidence without tenant identifiers, email, raw prompts, provider tokens or credentials.
+
+**Current status:** 12/12 focused snapshot cases passed in a source-executing V8 test harness; the production database metadata query confirms that the admin connection **correctly would be rejected** by the new gate. A real least-privilege PostgreSQL integration test has **not yet passed** and cannot be claimed. Do not enable scheduled exports, billing analytics or public marketing based on mocked role checks.
+
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
