@@ -2,6 +2,7 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
+const registerCreatorWorldBibleRoutes = require("./sonara-creator-world-bible-routes.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 function offlineDraftForm(project, scope, esc) {
@@ -19,6 +20,7 @@ function audioRenderForm(project, esc) {
 module.exports = function registerCreatorProjectRoutes(app, deps) {
   const { layout, brandCard, linkAction, escapeHtml: esc, requirePaidOrOwnerAccess, wantsJson } = deps;
   const store = deps.projectStore || createCreatorProjectStore(deps);
+  registerCreatorWorldBibleRoutes(app, { ...deps, projectStore: store });
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
@@ -57,6 +59,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const nodes = project.graph.nodes;
     const timeline = summarizeTimeline(project.graph);
     const sections = [brandCard("Your project", `Revision ${project.revision}. ${nodes.length} entries. Source durations are supplied by you; exports describe edits and do not render a film or verify rights.`),
+      ...(process.env.SONARA_CREATOR_WORLD_STORAGE_ENABLED === "true" || deps.worldStorageEnabled === true ? [`<p><a href="/creator-studio/projects/${esc(project.id)}/world">Open World Bible</a></p>`] : []),
       `<p><a href="/creator-studio/generation?project=${project.id}">Generate media for this project</a></p>`,
       `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/srt">Download SRT captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
     sections.push(brandCard("Timeline summary", `${timeline.durationMs} ms total · ${timeline.clipCount} clips · ${timeline.captionCount} captions · ${timeline.unusedSourceCount} unused sources · ${timeline.mutedClipCount} muted clips. ${timeline.gapMs} ms without clips; ${timeline.overlapMs} ms with overlapping clips. Gaps and overlaps describe placement, not audio silence or errors.`));
