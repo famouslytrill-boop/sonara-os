@@ -86,6 +86,16 @@ const SOURCE_FILES = ["server.js"];
 // than this one.
 const RECORDED_UNRESOLVED = 40;
 
+// Review-only social tables are not in the migration-derived registry yet.
+// Do not misclassify them as GLOBAL_TABLES or increase the unresolved ratchet.
+// The two account-block reads have exact session-derived filters; moderator
+// history retains an organization filter. Once the migration is generated,
+// update the registry and remove these explicitly checked transitional rules.
+const PENDING_TENANT_TABLES = new Set(["growth_channel_moderation_events"]);
+const ACCOUNT_BLOCK_READS = new Set(["viewer.id", "req.sonaraUser.id"]);
+const accountBlockReadsSeen = new Set();
+
+
 // Calls whose table is KNOWN to be tenant-scoped and whose query this reader
 // cannot resolve. Zero, and it must stay zero.
 //
@@ -671,7 +681,26 @@ for (const file of files) {
       continue;
     }
 
-    if (!TENANT_SCOPED_TABLES.has(table)) {
+    if (table === "growth_channel_blocks") {
+      // A personal block table crosses organization boundaries by design.
+      // Explicitly authenticate the actor in the route and require one of the
+      // two known signed-in session expressions, a single safe field and the
+      // bounded account-specific filter. Anything else fails this audit.
+      const relative = path.relative(root, file);
+      const raw = (embeddedQuery ? `\`${embeddedQuery}\`` : args[signature.queryIndex] || "").trim();
+      const pattern = /^\`select=channel_id&viewer_user_id=eq\.\$\{enc\((viewer\.id|req\.sonaraUser\.id)\)\}&limit=\$\{safety\.MAX_BLOCKED \+ 1\}\`$/;
+      const matching = relative === "routes/sonara-growth-channel-routes.cjs" && pattern.exec(raw);
+      if (matching && ACCOUNT_BLOCK_READS.has(matching[1])) {
+        counts.readWithoutOrganization += 1;
+        accountBlockReadsSeen.add(matching[1]);
+      } else {
+        counts.tenantUnfiltered += 1;
+        unfiltered.push({ file: relative, table, query: raw.slice(0, 140).replace(/\s+/g, " ") });
+      }
+      continue;
+    }
+
+    if (!TENANT_SCOPED_TABLES.has(table) && !PENDING_TENANT_TABLES.has(table)) {
       // Only a name recorded in GLOBAL_TABLES carries no organization.
       //
       // This branch used to take every name that was not tenant-scoped, and its
@@ -768,6 +797,13 @@ for (const file of files) {
 }
 
 const failures = [];
+for (const actor of ACCOUNT_BLOCK_READS) {
+  if (!accountBlockReadsSeen.has(actor)) {
+    failures.push("Actor-scoped growth_channel_blocks query for " + actor +
+      " is missing or no longer carries its exact signed-in identity, selected column and 501-row safety bound.");
+  }
+}
+
 
 // Track the matched entry itself: two reasons for the same file/table must
 // independently match. A surviving public lookup cannot hide a stale follower
