@@ -41,6 +41,7 @@
 
   let active = null;
   let permissionPending = false;
+  let pendingPost = null;
 
   function setStatus(message) {
     statusNode.textContent = message;
@@ -69,9 +70,13 @@
   }
 
   function cancelCapture(message) {
-    if (!active && !permissionPending) return;
+    if (!active && !permissionPending && !pendingPost) return;
     stopListener();
     permissionPending = false;
+    if (pendingPost) {
+      pendingPost.abort();
+      pendingPost = null;
+    }
     setButtons(false);
     setStatus(message || "Motion sample cancelled. Nothing was saved.");
   }
@@ -100,6 +105,7 @@
 
   async function postSummary(payload) {
     const controller = new AbortController();
+    pendingPost = controller;
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(endpoint, {
@@ -115,6 +121,7 @@
       return { ok: false, status: 0, body: { code: error && error.name === "AbortError" ? "timeout" : "network_error" } };
     } finally {
       clearTimeout(timeout);
+      if (pendingPost === controller) pendingPost = null;
     }
   }
 
