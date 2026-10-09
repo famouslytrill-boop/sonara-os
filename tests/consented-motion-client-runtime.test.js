@@ -17,7 +17,7 @@ function control() {
   };
 }
 
-function harness({ permission = { ok: true } } = {}) {
+function harness({ permission = { ok: true }, applicationPermissionAllowed = true, applicationPermissionMessage = "Motion is off in Device permissions." } = {}) {
   const start = control();
   const cancel = control();
   const status = control();
@@ -29,7 +29,9 @@ function harness({ permission = { ok: true } } = {}) {
       endpoint: "/api/motion/events",
       sampleWindowMs: 5000,
       sampleIntervalMs: 100,
-      maxSamples: 50
+      maxSamples: 50,
+      applicationPermissionAllowed,
+      applicationPermissionMessage
     })
   };
   const selectors = new Map([
@@ -108,6 +110,16 @@ describe("motion capture browser runtime", () => {
     assert.equal(h.fetchCalls.length, 0);
     assert.equal(typeof h.start.listeners.click, "function");
   });
+
+  it("keeps motion disabled before the browser prompt when the SONARA account setting is off", async () => {
+    const h = harness({ applicationPermissionAllowed: false, applicationPermissionMessage: "Turn motion on in Device permissions." });
+    assert.equal(h.start.disabled, true);
+    assert.match(h.status.textContent, /Turn motion on/);
+    await h.start.listeners.click();
+    assert.deepEqual(h.calls(), { permissionCalls: 0, listenerStarts: 0, listenerStops: 0 });
+    assert.equal(h.fetchCalls.length, 0);
+  });
+
 
   it("starts only from the explicit button and posts one aggregate summary", async () => {
     const h = harness();
