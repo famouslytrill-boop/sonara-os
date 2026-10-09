@@ -123,6 +123,47 @@ describe("provider delay integration with the existing event consumer", () => {
     assert.equal(policy.reason, "message_expired");
   });
 
+  for (const [label, foreignRow] of [
+    ["foreign tenant", { organization_id: "00000000-0000-4000-8000-000000000999" }],
+    ["unexpected event kind", { kind: "agent.work.failed" }],
+    ["unexpected producer", { producer: "foreign-worker" }]
+  ]) {
+    it("refuses a claimed row from an " + label + " without dispatching side effects", async () => {
+      let called = 0;
+      let settled = 0;
+      const worker = createEventConsumerWorker({
+        repository: {
+          claimNextFiltered: async () => ({ ok: true, row: {
+            id: "outbox-foreign", event_id: "event-foreign",
+            organization_id: ORG, idempotency_key: "evt_foreign",
+            correlation_id: "corr-foreign",
+            kind: CANARY_KIND,
+            producer: "sonara-event-consumer-canary:retry-bridge",
+            attempt_count: 1, created_at: BASE,
+            ...foreignRow
+          }}),
+          settle: async () => { settled += 1; return { ok: true, row: {} }; }
+        },
+        handlers: {
+          [CANARY_KIND]: async () => { called += 1; return { ok: true }; }
+        },
+        emitEvent: () => {},
+        claimIdFactory: () => "claim-foreign",
+        now: () => new Date(BASE)
+      });
+      const result = await worker.runOnce({
+        enabled: true,
+        organizationId: ORG,
+        kinds: [CANARY_KIND],
+        producers: ["sonara-event-consumer-canary:retry-bridge"]
+      });
+      assert.equal(result.status, "claim_mismatch");
+      assert.equal(result.code, "claim_scope_mismatch");
+      assert.equal(called, 0);
+      assert.equal(settled, 0);
+    });
+  }
+
   it("cannot extend retryability beyond the existing five-attempt safety cap", async () => {
     const { result } = await runCase({
       ok: false, code: "retry_later", retryable: true,
