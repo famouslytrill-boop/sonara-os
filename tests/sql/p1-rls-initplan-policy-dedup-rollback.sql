@@ -41,8 +41,9 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
 DO $drift$
-DECLARE bad int;
-DECLARE item record;
+DECLARE
+  bad int;
+  item record;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
