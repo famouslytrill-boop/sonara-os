@@ -9,7 +9,7 @@ const BLOCKED="33333333-3333-4333-8333-333333333333";
 const VISIBLE="44444444-4444-4444-8444-444444444444";
 const POST="55555555-5555-4555-8555-555555555555";
 const middleware=(_req,_res,next)=>next();
-function setup() {
+function setup(safetyEnabled=true) {
   const handlers=new Map();
   const app={
     get:(p,...h)=>handlers.set("GET "+p,h),
@@ -26,7 +26,8 @@ function setup() {
     getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:ORG}),
     getSupabaseServerConfig:()=>({ok:true,url:"https://database.example.invalid"}),
     supabaseHeaders:()=>({}), createRateLimiter:()=>middleware,
-    getEnv:(name)=>name==="NEXT_PUBLIC_SITE_URL"?"https://sonara.test":""
+    getEnv:(name)=>name==="NEXT_PUBLIC_SITE_URL"?"https://sonara.test":
+      name==="SONARA_GROWTH_CHANNEL_SAFETY_ENABLED"?(safetyEnabled?"true":"false"):""
   });
   return handlers;
 }
@@ -87,6 +88,40 @@ describe("real Growth channel safety routes (isolated database stub)",()=>{
   let originalFetch;
   beforeEach(()=>{originalFetch=global.fetch;});
   afterEach(()=>{global.fetch=originalFetch;});
+
+  it("keeps old public channels readable without querying uninstalled safety tables",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"GET","/channels",req());
+    assert.equal(res.statusCode,200);
+    assert.match(res.body,/Visible to me/);
+    assert.match(res.body,/Hidden from me/);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_blocks")),false);
+  });
+
+  it("does not access uninstalled safety RPCs when the rollout flag is off",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"POST","/api/growth/channels/:id/block",req({id:VISIBLE}));
+    assert.equal(res.statusCode,503);
+    assert.equal(calls.length,0);
+  });
+
+  it("preserves pre-existing owner post takedowns while audited RPC is inactive",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"POST","/api/growth/channels/posts/remove",
+      req({},{body:{post_id:POST}}));
+    assert.equal(res.statusCode,303);
+    assert.match(res.redirectTo,/done=removed/);
+    assert.equal(calls.some(c=>c.url.endsWith("/rpc/sonara_moderate_growth_post")),false);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_posts")&&c.method==="PATCH"),true);
+  });
+
+  it("does not read the unapplied audit table for an existing owner page",async()=>{
+    const calls=[];global.fetch=mockFetch(calls);
+    const res=await invoke(setup(false),"GET","/growth-studio/owner/channels",req());
+    assert.equal(res.statusCode,200);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_channel_moderation_events")),false);
+    assert.equal(calls.some(c=>c.url.endsWith("/growth_post_reports")),true);
+  });
 
   it("suppresses an account-blocked channel from directory",async()=>{
     const calls=[];global.fetch=mockFetch(calls);
