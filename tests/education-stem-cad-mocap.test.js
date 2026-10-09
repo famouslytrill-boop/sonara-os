@@ -79,6 +79,9 @@ describe("education, physical science, social studies, CAD, arts and mocap", () 
     invalid("math_probability_union_percent", { event_a_percent: 60, event_b_percent: 60, intersection_percent: 0 });
     invalid("math_probability_union_percent", { event_a_percent: 20, event_b_percent: 30, intersection_percent: 25 });
     invalid("social_voter_turnout_percent", { ballots_cast: 110, eligible_voters: 100 });
+    invalid("social_voter_turnout_percent", { ballots_cast: 10, eligible_voters: 10.5 });
+    invalid("social_population_change_percent", { current_population: 110, previous_population: 100.5 });
+    invalid("language_flesch_reading_ease", { word_count: 100, sentence_count: 5.5, syllable_count: 140 });
     invalid("social_school_participation_percent", { enrolled_school_age: 101, population_school_age: 100 });
     invalid("language_lexical_diversity_percent", { unique_word_types: 21, total_word_tokens: 20 });
     invalid("language_flesch_reading_ease", { word_count: 100, sentence_count: 101, syllable_count: 140 });
