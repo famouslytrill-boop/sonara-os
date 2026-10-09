@@ -101,6 +101,8 @@ describe("SONARA bounded editorial workbench",()=>{
     refusal(draft(input("note",{title:"",body:"A"})),"invalid_text");
     refusal(draft(input("note",{body:"x".repeat(12001)})),"invalid_text");
     refusal(draft(input("audiobook")),"unsupported_kind");
+    refusal(draft(input("vlog",{platform:"x".repeat(81)})),"invalid_media_fields");
+    refusal(draft(input("storyboard",{durationSeconds:30,sceneCount:9})),"invalid_scene_count");
     refusal(draft(input("blog",{assets:[{name:"Music",status:"copyright_free",evidence:"site"}]})),"invalid_asset");
     refusal(draft(input("note",{comparisonText:25})),"invalid_reference_text");
   });
