@@ -128,7 +128,7 @@ describe("the release gate is actually the gate", () => {
     assert.equal((nodeCompatibility.match(/name: Test\s*\n\s*timeout-minutes: 15/g) || []).length, 2);
     assert.equal((nodeCompatibility.match(/timeout-minutes:/g) || []).length, 4);
 
-    assert.match(dependencies, /github\.head_ref \|\| github\.ref/);
+    assert.match(dependencies, /github\.head_ref \|\| github\.ref_name/);
     assert.equal((dependencies.match(/timeout-minutes:/g) || []).length, 6);
   });
 
