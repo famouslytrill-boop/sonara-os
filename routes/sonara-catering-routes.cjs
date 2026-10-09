@@ -3,6 +3,8 @@
 "use strict";
 
 const { estimateCatering } = require("../lib/sonara-catering-estimator.cjs");
+const { simulateMicrotransaction, reviewNonprofitContribution } = require("../lib/sonara-business-transaction-review.cjs");
+const { assessEventResourceScenario } = require("../lib/sonara-event-resource-scenario.cjs");
 const PAGE = "/business-builder/owner/catering";
 const fields = [
   ["guests", "Guests", "number", "1"],
@@ -111,6 +113,20 @@ function registerCateringRoutes(app, deps = {}) {
     const estimate = estimateCatering(fromForm(req.body));
     return render(res, req.body || {}, estimate, estimate.ok ? 200 : 422);
   });
+  // Owner-scoped planning endpoints: they consume supplied scenarios only,
+  // read no external provider and never approve checkout or a capacity hold.
+  for (const [route, evaluate] of [
+    ["/api/business/finance/microtransaction-scenario", simulateMicrotransaction],
+    ["/api/business/nonprofits/contribution-review", reviewNonprofitContribution],
+    ["/api/business/events/resource-scenario", assessEventResourceScenario]
+  ]) {
+    app.post(route, requireBusinessManager, scope, (req, res) => {
+      res.set("Cache-Control", "private, no-store");
+      const result = evaluate(req.body);
+      return res.status(result.ok ? 200 : 422).json(result);
+    });
+  }
+
   app.post("/api/business/catering/estimate", requireBusinessManager, scope, (req, res) => {
     const estimate = estimateCatering(req.body);
     res.set("Cache-Control", "private, no-store");
