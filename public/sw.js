@@ -8,7 +8,7 @@ const VERSION = "sonara-ui-20261007-v23-native-navigation";
 const CACHE_PREFIX = "sonara-public-";
 // Separate cache namespace to evict previously stored extension-matched URLs
 // when this tighter public-asset policy activates.
-const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v1";
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v2";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -78,8 +78,30 @@ function isPublicNavigation(pathname) {
   return PUBLIC_NAVIGATION_PATHS.has(pathname) || pathname.startsWith("/legal/");
 }
 
-function isCacheableResponse(response) {
-  if (!response || response.status !== 200 || !response.ok || response.type === "opaque") return false;
+// Check both URL and response type to prevent HTML fallback / login pages
+// from being stored as scripts, styles, fonts or images (web cache deception).
+const ASSET_MEDIA_TYPES = Object.freeze({
+  css: ["text/css"],
+  js: ["text/javascript", "application/javascript"],
+  svg: ["image/svg+xml"],
+  png: ["image/png"],
+  ico: ["image/x-icon", "image/vnd.microsoft.icon"],
+  webmanifest: ["application/manifest+json", "application/json"],
+  woff2: ["font/woff2"]
+});
+
+function hasExpectedMediaType(url, response) {
+  const extension = url.pathname.split(".").pop().toLowerCase();
+  const expected = ASSET_MEDIA_TYPES[extension];
+  if (!expected) return false;
+  const mediaType = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  return expected.includes(mediaType);
+}
+
+function isCacheableResponse(response, url) {
+  if (!response || response.status !== 200 || !response.ok ||
+      response.type === "opaque" || response.redirected ||
+      !hasExpectedMediaType(url, response)) return false;
   const cacheControl = response.headers.get("cache-control") || "";
   const vary = response.headers.get("vary") || "";
   return !/(private|no-store)/i.test(cacheControl) &&
@@ -90,10 +112,22 @@ function isCacheableResponse(response) {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.add(OFFLINE_URL);
-      await Promise.allSettled(
-        PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL).map((url) => cache.add(url))
-      );
+      // Never precache session-aware responses. Offline is a fixed public
+      // page requested without cookies; a missing fallback must fail install.
+      const offlineResponse = await fetch(OFFLINE_URL, { credentials: "omit", cache: "no-store" });
+      if (!offlineResponse.ok || offlineResponse.status !== 200 ||
+          offlineResponse.redirected ||
+          !(offlineResponse.headers.get("content-type") || "").toLowerCase().startsWith("text/html") ||
+          offlineResponse.headers.has("set-cookie")) {
+        throw new Error("Public offline fallback unavailable");
+      }
+      await cache.put(OFFLINE_URL, offlineResponse);
+      await Promise.allSettled(PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL).map(async (path) => {
+        const url = new URL(path, self.location.origin);
+        const response = await fetch(path, { credentials: "omit" });
+        if (isPublicStaticAsset(url, { cache: "default" }) &&
+            isCacheableResponse(response, url)) await cache.put(path, response);
+      }));
     })
   );
   self.skipWaiting();
@@ -139,7 +173,11 @@ self.addEventListener("fetch", (event) => {
       cache.match(event.request).then((cached) => {
         const refresh = fetch(event.request)
           .then((response) => {
-            if (isCacheableResponse(response)) cache.put(event.request, response.clone()).catch(() => {});
+            if (isCacheableResponse(response, url)) {
+              // Extend the fetch event lifetime without delaying a cached
+              // response while persistent storage finishes.
+              event.waitUntil(cache.put(event.request, response.clone()).catch(() => {}));
+            }
             return response;
           })
           .catch(() => cached);
