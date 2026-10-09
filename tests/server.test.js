@@ -1337,6 +1337,44 @@ describe("product module APIs", () => {
     assert.doesNotMatch(result.headers.location || "", /business-builder\/billing/);
     assert.ok(requests.some((value) => value.includes("/billing_subscriptions")), "shared billing did not attempt an organization-scoped plan read");
   });
+
+  it("Creator Studio and Growth Studio billing entry routes lead to the shared account page", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000111", email: "suite@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_entitlements")) {
+        return { ok: true, json: async () => [{ entitlement_key: "all_three_monthly", status: "active" }] };
+      }
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    try {
+      for (const source of ["/creator-studio/billing", "/growth-studio/billing"]) {
+        const response = await request(app)
+          .get(source)
+          .set("Authorization", "Bearer customer-session")
+          .set("Accept", "text/html");
+        assert.equal(response.status, 303, source);
+        assert.equal(response.headers.location, "/billing", source);
+      }
+      const shared = await request(app)
+        .get("/billing")
+        .set("Authorization", "Bearer customer-session")
+        .set("Accept", "text/html");
+      assert.equal(shared.status, 200);
+      assert.match(shared.text, /Subscription and billing/);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
 
 describe("business builder employee portal", () => {
