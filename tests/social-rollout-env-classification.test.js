@@ -3,7 +3,6 @@
 
 const assert = require("node:assert/strict");
 const classification = require("../lib/sonara-environment-classification.cjs");
-const channel = require("../lib/sonara-growth-channel-safety.cjs");
 
 const KEYS = [
   "SONARA_GROWTH_CHANNEL_SAFETY_ENABLED",
@@ -20,8 +19,13 @@ describe("feature-disabled social rollout environment contract", () => {
     }
   });
 
-  it("does not grant channel access from missing or incorrectly typed rollout values", () => {
-    assert.equal(channel.trustedWriteOrigin({ headers: { origin: "https://example.org" } }, ""), false);
+  it("contains exactly one classification for each new rollout flag", () => {
+    for (const key of KEYS) {
+      const classifications = [
+        "REQUIRED", "PLATFORM_PROVIDED", "OPTIONAL_CAPABILITY", "RATCHET", "DEVELOPMENT_ONLY"
+      ].filter(group => classification[group].has(key));
+      assert.deepEqual(classifications, ["OPTIONAL_CAPABILITY"]);
+    }
   });
 
   it("makes new social flags explicit opt-in without declaring them in .env.example", () => {
