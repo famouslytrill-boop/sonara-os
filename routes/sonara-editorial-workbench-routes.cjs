@@ -65,7 +65,7 @@ function form(input={}) {
     field("title","Title",input.title||"","text",'maxlength="160" required')+
     field("topic","Topic or story idea",input.topic||"","text",'maxlength="240"')+
     '<label for="editorial-body">Your notes, blog, script or raw draft</label>'+
-    '<textarea id="editorial-body" name="body" rows="10" maxlength="12000">'+esc(input.body||"")+'</textarea>'+
+    '<textarea id="editorial-body" name="body" rows="10" maxlength="12000" lang="en" spellcheck="true">'+esc(input.body||"")+'</textarea>'+
     '<p>Storyboards, vlogs and gaming videos can use the existing timed shot planner:</p>'+
     field("durationSeconds","Runtime in seconds (optional)",input.durationSeconds??"","number",'min="3" max="1800" step="1"')+
     field("sceneCount","Number of storyboard shots (3–8)",input.sceneCount??"","number",'min="3" max="8" step="1"')+
@@ -235,11 +235,11 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
     const outcome=await save(req,req.body,result);
     res.status(outcome.ok?201:outcome.status).json(outcome);
   });
-  // A browser form save requires a same-origin/same-site Fetch Metadata
+  // A browser form save requires a same-origin Fetch Metadata
   // signal. Unknown origin is refused instead of trusting a cookie alone.
   const formPost= () => (req,res,next)=>{
     const site=String(req.headers?.["sec-fetch-site"]||"");
-    if(site!=="same-origin" && site!=="same-site")
+    if(site!=="same-origin")
       return res.status(403).json({ok:false,code:"cross_site_write_denied"});
     next();
   };
