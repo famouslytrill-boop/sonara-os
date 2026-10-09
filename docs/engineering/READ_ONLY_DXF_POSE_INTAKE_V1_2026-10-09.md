@@ -12,6 +12,15 @@ New modules:
 - `lib/sonara-pose-world-readonly-intake.cjs` — precomputed MediaPipe Pose
   **world** landmarks in meters, for human-selected 3-point joint angles.
 
+A third module `lib/sonara-cad-linear-estimate.cjs` connects **only
+successfully parsed DXF straight-segment total length** to a preview
+using explicit material price per meter, waste percentage, labor hours,
+loaded hourly labor cost, other costs and uppercase three-letter
+currency. It returns material order length, material cost, labor cost,
+and an estimated total with a source-file hash. This is a
+**non-binding planning estimate**, not a permit-ready takeoff, vendor
+order, invoice, or customer quote. It never invents pricing.
+
 Neither adapter adds a web route, table, dependency, camera permission,
 cloud upload, image processing, file-system read/write or background job.
 They accept already supplied strings/objects and compute synchronously.
@@ -115,7 +124,8 @@ motion measurement pipeline requires calibrated common-frame samples.
 ## 3. Tested invalid conditions
 
 `tests/sonara-dxf-readonly-intake.test.js` and
-`tests/sonara-pose-world-readonly-intake.test.js` cover:
+`tests/sonara-pose-world-readonly-intake.test.js` and
+`tests/sonara-cad-linear-estimate.test.js` cover:
 - Accurate bounded line/polyline total and unit conversion.
 - International vs historical survey feet.
 - Unsupported units, arcs, splines, insert blocks, curved bulges,
@@ -130,7 +140,7 @@ Test with native Node and the repository gate suite:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm exec mocha tests/sonara-dxf-readonly-intake.test.js tests/sonara-pose-world-readonly-intake.test.js tests/sonara-measurement-pipeline.test.js tests/education-stem-cad-mocap.test.js tests/applied-formulas.test.js tests/every-formula-can-be-saved.test.js
+pnpm exec mocha tests/sonara-dxf-readonly-intake.test.js tests/sonara-pose-world-readonly-intake.test.js tests/sonara-cad-linear-estimate.test.js tests/sonara-measurement-pipeline.test.js tests/education-stem-cad-mocap.test.js tests/applied-formulas.test.js tests/every-formula-can-be-saved.test.js
 pnpm run verify:applied-migrations
 pnpm run lint
 pnpm run typecheck
