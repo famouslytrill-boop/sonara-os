@@ -107,6 +107,31 @@ describe("the release gate is actually the gate", () => {
     assert.match(step.slice(0, 400), /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/);
   });
 
+  it("releases runner capacity when a CI head is superseded or a full test hangs", () => {
+    const industries = fs.readFileSync(path.join(workflowDir, "sonara-industries-ci.yml"), "utf8");
+    const nodeCompatibility = fs.readFileSync(path.join(workflowDir, "node-runtime-compatibility.yml"), "utf8");
+    const dependencies = fs.readFileSync(path.join(workflowDir, "dependency-scan.yml"), "utf8");
+
+    for (const [name, workflow] of [
+      ["SONARA Industries CI", industries],
+      ["Node Runtime Compatibility", nodeCompatibility],
+      ["dependency-scan", dependencies]
+    ]) {
+      assert.match(workflow, /concurrency:\s*[\s\S]*?cancel-in-progress:\s*true/, `${name} can leave a superseded head consuming a runner`);
+    }
+
+    assert.match(industries, /sonara-industries:\s*\n\s*runs-on: ubuntu-latest\s*\n\s*timeout-minutes: 45/);
+    assert.match(industries, /name: Run tests\s*\n\s*timeout-minutes: 15[\s\S]*?pnpm run test:coverage/);
+    assert.match(industries, /supabase-preview:\s*\n\s*runs-on: ubuntu-latest\s*\n\s*timeout-minutes: 15/);
+
+    assert.match(nodeCompatibility, /blocking-compatibility:[\s\S]*?runs-on: ubuntu-latest\s*\n\s*timeout-minutes: 25/);
+    assert.equal((nodeCompatibility.match(/name: Test\s*\n\s*timeout-minutes: 15/g) || []).length, 2);
+    assert.equal((nodeCompatibility.match(/timeout-minutes:/g) || []).length, 4);
+
+    assert.match(dependencies, /github\.head_ref \|\| github\.ref/);
+    assert.equal((dependencies.match(/timeout-minutes:/g) || []).length, 6);
+  });
+
   it("names the chain length correctly where it is quoted at the owner", () => {
     // docs/owner/WHAT-IS-LEFT.md states this figure to somebody deciding
     // whether to ship. verify-doc-counts checks the number; this checks that

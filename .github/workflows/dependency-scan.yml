@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
 
+concurrency:
+  # A branch push and its pull_request event share one group. The newer run
+  # supersedes the older one without removing either trigger from the policy.
+  group: sonara-dependency-scan-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Named "frontend-dependencies" and there is no frontend.
   #
@@ -21,6 +27,7 @@ jobs:
   # has looked at the branch protection rules, not before.
   frontend-dependencies:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: .
@@ -149,6 +156,7 @@ jobs:
   # something outside a developer's own machine runs them.
   agentkit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: tools/agentkit
@@ -184,6 +192,7 @@ jobs:
   # could not have been installed by any of them.
   python-ops:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: python
@@ -231,6 +240,7 @@ jobs:
   # it were.
   backend-dependencies:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -283,6 +293,7 @@ jobs:
   # above zero so a moved directory does.
   tools-python-suites:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -322,6 +333,7 @@ jobs:
 
   tools-node-suites:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:

@@ -19,9 +19,14 @@ on:
   # problem, which is this repository's recurring defect wearing a CI badge.
   workflow_dispatch:
 
+concurrency:
+  group: sonara-industries-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sonara-industries:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: .
@@ -45,6 +50,7 @@ jobs:
       - run: pnpm run lint
 
       - name: Run tests
+        timeout-minutes: 15
         shell: bash
         run: |
           set +e
@@ -186,6 +192,7 @@ jobs:
 
   supabase-preview:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
