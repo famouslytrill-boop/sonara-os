@@ -25,7 +25,16 @@ const FORMULA_GROUP_LABELS = {
   growth_marketing: "Growth and marketing",
   creator_music: "Creator music and release",
   ui_device_experience: "Device and interface experience",
-  operating_twin: "Operating twin and decision support"
+  operating_twin: "Operating twin and decision support",
+  labor_economics: "Labor and opportunity costs",
+  building_economics: "Construction investment economics",
+  construction_trades: "Construction and trade estimates",
+  trade_electrical: "Electrical estimates",
+  trade_plumbing: "Plumbing and pipe flow",
+  measurement_science: "Measurement and unit conversions",
+  computing_engineering: "Computing and processing costs",
+  space_science: "Satellites and telescopes",
+  quantum_research: "Quantum learning and simulations"
 };
 
 module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
