@@ -13,6 +13,8 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
   const handlers = new Map();
   const stored = [];
   const removed = [];
+  const evicted = [];
+  const active = new Map();
   const network = [];
   let networkRequests = 0;
   function makeResponse(target) {
@@ -39,12 +41,20 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
     };
   }
   const cache = {
-    match: async () => undefined,
-    put: async (request) => {
+    match: async (request) => active.get(typeof request === "string" ?
+      new URL(request, "https://sonaraindustries.com").href : request.url),
+    put: async (request, response) => {
+      const url = typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url;
       stored.push({
-        url: typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url,
+        url,
         credentials: typeof request === "string" ? "omit" : request.credentials
       });
+      active.set(url, response);
+    },
+    delete: async (request) => {
+      const url = typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url;
+      evicted.push(url);
+      return active.delete(url);
     },
     add: async () => undefined
   };
@@ -69,7 +79,11 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
       open: async () => cache,
       match: async () => undefined,
       keys: async () => existingCaches,
-      delete: async (name) => { removed.push(name); return true; }
+      delete: async (name) => {
+        removed.push(name);
+        if (name.startsWith("sonara-public-")) active.clear();
+        return true;
+      }
     },
     fetch: async (target, options = {}) => {
       networkRequests += 1;
@@ -116,7 +130,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
     handlers.get("install")({ waitUntil: (promise) => { completion = promise; } });
     await completion;
   }
-  return { request, activate, install, stored, removed, network, networkRequests: () => networkRequests };
+  return { request, activate, install, stored, removed, evicted, active, network, networkRequests: () => networkRequests };
 }
 
 describe("PWA cache contains public assets only", () => {
@@ -250,6 +264,46 @@ describe("PWA cache contains public assets only", () => {
       await assert.rejects(() => worker.install(), /Public offline fallback unavailable/);
       assert.equal(worker.stored.length, 0);
     }
+  });
+
+  it("evicts a previously public asset when origin revokes cache permission or the asset disappears", async () => {
+    const url = "https://sonaraindustries.com/sonara-one.js";
+    for (const revocation of [
+      { headers: { "cache-control": "private, no-store" } },
+      { headers: { "cache-control": "public, max-age=300", "content-type": "text/html" } },
+      { status: 401 },
+      { status: 403 },
+      { status: 404 },
+      { status: 410 },
+      { status: 451 },
+      { redirected: true }
+    ]) {
+      const overrides = {};
+      const worker = harness({ overrides });
+      assert.equal(await worker.request("/sonara-one.js"), true);
+      assert.ok(worker.active.has(url), "the public asset must exist before revocation");
+      overrides["/sonara-one.js"] = revocation;
+      assert.equal(await worker.request("/sonara-one.js"), true);
+      assert.equal(worker.active.has(url), false, JSON.stringify(revocation));
+      assert.deepEqual(worker.evicted, [url]);
+      // Subsequent online fetches cannot see the obsolete public response.
+      assert.equal(await worker.request("/sonara-one.js"), true);
+      assert.equal(worker.active.has(url), false);
+    }
+  });
+
+  it("preserves a valid public cache on transient errors without guessing that permissions changed", async () => {
+    const overrides = {};
+    const worker = harness({ overrides });
+    const url = "https://sonaraindustries.com/sonara-one.js";
+    await worker.request("/sonara-one.js");
+    assert.ok(worker.active.has(url));
+    for (const status of [206, 304, 429, 500, 503]) {
+      overrides["/sonara-one.js"] = { status };
+      assert.equal(await worker.request("/sonara-one.js"), true);
+      assert.ok(worker.active.has(url), "transient " + status + " must not erase public asset");
+    }
+    assert.deepEqual(worker.evicted, []);
   });
 
   it("never caches private navigation; public navigation remains network-first", async () => {
