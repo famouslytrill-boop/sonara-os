@@ -160,6 +160,39 @@ The Ed25519 signature is over the **original decoded JSON bytes**, not a reseria
 
 **Tests:** The cryptographic verifier has been executed with native Node 22 Ed25519 keys against an exact-source-matched local copy. Seventeen positive/adversarial cases passed after resolving a real Node 22 `createPublicKey(public KeyObject)` incompatibility; source blob hashes were checked against the committed GitHub file. The Mocha regression suite includes key-object/PEM acceptance, explicit rejection of private-key custody, signature tampering, unknown keys, altered scope and expiration. **Full exact-head GitHub CI and real reporting-role PostgreSQL integration remain unverified.**
 
+## Source-manifest integrity: signed evidence must exist (2026-10-09)
+
+The verifier previously checked the **syntax** of the signed `evidenceSha256` but did not require matching bytes. An approval could therefore refer to a nonexistent, different, or modified source manifest. This is now fixed without adding a live service, migration or client API.
+
+The server-only snapshot adapter requires `sourceEvidenceBytes` as a Node.js `Buffer` **before establishing a database connection**. `lib/sonara-cohort-roster-attestation.cjs` computes `SHA-256(sourceEvidenceBytes)` and requires an exact match to the Ed25519-signed `evidenceSha256`. The verifier strictly parses and checks the signed manifest bytes against the role, timestamps, sorted organization roster, population size and claimed extraction query. It rejects missing, overlarge, tampered, wrongly scoped or temporally impossible manifests, **even if a signature validates over the roster approval**.
+
+An immutable source manifest is UTF-8 JSON (the SHA-256 is over the **original exact bytes**, not a reserialization) with exactly these keys:
+
+```json
+{
+  "asOf": "2026-09-15T00:00:00.000Z",
+  "audience": "sonara.cohort.snapshot.v1",
+  "complete": true,
+  "exportedAt": "2026-10-01T00:00:00.000Z",
+  "from": "2026-09-01T00:00:00.000Z",
+  "organizationIds": ["11111111-1111-4111-8111-111111111111"],
+  "reportingRole": "sonara_cohort_reader",
+  "scope": "eligible-organization-creation-cohort-v1",
+  "sourceQuerySha256": "<64 lowercase hexadecimal characters>",
+  "to": "2026-09-02T00:00:00.000Z",
+  "totalOrganizations": 1
+}
+```
+
+The manifest's `exportedAt` must be a strict UTC timestamp with milliseconds **at or after `asOf`**, no later than the signature's `issuedAt`, and no later than the verifier's clock. The approval remains valid for no more than 24 hours. `organizationIds` must exactly match the sorted authorized roster and the declared count. The manifest is bounded to 600 KB; the signing body is separately bounded to 500 KB. The reader returns aggregate data and opaque evidence SHA only, never the raw manifest or organization IDs.
+
+**Operator issuance order:** Establish the complete approved population using an independently reviewed source query and reporting purpose; record the operator identity, immutable extraction parameters, exclusion policy, snapshot/query evidence and consent authorization *outside* this module. Produce and retain a source manifest as immutable bytes. Compute its SHA-256. Have the approved KMS-backed authority sign the corresponding roster approval including that exact digest and short expiry. Pin its public key independently in the backend verifier. Revoke or rotate signing keys according to security policy. These steps are **not** built as an autonomous publisher, and the code does not permit client-provided trust keys.
+
+**Limits:** Both `complete:true` and `sourceQuerySha256` are claims by the issuer; verifying an honest digest and signature **does not prove the issuer performed the actual full query, that there were no withheld customers, or that the user's consent was satisfied**. This requires a reviewed export control plane, independent source-of-record audit and staging authorization tests. Backfilled events can alter historical reports.
+
+**Verification:** Updated cohort and snapshot cases passed **27/27** in a source-backed JavaScript compatibility harness using *simulated* crypto and Buffer. An independent native Node v22.16.0 smoke test of real Ed25519 public KeyObject/PEM signature verification and SHA-256 manifest-byte mismatch passed. Neither proves this entire module passed Node/Mocha CI. Full exact-head checks and native PostgreSQL/RLS role tests remain pending; do not deploy, create a production database role or claim paid conversion.
+
+
 ## Research and implementation basis
 
 - OpenTelemetry semantic conventions warn against high-cardinality labels and sensitive data: https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/
