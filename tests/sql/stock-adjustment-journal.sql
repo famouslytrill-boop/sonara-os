@@ -91,6 +91,29 @@ select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment
   'stock-req-001','cycle_count',0,9,'25000000-0000-4000-8000-000000000031')$q$,
   'stock_adjustment_approval_evidence_missing');
 
+-- A second reviewer and a valid quantity do not constitute product quarantine,
+-- recall, supplier correction, or return evidence. Those workflows are blocked.
+insert into public.inventory_stock_adjustment_approvals(
+  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000036',
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-loss-006','damaged',1,7,'approved');
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-loss-006','damaged',1,7,'25000000-0000-4000-8000-000000000036'
+)$q$, 'stock_custody_evidence_required');
+select pg_temp.require_true(
+  (select quantity=8 and stock_version=1 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010'),
+  'unaudited damage must not move sellable stock');
+
 -- Real queue and owner approval must not allow an older stock snapshot.
 insert into public.inventory_stock_adjustment_approvals(
   id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
