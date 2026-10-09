@@ -465,8 +465,7 @@ function openApiContracts() {
 
 function buildInventory() {
   const { ROUTE_REGISTRY } = require(path.join(ROOT, "lib", "sonara-route-registry.cjs"));
-  const { CREATOR_ROUTE_DATA_CONTRACTS, CONTRACT_BY_ROUTE, EXPECTED_TABLES,
-    inspectCreatorRouteDataContracts } = require(path.join(ROOT, "lib", "sonara-creator-route-data-contracts.cjs"));
+  const { CONTRACT_BY_ROUTE, inspectCreatorRouteDataContracts } = require(path.join(ROOT, "lib", "sonara-creator-route-data-contracts.cjs"));
   const { PENDING_CREATOR_SCHEMA } = require(path.join(ROOT, "lib", "sonara-pending-creator-schema-contract.cjs"));
   const { getWorkspaceDirectoryGroups } = require(path.join(ROOT, "lib", "sonara-workspace-directory.cjs"));
   const { describedColumns, tableColumns } = require(path.join(ROOT, "lib", "sonara-migration-columns.cjs"));
