@@ -251,23 +251,25 @@ describe("server-only provider broker client", () => {
     }
   });
 
-  it("marks read failures for durable retry without sleeping in the request", async () => {
-    let calls = 0;
-    const out = await invokeGoogleSearchConsoleBroker({
-      operation: "read_daily",
-      context: CONTEXT,
-      payload: {},
-      ...configured({
-        fetchImpl: async () => {
-          calls += 1;
-          throw new Error("network down");
-        }
-      })
-    });
-    assert.equal(out.ok, false);
-    assert.equal(out.retryMode, "durable_deferred");
-    assert.equal(out.retryAfterSeconds, 60);
-    assert.equal(calls, 1);
+  it("marks read-only provider failures for durable retry without sleeping in the request", async () => {
+    for (const operation of ["review_sites", "read_daily"]) {
+      let calls = 0;
+      const out = await invokeGoogleSearchConsoleBroker({
+        operation,
+        context: CONTEXT,
+        payload: {},
+        ...configured({
+          fetchImpl: async () => {
+            calls += 1;
+            throw new Error("network down");
+          }
+        })
+      });
+      assert.equal(out.ok, false, operation);
+      assert.equal(out.retryMode, "durable_deferred", operation);
+      assert.equal(out.retryAfterSeconds, 60, operation);
+      assert.equal(calls, 1, operation);
+    }
   });
 
   it("preserves bounded deferred retry metadata from the broker", async () => {
@@ -311,6 +313,7 @@ describe("server-only provider broker client", () => {
     assert.equal(contract.auth.sharedSecretTransmitted, false);
     assert.equal(contract.auth.maximumClockSkewSeconds, 120);
     assert.equal(contract.retries.complete_authorization, "never_automatic");
+    assert.equal(contract.retries.review_sites, "safe_to_retry_after_deferred_failure");
     assert.equal(contract.retries.disconnect, "never_automatic");
     assert.equal(contract.rawProviderSecretInputAllowed, false);
     assert.equal(contract.productionEnabled, false);
