@@ -404,6 +404,62 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/inventory-stock.sql"), "utf8"),
       ["stock_holds_ships_releases_and_isolates"]);
 
+    // Procurement is a distinct, append-only stock-in path: only accepted
+    // goods increase inventory. Prove actual Postgres constraints and RPC
+    // behaviour; a string test cannot find invalid PL/pgSQL dollar quoting.
+    behaves(psql, "approved procurement receipts are atomic, private and duplicate-safe",
+      fs.readFileSync(path.join(root, "tests/sql/procurement-receipt.sql"), "utf8"),
+      ["procurement_receipt_atomic_retries_tenant_isolation"]);
+
+    // One-connection tests cannot establish that concurrent receiving is safe.
+    // Persist a disposable fixture and race two independent database sessions
+    // against the same PO, then with independent keys against a limited PO.
+    behaves(psql, "procurement receipt concurrent fixture",
+      fs.readFileSync(path.join(root, "tests/sql/procurement-receipt-concurrency.sql"), "utf8"),
+      ["procurement_receipt_concurrency_ready"]);
+
+    for (const [scenario, line, keyA, keyB] of [
+      ["duplicate", "030", "race-dup-001", "race-dup-001"],
+      ["overorder", "031", "race-ord-001", "race-ord-002"]
+    ]) {
+      const commands = [keyA, keyB].map((key, index) => {
+        const file = path.join(socketDir, `procurement-${scenario}-${index}.sql`);
+        fs.writeFileSync(file, `begin;
+          set local role service_role;
+          do $race$ begin
+            begin
+              perform public.sonara_receive_purchase_order_line(
+                '24000000-0000-4000-8000-000000000002',
+                '24000000-0000-4000-8000-0000000000${line === "030" ? "20" : "21"}',
+                '24000000-0000-4000-8000-000000000${line}',
+                '24000000-0000-4000-8000-000000000001',
+                '${key}', 'LOT-RACE', 'each', 2, 0);
+            exception when others then
+              if '${scenario}' <> 'overorder' or sqlerrm <> 'receipt_exceeds_ordered_quantity' then raise; end if;
+            end;
+            perform pg_sleep(0.2);
+          end $race$;
+          commit;`);
+        if (owner) execFileSync("chown", [owner, file]);
+        return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+      });
+      const raced = shell(`${commands[0]} & first=$!; ${commands[1]} & second=$!; wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+      if (raced.status !== 0) stop(`Procurement ${scenario} concurrent receipt race failed: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "procurement concurrency posts each accepted quantity exactly once", `
+      select 'procure_race_stock_' || quantity::text
+        from public.inventory_items where id = '24000000-0000-4000-8000-000000000010';
+      select 'procure_race_receipts_' || count(*)
+        from public.procurement_receipt_entries where organization_id = '24000000-0000-4000-8000-000000000002';
+      select 'procure_race_ledger_' || count(*)
+        from public.inventory_procurement_receipt_ledger where organization_id = '24000000-0000-4000-8000-000000000002';
+      select 'procure_race_duplicate_fulfilled_' || count(*)
+        from public.purchase_orders where id='24000000-0000-4000-8000-000000000020' and status='received';
+      select 'procure_race_overorder_partial_' || count(*)
+        from public.purchase_orders where id='24000000-0000-4000-8000-000000000021' and status='partially_received';
+    `, ["procure_race_stock_4", "procure_race_receipts_2", "procure_race_ledger_2",
+        "procure_race_duplicate_fulfilled_1", "procure_race_overorder_partial_1"]);
+
     // The case the stock functions exist for: two buyers, one mug left, two real
     // sessions at the same moment. Exactly one may hold it.
     const stockOrg = "20000000-0000-4000-8000-000000000009";
