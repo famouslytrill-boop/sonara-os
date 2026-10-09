@@ -38,6 +38,7 @@ const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
 const { normalizeMotionSample } = require("../lib/sonara-motion-sample.cjs");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -1983,7 +1984,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // Device motion is a powerful sensor surface. Keep the site-wide default
     // narrow and allow accelerometer/gyroscope only on this signed-in page,
     // where capture still requires a visible user action and browser permission.
-    res.set("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self), accelerometer=(self), gyroscope=(self)");
+    res.set("Permissions-Policy", permissionsPolicyFor("device_feedback"));
     const motionConfig = JSON.stringify({
       endpoint: "/api/motion/events",
       sampleWindowMs: 5000,
