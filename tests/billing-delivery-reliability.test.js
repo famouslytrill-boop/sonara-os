@@ -312,20 +312,32 @@ describe("billing webhook HTTP retry contract", () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", data: { object: {
-        id: "sub_retry", status: "active", metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
+        id: "sub_retry", customer: "cus_retry", status: "active", metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
       const timestamp = Math.floor(Date.now() / 1000);
       const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
       const send = () => request(app).post("/api/webhooks/stripe").set("Content-Type", "application/json").set("stripe-signature", `t=${timestamp},v1=${signature}`).send(payload);
-      global.fetch = async (url) => ({ ok: !String(url).includes("billing_entitlements"), json: async () => [] });
+      global.fetch = async (url) => ({
+        ok: !String(url).includes("billing_entitlements"),
+        json: async () => String(url).includes("/stripe_customers?")
+          ? [{ stripe_customer_id: "cus_retry", organization_id: "00000000-0000-0000-0000-000000000051", user_id: "user_test" }] : []
+      });
       const failed = await send();
       assert.equal(failed.status, 503);
       assert.equal(failed.body.code, "billing_sync_retry_required");
-      global.fetch = async (url) => ({ ok: !String(url).includes("billing_webhook_events"), json: async () => [] });
+      global.fetch = async (url) => ({
+        ok: !String(url).includes("billing_webhook_events"),
+        json: async () => String(url).includes("/stripe_customers?")
+          ? [{ stripe_customer_id: "cus_retry", organization_id: "00000000-0000-0000-0000-000000000051", user_id: "user_test" }] : []
+      });
       const auditFailed = await send();
       assert.equal(auditFailed.status, 503);
       assert.equal(auditFailed.body.code, "billing_audit_retry_required");
-      global.fetch = async () => ({ ok: true, json: async () => [] });
+      global.fetch = async (url) => ({
+        ok: true,
+        json: async () => String(url).includes("/stripe_customers?")
+          ? [{ stripe_customer_id: "cus_retry", organization_id: "00000000-0000-0000-0000-000000000051", user_id: "user_test" }] : []
+      });
       assert.equal((await send()).status, 200);
     } finally {
       global.fetch = previousFetch;
