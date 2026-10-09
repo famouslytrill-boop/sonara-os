@@ -11,6 +11,7 @@
 DO $current_policy_contract$
 DECLARE
   bad_count integer;
+  expected_count integer;
   bad_names text;
 BEGIN
   WITH expected(table_name,policy_name,kind) AS (
@@ -61,9 +62,14 @@ BEGIN
       AND p.tablename=e.table_name
       AND p.policyname=e.policy_name
   )
-  SELECT count(*),string_agg(table_name||':'||policy_name,', ' ORDER BY table_name,policy_name)
-    INTO bad_count,bad_names
-    FROM status WHERE safe IS DISTINCT FROM true;
+  SELECT count(*),count(*) FILTER (WHERE safe IS DISTINCT FROM true),
+    string_agg(table_name||':'||policy_name,', ' ORDER BY table_name,policy_name)
+      FILTER (WHERE safe IS DISTINCT FROM true)
+    INTO expected_count,bad_count,bad_names
+    FROM status;
+  IF expected_count <> 25 THEN
+    RAISE EXCEPTION 'P1 baseline expected exactly 25 policies, found %',expected_count;
+  END IF;
   IF bad_count <> 0 THEN
     RAISE EXCEPTION 'P1 current policy contract drift on % policies: %',
       bad_count,bad_names;
