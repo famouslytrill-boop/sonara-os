@@ -253,6 +253,13 @@ function registerEditorialWorkbenchRoutes(app,deps={}) {
         deps.linkAction("/creator-studio/scroll","Scroll sites")
       ]});
   }
+  // Catalogued parent for parameterized revision and export pages. It shows
+  // the same tenant-scoped saved drafts, never a synthetic "not found" index.
+  app.get(ROUTE+"/drafts",on,creator,noCache,async(req,res)=>{
+    const recent=await list(req);
+    res.status(recent.ok?200:recent.status).type("html")
+      .send(htmlPage({},null,recent.ok?"Saved workspace draft revisions":"Draft storage is currently unavailable.",recent));
+  });
   app.get(ROUTE,on,creator,noCache,async(req,res)=>{
     const recent=await list(req);
     res.status(200).type("html").send(htmlPage({},null,null,recent));
