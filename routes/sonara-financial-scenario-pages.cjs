@@ -96,7 +96,7 @@ function registerFinancialScenarioPages(app, deps = {}) {
 
   function render(res, values = {}, kind = null, result = null, status = 200) {
     res.set("Cache-Control", "private, no-store");
-    const help = '<p>These are hypothetical calculations. Processing fees depend on your own processor, account, payment method and settlement currency. Nonprofit eligibility, donor disclosures and restricted funds require independent review.</p>';
+    const help = '<p>These are hypothetical calculations. Processing fees depend on your own processor, account, payment method and settlement currency. Nonprofit eligibility, donor disclosures and restricted funds require independent review. This page cannot charge customers, issue charitable receipts or trade securities.</p>';
     return res.status(status).type("html").send(layout({
       title: "Business financial planning tools",
       eyebrow: "Business Builder",
