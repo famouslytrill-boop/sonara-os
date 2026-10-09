@@ -54,6 +54,7 @@ const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerCreatorProfileRoutes = require("./routes/sonara-creator-profile-routes.cjs");
+const registerSocialAccountSafetyRoutes = require("./routes/sonara-social-account-safety-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
 // DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
@@ -744,7 +745,8 @@ registerLastNineHoursRoutes(app, {
   getSupabaseServerConfig, getEnv, createRateLimiter // getEnv: the VAPID keys, for the invoice-paid notification
 });
 
-registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
+registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization, getEnv });
+registerSocialAccountSafetyRoutes(app, { requireCustomer, getEnv, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, layout, brandCard, linkAction, escapeHtml });
 
 registerBusinessAssistantRoutes(app, {
   layout,
