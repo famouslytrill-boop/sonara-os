@@ -214,7 +214,13 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "active",
       healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true }).candidate, true);
     assert.equal(operationalTransitionDecision({ ...base, to: "offline" }).reason, "shutdown_plan_unreviewed");
-    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true })
+      .reason, "shutdown_jobs_not_drained");
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true,
+      inFlightJobsDrained: true }).candidate, true);
+    assert.equal(operationalTransitionDecision(null).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, observedRevision: Number.MAX_SAFE_INTEGER })
+      .reason, "stale_or_missing_revision");
   });
 
   it("proposes bounded scans and maintenance but never executes cleanup or defragmentation", () => {
@@ -232,6 +238,7 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(maintenanceActionDecision({ ...base, maxItems: 1001 }).reason, "unbounded_maintenance_budget");
     assert.equal(maintenanceActionDecision({ ...base, maxDurationMs: 0 }).candidate, false);
     assert.equal(maintenanceActionDecision({ ...base, actorAuthorized: false }).candidate, false);
+    assert.equal(maintenanceActionDecision(null).candidate, false);
     assert.equal(maintenanceActionDecision({ ...base, action: "service_restart" }).ownerReviewRequired, true);
     assert.equal(maintenanceActionDecision({ ...base, action: "disk_defragmentation" }).candidate, false);
     assert.equal(maintenanceActionDecision({ ...base, action: "retention_purge_review",
