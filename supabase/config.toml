@@ -457,10 +457,10 @@ authorization_url_path = "/oauth/consent"
 allow_dynamic_registration = false
 
 [functions.google-search-console-broker]
-# Server-to-server only. Supabase verifies the JWT before the function runs;
-# the function additionally requires SONARA's body-bound HMAC signature and
-# refuses browser Origin requests.
-verify_jwt = true
+# Server-to-server only. Current Supabase secret API keys are not JWTs, so this
+# function authenticates its server API key inside the handler and additionally
+# requires SONARA's body-bound HMAC signature. Browser Origin requests are refused.
+verify_jwt = false
 
 [edge_runtime]
 enabled = true
