@@ -1056,6 +1056,149 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(Object.hasOwn(result, "sql"), false);
   });
 
+  it("reconciles an exact committed event in a read-only tenant-authorized transaction", async () => {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const eventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const approvalId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const sqlLog = [];
+    let released = 0;
+    const client = {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (sql.startsWith("select e.id, e.approval_id")) return {
+          rowCount: 1, rows: [{
+            id: eventId, approval_id: approvalId, actor_id: actorId,
+            from_mode: "active", to_mode: "paused",
+            revision: "8", expected_revision: "7",
+            scope: "tenant", organization_id: org
+          }]
+        };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    };
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return client; } }, environmentKey: "staging"
+    });
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: {
+        async authorize({ tx, session, organizationId }) {
+          assert.equal(session, "server_validated");
+          assert.equal(typeof tx.authorizedQuery, "function");
+          return { actorId, authorized: true, scope: "tenant", organizationId };
+        },
+        async verifyApproval() { return true; }
+      },
+      evidenceVerifier: { async verify() { return {}; } }
+    });
+    const result = await coordinator.reconcile({
+      session: "server_validated",
+      command: { eventId, approvalId, scope: "tenant",
+        organizationId: org, expectedRevision: 7, to: "paused" }
+    });
+    assert.equal(result.outcome, "confirmed_committed");
+    assert.equal(result.revision, 8);
+    assert.equal(result.retryAuthorized, false);
+    assert.equal(released, 1);
+    assert.equal(sqlLog[0].sql, "BEGIN TRANSACTION READ ONLY");
+    assert.equal(sqlLog[sqlLog.length - 1].sql, "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    const receipt = sqlLog.find(x => x.sql.startsWith("select e.id, e.approval_id"));
+    assert.deepEqual(receipt.values, [eventId, approvalId, "staging", "tenant",
+      org, actorId, "8", "paused", "7"]);
+    assert.equal(receipt.sql.includes(org), false);
+    assert.ok(receipt.sql.includes("a.consumed_event_id = e.id"));
+    assert.ok(receipt.sql.includes("e.revision = a.expected_revision + 1"));
+    assert.equal(sqlLog.some(x => /^(update|insert|delete)/i.test(x.sql)), false);
+  });
+
+  it("never treats missing, cross-tenant or forged receipts as retry authorization", async () => {
+    const f = operationalCoordinatorFixture();
+    const noRead = await f.coordinator.reconcile({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(noRead.outcome, "unresolved");
+    assert.equal(noRead.retryAuthorized, false);
+    const org = f.command.organizationId;
+    const base = { ...f.command };
+    for (const trial of ["missing", "unauthorized", "mismatched", "error"]) {
+      const queries = [];
+      const store = createPostgresOperationalStore({
+        pool: { async connect() { return {
+          async query(sql, values) {
+            queries.push(sql);
+            if (trial === "error" && sql.startsWith("select e.id"))
+              throw new Error("SENSITIVE_SQL_AND_USER_DETAILS");
+            if (sql.startsWith("select e.id") && trial === "mismatched") return {
+              rowCount: 1, rows: [{
+                id: base.eventId, approval_id: base.approvalId,
+                actor_id: "99999999-9999-4999-8999-999999999999",
+                from_mode: "active", to_mode: "paused",
+                revision: "8", expected_revision: "7",
+                scope: "tenant", organization_id: org
+              }]
+            };
+            return { rowCount: 0, rows: [] };
+          },
+          release() {}
+        }; } }, environmentKey: "staging"
+      });
+      const coord = operationalTransitionCoordinator({
+        store,
+        authorizer: {
+          async authorize() {
+            return { actorId: "11111111-1111-4111-8111-111111111111",
+              authorized: trial !== "unauthorized",
+              scope: "tenant", organizationId: org };
+          },
+          async verifyApproval() { return true; }
+        },
+        evidenceVerifier: { async verify() { return {}; } }
+      });
+      const result = await coord.reconcile({ session: "server_validated", command: base });
+      assert.equal(result.outcome, trial === "unauthorized" ? "refused" : "unresolved");
+      assert.equal(result.retryAuthorized, false);
+      assert.equal(JSON.stringify(result).includes("SENSITIVE_SQL"), false);
+      assert.equal(queries.some(sql => sql.startsWith("select e.id")), trial !== "unauthorized");
+      assert.equal(queries.includes("ROLLBACK"), trial === "error");
+    }
+    for (const command of [
+      { ...base, eventId: "forged" },
+      { ...base, actorId: "11111111-1111-4111-8111-111111111111" },
+      { ...base, scope: "tenant", organizationId: "invalid_uuid" }
+    ]) {
+      const result = await f.coordinator.reconcile({ session: "server_validated", command });
+      assert.equal(result.outcome, "refused");
+      assert.equal(result.retryAuthorized, false);
+    }
+  });
+
+  it("retains confirmed commit outcomes when pooled connection release itself fails", async () => {
+    const sqlLog = [];
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return {
+        async query(sql) {
+          sqlLog.push(sql);
+          return { rowCount: 0, rows: [] };
+        },
+        release() { throw new Error("pool_release_failure_after_commit"); }
+      }; } },
+      environmentKey: "staging"
+    });
+    const result = await store.withTransaction(async () => "durably_prepared");
+    assert.equal(result, "durably_prepared");
+    assert.equal(sqlLog.includes("COMMIT"), true);
+    assert.equal(sqlLog.includes("ROLLBACK"), false);
+    const read = await store.withReadOnlyTransaction(async tx => {
+      assert.equal(typeof tx.readCommittedEvent, "function");
+      return "read_verified";
+    });
+    assert.equal(read, "read_verified");
+    assert.equal(sqlLog.includes("BEGIN TRANSACTION READ ONLY"), true);
+  });
+
   it("keeps 2026 market evidence non-executing and date-bounded", () => {
     const snapshot = get2026MarketIntelligence();
     assert.equal(MARKET_SNAPSHOT_DATE, "2026-09-20");
