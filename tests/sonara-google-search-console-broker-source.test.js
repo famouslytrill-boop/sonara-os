@@ -90,6 +90,7 @@ describe("Search Console Vault broker source boundary", () => {
     assert.match(store, /vault\.update_secret/);
     assert.match(store, /vault\.create_secret/);
     assert.match(store, /credential_reference=\$1/);
+    assert.match(store, /credential_reference is not distinct from \$6/);
     assert.doesNotMatch(store, /decrypted_secret/);
   });
 

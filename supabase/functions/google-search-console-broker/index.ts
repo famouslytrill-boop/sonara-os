@@ -467,8 +467,8 @@ async function storeRefresh(sql: postgres.Sql, context: Context, connection: Con
     if (!id || !UUID.test(id)) throw new Error("vault_secret_store_failed");
     const reference = "vault://" + id;
     const updated = await tx.unsafe(
-      "update public.business_integration_connections set credential_reference=$1,connection_status='setup_required',last_checked_at=now(),updated_at=now() where id=$2::uuid and organization_id=$3::uuid and business_id=$4::uuid and provider_key=$5 returning id",
-      [reference, context.connectionId, context.organizationId, context.businessId, PROVIDER]
+      "update public.business_integration_connections set credential_reference=$1,connection_status='setup_required',last_checked_at=now(),updated_at=now() where id=$2::uuid and organization_id=$3::uuid and business_id=$4::uuid and provider_key=$5 and credential_reference is not distinct from $6 returning id",
+      [reference, context.connectionId, context.organizationId, context.businessId, PROVIDER, connection.credential_reference]
     );
     if (!updated[0]?.id) throw new Error("connection_update_failed");
     return reference;

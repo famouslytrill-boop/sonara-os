@@ -126,6 +126,7 @@ The broker:
 - accepts omitted token-response scope only because the original request is already bound to the one exact read-only scope;
 - stores a returned refresh token in Vault;
 - stores only `vault://<uuid>` in the connection record;
+- replaces that reference only if the connection still has the credential reference observed at authorization start; a concurrent change makes the transaction roll back, including the Vault mutation;
 - probes the account's accessible Search Console sites;
 - returns sanitized site identities and no provider token.
 
