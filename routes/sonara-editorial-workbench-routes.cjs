@@ -14,8 +14,8 @@ function parseForm(body) {
     kind:raw.kind,title:raw.title,body:raw.body||"",topic:raw.topic||"",
     language:raw.language||"en",platform:raw.platform||"",style:raw.style||""
   };
-  if(raw.durationSeconds!=="")input.durationSeconds=Number(raw.durationSeconds);
-  if(raw.sceneCount!=="")input.sceneCount=Number(raw.sceneCount);
+  if(typeof raw.durationSeconds==="string" && raw.durationSeconds.trim()!=="")input.durationSeconds=Number(raw.durationSeconds);
+  if(typeof raw.sceneCount==="string" && raw.sceneCount.trim()!=="")input.sceneCount=Number(raw.sceneCount);
   if(raw.assetName){
     input.assets=[{name:raw.assetName,status:raw.assetStatus||"unknown",evidence:raw.assetEvidence||""}];
   }
