@@ -149,7 +149,7 @@ describe("Creator World Bible guarded HTTP endpoints", () => {
     assert.equal((await request(app).put(path).set("x-sonara-intent", "world-bible-save").send(data())).status, 403);
     assert.equal((await authorized(request(app).put(path)).send(data())).status, 415);
     assert.equal((await authorized(request(app).put(path)).set("x-sonara-intent", "world-bible-save").send(data())).status, 200);
-    assert.equal((await authorized(request(app).get(path)).status), 200);
+    assert.equal((await authorized(request(app).get(path))).status, 200);
     assert.equal((await authorized(request(app).get(path)).set("x-other-tenant", "yes")).status, 404);
   });
   it("serves editable and HTML-escaped JSON without revealing server credentials", async () => {
