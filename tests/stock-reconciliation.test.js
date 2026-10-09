@@ -82,6 +82,14 @@ describe("Producer/distributor/retailer stock reconciliation preflight", () => {
       assert.equal(result.effect,"proposal_only");
     }
   });
+  it("requires custody review when a damaged or expired lot counts exactly", () => {
+    for (const reason of ["damaged", "expired", "shrinkage"]) {
+      const p=fixture();p.count.physicalCountMilli=12000;p.reason=reason;
+      const result=proposeCycleCountAdjustment(p);
+      assert.equal(result.status, "hold_for_review");
+      assert.ok(result.issues.includes("quarantine_or_loss_review_required"));
+    }
+  });
   it("does not allow a single actor to self-approve, including case changes", () => {
     const p=fixture();p.reviewedBy=ACTOR.toUpperCase();
     assert.throws(()=>proposeCycleCountAdjustment(p),/self_approval_not_allowed/);
