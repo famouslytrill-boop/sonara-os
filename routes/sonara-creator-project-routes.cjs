@@ -6,6 +6,21 @@ const { createWorldBibleStore } = require("../lib/sonara-world-bible-store.cjs")
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+// Defense in depth for new World Bible writes. Ordinary cross-origin forms can
+// submit simple POST requests, so membership alone does not stop CSRF.
+// A separate, fully tested session-bound CSRF strategy remains a release gate.
+function worldBibleWriteIsCrossOrigin(req) {
+  const site = req.get("sec-fetch-site");
+  if (site && site !== "same-origin" && site !== "none") return true;
+  const origin = req.get("origin");
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
+    const host = req.get("host");
+    return !host || !["https:", "http:"].includes(parsed.protocol)
+      || parsed.host.toLowerCase() !== host.toLowerCase();
+  } catch { return true; }
+}
 function offlineDraftForm(project, scope, esc) {
   if (project.archived_at) return "";
   const snapshot = { version: 1, projectId: project.id, title: project.title, medium: project.medium, revision: project.revision, graph: project.graph };
@@ -80,6 +95,8 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   });
   app.post(`${base}/:id/world-bible`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
+    if (worldBibleWriteIsCrossOrigin(req)) return page(res, "World Bible not saved",
+      [brandCard("Security", "This editing request did not come from the project website.")], 403);
     if (!worldStore) return page(res, "World Bible storage unavailable",
       [brandCard("Not enabled", "Migration and release approval are required.")], 503);
     const raw = req.body?.draft;
@@ -158,6 +175,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   });
   app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403).json({ ok: false, code: "cross_origin_world_write_denied" });
     const result = worldStore ? await worldStore.save(req, req.params.id, req.body) : worldUnavailable();
     return res.status(result.ok ? 200 : result.status).json(result);
   });
