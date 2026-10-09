@@ -36,6 +36,7 @@ const storage = require("../lib/sonara-file-storage.cjs");
 
 const root = path.join(__dirname, "..");
 const MIGRATION = path.join(root, "supabase", "migrations", "20261003010000_a_profile_a_person_can_set.sql");
+const MOTION_PERMISSION_MIGRATION = path.join(root, "supabase", "migrations", "20261009235500_motion_is_an_account_device_permission.sql");
 
 const AT = "2026-10-02T12:00:00Z";
 const LATER = "2026-10-03T12:00:00Z";
@@ -137,6 +138,17 @@ describe("a permission nobody granted is not a yes", () => {
       }
     });
 
+    it("covers motion as an explicit account decision rather than relying on the browser prompt alone", () => {
+      assert.ok(permissions.CAPABILITY_KEYS.includes("motion"));
+      const motion = permissions.CAPABILITIES.find((capability) => capability.key === "motion");
+      assert.ok(motion);
+      assert.match(motion.why, /short motion sample/i);
+      assert.equal(motion.browserPermission, null, "DeviceMotionEvent permission is not one navigator.permissions name");
+      assert.equal(permissions.mayAsk({ grants: [] }, "motion").ok, false);
+      assert.equal(permissions.mayAsk({ grants: [grant("motion", "granted")] }, "motion").ok, true);
+    });
+
+
     it("says why each one would be used, in words a customer would read", () => {
       for (const capability of permissions.CAPABILITIES) {
         assert.ok(capability.why && capability.why.length > 20, `${capability.key} has no reason a person could weigh`);
@@ -235,6 +247,28 @@ describe("a permission nobody granted is not a yes", () => {
       }
       assert.doesNotMatch(statement, /not null/, "an unset field would read as answered");
       assert.doesNotMatch(statement, /default/, "a default would make an untouched row look filled in");
+    });
+  });
+
+  describe("motion extends the existing account permission vocabulary without granting it", () => {
+    const sql = fs.readFileSync(MOTION_PERMISSION_MIGRATION, "utf8");
+
+    it("adds motion to the same capability constraint instead of creating another consent table", () => {
+      assert.match(sql, /device_permission_grants_capability_check/);
+      assert.match(sql, /'local_storage','motion'/);
+      assert.doesNotMatch(sql, /create table/i);
+    });
+
+    it("does not create a granted row for anybody", () => {
+      assert.doesNotMatch(sql, /insert\s+into\s+(?:public\.)?device_permission_grants/i);
+      assert.match(sql, /no row still means never asked\/off/i);
+    });
+
+    it("refuses unexpected earlier constraint drift before replacing the constraint", () => {
+      for (const capability of ["camera", "microphone", "contacts", "location", "local_compute", "local_storage"]) {
+        assert.match(sql, new RegExp(`position\\('${capability}' in current_definition\\) = 0`));
+      }
+      assert.match(sql, /raise exception 'device permission capability constraint drifted/);
     });
   });
 
