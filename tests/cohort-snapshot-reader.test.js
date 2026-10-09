@@ -3,6 +3,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { generateKeyPairSync, sign } = require("node:crypto");
 const { readCohortFromSnapshot } = require("../lib/sonara-cohort-snapshot-reader.cjs");
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
@@ -11,6 +12,27 @@ const from = "2026-09-01T00:00:00.000Z";
 const to = "2026-09-02T00:00:00.000Z";
 const asOf = "2026-09-15T00:00:00.000Z";
 const create = "2026-09-01T10:00:00.000Z";
+const { publicKey: rosterPublic, privateKey: rosterPrivate } = generateKeyPairSync("ed25519");
+const trustStore = { "ops_test_key": rosterPublic };
+
+function signedRoster({ ids = [ID_A], role = "sonara_cohort_reader",
+  start = from, end = to, cutoff = asOf,
+  issuedAt = new Date(Date.now() - 60_000).toISOString(),
+  expiresAt = new Date(Date.now() + 3_600_000).toISOString() } = {}) {
+  const payload = {
+    asOf: cutoff, audience: "sonara.cohort.snapshot.v1",
+    evidenceSha256: "a".repeat(64),
+    expiresAt, from: start, issuedAt,
+    organizationIds: ids.map((id) => id.toLowerCase()).sort(),
+    reportingRole: role, to: end
+  };
+  const buffer = Buffer.from(JSON.stringify(payload));
+  return {
+    keyId: "ops_test_key",
+    payloadB64: buffer.toString("base64url"),
+    signatureB64: sign(null, buffer, rosterPrivate).toString("base64url")
+  };
+}
 
 function fakeClient({ organizations = [{ id: ID_A, created_at: create }],
   events = [
@@ -58,13 +80,22 @@ function fakeClient({ organizations = [{ id: ID_A, created_at: create }],
 }
 
 function report(client, extra = {}) {
-  return readCohortFromSnapshot({
+  const options = {
     connect: async () => client,
     classifyEligibility: () => true,
     approvedReportingRole: "sonara_cohort_reader",
     expectedOrganizationIds: [ID_A],
     from, to, asOf, ...extra
-  });
+  };
+  if (options.rosterAttestation === undefined) {
+    options.rosterAttestation = signedRoster({
+      ids: options.expectedOrganizationIds,
+      role: options.approvedReportingRole,
+      start: options.from, end: options.to, cutoff: options.asOf
+    });
+  }
+  if (options.trustedRosterPublicKeys === undefined) options.trustedRosterPublicKeys = trustStore;
+  return readCohortFromSnapshot(options);
 }
 
 describe("server-only customer cohort snapshot contract", () => {
@@ -79,6 +110,8 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.sourceConsistency, "dedicated_repeatable_read_read_only_transaction");
     assert.equal(result.snapshotCapturedAt, "2026-10-08T22:00:00.000Z");
     assert.equal(result.authorizedRosterSize, 1);
+    assert.equal(result.rosterEvidenceSha256, "a".repeat(64));
+    assert.equal(result.rosterApprovalKeyId, "ops_test_key");
     assert.equal(client.calls[0].sql, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.organizations'")));
     assert.ok(client.calls.some(({ sql }) => sql.includes("row_security_active('public.activity_events'")));
@@ -105,7 +138,7 @@ describe("server-only customer cohort snapshot contract", () => {
   it("does not connect with invalid windows or missing trusted policy", async () => {
     let connections = 0;
     const connect = async () => { connections += 1; return fakeClient(); };
-    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], from, to, asOf: from });
+    const invalid = await readCohortFromSnapshot({ connect, classifyEligibility: () => true, approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A], rosterAttestation: signedRoster({ cutoff: from }), trustedRosterPublicKeys: trustStore, from, to, asOf: from });
     assert.equal(invalid.code, "observation_window_invalid");
     assert.equal(connections, 0);
     const missing = await readCohortFromSnapshot({ connect, from, to, asOf });
@@ -176,6 +209,30 @@ describe("server-only customer cohort snapshot contract", () => {
     assert.equal(result.report.activatedOrganizations, 2);
     assert.equal(JSON.stringify(result).includes(ID_A), false);
     assert.equal(JSON.stringify(result).includes(ID_B), false);
+  });
+
+  it("refuses missing, forged, tampered, rotated and expired approval signatures before DB access", async () => {
+    let connections = 0;
+    const client = fakeClient();
+    const connect = async () => { connections += 1; return client; };
+    const base = { connect, classifyEligibility: () => true,
+      approvedReportingRole: "sonara_cohort_reader", expectedOrganizationIds: [ID_A],
+      trustedRosterPublicKeys: trustStore, from, to, asOf };
+    const valid = signedRoster();
+    const corrupt = { ...valid, signatureB64: "A".repeat(86) };
+    const forged = { ...valid, payloadB64: signedRoster({ ids: [ID_B] }).payloadB64 };
+    const wrongAudience = signedRoster({ role: "other_reporting_role" });
+    const expired = signedRoster({ issuedAt: "2026-09-01T00:00:00.000Z",
+      expiresAt: "2026-09-02T00:00:00.000Z" });
+    for (const attestation of [undefined, corrupt, forged, wrongAudience, expired,
+      { ...valid, keyId: "untrusted_key" }, { ...valid, signatureB64: "invalid" }]) {
+      const result = await readCohortFromSnapshot({ ...base, rosterAttestation: attestation });
+      assert.equal(result.code, "roster_attestation_invalid");
+    }
+    const mismatchedTime = await readCohortFromSnapshot({ ...base,
+      to: "2026-09-03T00:00:00.000Z", rosterAttestation: valid });
+    assert.equal(mismatchedTime.code, "roster_attestation_invalid");
+    assert.equal(connections, 0);
   });
 
   it("refuses a read-write session and cleans up", async () => {
