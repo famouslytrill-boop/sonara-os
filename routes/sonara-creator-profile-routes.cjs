@@ -149,20 +149,25 @@ function registerCreatorProfileRoutes(app, deps = {}) {
           body: "Your safety settings could not be verified. Please try again.", sections: []
         }));
       }
-      const status = await rest(config, "rpc/sonara_social_creator_state", {
-        method: "POST",
-        headers: { ...supabaseHeaders(config), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          p_actor_user_id: viewer.id, p_profile_id: found.rows[0].id
-        })
-      });
-      if (!status.ok || typeof status.rows !== "string" || !socialSafety.STATES.includes(status.rows)) {
+      // RPC procedures are not tenant-scoped REST table reads. Keep this
+      // hardcoded and validate the server-returned state before rendering.
+      const status = await fetch(
+        config.url + "/rest/v1/rpc/sonara_social_creator_state", {
+          method: "POST",
+          headers: { ...supabaseHeaders(config), "Content-Type": "application/json",
+            "Cache-Control": "no-store" },
+          body: JSON.stringify({
+            p_actor_user_id: viewer.id, p_profile_id: found.rows[0].id
+          })
+        }).catch(() => undefined);
+      const result = status?.ok ? await status.json().catch(() => null) : null;
+      if (typeof result !== "string" || !socialSafety.STATES.includes(result)) {
         return res.status(503).type("html").send(publicPage({
           heading: "This profile cannot be opened",
           body: "Your safety settings could not be verified. Nothing has changed.", sections: []
         }));
       }
-      socialState = status.rows;
+      socialState = result;
       res.setHeader("Cache-Control", "private, no-store");
       if (socialState === "unavailable") return res.status(404).type("html").send(publicPage({
         heading: "That profile is unavailable",
