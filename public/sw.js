@@ -172,15 +172,18 @@ self.addEventListener("fetch", (event) => {
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(event.request).then((cached) => {
         const refresh = fetch(event.request)
-          .then((response) => {
+          .then(async (response) => {
             if (isCacheableResponse(response, url)) {
-              // Extend the fetch event lifetime without delaying a cached
-              // response while persistent storage finishes.
-              event.waitUntil(cache.put(event.request, response.clone()).catch(() => {}));
+              // Cache failures must not hide a valid network response.
+              await cache.put(event.request, response.clone()).catch(() => {});
             }
             return response;
           })
           .catch(() => cached);
+        // Keep the worker alive for revalidation and its CacheStorage write.
+        // A cached response remains immediate; a first download still waits
+        // for the persistence attempt, without turning an error into a 500.
+        event.waitUntil(refresh.then(() => {}));
         return cached || refresh;
       })
     )
