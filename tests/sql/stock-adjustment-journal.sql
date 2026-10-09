@@ -55,10 +55,15 @@ select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment
   'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')$q$,
   'stock_adjustment_approval_evidence_missing');
 
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000131','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-001','cycle_count',0,'each',null,8);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
-  '25000000-0000-4000-8000-000000000031','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000031','25000000-0000-4000-8000-000000000131','25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-req-001','cycle_count',0,'each',null,8,'approved');
@@ -118,10 +123,15 @@ select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment
 
 -- A second reviewer and a valid quantity do not constitute product quarantine,
 -- recall, supplier correction, or return evidence. Those workflows are blocked.
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000136','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-loss-006','damaged',1,'each',null,7);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
-  '25000000-0000-4000-8000-000000000036',
+  '25000000-0000-4000-8000-000000000036','25000000-0000-4000-8000-000000000136',
   '25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001',
@@ -140,10 +150,15 @@ select pg_temp.require_true(
   'unaudited damage must not move sellable stock');
 
 -- Real queue and owner approval must not allow an older stock snapshot.
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000132','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-002','cycle_count',0,'each',null,7);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
-  '25000000-0000-4000-8000-000000000032','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000032','25000000-0000-4000-8000-000000000132','25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-req-002','cycle_count',0,'each',null,7,'approved');
@@ -175,10 +190,15 @@ select pg_temp.expect_error($q$update public.inventory_items
 update public.inventory_reservations set quantity=8
   where organization_id='25000000-0000-4000-8000-000000000003'
     and inventory_item_id='25000000-0000-4000-8000-000000000010';
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000133','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-003','cycle_count',2,'each',null,7);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
-  '25000000-0000-4000-8000-000000000033','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000033','25000000-0000-4000-8000-000000000133','25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-req-003','cycle_count',2,'each',null,7,'approved');
@@ -196,10 +216,15 @@ update public.inventory_reservations set quantity=3
     and inventory_item_id='25000000-0000-4000-8000-000000000010';
 update public.inventory_items set quantity=6
   where id='25000000-0000-4000-8000-000000000010';
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000134','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-fake-004','cycle_count',1,'each',null,7);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
-  '25000000-0000-4000-8000-000000000034','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000034','25000000-0000-4000-8000-000000000134','25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
   'stock-fake-004','cycle_count',1,'each',null,7,'approved');
@@ -234,12 +259,17 @@ select pg_temp.require_true(
 update public.inventory_items set quantity=5
   where id='25000000-0000-4000-8000-000000000010';
 select pg_sleep(0.005);
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000135','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-fake-005','cycle_count',3,'each',null,5);
 insert into public.inventory_stock_adjustment_approvals(
-  id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
   idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision,
   approved_at
 ) values(
-  '25000000-0000-4000-8000-000000000035',
+  '25000000-0000-4000-8000-000000000035','25000000-0000-4000-8000-000000000135',
   '25000000-0000-4000-8000-000000000003',
   '25000000-0000-4000-8000-000000000010',
   '25000000-0000-4000-8000-000000000001',
