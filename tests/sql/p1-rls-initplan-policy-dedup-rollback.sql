@@ -109,8 +109,6 @@ BEGIN
    FOR item IN
      SELECT policyname, permissive, roles::text AS roles, cmd, qual, with_check
      FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-         'Users can view their own subscription')
      ORDER BY policyname
    LOOP
      RAISE NOTICE 'P1 subscriptions policy=% permissive=% roles=% cmd=% USING=% CHECK=%',
