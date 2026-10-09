@@ -27,7 +27,7 @@ The reviewed SQL is held in docs/sql-proposals/2026-10-09-social-user-blocks-and
 | Replays | Report request ID unique per reporter; duplicate attempts are acknowledged without duplicate records |
 | Follow/block races | Transaction-level advisory pair lock in both paths |
 | Incomplete block state | Signed-in profile route fails closed instead of showing follow controls |
-| Moderator access | Existing Growth owner/admin-only audit; independent platform staff review and appeals are not implemented in this wave |
+| Moderator access | Growth owner/admin audit remains separate; this wave adds platform-reviewed queue and audit proposals guarded by a distinct manually approved reviewer grant. Appeals and public activation remain outstanding |
 
 ## Required work before a customer rollout
 
@@ -35,7 +35,7 @@ The reviewed SQL is held in docs/sql-proposals/2026-10-09-social-user-blocks-and
 2. Verify the canonical production Vercel and Supabase identity; a healthy preview environment does not establish production.
 3. Use the Supabase CLI on a reviewed isolated database to generate a numbered migration, reconcile this SQL proposal, regenerate the tenant registry, and test migrations and rollback.
 4. Exercise actual PostgreSQL grants, multi-tenant denial, direct Data API restrictions, blocking/unblocking after profile removal, concurrent follow/block race and duplicate report submissions.
-5. Establish independent platform report triage, reviewer assignment, decision audit, appeal workflow, emergency escalation and safety support. A write-only report table alone is insufficient.
+5. Review and test the proposed independent platform moderation queue, reviewer-assignment grant and atomic decision audit using real PostgreSQL; then establish staffed escalation SLAs, appeal workflow, emergency escalation and safety support. No moderator is enabled by this branch.
 6. Add browser/mobile end-to-end tests, accessibility, API contract checks, full Node 24/26 CI, CodeQL, dependency and restore evidence.
 7. Obtain owner approval for one-tenant canary, then and only then set SONARA_SOCIAL_USER_SAFETY_ENABLED to the exact value true in the approved environment.
 
