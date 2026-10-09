@@ -1,9 +1,11 @@
--- Staging-only P1 draft. This is NOT a Supabase migration.
--- Script intentionally ends with ROLLBACK and is invoked by native replay.
--- Generate a forward migration through Supabase CLI only after live/fixture
--- schema comparison, role-denial regression, approval and exact-head CI.
--- Changes: 25 non-row-dependent scalar auth InitPlans; one *exactly*
--- duplicate subscriptions SELECT policy. No role, grant or row modifications.
+-- Disposable PostgreSQL regression probe, not a production migration.
+-- A forward migration dated 20261008100000 already hardens pure service-role
+-- RLS and four scalar auth.uid ownership policies. The old P1 dry-run fixture
+-- expected their PRE-MIGRATION definitions and failed on all 25 policies.
+--
+-- Assert the real post-migration policy definitions, roles and predicates.
+-- Preserve the subscription deduplication dry-run, inside ROLLBACK.
+-- Never broadens roles, does not edit any live data or persisted schema.
 \set ON_ERROR_STOP on
 BEGIN;
 SET LOCAL lock_timeout='2s';
@@ -40,9 +42,30 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(auth.uid() = user_id)', NULL);
 
-DO $drift$
-DECLARE bad int; difference record;
+
+-- Expected values originate from the prior guarded draft. Normalize only
+-- transformations actually performed by the 20261008100000 migration.
+UPDATE expected_rls_p1
+  SET roles = '{service_role}', qualifier='true', check_expr='true'
+  WHERE qualifier = '(auth.role() = ''service_role''::text)'
+    AND check_expr = '(auth.role() = ''service_role''::text)'
+    AND cmd='ALL';
+UPDATE expected_rls_p1
+  SET qualifier='(( SELECT auth.uid() AS uid) = user_id)'
+  WHERE qualifier='(auth.uid() = user_id)' AND cmd='SELECT';
+
+DO $post_migration$
+DECLARE
+ bad integer;
+ difference record;
 BEGIN
+ IF (SELECT count(*) FROM expected_rls_p1) <> 25
+    OR (SELECT count(*) FROM expected_rls_p1
+        WHERE roles='{service_role}' AND qualifier='true' AND check_expr='true') <> 21
+    OR (SELECT count(*) FROM expected_rls_p1
+        WHERE roles='{authenticated}' AND qualifier LIKE '%SELECT auth.uid()%') <> 4
+ THEN RAISE EXCEPTION 'P1 fixture itself has drifted or become vacuous'; END IF;
+
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
    ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
@@ -50,161 +73,66 @@ BEGIN
     OR p.permissive IS DISTINCT FROM e.permissive
     OR p.roles::text IS DISTINCT FROM e.roles
     OR p.cmd IS DISTINCT FROM e.cmd
-    OR p.qual IS DISTINCT FROM e.qualifier
-    OR p.with_check IS DISTINCT FROM e.check_expr;
+    OR regexp_replace(coalesce(lower(p.qual),'[null]'), '[[:space:]()]', '', 'g')
+       IS DISTINCT FROM regexp_replace(coalesce(lower(e.qualifier),'[null]'), '[[:space:]()]', '', 'g')
+    OR regexp_replace(coalesce(lower(p.with_check),'[null]'), '[[:space:]()]', '', 'g')
+       IS DISTINCT FROM regexp_replace(coalesce(lower(e.check_expr),'[null]'), '[[:space:]()]', '', 'g');
  IF bad <> 0 THEN
-   -- Preserve fail-closed behavior, but print a bounded diagnostic sample so
-   -- CI can distinguish a missing policy, a role change, or deparser drift.
-   -- Expressions are policy definitions only; there are no user rows here.
    FOR difference IN
-     SELECT e.tbl, e.policy_name,
-       CASE WHEN p.policyname IS NULL THEN 'missing'
-            WHEN p.permissive IS DISTINCT FROM e.permissive THEN 'permissive'
-            WHEN p.roles::text IS DISTINCT FROM e.roles THEN 'roles'
-            WHEN p.cmd IS DISTINCT FROM e.cmd THEN 'command'
-            WHEN p.qual IS DISTINCT FROM e.qualifier THEN 'qualifier'
-            WHEN p.with_check IS DISTINCT FROM e.check_expr THEN 'with_check'
-            ELSE 'unknown' END AS dimension,
-       e.qualifier AS expected_qual, p.qual AS actual_qual,
-       e.check_expr AS expected_check, p.with_check AS actual_check,
-       e.roles AS expected_roles, p.roles::text AS actual_roles
+     SELECT e.tbl, e.policy_name, e.roles AS wanted_roles, p.roles::text AS actual_roles,
+            e.qualifier AS wanted_qual, p.qual AS actual_qual,
+            e.check_expr AS wanted_check, p.with_check AS actual_check
      FROM expected_rls_p1 e LEFT JOIN pg_policies p
        ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
      WHERE p.policyname IS NULL
         OR p.permissive IS DISTINCT FROM e.permissive
         OR p.roles::text IS DISTINCT FROM e.roles
         OR p.cmd IS DISTINCT FROM e.cmd
-        OR p.qual IS DISTINCT FROM e.qualifier
-        OR p.with_check IS DISTINCT FROM e.check_expr
-     ORDER BY e.tbl, e.policy_name LIMIT 5
+        OR regexp_replace(coalesce(lower(p.qual),'[null]'), '[[:space:]()]', '', 'g')
+           IS DISTINCT FROM regexp_replace(coalesce(lower(e.qualifier),'[null]'), '[[:space:]()]', '', 'g')
+        OR regexp_replace(coalesce(lower(p.with_check),'[null]'), '[[:space:]()]', '', 'g')
+           IS DISTINCT FROM regexp_replace(coalesce(lower(e.check_expr),'[null]'), '[[:space:]()]', '', 'g')
+     ORDER BY e.tbl LIMIT 5
    LOOP
-     RAISE NOTICE 'P1 drift %.% dimension=% roles[% -> %] qualifier[% -> %] check[% -> %]',
-       difference.tbl, difference.policy_name, difference.dimension,
-       difference.expected_roles, difference.actual_roles,
-       difference.expected_qual, difference.actual_qual,
-       difference.expected_check, difference.actual_check;
+     RAISE NOTICE 'P1 policy %.% roles [% -> %] qual [% -> %] check [% -> %]',
+       difference.tbl, difference.policy_name,
+       difference.wanted_roles, difference.actual_roles,
+       difference.wanted_qual, difference.actual_qual,
+       difference.wanted_check, difference.actual_check;
    END LOOP;
-   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad;
- END IF;
- IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
-   RAISE EXCEPTION 'P1 expected 25 policies; abort';
+   RAISE EXCEPTION 'P1 hardened policy contract drift on % definitions; abort', bad;
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
+ -- Both subscriptions policies must be byte-for-byte security-equivalent
+ -- before the sample cleanup can remove one inside this transaction.
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname IN ('Users can view own subscriptions',
                           'Users can view their own subscription')
        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
- END IF;
-END
-$drift$;
-
-ALTER POLICY "service role manages agent_pending_actions" ON public."agent_pending_actions"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages agent_schedules" ON public."agent_schedules"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "business_employee_profiles_select_own" ON public."business_employee_profiles"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "service role can manage business_sub_app_records" ON public."business_sub_app_records"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_assignments" ON public."business_work_order_assignments"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_events" ON public."business_work_order_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_evidence" ON public."business_work_order_evidence"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_order_materials" ON public."business_work_order_materials"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages business_work_orders" ON public."business_work_orders"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage creator_follows" ON public."creator_follows"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoice_lines" ON public."customer_invoice_lines"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoice_payments" ON public."customer_invoice_payments"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage customer_invoices" ON public."customer_invoices"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_artifacts" ON public."generation_artifacts"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_attempts" ON public."generation_attempts"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_audit_events" ON public."generation_audit_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_callback_events" ON public."generation_callback_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_cost_events" ON public."generation_cost_events"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role manages generation_jobs" ON public."generation_jobs"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage merchant_product_variants" ON public."merchant_product_variants"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage merchant_products" ON public."merchant_products"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "service role can manage shared_links" ON public."shared_links"
-  USING (((select auth.role()) = 'service_role'::text))
-  WITH CHECK (((select auth.role()) = 'service_role'::text));
-ALTER POLICY "sonara_platforms_select_own" ON public."sonara_platforms"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "user_notifications_select_own" ON public."user_notifications"
-  USING (((select auth.uid()) = user_id));
-ALTER POLICY "user_preferences_select_own" ON public."user_preferences"
-  USING (((select auth.uid()) = user_id));
+       AND with_check IS NULL) <> 2
+ THEN RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort'; END IF;
+END;
+$post_migration$;
 
 DROP POLICY "Users can view their own subscription" ON public.subscriptions;
 
 DO $postflight$
-DECLARE bad int;
 BEGIN
- SELECT count(*) INTO bad
- FROM expected_rls_p1 e
- LEFT JOIN pg_policies p
-  ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
- WHERE p.policyname IS NULL
-    OR p.roles::text IS DISTINCT FROM e.roles
-    OR p.cmd IS DISTINCT FROM e.cmd
-    OR p.permissive IS DISTINCT FROM e.permissive
-    OR (e.qualifier IS NOT NULL AND p.qual !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]')
-    OR (e.check_expr IS NOT NULL AND p.with_check !~* 'SELECT[[:space:]]+auth[.](uid|role)[(][)]');
- IF bad <> 0 THEN
-   RAISE EXCEPTION 'P1 postflight failed % policies',bad;
- END IF;
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='Users can view own subscriptions'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
- OR (SELECT count(*) FROM pg_policies
+       AND roles=ARRAY['authenticated']::name[] AND cmd='SELECT'
+       AND qual='(( SELECT auth.uid() AS uid) = user_id)') <> 1
+    OR (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription')<>0
- THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
-END
+       AND policyname='Users can view their own subscription') <> 0
+ THEN RAISE EXCEPTION 'P1 subscription deduplication dry-run failed'; END IF;
+ IF (SELECT count(*) FROM expected_rls_p1) <> 25
+ THEN RAISE EXCEPTION 'P1 policy verification did not cover 25 policies'; END IF;
+END;
 $postflight$;
+
 SELECT 'p1_rls_hygiene_staging_passed';
 ROLLBACK;
