@@ -24,7 +24,7 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/from public\.inventory_items i;/i);
     assert.match(migration,/coalesce\(i\.quantity,0\),coalesce\(i\.quantity,0\),0/i);
     assert.match(migration,/unique \(inventory_item_id,version_after\)/i);
-    assert.match(migration,/if new\.quantity is distinct from old\.quantity then/i);
+    assert.ok(migration.includes("if new.quantity is distinct from old.quantity"));
   });
   it("versions catalog-unit and warehouse changes to prevent stale approval replay", () => {
     assert.ok(migration.includes("or new.unit is distinct from old.unit"));
