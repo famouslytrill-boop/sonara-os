@@ -13,6 +13,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
   const handlers = new Map();
   const stored = [];
   const removed = [];
+  const network = [];
   let networkRequests = 0;
   function makeResponse(target) {
     const pathname = new URL(typeof target === "string" ? target : target.url, "https://sonaraindustries.com").pathname;
@@ -39,9 +40,24 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
   }
   const cache = {
     match: async () => undefined,
-    put: async (request) => { stored.push(typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url); },
+    put: async (request) => {
+      stored.push({
+        url: typeof request === "string" ? new URL(request, "https://sonaraindustries.com").href : request.url,
+        credentials: typeof request === "string" ? "omit" : request.credentials
+      });
+    },
     add: async () => undefined
   };
+  class SyntheticRequest {
+    constructor(input, options = {}) {
+      this.url = input.url;
+      this.method = input.method;
+      this.mode = input.mode;
+      this.cache = input.cache;
+      this.headers = input.headers;
+      this.credentials = options.credentials || input.credentials;
+    }
+  }
   const context = {
     self: {
       location: { origin: "https://sonaraindustries.com" },
@@ -55,14 +71,22 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
       keys: async () => existingCaches,
       delete: async (name) => { removed.push(name); return true; }
     },
-    fetch: async (target) => { networkRequests += 1; return makeResponse(target); },
+    fetch: async (target, options = {}) => {
+      networkRequests += 1;
+      network.push({
+        url: typeof target === "string" ? target : target.url,
+        credentials: options.credentials || (typeof target === "string" ? "same-origin" : target.credentials)
+      });
+      return makeResponse(target);
+    },
     URL,
+    Request: SyntheticRequest,
     Set,
     Promise
   };
   vm.runInNewContext(workerSource, context, { filename: "public/sw.js" });
 
-  async function request(target, { mode = "cors", cacheMode = "default", requestHeaders = {} } = {}) {
+  async function request(target, { mode = "cors", cacheMode = "default", requestHeaders = {}, credentials = "same-origin" } = {}) {
     let handled;
     const waits = [];
     const event = {
@@ -71,6 +95,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
         method: "GET",
         mode,
         cache: cacheMode,
+        credentials,
         headers: new Headers(requestHeaders)
       },
       respondWith: (promise) => { handled = promise; },
@@ -91,7 +116,7 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
     handlers.get("install")({ waitUntil: (promise) => { completion = promise; } });
     await completion;
   }
-  return { request, activate, install, stored, removed, networkRequests: () => networkRequests };
+  return { request, activate, install, stored, removed, network, networkRequests: () => networkRequests };
 }
 
 describe("PWA cache contains public assets only", () => {
@@ -114,6 +139,8 @@ describe("PWA cache contains public assets only", () => {
       assert.equal(await worker.request(asset), true, asset);
     }
     assert.equal(worker.stored.length, 5);
+    assert.ok(worker.stored.every((entry) => entry.credentials === "omit"));
+    assert.ok(worker.network.every((entry) => entry.credentials === "omit"));
   });
 
   it("does not intercept tenant content, deep routes or private APIs with static extensions", async () => {
@@ -147,8 +174,20 @@ describe("PWA cache contains public assets only", () => {
     }
     assert.equal(await worker.request("/sonara-one.js", { requestHeaders: { Authorization: "Bearer private" } }), false);
     assert.equal(await worker.request("/sonara-one.js", { cacheMode: "no-store" }), false);
+    assert.equal(await worker.request("/sonara-one.js", { cacheMode: "no-cache" }), false);
+    assert.equal(await worker.request("/sonara-one.js", { cacheMode: "reload" }), false);
     assert.equal(worker.stored.length, 0);
     assert.equal(worker.networkRequests(), 0);
+  });
+
+  it("strips signed-in caller credentials before network fetch and public cache storage", async () => {
+    const worker = harness();
+    assert.equal(await worker.request("/sonara-one.js", { credentials: "include" }), true);
+    assert.deepEqual(worker.network.map((entry) => entry.credentials), ["omit"]);
+    assert.deepEqual(worker.stored.map((entry) => entry.credentials), ["omit"]);
+    assert.equal(await worker.request("/sonara-application-ui.css"), true);
+    assert.ok(worker.network.every((entry) => entry.credentials === "omit"));
+    assert.ok(worker.stored.every((entry) => entry.credentials === "omit"));
   });
 
   it("does not persist responses personalized by cookies, auth, or privacy directives", async () => {
@@ -188,10 +227,11 @@ describe("PWA cache contains public assets only", () => {
       "/sonara-depth.js": { headers: { "set-cookie": "session=not-public" } }
     } });
     await worker.install();
-    assert.ok(worker.stored.some((item) => item.endsWith("/offline")));
-    assert.equal(worker.stored.some((item) => item.includes("/sonara-one.js")), false);
-    assert.equal(worker.stored.some((item) => item.includes("/sonara-depth.js")), false);
-    assert.ok(worker.stored.some((item) => item.includes("/sonara-application-ui.css")));
+    assert.ok(worker.stored.some((item) => item.url.endsWith("/offline")));
+    assert.equal(worker.stored.some((item) => item.url.includes("/sonara-one.js")), false);
+    assert.equal(worker.stored.some((item) => item.url.includes("/sonara-depth.js")), false);
+    assert.ok(worker.stored.some((item) => item.url.includes("/sonara-application-ui.css")));
+    assert.ok(worker.network.every((item) => item.credentials === "omit"));
   });
 
   it("rejects unsafe offline fallbacks rather than installing personalized pages", async () => {
