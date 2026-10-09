@@ -3,6 +3,7 @@
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
+const { validateInteractiveStory, simulateInteractiveStory, MAX_BYTES } = require("../lib/sonara-interactive-story-draft.cjs");
 const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
 const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
 const { renderNarrativeDot, renderFountainBeatOutline, renderQuestPrerequisiteJson,
@@ -44,6 +45,8 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   const worldEnabled = deps.worldBiblePersistenceEnabled === true
     || process.env.SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED === "true";
   const worldStore = worldEnabled ? createWorldBibleStore({ ...deps, projectStore: store }) : null;
+  const interactivePreviewEnabled = deps.interactiveDraftPreviewEnabled === true
+    || process.env.SONARA_INTERACTIVE_DRAFT_PREVIEW_ENABLED === "true";
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
@@ -102,6 +105,23 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
         `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
       ...(current && !timelineReady ? [brandCard("Timed exports not available",
         "OTIO and MIDI require complete durations for a media or interactive project. Add scene timing before exporting.") ] : []),
+      ...(interactivePreviewEnabled && current && ["game", "interactive"].includes(current.draft.medium) ? [
+        `<section class="card">
+<h2>Preview interactive story choices (unsaved)</h2>
+<p>Author prose, dialogue, and choices as a separate JSON draft. This preview simulates only your explicit decisions; nothing is uploaded to third parties, permanently stored, compiled, generated, or published. Copy the JSON somewhere safe before leaving this page.</p>
+<form data-sonara-interactive-preview data-project-id="${esc(req.params.id)}" data-world-revision="${current.revision}">
+<label>Interactive story JSON
+<textarea name="story" rows="18" maxlength="65536" spellcheck="false" required>${esc(JSON.stringify({
+  version: 1, startSceneId: current.draft.scenes[0].id, state: [],
+  scenes: current.draft.scenes.map((s) => ({ sceneId: s.id, prose: "", dialogue: [], choices: [] }))
+}, null, 2))}</textarea></label>
+<label>Choice IDs to simulate, separated by commas (optional)
+<input name="decisions" type="text" maxlength="1000" placeholder="enter-door, talk-friend"></label>
+<button type="submit">Preview my choices</button>
+<p role="status" data-preview-status aria-live="polite">Not saved. Add your prose and choices, then preview.</p>
+<pre data-preview-output></pre>
+</form></section><script src="/sonara-interactive-story-preview.js" defer></script>`
+      ] : []),
       `<section class="card"><h2>Edit structured World Bible JSON</h2>
 <form method="post" action="${base}/${esc(req.params.id)}/world-bible">
 <input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
@@ -230,6 +250,38 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
       }
       return res.status(503).json({ ok: false, code: "world_bible_export_unavailable" });
     }
+  });
+  app.post(`${api}/:id/world-bible/interactive/preview`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore || !interactivePreviewEnabled) return res.status(503)
+      .json({ ok: false, code: "interactive_preview_not_enabled" });
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403)
+      .json({ ok: false, code: "cross_origin_interactive_preview_denied" });
+    if (!req.is("application/json") || req.get("x-sonara-intent") !== "interactive-preview")
+      return res.status(415).json({ ok: false, code: "json_preview_intent_required" });
+    const data = req.body;
+    if (!data || typeof data !== "object" || Array.isArray(data) ||
+      !Number.isSafeInteger(data.expectedWorldRevision) || data.expectedWorldRevision < 1 ||
+      !Array.isArray(data.decisions) || data.decisions.length > 32)
+      return res.status(400).json({ ok: false, code: "invalid_interactive_preview_request" });
+    let bytes;
+    try { bytes = Buffer.byteLength(JSON.stringify(data), "utf8"); } catch { bytes = Infinity; }
+    if (bytes > MAX_BYTES + 4096) return res.status(413)
+      .json({ ok: false, code: "interactive_preview_too_large" });
+    const stored = await worldStore.get(req, req.params.id);
+    if (!stored.ok) return res.status(stored.status).json({ ok: false, code: stored.code });
+    if (!stored.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    if (stored.worldBible.revision !== data.expectedWorldRevision)
+      return res.status(409).json({ ok: false, code: "world_bible_revision_conflict" });
+    const valid = validateInteractiveStory(stored.worldBible, data.story);
+    if (!valid.ok) return res.status(400).json(valid);
+    const preview = simulateInteractiveStory(valid, data.decisions);
+    if (!preview.ok) return res.status(400).json(preview);
+    return res.status(200).json({
+      ok: true, sourceSaved: false, storyFingerprint: valid.fingerprint,
+      worldBibleRevision: stored.worldBible.revision, stats: valid.stats,
+      warnings: valid.warnings, preview
+    });
   });
   app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
     res.set("Cache-Control", "private, no-store");
