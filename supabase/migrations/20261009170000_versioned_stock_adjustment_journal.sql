@@ -193,6 +193,21 @@ begin
   ) then
     raise exception 'stock_adjustment_event_lineage_invalid';
   end if;
+  if not exists (
+    select 1 from public.inventory_stock_adjustment_approvals a
+     where a.id = new.approval_id
+       and a.organization_id = new.organization_id
+       and a.inventory_item_id = new.inventory_item_id
+       and a.actor_user_id = new.actor_user_id
+       and a.reviewer_user_id = new.reviewer_user_id
+       and a.idempotency_key = new.idempotency_key
+       and a.reason = new.reason
+       and a.expected_stock_version = new.stock_version_before
+       and a.counted_quantity = new.balance_after
+       and a.decision = 'approved'
+  ) then
+    raise exception 'stock_adjustment_approval_lineage_invalid';
+  end if;
   return new;
 end;
 $function$;
