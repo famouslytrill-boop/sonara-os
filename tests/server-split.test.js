@@ -1100,6 +1100,9 @@ describe("the billing module stands on its own", () => {
     }));
     const originalFetch = global.fetch;
     global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/stripe_customers?")) return Response.json([
+        { stripe_customer_id: "cus_workspace", organization_id: "org-1", user_id: "user_test" }
+      ]);
       writes.push({ url: String(url), body: options.body ? JSON.parse(String(options.body)) : undefined });
       return new Response("[]", { status: 200 });
     };
