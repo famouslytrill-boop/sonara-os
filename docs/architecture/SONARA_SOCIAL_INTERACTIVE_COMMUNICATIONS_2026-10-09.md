@@ -92,6 +92,7 @@ P1-E: One-tenant feature-flagged canary, negative tenant/consent/replay tests, r
 - W3C Push API: https://www.w3.org/TR/push-api/
 - W3C prerecorded caption accessibility: https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html
 - Apple user-generated content rules: https://developer.apple.com/app-store/review/guidelines/
+- Google Play user-generated content rules: https://support.google.com/googleplay/android-developer/answer/9876937
 - NIST 800-63-4 identity guidelines: https://csrc.nist.gov/pubs/sp/800/63/4/final
 
 ## Non-goals
