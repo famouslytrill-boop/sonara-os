@@ -9,14 +9,14 @@ update public.inventory_items set quantity=5
     and organization_id='26000000-0000-4000-8000-000000000003';
 insert into public.inventory_stock_adjustment_approvals(
     id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
-    idempotency_key,reason,expected_stock_version,counted_quantity,decision)
+    idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision)
 values (
     '26000000-0000-4000-8000-000000000034',
     '26000000-0000-4000-8000-000000000003',
     '26000000-0000-4000-8000-000000000010',
     '26000000-0000-4000-8000-000000000001',
     '26000000-0000-4000-8000-000000000002',
-    'cross-txn-spoof-001','cycle_count',2,5,'approved');
+    'cross-txn-spoof-001','cycle_count',2,'each',null,5,'approved');
 commit;
 select 'cross_tx_seeded_' || count(*)::text from public.inventory_stock_events
   where inventory_item_id='26000000-0000-4000-8000-000000000010'
