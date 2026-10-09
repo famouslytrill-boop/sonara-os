@@ -381,3 +381,54 @@ branch-protection checks and an owner-approved rollback/restore exercise.
 The authorized remote desktop was offline when queried; there is no
 verified PostgreSQL runtime for this execution.
 Stripe reference: https://docs.stripe.com/api/subscriptions/retrieve
+
+
+## P0: Canonical Stripe subscription Price binding on webhook delivery
+
+A Stripe Event's signature authenticates the event origin, **not** the
+entitlement represented by user-supplied `subscription.metadata.plan`.
+`customer.subscription.created` / `updated` can otherwise carry a plan
+slug different from the purchased item Price; trusting the metadata alone
+can grant team-level access for a cheaper workspace subscription.
+
+`lib/sonara-billing.cjs` now checks the following **before** any tenant
+mapping query or billing table write on these two event types:
+
+1. The metadata plan is an existing, subscription-mode SONARA SKU.
+2. The plan's canonical `STRIPE_PLANS[plan].env` resolves to a valid,
+   configured Stripe `price_...` ID, without a checkout fallback.
+3. The signed subscription includes exactly one `items.data` item,
+   `items.has_more === false`, and that item's `quantity === 1`.
+4. The item's object-valued `price.id` matches the canonical
+   configured Price ID **exactly**, so metadata cannot substitute another
+   plan's price.
+5. Existing customer-to-organization verification runs afterwards, then
+   the timestamped PostgreSQL upserts.
+
+All malformed/missing catalog Price or item evidence is **retryable**:
+the handler returns `ok:false`, and its signed webhook HTTP adapter must
+emit a non-2xx response rather than acknowledging a mistaken entitlement.
+
+`customer.subscription.deleted` deliberately remains on its existing,
+strict saved-subscription-and-customer revocation path: cancellation must
+not require item/Price metadata that may have been removed from the event.
+A deletion may never use the metadata to change an organization or plan.
+
+**Evidence added:** tests in
+`tests/billing-delivery-reliability.test.js` for a workspace Price
+masquerading as Team metadata, missing/empty/multi-item lists, pagination,
+missing/wrong quantity, string-valued prices, mismatched Price, and missing
+configured env. Positive integration fixtures in billing, server, split,
+and generation-period tests now include one matching purchased item.
+26 selected isolated billing callbacks passed with stubbed I/O, hashing
+and URL parameter encoding. The signed HTTP and native crypto tests, full
+Node/Mocha suite and Stripe test-mode webhook delivery are still required.
+
+**Critical remaining gate:** verify the test-mode Stripe Price IDs, live
+canonical environment Price IDs, and each annual twin against the
+correct Stripe account before rollout. Do not use a synthetic Price ID
+in live runtime. Review actual webhook events for `has_more`, price
+shape, quantity, and legitimate cancellation behavior across supported
+Stripe API versions.
+
+Reference: https://docs.stripe.com/api/subscriptions/object
