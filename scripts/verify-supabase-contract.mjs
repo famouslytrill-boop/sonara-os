@@ -1053,10 +1053,36 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
+// Review-only social tables have not passed migration replay and must NOT
+// enter the canonical or reviewed/applied inventory. Allow references only
+// while their proposal documents the full access boundary and runtime remains
+// disabled without an explicit operator-controlled flag.
+const SOCIAL_PROPOSAL_TABLES = Object.freeze([
+  "growth_channel_blocks",
+  "growth_channel_moderation_events"
+]);
+const socialProposalSql = fs.readFileSync(path.join(root, "docs", "sql-proposals",
+  "2026-10-09-growth-channel-blocking-moderation.sql"), "utf8");
+const socialRoute = fs.readFileSync(path.join(root, "routes",
+  "sonara-growth-channel-routes.cjs"), "utf8");
+const socialFlag = "SONARA_GROWTH_CHANNEL_SAFETY_ENABLED";
+if (!socialRoute.includes('getEnv("' + socialFlag + '") === "true"') ||
+    !socialRoute.includes("if (!advancedSafetyEnabled())")) {
+  fail("social proposal references uninstalled tables without an explicit default-off runtime gate");
+}
+for (const table of SOCIAL_PROPOSAL_TABLES) {
+  if (!new RegExp("create\\s+table\\s+if\\s+not\\s+exists\\s+public\\." + table, "i").test(socialProposalSql) ||
+      !socialProposalSql.includes("alter table public." + table + " enable row level security") ||
+      !new RegExp("revoke\\s+all\\s+on\\s+public\\." + table +
+        "\\s+from\\s+public,\\s*anon,\\s*authenticated,\\s*service_role", "i").test(socialProposalSql)) {
+    fail("disabled social proposal is missing create/RLS/revoke review evidence for public." + table);
+  }
+}
 const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...INVENTORY_STOCK_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES, ...MARKETPLACE_SALE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
-  if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
+  if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table) &&
+      !SOCIAL_PROPOSAL_TABLES.includes(table)) {
     fail(`runtime references public.${table}, but it is absent from the canonical or reviewed extension contract`);
   }
 }
