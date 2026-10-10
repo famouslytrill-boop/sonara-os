@@ -47,6 +47,7 @@ INSERT INTO expected_rls_p1 VALUES
 
 DO $drift$
 DECLARE bad int;
+DECLARE sample_diffs text;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -58,7 +59,40 @@ BEGIN
     OR p.qual IS DISTINCT FROM e.qualifier
     OR p.with_check IS DISTINCT FROM e.check_expr;
  IF bad <> 0 THEN
-   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad;
+   -- This is a read-only diagnostic of the disposable replay catalog.
+   -- Preserve the exact preflight equality check above: do not apply a
+   -- migration, drop a policy, normalize expressions, or turn a drift into
+   -- a false green. Five samples suffice to locate a common formatting
+   -- or schema divergence without flooding the CI log.
+   SELECT string_agg(
+     format('%I.%I: %s; expected permissive=%s actual=%s; roles=%s vs %s; command=%s vs %s; qual=%s vs %s; check=%s vs %s',
+       d.tbl, d.policy_name,
+       CASE WHEN d.actual_name IS NULL THEN 'POLICY MISSING' ELSE 'POLICY DRIFTED' END,
+       d.expected_perm, d.actual_perm, d.expected_roles, d.actual_roles,
+       d.expected_cmd, d.actual_cmd, d.expected_qual, d.actual_qual,
+       d.expected_check, d.actual_check),
+     E'\\n')
+   INTO sample_diffs
+   FROM (
+     SELECT e.tbl, e.policy_name, e.permissive AS expected_perm,
+       p.policyname AS actual_name, p.permissive AS actual_perm,
+       e.roles AS expected_roles, p.roles::text AS actual_roles,
+       e.cmd AS expected_cmd, p.cmd AS actual_cmd,
+       e.qualifier AS expected_qual, p.qual AS actual_qual,
+       e.check_expr AS expected_check, p.with_check AS actual_check
+     FROM expected_rls_p1 e LEFT JOIN pg_policies p
+       ON p.schemaname='public' AND p.tablename=e.tbl AND p.policyname=e.policy_name
+     WHERE p.policyname IS NULL
+        OR p.permissive IS DISTINCT FROM e.permissive
+        OR p.roles::text IS DISTINCT FROM e.roles
+        OR p.cmd IS DISTINCT FROM e.cmd
+        OR p.qual IS DISTINCT FROM e.qualifier
+        OR p.with_check IS DISTINCT FROM e.check_expr
+     ORDER BY e.tbl, e.policy_name
+     LIMIT 5
+   ) d;
+   RAISE EXCEPTION 'P1 policy definition drift on % policies; abort',bad
+     USING DETAIL=COALESCE(sample_diffs,'No replay catalog differences could be displayed');
  END IF;
  IF (SELECT count(*) FROM expected_rls_p1) <> 25 THEN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
