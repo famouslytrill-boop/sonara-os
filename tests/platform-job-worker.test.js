@@ -78,6 +78,44 @@ describe("platform job worker repository", () => {
     assert.deepEqual({ ok: result.ok, recovered: result.recovered, skipped: result.skipped }, { ok: true, recovered: 1, skipped: 0 });
   });
 
+  it("dead-letters a stale lease that already consumed its final attempt", async () => {
+    let terminalPatch = null;
+    let terminalEvent = null;
+    const repo = createPlatformJobWorkerRepository({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://db.example", serviceRoleKey: "service" }),
+      now: () => new Date("2026-10-09T20:00:00.000Z"),
+      fetchImpl: async (url, init) => {
+        if ((init.method || "GET") === "GET") {
+          return response(200, [{
+            id: "job-final",
+            job_type: "integration.provider_readiness_probe:org",
+            status: "processing",
+            locked_at: "2026-10-09T19:50:00.000Z",
+            locked_by: "worker#old",
+            attempts: 3,
+            max_attempts: 3
+          }]);
+        }
+        if (url.includes("/platform_jobs?")) {
+          terminalPatch = JSON.parse(init.body);
+          return response(200, [{ id: "job-final", status: "failed" }]);
+        }
+        if (url.endsWith("/platform_job_events")) {
+          terminalEvent = JSON.parse(init.body);
+          return response(201, {});
+        }
+        throw new Error(`unexpected ${url}`);
+      }
+    });
+    const result = await repo.recoverStale({ jobType: "integration.provider_readiness_probe:org" });
+    assert.equal(result.ok, true);
+    assert.equal(result.recovered, 1);
+    assert.equal(terminalPatch.status, "failed");
+    assert.equal(terminalPatch.dead_lettered_at, "2026-10-09T20:00:00.000Z");
+    assert.equal(terminalPatch.last_error, "lease_expired");
+    assert.equal(terminalEvent.event_type, "dead_lettered");
+  });
+
   it("refuses a stale worker settlement when the fenced row no longer matches", async () => {
     const repo = createPlatformJobWorkerRepository({
       getSupabaseServerConfig: () => ({ ok: true, url: "https://db.example", serviceRoleKey: "service" }),
