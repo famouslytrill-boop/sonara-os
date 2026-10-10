@@ -11,6 +11,7 @@
 })(typeof window !== "undefined" ? window : null, function () {
   "use strict";
 
+  const APPLICATION_PERMISSION_STATES = Object.freeze(["granted", "denied", "not_recorded", "unreadable"]);
   const PERMISSION_STATES = Object.freeze(["not_requested", "granted", "denied", "failed", "unsupported"]);
   const CAPTURE_STATES = Object.freeze([
     "not_run",
@@ -52,7 +53,7 @@
       sourcePage: "settings_device_feedback",
       secureContext: input.secureContext === true,
       pageVisibleAtExport: input.pageVisibleAtExport === true,
-      applicationPermissionState: String(input.applicationPermissionState || "unreadable").slice(0, 40),
+      applicationPermissionState: enumValue(input.applicationPermissionState, APPLICATION_PERMISSION_STATES, "unreadable"),
       deviceMotionSupported: input.deviceMotionSupported === true,
       browserPermissionState: enumValue(input.browserPermissionState, PERMISSION_STATES, "not_requested"),
       captureState: enumValue(input.captureState, CAPTURE_STATES, "not_run"),
@@ -68,6 +69,7 @@
   }
 
   return Object.freeze({
+    APPLICATION_PERMISSION_STATES,
     PERMISSION_STATES,
     CAPTURE_STATES,
     exactSha,
