@@ -519,6 +519,40 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
     await expect(page.locator("[data-capture-download]")).toBeVisible(); expect(errors).toEqual([]);
   });
+  test("audio Stop preserves microphone tracks until the final MediaRecorder data event", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      window.finalChunkSawLiveMicrophone = null;
+      class ControlledMediaRecorder {
+        constructor(stream) { this.stream = stream; this.state = "inactive"; this.mimeType = "audio/webm"; }
+        static isTypeSupported() { return true; }
+        start() { this.state = "recording"; }
+        stop() {
+          this.state = "inactive";
+          setTimeout(() => {
+            window.finalChunkSawLiveMicrophone =
+              this.stream.getAudioTracks().length > 0 &&
+              this.stream.getAudioTracks().every((track) => track.readyState === "live");
+            this.ondataavailable?.({ data: new Blob(["locally recorded audio"], { type: this.mimeType }) });
+            this.onstop?.();
+          }, 20);
+        }
+      }
+      window.MediaRecorder = ControlledMediaRecorder;
+    });
+    await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Finishing your recording");
+    await expect(page.locator("[data-capture-download]")).toBeVisible();
+    expect(await page.evaluate(() => window.finalChunkSawLiveMicrophone)).toBe(true);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("[data-capture-download]").click()
+    ]);
+    expect(require("node:fs").statSync(await download.path()).size).toBeGreaterThan(0);
+  });
   test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page }) => {
     await mountMedia(page);
     await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
