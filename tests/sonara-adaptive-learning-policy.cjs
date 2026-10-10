@@ -479,6 +479,12 @@ function mockAdaptiveReaders(overrides = {}) {
       rollbackPlanReviewed: true,
       explanation: "An approved, reversible workspace layout preview."
     })),
+    authorizeUserScopedEvidenceRead: overrides.authorizeUserScopedEvidenceRead || (async () => ({
+      client: "user", mode: "rls_scoped_read_only",
+      serviceRoleFallbackAllowed: false, method: "GET",
+      table: "sonara_learning_aggregates",
+      organizationId: ORG, userId: USER
+    })),
     clock: overrides.clock || (() => valid.trustedNow)
   });
   return {
@@ -588,6 +594,27 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
     const result = await changed.reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
     assert.equal(result.state, "blocked");
     assert.equal(result.blockers[0], "consent_changed_during_read");
+  });
+
+  it("rejects service-role fallback and missing live user-scoped read proof", async () => {
+    for (const result of [
+      null,
+      { client: "service_role", mode: "rls_scoped_read_only", serviceRoleFallbackAllowed: false, method: "GET", table: "sonara_learning_aggregates", organizationId: ORG, userId: USER },
+      { client: "user", mode: "rls_scoped_read_only", serviceRoleFallbackAllowed: true, method: "GET", table: "sonara_learning_aggregates", organizationId: ORG, userId: USER },
+      { client: "user", mode: "rls_scoped_read_only", serviceRoleFallbackAllowed: false, method: "POST", table: "sonara_learning_aggregates", organizationId: ORG, userId: USER },
+      { client: "user", mode: "rls_scoped_read_only", serviceRoleFallbackAllowed: false, method: "GET", table: "another_table", organizationId: ORG, userId: USER },
+      { client: "user", mode: "rls_scoped_read_only", serviceRoleFallbackAllowed: false, method: "GET", table: "sonara_learning_aggregates", organizationId: USER, userId: USER }
+    ]) {
+      let count = 0;
+      const { reader } = mockAdaptiveReaders({
+        authorizeUserScopedEvidenceRead: async () => result,
+        readAggregateEvidence: async () => { count++; return adapterEvidence; }
+      });
+      const answer = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(answer.state, "blocked");
+      assert.equal(answer.blockers[0], "verified_user_scoped_evidence_read_required");
+      assert.equal(count, 0, "no aggregate read without user-JWT scoped authorization");
+    }
   });
 
   it("refuses raw personal records, cross-tenant evidence, and absent aggregation proof", async () => {
