@@ -474,7 +474,9 @@ function mockAdaptiveReaders(overrides = {}) {
       return adapterEvidence;
     }),
     readGovernance: overrides.readGovernance || (async () => ({
-      controlsVerified: true, rollbackPlanReviewed: true,
+      controlsVerified: true, inspectAvailable: true,
+      correctionAvailable: true, deletionAvailable: true,
+      rollbackPlanReviewed: true,
       explanation: "An approved, reversible workspace layout preview."
     })),
     clock: overrides.clock || (() => valid.trustedNow)
@@ -619,6 +621,29 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
     assert.equal((await stale.reader.preview({
       organizationId: ORG, changeType: "workspace_layout"
     })).state, "blocked");
+  });
+
+  it("requires individual inspect, correction and deletion controls before aggregate access", async () => {
+    for (const missing of ["inspectAvailable", "correctionAvailable", "deletionAvailable"]) {
+      const states = {
+        controlsVerified: true, inspectAvailable: true,
+        correctionAvailable: true, deletionAvailable: true,
+        rollbackPlanReviewed: true, explanation: "review"
+      };
+      delete states[missing];
+      let aggregateReads = 0;
+      const { reader } = mockAdaptiveReaders({
+        readGovernance: async () => states,
+        readAggregateEvidence: async () => { aggregateReads++; return adapterEvidence; }
+      });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked", missing);
+      assert.equal(aggregateReads, 0, missing);
+      states[missing] = false;
+      const again = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(again.state, "blocked", missing);
+      assert.equal(aggregateReads, 0, missing);
+    }
   });
 
   it("does not read aggregates when governance fails or throws", async () => {
