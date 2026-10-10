@@ -441,6 +441,32 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
 });
 
 
+const { requireVerifiedUserScopedRead, isVerifiedUserScopedRead } =
+  require("../lib/sonara-supabase-clients.cjs");
+
+const adapterReadConfig = Object.freeze({
+  serviceRoleKey: "server-only-test-secret",
+  anonKey: "sb_publishable_test_public_key"
+});
+function mintedTestEvidenceRead() {
+  return requireVerifiedUserScopedRead({
+    config: adapterReadConfig,
+    accessToken: "test-user-access-token",
+    table: "sonara_learning_aggregates",
+    organizationId: ORG, serverOrganizationId: ORG,
+    userId: USER, serverUserId: USER,
+    trustedNow: valid.trustedNow,
+    liveProof: {
+      status: "verified_live_user_rls",
+      table: "sonara_learning_aggregates",
+      organizationId: ORG, userId: USER,
+      grantVerified: true, sameTenantReadVerified: true,
+      crossTenantDeniedVerified: true,
+      measuredAt: "2026-10-09T18:00:00.000Z"
+    }
+  });
+}
+
 const adapterEvidence = Object.freeze({
   sourceVerified: true,
   organizationId: ORG,
@@ -479,12 +505,8 @@ function mockAdaptiveReaders(overrides = {}) {
       rollbackPlanReviewed: true,
       explanation: "An approved, reversible workspace layout preview."
     })),
-    authorizeUserScopedEvidenceRead: overrides.authorizeUserScopedEvidenceRead || (async () => ({
-      client: "user", mode: "rls_scoped_read_only",
-      serviceRoleFallbackAllowed: false, method: "GET",
-      table: "sonara_learning_aggregates",
-      organizationId: ORG, userId: USER
-    })),
+    authorizeUserScopedEvidenceRead: overrides.authorizeUserScopedEvidenceRead
+      || (async () => mintedTestEvidenceRead()),
     clock: overrides.clock || (() => valid.trustedNow)
   });
   return {
@@ -614,6 +636,35 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
       assert.equal(answer.state, "blocked");
       assert.equal(answer.blockers[0], "verified_user_scoped_evidence_read_required");
       assert.equal(count, 0, "no aggregate read without user-JWT scoped authorization");
+    }
+  });
+
+  it("rejects forged object copies while a branded scoped read may pass", async () => {
+    const minted = mintedTestEvidenceRead();
+    assert.equal(isVerifiedUserScopedRead(minted, {
+      table: "sonara_learning_aggregates", organizationId: ORG, userId: USER
+    }), true);
+    assert.equal(Object.keys(minted).includes("headers"), false);
+    assert.equal(JSON.stringify(minted).includes("test-user-access-token"), false);
+    assert.equal(minted.headers.Authorization, "Bearer test-user-access-token");
+
+    for (const forged of [
+      { ...minted },
+      JSON.parse(JSON.stringify(minted)),
+      Object.assign({}, minted),
+      { ...minted, headers: minted.headers }
+    ]) {
+      assert.equal(isVerifiedUserScopedRead(forged, {
+        table: "sonara_learning_aggregates", organizationId: ORG, userId: USER
+      }), false);
+      let readCount = 0;
+      const { reader } = mockAdaptiveReaders({
+        authorizeUserScopedEvidenceRead: async () => forged,
+        readAggregateEvidence: async () => { readCount++; return adapterEvidence; }
+      });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked");
+      assert.equal(readCount, 0);
     }
   });
 
