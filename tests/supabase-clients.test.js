@@ -21,6 +21,7 @@ const {
   userScopedHeaders,
   chooseClient,
   requireVerifiedUserScopedRead,
+  isVerifiedUserScopedRead,
   SupabaseClientError
 } = require("../lib/sonara-supabase-clients.cjs");
 
@@ -242,6 +243,24 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", (
     assert.equal(answer.headers.apikey, CONFIG.anonKey);
     assert.equal(answer.headers.Authorization, "Bearer verified-user-access-token");
     assert.notEqual(answer.headers.apikey, CONFIG.serviceRoleKey);
+  });
+
+  it("brands real selector results and hides bearer credentials from serialization", () => {
+    const selected = requireVerifiedUserScopedRead(valid);
+    const scope = { table: valid.table, organizationId: org, userId: user };
+    assert.equal(isVerifiedUserScopedRead(selected, scope), true);
+    assert.equal(isVerifiedUserScopedRead(selected, { ...scope, organizationId: user }), false);
+    assert.equal(Object.hasOwn(selected, "headers"), true);
+    assert.equal(Object.keys(selected).includes("headers"), false);
+    assert.equal(JSON.stringify(selected).includes(valid.accessToken), false);
+    assert.equal(selected.headers.Authorization, "Bearer " + valid.accessToken);
+
+    for (const clone of [
+      { ...selected }, Object.assign({}, selected),
+      JSON.parse(JSON.stringify(selected)), { ...selected, headers: selected.headers }
+    ]) {
+      assert.equal(isVerifiedUserScopedRead(clone, scope), false);
+    }
   });
 
   it("rejects failed or forged scope, unauthorized credentials, and RLS proof failures", () => {
