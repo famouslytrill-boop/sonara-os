@@ -160,5 +160,5 @@
   "20261008090000_consolidate_postgres_index_rls_hygiene.sql": "9e8dc7fa584a5b906237b8dc7eada0e670e7fcb7b970bf110c8a271ceaa49ea7",
   "20261008100000_tighten_service_role_rls_policies.sql": "9297520c1a2e605fd3144ac3709d3e247384ee32fea8c64cf8949baf4ae04551",
   "20261009153000_procurement_receipts_exactly_once.sql": "57294a00a7dd57684d932c6e8ed729faed94756eebb59b03332170a3e6454d3f",
-  "20261009170000_versioned_stock_adjustment_journal.sql": "39ab73983d6ef1d24d136a5c80bb8f8af697415b88c541af4114261b839ffb15"
+  "20261009170000_versioned_stock_adjustment_journal.sql": "25308b81c9a67b36ba304ec2742f2896a9704aed9c8004322135c45aee202b61"
 }
