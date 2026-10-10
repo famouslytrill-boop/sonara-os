@@ -5,15 +5,20 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
-async function mountLocalComponent(page, markup, scriptPath) {
+async function mountLocalComponent(page, markup, scriptPath, dependentScripts = []) {
   // Keep this whitelist narrow. This is a browser fixture, not an arbitrary
   // external resource loader or a way to relax CSP for generated content.
   const globals = {
     "/creator-project-graph-core.js": "SonaraCreatorGraph",
     "/creator-image-core.js": "SonaraImageCore",
-    "/creator-project-audio.js": null
+    "/creator-project-audio.js": null,
+    "/creator-project-device-store.js": "SonaraCreatorDeviceStore",
+    "/creator-project-draft.js": null
   };
-  if (!Object.hasOwn(globals, scriptPath)) throw new Error("Unknown local component asset");
+  const scripts = [scriptPath, ...dependentScripts];
+  if (new Set(scripts).size !== scripts.length || scripts.some((path) => !Object.hasOwn(globals, path))) {
+    throw new Error("Unknown or duplicate local component asset");
+  }
 
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -26,11 +31,12 @@ async function mountLocalComponent(page, markup, scriptPath) {
   // application's CSP and security headers; it does not enable unsafe-inline
   // or bypass cross-origin checks.
   const path = new URL("/tools", BASE_URL).href;
-  const assetPath = new URL(scriptPath, BASE_URL).href;
-  const asset = await page.request.get(assetPath);
-  const contentType = asset.headers()["content-type"] || "missing";
-  if (!asset.ok() || !/(javascript|ecmascript)/i.test(contentType)) {
-    throw new Error(`Local component asset unavailable: ${scriptPath}; HTTP ${asset.status()}; content-type ${contentType}`);
+  for (const assetPath of scripts) {
+    const asset = await page.request.get(new URL(assetPath, BASE_URL).href);
+    const contentType = asset.headers()["content-type"] || "missing";
+    if (!asset.ok() || !/(javascript|ecmascript)/i.test(contentType)) {
+      throw new Error(`Local component asset unavailable: ${assetPath}; HTTP ${asset.status()}; content-type ${contentType}`);
+    }
   }
   let fixtureAdded = false;
   const fixtureRoute = async (route) => {
@@ -38,7 +44,8 @@ async function mountLocalComponent(page, markup, scriptPath) {
     if (!response.ok()) throw new Error(`Fixture page failed: ${response.status()}`);
     const originalHtml = await response.text();
     if (!new RegExp("</body>", "i").test(originalHtml)) throw new Error("Missing body close tag");
-    const fixture = `<section data-sonara-playwright-fixture>${inertMarkup}</section><script src="${scriptPath}"></script>`;
+    const fixture = `<section data-sonara-playwright-fixture>${inertMarkup}</section>` +
+      scripts.map((path) => `<script src="${path}"></script>`).join("");
     const modified = originalHtml.replace(new RegExp("</body>", "i"), `${fixture}</body>`);
     fixtureAdded = true;
     await route.fulfill({ response, body: modified });
@@ -50,10 +57,13 @@ async function mountLocalComponent(page, markup, scriptPath) {
     await page.unroute(path, fixtureRoute);
   }
   if (!fixtureAdded) throw new Error("Fixture route did not intercept the page");
-  const actualScript = await page.locator(`script[src="${scriptPath}"]`).count();
-  if (actualScript !== 1) throw new Error(`Expected one parser-loaded same-origin script: ${scriptPath}`);
-  if (globals[scriptPath] && !await page.evaluate((key) => Boolean(globalThis[key]), globals[scriptPath])) {
-    throw new Error(`Parser-loaded script did not initialize: ${scriptPath}`);
+  for (const assetPath of scripts) {
+    if (await page.locator(`script[src="${assetPath}"]`).count() !== 1) {
+      throw new Error(`Expected one parser-loaded same-origin script: ${assetPath}`);
+    }
+    if (globals[assetPath] && !await page.evaluate((key) => Boolean(globalThis[key]), globals[assetPath])) {
+      throw new Error(`Parser-loaded script did not initialize: ${assetPath}`);
+    }
   }
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -62,9 +72,9 @@ async function mountDraft(page, project = draftProject(), scope = `${projectId(1
   const { offlineDraftForm } = require("../routes/sonara-creator-project-routes.cjs");
   const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   await page.goto(`${BASE_URL}/tools`);
-  await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js");
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-device-store.js` });
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-draft.js` });
+  await mountLocalComponent(page, offlineDraftForm(project, scope, esc),
+    "/creator-project-graph-core.js",
+    ["/creator-project-device-store.js", "/creator-project-draft.js"]);
 }
 async function addDraftCaption(page, text) {
   const form = page.locator("[data-draft-caption]");
