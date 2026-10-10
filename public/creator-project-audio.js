@@ -2,7 +2,8 @@
 // Proprietary source. No licence is granted; see LICENSE.
 (function () {
   "use strict";
-  const RATE = 44100, MAX_SECONDS = 180, MAX_BYTES = 64 * 1024 * 1024;
+  const DEFAULT_RATE = 44100, SUPPORTED_RATES = Object.freeze([44100, 48000]);
+  const MAX_SECONDS = 180, MAX_BYTES = 64 * 1024 * 1024;
   function readWav(buffer) {
     if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 44 || buffer.byteLength > 20 * 1024 * 1024) throw new Error("Use a PCM 16-bit WAV up to 20 MB.");
     const view = new DataView(buffer);
@@ -22,12 +23,31 @@
       }
       at = start + size + (size % 2);
     }
-    if (!format || !audio || format.encoding !== 1 || format.bits !== 16 || ![1, 2].includes(format.channels) || format.rate < 8000 || format.rate > 96000 || format.alignment !== format.channels * 2 || format.bytesPerSecond !== format.rate * format.alignment || !audio.size || audio.size % format.alignment) throw new Error("Use a PCM 16-bit mono or stereo WAV (8–96 kHz).");
+    if (!format || !audio || ![1, 2].includes(format.channels) || format.rate < 8000 || format.rate > 96000 ||
+      !((format.encoding === 1 && [16, 24, 32].includes(format.bits)) || (format.encoding === 3 && format.bits === 32)) ||
+      format.alignment !== format.channels * (format.bits / 8) ||
+      format.bytesPerSecond !== format.rate * format.alignment || !audio.size || audio.size % format.alignment) {
+      throw new Error("Use a mono or stereo PCM 16/24/32-bit or IEEE float 32-bit WAV (8–96 kHz).");
+    }
     const frames = audio.size / format.alignment;
     if (frames / format.rate > MAX_SECONDS) throw new Error("Use source recordings up to three minutes.");
     return { ...format, frames, view, start: audio.start };
   }
-  function render(graph, files) {
+  function readSample(audio, frame, channel) {
+    const at = audio.start + (frame * audio.channels + channel) * (audio.bits / 8);
+    if (audio.encoding === 3) {
+      const value = audio.view.getFloat32(at, true);
+      if (!Number.isFinite(value)) throw new Error("WAV contains non-finite float samples.");
+      return value * 32768;
+    }
+    if (audio.bits === 16) return audio.view.getInt16(at, true);
+    if (audio.bits === 32) return audio.view.getInt32(at, true) / 65536;
+    const unsigned = audio.view.getUint8(at) | (audio.view.getUint8(at + 1) << 8) | (audio.view.getUint8(at + 2) << 16);
+    return (unsigned >= 0x800000 ? unsigned - 0x1000000 : unsigned) / 256;
+  }
+  function render(graph, files, options = {}) {
+    const rate = options && options.sampleRate !== undefined ? options.sampleRate : DEFAULT_RATE;
+    if (!SUPPORTED_RATES.includes(rate)) throw new Error("Export sample rate must be 44100 or 48000 Hz.");
     if (!graph || graph.version !== 1 || !Array.isArray(graph.nodes) || graph.nodes.length > 500 || !files || typeof files !== "object") throw new Error("Reload the project before rendering.");
     const sources = new Map(graph.nodes.filter((node) => node.kind === "source").map((node) => [node.id, node]));
     const clips = graph.nodes.filter((node) => node.kind === "clip").sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -47,19 +67,19 @@
       if (totalBytes > MAX_BYTES) throw new Error("Use up to 64 MB of source recordings per render.");
       decoded.set(clip.sourceId, readWav(bytes));
     }
-    const count = Math.ceil(end * RATE / 1000), mix = new Float64Array(count * 2);
+    const count = Math.ceil(end * rate / 1000), mix = new Float64Array(count * 2);
     for (const clip of clips) {
       if (clip.muted) continue;
       const audio = decoded.get(clip.sourceId);
       if (clip.outMs * audio.rate / 1000 > audio.frames + 0.001) throw new Error("A clip extends past its selected recording. Correct its source out time.");
-      const start = Math.round(clip.startMs * RATE / 1000), length = Math.round((clip.outMs - clip.inMs) * RATE / 1000);
+      const start = Math.round(clip.startMs * rate / 1000), length = Math.round((clip.outMs - clip.inMs) * rate / 1000);
       for (let frame = 0; frame < length && start + frame < count; frame++) {
-        const position = clip.inMs * audio.rate / 1000 + frame * audio.rate / RATE;
+        const position = clip.inMs * audio.rate / 1000 + frame * audio.rate / rate;
         const before = Math.floor(position), after = Math.min(before + 1, audio.frames - 1), weight = position - before;
         for (let channel = 0; channel < 2; channel++) {
           const c = Math.min(channel, audio.channels - 1);
-          const a = audio.view.getInt16(audio.start + (before * audio.channels + c) * 2, true);
-          const b = audio.view.getInt16(audio.start + (after * audio.channels + c) * 2, true);
+          const a = readSample(audio, before, c);
+          const b = readSample(audio, after, c);
           mix[(start + frame) * 2 + channel] += a + (b - a) * weight;
         }
       }
@@ -67,21 +87,36 @@
     const output = new ArrayBuffer(44 + count * 4), view = new DataView(output);
     const write = (at, str) => { for (let i = 0; i < str.length; i++) view.setUint8(at + i, str.charCodeAt(i)); };
     write(0, "RIFF"); view.setUint32(4, output.byteLength - 8, true); write(8, "WAVE"); write(12, "fmt "); view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); view.setUint16(22, 2, true); view.setUint32(24, RATE, true); view.setUint32(28, RATE * 4, true); view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+    view.setUint16(20, 1, true); view.setUint16(22, 2, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 4, true); view.setUint16(32, 4, true); view.setUint16(34, 16, true);
     write(36, "data"); view.setUint32(40, count * 4, true);
-    let clipped = 0;
+    let clipped = 0, maxAmplitude = 0, sumSquares = 0;
+    const waveformPeaks = Array(64).fill(0);
     for (let i = 0; i < mix.length; i++) {
       if (mix[i] < -32768 || mix[i] > 32767) clipped++;
-      view.setInt16(44 + i * 2, Math.max(-32768, Math.min(32767, Math.round(mix[i]))), true);
+      const sample = Math.max(-32768, Math.min(32767, Math.round(mix[i])));
+      view.setInt16(44 + i * 2, sample, true);
+      const amplitude = Math.abs(sample / 32768);
+      maxAmplitude = Math.max(maxAmplitude, amplitude);
+      sumSquares += (sample / 32768) ** 2;
+      const bucket = Math.min(63, Math.floor(Math.floor(i / 2) * 64 / count));
+      waveformPeaks[bucket] = Math.max(waveformPeaks[bucket], amplitude);
     }
-    return { bytes: output, clippedSamples: clipped, durationMs: end };
+    const decibels = (amplitude) => amplitude > 0 ? Math.round(200 * Math.log10(amplitude)) / 10 : null;
+    return {
+      bytes: output, clippedSamples: clipped, durationMs: end, sampleRate: rate,
+      analysis: {
+        peakDbfs: decibels(maxAmplitude),
+        rmsDbfs: decibels(mix.length ? Math.sqrt(sumSquares / mix.length) : 0),
+        waveformPeaks
+      }
+    };
   }
   if (typeof module !== "undefined" && module.exports) { module.exports = { readWav, render }; return; }
   if (typeof document === "undefined") {
     self.onmessage = (event) => {
       // Dedicated-worker messages have an empty origin; reject window-style messages.
       if (event.origin !== "") return;
-      try { const result = render(event.data.graph, event.data.files); self.postMessage(result, [result.bytes]); }
+      try { const result = render(event.data.graph, event.data.files, event.data.options); self.postMessage(result, [result.bytes]); }
       catch (error) { self.postMessage({ error: error.message }); }
     };
     return;
@@ -89,9 +124,23 @@
   const form = document.querySelector("[data-project-audio]");
   if (!form) return;
   const status = form.querySelector("[role=status]"), link = form.querySelector("a[data-audio-download]"), preview = form.querySelector("audio"), run = form.querySelector("button");
+  const meter = form.querySelector("[data-waveform]");
   let worker = null, url = null, revision = 0;
+  function drawWaveform(peaks) {
+    if (!meter) return;
+    const ctx = meter.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, meter.width, meter.height);
+    if (!Array.isArray(peaks) || peaks.length !== 64) return;
+    ctx.fillStyle = window.getComputedStyle(meter).color;
+    peaks.forEach((value, i) => {
+      const height = Math.round(Math.max(0, Math.min(1, value)) * (meter.height - 8));
+      ctx.fillRect(Math.round(i * meter.width / 64), Math.floor((meter.height - height) / 2), Math.max(1, Math.floor(meter.width / 64) - 2), Math.max(1, height));
+    });
+  }
   function clear() {
     revision++;
+    drawWaveform(null);
     if (worker) worker.terminate(); worker = null;
     preview.pause(); preview.removeAttribute("src"); preview.load(); preview.hidden = true;
     if (url) URL.revokeObjectURL(url); url = null;
@@ -120,10 +169,13 @@
         url = URL.createObjectURL(new Blob([message.data.bytes], { type: "audio/wav" }));
         preview.src = url; preview.hidden = false;
         link.href = url; link.download = `project-${form.dataset.projectId}.wav`; link.hidden = false;
-        status.textContent = `Rendered ${message.data.durationMs / 1000} seconds on CPU. ${message.data.clippedSamples} clipped samples. Your recordings stayed on this device.`;
+        drawWaveform(message.data.analysis?.waveformPeaks);
+        const peak = message.data.analysis?.peakDbfs;
+        const rms = message.data.analysis?.rmsDbfs;
+        status.textContent = `Rendered ${message.data.durationMs / 1000} seconds at ${message.data.sampleRate / 1000} kHz. Peak ${peak === null ? "silence" : peak + " dBFS"}, RMS ${rms === null ? "silence" : rms + " dBFS"}. ${message.data.clippedSamples} clipped samples. Your recordings stayed on this device.`;
       };
       worker.onerror = () => { clear(); status.textContent = "This browser could not render the recording. Try smaller WAV files."; };
-      worker.postMessage({ graph: JSON.parse(form.dataset.audioGraph), files }, Object.values(files));
+      worker.postMessage({ graph: JSON.parse(form.dataset.audioGraph), files, options: { sampleRate: Number(form.elements.sampleRate.value) } }, Object.values(files));
     } catch (error) { if (current === revision) { clear(); status.textContent = error.message; } }
   });
   window.addEventListener("pagehide", clear);
