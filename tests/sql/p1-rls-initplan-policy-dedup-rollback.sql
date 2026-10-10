@@ -3,9 +3,11 @@
 -- Canonical migration 20261008100000_tighten_service_role_rls_policies.sql
 -- already hardened 21 pure service-role policies and 4 ownership policies.
 -- Never revert those policies to pre-hardening auth.role() predicates.
--- This probe requires the exact hardened definitions and exercises one
--- identically scoped subscriptions policy dedup inside a rolled-back
--- transaction; any unexpected role/qual/command/check still aborts.
+-- This probe requires exact hardened definitions and the canonical
+-- migration-defined subscriptions_select_member policy, without modifying it.
+-- Two additional preview-only subscription policies are not created by
+-- migrations and must not be expected in a native replay. Any unexpected
+-- role, predicate, command, or extra policy still aborts.
 -- Existing P0 synthetic role and tenant RLS write/deny matrix runs before it.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -62,16 +64,29 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in all security dimensions
- -- before one can safely be dropped.
+ -- The two duplicate SELECT policies found on the connected preview
+ -- database are NOT produced by this migration history. They cannot be used
+ -- as a baseline for native replay. Require their absence here, not their
+ -- fabricated presence; a real drift remains a hard failure.
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+                          'Users can view their own subscription')) <> 0 THEN
+   RAISE EXCEPTION 'native replay unexpectedly contains preview-only subscriptions policies; abort';
+ END IF;
+ -- Migration 011 creates this genuine member/admin subscription policy.
+ -- Require the role, command, nontrivial membership predicate, and lack of
+ -- INSERT/UPDATE WITH CHECK; do not relax access to satisfy a lint result.
+ IF (SELECT count(*) FROM pg_policies
+     WHERE schemaname='public' AND tablename='subscriptions'
+       AND policyname='subscriptions_select_member'
+       AND permissive='PERMISSIVE'
+       AND roles=ARRAY['authenticated']::name[]
+       AND cmd='SELECT'
+       AND qual LIKE '%is_org_member(organization_id)%'
+       AND qual LIKE '%is_admin_or_founder()%'
+       AND with_check IS NULL) <> 1 THEN
+   RAISE EXCEPTION 'canonical subscriptions_select_member definition drifted; abort';
  END IF;
 END
 $drift$;
@@ -80,7 +95,9 @@ $drift$;
 -- Their exact hardened definitions were checked above, and a regression
 -- in any of those policies blocks this replay rather than broadening access.
 
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+-- No subscription policy DDL is performed in the disposable replay.
+-- Preview-only duplicate removal requires a separate live catalog review,
+-- approved forward migration and user/role allow-deny proof.
 
 DO $postflight$
 DECLARE bad int;
@@ -100,14 +117,18 @@ BEGIN
  END IF;
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
+       AND policyname='subscriptions_select_member'
+       AND permissive='PERMISSIVE'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)')<>1
+       AND qual LIKE '%is_org_member(organization_id)%'
+       AND qual LIKE '%is_admin_or_founder()%'
+       AND with_check IS NULL) <> 1
  OR (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription')<>0
- THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
+       AND policyname IN ('Users can view own subscriptions',
+                          'Users can view their own subscription')) <> 0
+ THEN RAISE EXCEPTION 'P1 canonical subscription policy postflight drift; abort'; END IF;
 END
 $postflight$;
 SELECT 'p1_rls_hygiene_staging_passed';
