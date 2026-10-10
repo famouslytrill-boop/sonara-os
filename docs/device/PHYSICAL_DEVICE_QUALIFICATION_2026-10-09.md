@@ -31,10 +31,11 @@ A record must contain:
 - browser name/version;
 - install mode;
 - build identity;
-- SHA-256 of the reviewed evidence bundle;
+- non-secret reference where the reviewed evidence bundle can be retrieved;
+- SHA-256 of that reviewed evidence bundle;
 - one result for every required case.
 
-The evidence bundle may live outside Git because videos/screenshots/device logs can be large and may accidentally contain account information. Remove secrets, cookies, tokens, email addresses, customer data, precise location and raw sensor streams before retaining it. The repository stores only the SHA-256 digest needed to establish which reviewed bundle the JSON record refers to.
+The evidence bundle may live outside Git because videos/screenshots/device logs can be large and may accidentally contain account information. The reference must identify the controlled artifact/location without embedding credentials or signed secret URLs. Remove secrets, cookies, tokens, email addresses, customer data, precise location and raw sensor streams before retaining it. The repository stores only the SHA-256 digest needed to establish which reviewed bundle the JSON record refers to.
 
 ## Common physical-device cases
 
