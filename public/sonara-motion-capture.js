@@ -26,7 +26,10 @@
   const capsNode = document.querySelector("[data-sonara-device-capabilities]");
   const feedbackButton = document.querySelector("[data-sonara-feedback-test]");
   const feedbackStatus = document.querySelector("[data-sonara-feedback-status]");
+  const receiptButton = document.querySelector("[data-sonara-motion-receipt]");
+  const receiptStatus = document.querySelector("[data-sonara-motion-receipt-status]");
   const device = window.SONARA && window.SONARA.sensoryDevice;
+  const receiptApi = window.SONARA && window.SONARA.deviceDiagnosticReceipt;
 
   if (!startButton || !cancelButton || !statusNode || !device) return;
 
@@ -42,6 +45,12 @@
   let active = null;
   let permissionPending = false;
   let pendingPost = null;
+  const diagnostic = {
+    browserPermissionState: device.supports().deviceMotion ? "not_requested" : "unsupported",
+    captureState: "not_run",
+    boundedSampleCount: 0,
+    hiddenInterruptionObserved: false
+  };
 
   function setStatus(message) {
     statusNode.textContent = message;
@@ -69,7 +78,7 @@
     setButtons(false);
   }
 
-  function cancelCapture(message) {
+  function cancelCapture(message, state = "cancelled") {
     if (!active && !permissionPending && !pendingPost) return;
     stopListener();
     permissionPending = false;
@@ -77,6 +86,7 @@
       pendingPost.abort();
       pendingPost = null;
     }
+    diagnostic.captureState = state;
     setButtons(false);
     setStatus(message || "Motion sample cancelled. Nothing was saved.");
   }
@@ -136,11 +146,14 @@
     if (!active) return;
     const snapshot = active;
     if (document.hidden) {
-      cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.");
+      diagnostic.hiddenInterruptionObserved = true;
+      cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.", "hidden_interrupted");
       return;
     }
     if (snapshot.sampleCount === 0) {
       stopListener();
+      diagnostic.captureState = "no_readings";
+      diagnostic.boundedSampleCount = 0;
       setStatus("No motion readings arrived. Nothing was saved.");
       return;
     }
@@ -166,6 +179,8 @@
     stopListener();
     setStatus("Saving one coarse motion summary…");
     const saved = await postSummary(payload);
+    diagnostic.boundedSampleCount = snapshot.sampleCount;
+    diagnostic.captureState = saved.ok ? "saved" : "save_failed";
     setStatus(saved.ok
       ? `Saved one coarse summary from ${snapshot.sampleCount} foreground sample${snapshot.sampleCount === 1 ? "" : "s"}.`
       : "The motion summary was not saved. Nothing will retry in the background.");
@@ -186,6 +201,8 @@
       return;
     }
     if (!device.supports().deviceMotion) {
+      diagnostic.browserPermissionState = "unsupported";
+      diagnostic.captureState = "unsupported";
       setStatus("Device motion is not supported by this browser.");
       return;
     }
@@ -195,6 +212,11 @@
     setStatus("Waiting for motion permission…");
     const permission = await device.requestMotionPermission();
     permissionPending = false;
+    diagnostic.browserPermissionState = permission && permission.ok === true
+      ? "granted"
+      : permission && /denied/.test(String(permission.reason || ""))
+        ? "denied"
+        : "failed";
 
     if (document.hidden) {
       setButtons(false);
@@ -202,6 +224,7 @@
       return;
     }
     if (!permission || permission.ok !== true) {
+      diagnostic.captureState = diagnostic.browserPermissionState === "denied" ? "permission_denied" : "permission_failed";
       setButtons(false);
       setStatus("Motion permission was not granted. Nothing was saved.");
       return;
@@ -209,6 +232,7 @@
 
     const listener = device.listenMotion(addSample);
     if (!listener || listener.ok !== true) {
+      diagnostic.captureState = "unsupported";
       setButtons(false);
       setStatus("This browser could not start a motion sample.");
       return;
@@ -239,15 +263,54 @@
     });
   }
 
+  if (receiptButton) {
+    receiptButton.addEventListener("click", function () {
+      if (!receiptApi || typeof receiptApi.build !== "function" || typeof receiptApi.fileName !== "function") {
+        if (receiptStatus) receiptStatus.textContent = "Diagnostic receipt support is unavailable on this page.";
+        return;
+      }
+      const receipt = receiptApi.build({
+        releaseSha: config.releaseSha,
+        secureContext: window.isSecureContext === true,
+        pageVisibleAtExport: document.hidden !== true,
+        applicationPermissionState: config.applicationPermissionState,
+        deviceMotionSupported: device.supports().deviceMotion === true,
+        browserPermissionState: diagnostic.browserPermissionState,
+        captureState: diagnostic.captureState,
+        boundedSampleCount: diagnostic.boundedSampleCount,
+        hiddenInterruptionObserved: diagnostic.hiddenInterruptionObserved,
+        reducedMotionPreferred: typeof window.matchMedia === "function"
+          && window.matchMedia("(prefers-reduced-motion: reduce)").matches === true
+      });
+      const blob = new Blob([JSON.stringify(receipt, null, 2) + "\n"], { type: "application/json" });
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = receiptApi.fileName(receipt);
+      anchor.rel = "noopener";
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+      if (receiptStatus) {
+        receiptStatus.textContent = receipt.releaseSha
+          ? "Diagnostic receipt downloaded. It contains status evidence only, not raw motion readings or account data."
+          : "Diagnostic receipt downloaded, but this runtime does not expose an exact release SHA and cannot qualify a release.";
+      }
+    });
+  }
+
   startButton.addEventListener("click", startCapture);
   cancelButton.addEventListener("click", function () {
-    cancelCapture("Motion sample cancelled. Nothing was saved.");
+    cancelCapture("Motion sample cancelled. Nothing was saved.", "cancelled");
   });
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.");
+    if (document.hidden) {
+      diagnostic.hiddenInterruptionObserved = true;
+      cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.", "hidden_interrupted");
+    }
   });
   window.addEventListener("pagehide", function () {
-    cancelCapture("Motion sample stopped. Nothing was saved.");
+    diagnostic.hiddenInterruptionObserved = true;
+    cancelCapture("Motion sample stopped. Nothing was saved.", "hidden_interrupted");
   });
 
   showCapabilities();
