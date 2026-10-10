@@ -263,6 +263,40 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", (
     }
   });
 
+  it("accepts a modern low-privilege publishable key without changing legacy routes", () => {
+    const published = requireVerifiedUserScopedRead({
+      ...valid,
+      config: {
+        publishableKey: "sb_publishable_test_public", secretKey: "sb_secret_test_private",
+        serviceRoleKey: "legacy-private-key"
+      }
+    });
+    assert.equal(published.headers.apikey, "sb_publishable_test_public");
+    assert.equal(published.headers.Authorization, "Bearer verified-user-access-token");
+    assert.equal(isVerifiedUserScopedRead(published, {
+      table: valid.table, organizationId: org, userId: user
+    }), true);
+    assert.equal(JSON.stringify(published).includes("verified-user-access-token"), false);
+  });
+
+  it("refuses modern privileged keys and API keys masquerading as bearer tokens", () => {
+    const keys = {
+      publishableKey: "sb_publishable_test_public", secretKey: "sb_secret_test_private",
+      serviceRoleKey: "legacy-private-key"
+    };
+    for (const override of [
+      { config: { ...keys, publishableKey: keys.secretKey } },
+      { config: { ...keys, publishableKey: keys.serviceRoleKey } },
+      { accessToken: keys.secretKey, config: keys },
+      { accessToken: keys.publishableKey, config: keys },
+      { accessToken: "sb_secret_other", config: keys },
+      { accessToken: "sb_publishable_other", config: keys }
+    ]) {
+      assert.throws(() => requireVerifiedUserScopedRead({ ...valid, ...override }),
+        SupabaseClientError);
+    }
+  });
+
   it("rejects failed or forged scope, unauthorized credentials, and RLS proof failures", () => {
     for (const bad of [
       { accessToken: null }, { accessToken: CONFIG.serviceRoleKey },
