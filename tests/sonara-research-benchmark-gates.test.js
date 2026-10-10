@@ -23,7 +23,7 @@ function idea(overrides = {}) {
     costCeilingUsd: 400,
     customerCommitments: 1,
     evidenceUrls: ["https://www.nist.gov/"],
-    riskTags: [],
+    riskTags: ["read_only"],
     customerValue: 4, sharedReuse: 5, sourceQuality: 4,
     deliveryFeasibility: 3, costControl: 4, safetyReadiness: 5,
     ...overrides
@@ -154,7 +154,7 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
   });
 
   it("refuses malformed, duplicate and oversized risk classifications", () => {
-    for (const riskTags of [null, ["read_only", "read_only"], Array(17).fill("read_only")]) {
+    for (const riskTags of [null, [], ["read_only", "read_only"], Array(17).fill("read_only")]) {
       const result = scoreCapabilityIdeas([idea({ riskTags })])[0];
       assert.equal(result.status, "specialist_and_owner_review");
       assert.ok(result.missing.includes("risk_classification"));
@@ -188,11 +188,33 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(packet.claimCount, 1);
     assert.equal(packet.acceptedEvidenceCount, 2);
     assert.equal(packet.claims[0].supports, 2);
+    assert.equal(packet.claims[0].sourceHostCount, 2);
+    assert.equal(packet.claims[0].multipleObservationsFromOneHost, false);
     assert.equal(packet.claims[0].independentlyVerified, false);
     assert.equal(packet.claims[0].authorizedForPublication, false);
     assert.equal(packet.claims[0].authorizedForProduction, false);
     assert.equal(packet.authorizedForPublication, false);
     assert.equal(packet.authorizedForProduction, false);
+  });
+
+  it("flags same-host evidence concentration without inventing independent publishers", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "company_sales", stance: "supports",
+          observedAt: "2026-10-08", sourceUrl: "https://www.publisher.example/a" },
+        { claimId: "company_sales", stance: "supports",
+          observedAt: "2026-10-09", sourceUrl: "https://publisher.example/b" }
+      ]
+    });
+    assert.equal(packet.claimCount, 1);
+    assert.equal(packet.claims[0].evidenceCount, 2);
+    assert.equal(packet.claims[0].sourceHostCount, 1);
+    assert.equal(packet.claims[0].multipleObservationsFromOneHost, true);
+    assert.equal(packet.claims[0].independentlyVerified, false);
+    assert.equal(packet.authorizedForPublication, false);
+    assert.equal(packet.authorizedForProduction, false);
+    assert.equal(Object.prototype.hasOwnProperty.call(packet.claims[0], "sourceHosts"), false);
   });
 
   it("isolates contradictions without concealing disagreement", () => {
