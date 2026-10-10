@@ -1,4 +1,15 @@
 # Creator Studio: DAW, audio/video I/O and interchange — 2026-10-10
+## Format 1 multitrack MIDI increment (stacked draft; October 10)
+
+Status: code and focused tests on `feature/creator-midi-format1-20261010`, stacked on #614. Not live, not merged, and not a native DAW session.
+
+`public/creator-project-midi.js` now exposes `writeMidiFormat1({bpm, tracks})`. It writes SMF Format 1 with a separate tempo/conductor `MTrk`, 480 PPQ, one meta track name + independent note stream per authored instrument track, and an End-of-Track marker per track. Track names are explicitly ASCII 1–32 characters to avoid corrupt or ambiguous byte-length framing; MIDI channels must be unique between source tracks to avoid cross-track same-channel note-off collisions. Supported: 1–4 tracks, 128 combined notes, 40–240 BPM, explicit row-based tick timing, note duration, velocity and channel. Every note is user-entered; no audio-to-MIDI transcriber or synth is implied.
+
+The paid active Creator project screen exposes a two-track local download form using the existing no-upload MIDI client script, while the pure format writer supports up to four tracks for future reviewed UI. `tests/creator-midi-format1.test.js` checks conductor bytes, chunk lengths, independent channels, notes matching Format 0 event streams, track ordering, byte repeatability and invalid/oversized inputs. `browser-tests/public-experience.spec.js` adds actual Format 1 download, byte framing and no-upload browser proof (requires Playwright execution; presence is not passing evidence).
+
+Standard: https://midi.org/standard-midi-files. Limitations: no time-signature editor, markers, program changes, key signature, MPE, MIDI 2.0 UMP, live device I/O, audio rendering or project persistence.
+
+
 ## Local Standard MIDI File export increment (stacked feature branch)
 
 Status: development implementation on `feature/creator-midi-interchange-20261010` stacked on #613 → #611. This is **not** a native DAW session, uploaded MIDI import, persistent note sequencer, published feature, or cleared full CI.
