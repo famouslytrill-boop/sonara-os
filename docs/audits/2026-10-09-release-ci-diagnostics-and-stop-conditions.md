@@ -96,3 +96,10 @@ The staging-only SQL now checks 25 exact names, role sets, commands, predicates 
 **Stop conditions:** Do not merge or deploy until full exact-head checks pass. A passing *rolled-back* duplicate-policy simulation does not authorize dropping the duplicate in production. Require tenant isolation deny/allow tests, reviewed grants, migration generation with approved CLI procedure, rollback rehearsal, and a verified target project for any future database change. Existing applied migrations remain untouched.
 
 References: https://github.com/famouslytrill-boop/sonara-os/actions/runs/37961827643, https://supabase.com/docs/guides/database/postgres/row-level-security, https://www.postgresql.org/docs/current/view-pg-policies.html .
+
+
+### Separate-connection rollback acceptance (October 10)
+
+Native replay now runs an additional `behaves(psql, "P1 transaction did not persist the duplicate-policy trial", ...)` query **after** the SQL test's `ROLLBACK`. The helper opens a new psql invocation/connection, so it must find **both identical subscriptions read policies** still in `pg_policies` and return `p1_subscription_duplicate_rollback_proven`. A missing/restored-differently policy or a committed trial fails the release gate. The query is SELECT-only, so this verifies rollback without changing any database.
+
+`tests/native-migration-replay-installer-resilience.test.js` asserts the existence, ordering, exact role/predicate/count and read-only character of the post-rollback test. **7 targeted tests passed in the JavaScript harness**. This is contract evidence only until the native PostgreSQL matrix runs successfully on the final SHA.
