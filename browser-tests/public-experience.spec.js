@@ -218,6 +218,38 @@ test.describe("public experience browser contract", () => {
     expect(errors).toEqual([]); expect(uploads).toEqual([]);
   });
 
+  test("Creator MIDI sketch downloads an authentic Format 0 file without uploads", async ({ page }) => {
+    const { midiSketchForm } = require("../routes/sonara-creator-project-routes.cjs");
+    const errors = [], uploads = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.goto(`${BASE_URL}/tools`);
+    await mountLocalComponent(page, midiSketchForm(), "/creator-project-midi.js");
+    await page.locator('[data-midi-export] [name="notes"]').fill("C4,0,480,100");
+    await page.getByRole("button", { name: "Create MIDI file" }).click();
+    await expect(page.locator("[data-midi-export] [role=status]")).toContainText("Standard MIDI File Format 0 ready");
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByText("Download MIDI", { exact: true }).click()
+    ]);
+    expect(download.suggestedFilename()).toBe("sonara-note-sketch.mid");
+    const bytes = require("node:fs").readFileSync(await download.path());
+    expect(bytes.toString("ascii", 0, 4)).toBe("MThd");
+    expect(bytes.readUInt32BE(4)).toBe(6);
+    expect(bytes.readUInt16BE(8)).toBe(0);
+    expect(bytes.readUInt16BE(10)).toBe(1);
+    expect(bytes.readUInt16BE(12)).toBe(480);
+    expect(bytes.toString("ascii", 14, 18)).toBe("MTrk");
+    expect(bytes.readUInt32BE(18)).toBe(bytes.length - 22);
+    expect(bytes.subarray(22).toString("hex")).toBe("00ff510307a12000903c648360803c0000ff2f00");
+    await page.locator('[data-midi-export] [name="notes"]').fill("C4,0,480,0");
+    await expect(page.getByText("Download MIDI", { exact: true })).toBeHidden();
+    await page.getByRole("button", { name: "Create MIDI file" }).click();
+    await expect(page.locator("[data-midi-export] [role=status]")).toContainText("Velocity");
+    expect(uploads).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
   test("Creator local image processing exports exact CPU pixels without uploads", async ({ page }) => {
     const errors = [], uploads = [];
     page.on("pageerror", (error) => errors.push(error.message));
