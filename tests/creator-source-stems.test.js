@@ -92,6 +92,18 @@ describe("Creator Studio synchronized source stem handoff", () => {
     assert.throws(() => renderSourceStems(graph(nodes), {}), /at most four/);
   });
 
+  it("caps aggregate selected source bytes at 64 MB even when each source is below 20 MB", () => {
+    const nodes = [];
+    const files = {};
+    const over = new ArrayBuffer(17 * 1024 * 1024);
+    for (let i = 0; i < 4; i++) {
+      const id = "src" + i;
+      nodes.push(source(id), clip("clip" + i, id));
+      files[id] = over;
+    }
+    assert.throws(() => renderSourceStems(graph(nodes), files), /64 MB/);
+  });
+
   it("rejects a 48k three-stem export exceeding 96 MB before allocating output", () => {
     const nodes = [source("a", 180000), source("b", 180000), source("c", 180000),
       clip("one", "a", 0, 0, 180000), clip("two", "b", 0, 0, 180000),
