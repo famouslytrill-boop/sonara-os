@@ -158,6 +158,49 @@ describe("SONARA read-only Actions queue diagnostics", () => {
     const zero = analyzeActionsQueueSnapshot(base({ repositoryRunCounts: { queued: 200, inProgress: 0 } }));
     assert.equal(zero.repositoryLoad.queuedToRunningRatio, null);
   });
+  it("links job IDs to workflow run IDs and flags partial multi-run coverage", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      workflowRuns: [
+        { id: 101, head_sha: headSha, status: "completed", conclusion: "success" },
+        { id: 102, head_sha: headSha, status: "completed", conclusion: "success" }
+      ],
+      jobs: [{ run_id: 101, status: "completed", conclusion: "success" }]
+    }));
+    assert.ok(result.issueCodes.includes("workflow_job_coverage_partial"));
+    assert.equal(result.jobLinkage.workflowIdsObserved, 2);
+    assert.equal(result.jobLinkage.jobRunIdsObserved, 1);
+    assert.equal(result.jobLinkage.everyWorkflowIdRepresentedInSample, false);
+  });
+  it("detects jobs from another workflow and from another head", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ run_id: 999, head_sha: "b".repeat(40), status: "completed", conclusion: "success" }]
+    }));
+    assert.ok(result.issueCodes.includes("job_run_id_not_in_workflow_snapshot"));
+    assert.ok(result.issueCodes.includes("job_head_sha_mismatch"));
+    assert.equal(result.jobLinkage.unmatchedRunId, 1);
+  });
+  it("treats missing job run IDs as unverified when workflow IDs exist", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ status: "completed", conclusion: "success" }]
+    }));
+    assert.ok(result.issueCodes.includes("job_run_id_unverified"));
+    assert.equal(result.jobLinkage.everyWorkflowIdRepresentedInSample, false);
+  });
+  it("can verify complete sampled job associations but never release", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ run_id: 101, head_sha: headSha, status: "completed", conclusion: "success" }]
+    }));
+    assert.deepEqual(result.issueCodes, []);
+    assert.equal(result.jobLinkage.everyWorkflowIdRepresentedInSample, true);
+    assert.equal(result.jobLinkage.completeJobInventoryVerified, false);
+    assert.equal(result.requiredChecksPolicyVerified, false);
+    assert.equal(result.exactHeadReleaseGreen, false);
+    assert.equal(result.productionAuthorized, false);
+  });
   it("does not disclose raw job fields or tokens in the generated summary", () => {
     const result = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", secret: "never_echo_me", created_at: "2026-10-09T22:00:00Z" }] }));
     assert.ok(!JSON.stringify(result).includes("never_echo_me"));
