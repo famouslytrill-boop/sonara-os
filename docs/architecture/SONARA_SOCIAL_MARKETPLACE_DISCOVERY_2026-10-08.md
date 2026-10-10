@@ -189,3 +189,94 @@ file without failures. This is not the full Node 24 Mocha, pnpm, typecheck,
 lint, build, CI, native PostgreSQL, browser or production test suite.
 
 This branch stacks on PR #602. Neither branch is merged or deployed.
+
+## October 9 Phase 3: individual viewer preference CAS and consent evidence (DRAFT)
+
+**Repo components:** lib/sonara-social-preference-policy.cjs and
+docs/sql-proposals/social-feed-viewer-preferences-cas.sql.
+The SQL file is a **review-only proposal**, not a Supabase migration or
+statement of applied database changes. The preference policy is a pure
+non-executing mutation proposal, not a route.
+
+### Live schema inspection (read-only, connected preview only)
+
+The accessible project ref yqncsonkxgwhcxedgevk reports ACTIVE_HEALTHY on a
+PostgreSQL 17 preview channel; it is **not verified as SONARA production**.
+Its public schema has user_preferences and profile_settings with personal
+user_id columns, but user_preferences also has an optional workspace_id and
+stores language, units, appearance and general notifications. It has existing
+self-scoped authenticated SELECT, INSERT and UPDATE policies. Creator follows,
+Growth channels/posts and reports already have their own tables. We did not
+read any customer preference values or mutate the database.
+
+**Decision:** do not mix personal social privacy with tenant workspaces or
+introduce duplicate follow/report/block tables. Propose a single user-owned
+record in an *unexposed* sonara_social_private schema, with an append-only
+Discover consent decision record. Actual blocks/follows must come from their
+canonical verified security sources. Age, country and membership are also
+separate trusted inputs, not user-editable social preference fields.
+
+### Supported proposal mutations
+
+- Add/remove topic; mute/unmute topic or normalized whole-word keyword
+- Hide/unhide one public post UUID
+- Set generated-content preference to include, reduce or exclude
+- Opt into Discover **only with independently verified, version-bound consent**
+- Opt out of Discover without requiring a new consent receipt
+
+All mutations require a server-authenticated actor ID, matching personal
+record owner, a complete valid setting record, a positive current revision and
+an exactly matching expected revision. Invalid or oversized inputs deny.
+Unknown command fields deny rather than being silently dropped.
+The planner's returned object is a **candidate only**; it never writes SQL,
+emails customers, changes blocks/follows or publishes anything.
+
+### Atomic write proposal and guarantees
+
+The unexecuted SQL design uses a private schema, explicit grants, RLS, service
+role restricted to approved server code, a single viewer_id primary key,
+row-locked FOR UPDATE serialization and expected revision compare-and-swap.
+It records Discover opt-in and opt-out changes in a consent event table.
+The storage engine must reject stale writes and must not auto-retry a stale
+unblock or undo newer privacy choices. Consent writes must be atomic with
+their audit event. A missing initialized row is an error, not an empty set.
+
+**Critical boundary:** a Supabase service-role credential bypasses RLS and
+can directly write if it has table privileges. The CAS function protects only
+callers that actually use it; it cannot contain a compromised service-role key.
+The runtime must authenticate the viewer and use a trusted restricted DB
+adapter. The private-schema function is SECURITY INVOKER, not an exposed
+SECURITY DEFINER RPC. A new database connection/role, PostgREST schema
+exposure and all grants require separate independent assessment.
+
+### Before PostgreSQL acceptance
+
+1. Verify which Supabase project is truly production and compare migration
+   checksums and source-controlled security policies.
+2. Use Supabase CLI to generate a numbered migration **on an isolated clone**;
+   review schema/grants, row ownership, retention and deletion behavior.
+3. Prove two simultaneous writers on the same viewer + expected revision
+   yield exactly one accepted changed revision; run two-session PostgreSQL
+   tests, not just mocked JS.
+4. Test missing-row, forged viewer ID, anon/authenticated role denial,
+   service-role-only function execution, zero grants in exposed API schemas,
+   rollback of consent audit insertion failure, user export/deletion.
+5. Verify real viewer session revocation, tenant A/B isolation, and that block
+   changes cannot be bypassed by following, messaging, or comment actions.
+6. Complete full exact-head pnpm, Node, security, RLS, browser and release CI
+   and protect main. Only then consider owner-approved one-account sandbox
+   preview behind an OFF-by-default flag.
+
+**This change neither merges #602/#603 nor restores the intentionally offline
+website.** No production data or customer permissions are changed.
+
+### Reference basis
+
+- Supabase RLS and Data API grants:
+  https://supabase.com/docs/guides/database/postgres/row-level-security
+- Supabase SELECT/UPDATE ownership, security definer and search_path guidance:
+  https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv
+- Google Play UGC rules for blocking, reporting and ongoing moderation:
+  https://support.google.com/googleplay/android-developer/answer/9876937
+- Apple App Store user-generated-content guideline 1.2:
+  https://developer.apple.com/app-store/review/guidelines/
