@@ -33,15 +33,10 @@ function runtimeFiles() {
 
 const STALE_REASONING = [
   "",
-  "docs/owner/OWNER-STEPS.md item 4 says revoking EXECUTE from `authenticated` cannot",
-  "break this product, because no read is made as `authenticated` -- every table read",
-  "uses the service-role key, which bypasses row level security.",
-  "",
-  "That is no longer true. A user-scoped read means policies are evaluated on a live",
-  "path, which means the functions those policies call are on a live path too, which",
-  "is exactly the lockout item 4 warns about.",
-  "",
-  "Re-read and rewrite item 4 before anybody revokes anything."
+  "Legacy Supabase server header contract changed. Re-audit all user-scoped",
+  "and service-role runtime consumers, connected database policies and",
+  "EXECUTE grants before changing an owner authorization setting.",
+  "docs/owner/OWNER-STEPS.md item 4 requires preview tenant and rollback proof."
 ].join("\n  ");
 
 describe("the reasoning behind the revoke test is still true", () => {
