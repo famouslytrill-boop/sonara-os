@@ -145,6 +145,26 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.ok(migration.includes("revoke all on public.inventory_stock_count_requests from public,anon,authenticated,service_role"));
     assert.ok(migration.includes("grant select,insert on public.inventory_stock_count_requests to service_role"));
   });
+  it("accepts active tenant-bound staff membership without granting employee review authority", () => {
+    const blocks = [
+      migration.slice(migration.indexOf("create function public.sonara_apply_stock_count_adjustment(")),
+      migration.slice(migration.indexOf("create function public.sonara_submit_stock_count_request(")),
+      migration.slice(migration.indexOf("create function public.sonara_review_stock_count_request("))
+    ];
+    for (const sql of blocks) {
+      assert.ok(sql.includes("from public.organization_memberships m"));
+      assert.ok(sql.includes("from public.business_memberships b"));
+      assert.ok(sql.includes("b.organization_id=p_organization_id") ||
+        sql.includes("b.organization_id = p_organization_id"));
+      assert.ok(sql.includes("b.status='active'") || sql.includes("b.status = 'active'"));
+    }
+    assert.ok(migration.includes("lower(b.role) in ('owner','admin','business_owner')"));
+    assert.ok(behavior.includes("business_memberships(organization_id,workspace_id,user_id,role,status)"));
+    assert.ok(behavior.includes("'staff-count-002',0,7"));
+    assert.ok(behavior.includes("'stock_review_owner_role_required'"));
+    assert.ok(behavior.includes("'stock_count_actor_unauthorized'"));
+    assert.ok(behavior.includes("'business-only employee and owner produce a single atomic stock adjustment'"));
+  });
   it("executes fixtures plus independent-connection races in the required database replay", () => {
     assert.match(replay,/tests\/sql\/stock-adjustment-journal\.sql/);
     assert.match(replay,/tests\/sql\/stock-adjustment-concurrency\.sql/);
