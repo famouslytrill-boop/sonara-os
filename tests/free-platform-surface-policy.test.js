@@ -630,3 +630,225 @@ describe("unapplied private SQL proposal contract (static checks only)", () => {
     assert.match(sql, /revoke all on function sonara_social_private\.cas_viewer_feed_preferences/);
   });
 });
+
+
+describe("attested Growth public discovery projection (unmounted, no real source)", () => {
+  const { projectGrowthPost, createGrowthPublicProjectionSource } =
+    require("../lib/sonara-growth-public-projections.cjs");
+  const { createCommunityFeedReader } = require("../lib/sonara-community-feed-reader.cjs");
+  const VIEWER = "33333333-3333-4333-8333-333333333333";
+  const POST = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const CHANNEL = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const ORG = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const NOW = new Date("2026-10-09T12:03:00.000Z");
+  const PG_STAMP = "2026-10-09T12:00:00.123456+00:00";
+  const post = (override = {}) => ({
+    id: POST, channel_id: CHANNEL, organization_id: ORG,
+    state: "published", kind: "post", body: "First line\nSecond line",
+    created_at: PG_STAMP, updated_at: PG_STAMP,
+    private_token: "never publish this",
+    author_user_id: VIEWER, ...override
+  });
+  const channel = (override = {}) => ({
+    id: CHANNEL, organization_id: ORG, state: "public", handle: "studio",
+    title: "Private business identity", updated_at: PG_STAMP,
+    private_customer_list: ["sensitive"], ...override
+  });
+  const proof = (override = {}) => ({
+    postId: POST, channelId: CHANNEL, organizationId: ORG,
+    postVersion: PG_STAMP, channelVersion: PG_STAMP,
+    moderationStatus: "approved", rightsStatus: "cleared",
+    sponsored: false, aiGenerated: false, originalityVerified: true,
+    quality: 0.25, diversity: 0.5,
+    verifiedAt: "2026-10-09T12:02:00.000Z",
+    expiresAt: "2026-10-09T12:10:00.000Z",
+    topic: "music", ageRating: "general", territory: "global",
+    private_report_notes: ["sensitive"], ...override
+  });
+  function source({ rows, entries, throwRows, throwProof } = {}) {
+    const calls = { growth: 0, attestations: 0 };
+    const read = createGrowthPublicProjectionSource({
+      clock: () => new Date(NOW),
+      loadGrowthRows: async (query) => {
+        calls.growth++;
+        assert.equal(query.scope, "public_source_reviewed");
+        assert.equal(query.cap <= 250, true);
+        if (throwRows) throw new Error("private database key");
+        return { ok: true, rows: rows || [{ post: post(), channel: channel() }] };
+      },
+      loadAttestations: async (query) => {
+        calls.attestations++;
+        assert.equal(query.scope, "discovery_proof");
+        if (throwProof) throw new Error("private reviewer details");
+        return { ok: true, entries: entries || [proof()] };
+      }
+    });
+    return { read, calls };
+  }
+
+  it("accepts canonical PostgreSQL microsecond timestamps and approved public content", () => {
+    const item = projectGrowthPost(post(), channel(), proof(), NOW);
+    assert.equal(item.title, "First line");
+    assert.equal(item.href, "/channels/studio");
+    assert.equal(item.product, "growth_studio");
+    assert.equal(item.publicProjection, true);
+    assert.equal(item.moderationStatus, "approved");
+    assert.equal(item.rightsStatus, "cleared");
+  });
+
+  it("exposes an explicit public projection allowlist, never user, org or evidence fields", () => {
+    const item = projectGrowthPost(post(), channel(), proof(), NOW);
+    assert.deepEqual(Object.keys(item).sort(), [
+      "id", "publisherId", "product", "href", "title", "publishedAt",
+      "publicProjection", "visibility", "status", "moderationStatus",
+      "rightsStatus", "sponsored", "aiGenerated", "ageRating", "territory",
+      "allowedCountries", "topic", "quality", "originalityVerified", "diversity"
+    ].sort());
+    assert.equal(JSON.stringify(item).includes("sensitive"), false);
+    assert.equal(JSON.stringify(item).includes("never publish"), false);
+    assert.equal(JSON.stringify(item).includes(ORG), false);
+    assert.equal(JSON.stringify(item).includes(VIEWER), false);
+  });
+
+  it("rejects private or removed Growth content even with favorable proof", () => {
+    assert.equal(projectGrowthPost(post({ state: "removed" }), channel(), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post(), channel({ state: "draft" }), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post(), channel({ state: "hidden" }), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post({ channel_id: ORG }), channel(), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post({ organization_id: VIEWER }), channel(), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post(), channel({ handle: "../admin" }), proof(), NOW), null);
+  });
+
+  it("rejects missing, pending, denied, or mismatched evidence, never self-attests", () => {
+    for (const evidence of [null,
+      proof({ postId: VIEWER }), proof({ channelId: VIEWER }),
+      proof({ organizationId: VIEWER }), proof({ moderationStatus: "pending" }),
+      proof({ rightsStatus: "uncleared" }), proof({ postVersion: "2026-10-09T11:50:00Z" }),
+      proof({ channelVersion: "2026-10-09T11:50:00Z" })]) {
+      assert.equal(projectGrowthPost(post(), channel(), evidence, NOW), null);
+    }
+  });
+
+  it("rejects unverified AI/sponsorship metadata, forged scores and age scopes", () => {
+    for (const evidence of [
+      proof({ sponsored: undefined }), proof({ aiGenerated: undefined }),
+      proof({ sponsored: "false" }), proof({ originalityVerified: null }),
+      proof({ quality: Number.NaN }), proof({ diversity: 1.2 }),
+      proof({ ageRating: "unknown" }), proof({ territory: "other" }),
+      proof({ territory: "restricted", allowedCountries: ["X"] }),
+      proof({ territory: "restricted", allowedCountries: ["US", "US"] })
+    ]) {
+      assert.equal(projectGrowthPost(post(), channel(), evidence, NOW), null);
+    }
+  });
+
+  it("denies stale, expired, future, or over-long attestation windows", () => {
+    for (const evidence of [
+      proof({ verifiedAt: "2026-10-09T11:40:00Z" }),
+      proof({ verifiedAt: "2026-10-09T12:04:00Z" }),
+      proof({ expiresAt: "2026-10-09T12:02:00Z" }),
+      proof({ expiresAt: "2026-10-09T13:10:00Z" }),
+      proof({ verifiedAt: "impossible" })
+    ]) {
+      assert.equal(projectGrowthPost(post(), channel(), evidence, NOW), null);
+    }
+  });
+
+  it("rejects oversized bodies, unsafe text and invalid topic before publishing a title", () => {
+    assert.equal(projectGrowthPost(post({ body: "x".repeat(2001) }), channel(), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post({ body: "<script>\u0000" }), channel(), proof(), NOW), null);
+    assert.equal(projectGrowthPost(post(), channel(), proof({ topic: "\nspam" }), NOW), null);
+    assert.equal(projectGrowthPost(post({ created_at: "bad date" }), channel(), proof(), NOW), null);
+    const htmlText = projectGrowthPost(post({ body: "<b>Text</b>" }), channel(), proof(), NOW);
+    assert.equal(htmlText.title, "<b>Text</b>"); // escape in frontend; never innerHTML
+  });
+
+  it("preserves verified disclosure labels and mature/territory gates", () => {
+    const attested = projectGrowthPost(post(), channel(),
+      proof({ sponsored: true, aiGenerated: true, ageRating: "mature",
+        territory: "restricted", allowedCountries: ["US", "CA"] }), NOW);
+    assert.equal(attested.sponsored, true);
+    assert.equal(attested.aiGenerated, true);
+    assert.equal(attested.ageRating, "mature");
+    assert.deepEqual(attested.allowedCountries, ["US", "CA"]);
+  });
+
+  it("never calls loaders for invalid scopes or caps", async () => {
+    const { read, calls } = source();
+    for (const query of [{}, { scope: "unreviewed", cap: 10 },
+      { scope: "moderated_public", cap: 0 },
+      { scope: "moderated_public", cap: 251 }]) {
+      assert.equal((await read(query)).code, "projection_request_invalid");
+    }
+    assert.equal(calls.growth, 0);
+    assert.equal(calls.attestations, 0);
+  });
+
+  it("returns no discoverable rows when moderation evidence is missing", async () => {
+    const { read } = source({ entries: [] });
+    const result = await read({ cap: 250, scope: "moderated_public" });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.candidates, []);
+  });
+
+  it("never treats failed adapters as an empty public feed", async () => {
+    for (const reason of ["growth", "attestations"]) {
+      const { read } = source({ throwRows: reason === "growth",
+        throwProof: reason === "attestations" });
+      const result = await read({ cap: 250, scope: "moderated_public" });
+      assert.equal(result.ok, false);
+      assert.equal(result.candidates.length, 0);
+      assert.equal(JSON.stringify(result).includes("private"), false);
+    }
+  });
+
+  it("denies duplicate, mismatched, over-cap or injected attestation sets", async () => {
+    const inputs = [
+      { rows: [{ post: post() }, { post: post() }] },
+      { rows: Array.from({ length: 3 }, () => ({ post: post(), channel: channel() })) },
+      { entries: [proof(), proof()] },
+      { entries: [proof({ postId: VIEWER })] }
+    ];
+    for (const input of inputs) {
+      const { read } = source(input);
+      assert.equal((await read({ cap: 2, scope: "moderated_public" })).ok, false);
+    }
+  });
+
+  it("retains bounded order and issues no attestation reads when source is empty", async () => {
+    const { read, calls } = source({ rows: [] });
+    const result = await read({ cap: 250, scope: "moderated_public" });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.candidates, []);
+    assert.equal(calls.attestations, 0);
+  });
+
+  it("feeds the existing viewer privacy/consent policy without increasing authority", async () => {
+    const sourceReader = source().read;
+    const opts = { topics: [], mutedTopics: [], mutedKeywords: [],
+      hiddenContentIds: [POST], blockedPublishers: [], followedPublishers: [],
+      discoveryOptIn: true, ageVerifiedAdult: false, aiContent: "include",
+      country: null };
+    const read = createCommunityFeedReader({
+      resolveAuthenticatedViewer: async () => ({
+        ok: true, userId: VIEWER, accountState: "active", canReadPublicSocial: true
+      }),
+      loadViewerPreferences: async () => ({
+        ok: true, viewerId: VIEWER, revision: 2, settings: opts
+      }),
+      loadPublicProjections: sourceReader,
+      clock: () => new Date(NOW)
+    });
+    const result = await read({ mode: "discover" });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.items, []); // hidden still means hidden
+  });
+
+  it("does not treat post-visible status as moderation/rights certification", async () => {
+    const a = source({ entries: [proof({ rightsStatus: "unknown" })] });
+    const result = await a.read({ cap: 250, scope: "moderated_public" });
+    assert.equal(result.ok, true);
+    assert.equal(result.candidates.length, 0);
+  });
+});
+
