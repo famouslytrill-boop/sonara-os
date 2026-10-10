@@ -592,6 +592,59 @@ Firefox browser coverage, and controlled production dry run.
 Retain `SONARA_ENABLE_STOCK_COUNT_REVIEW` **off** and PR #566
 **draft** until all blocking release checks are green and reviewed.
 
+## Phase 12: exact-head CI failure remediation and replay boundary (October 9)
+
+The previous GitHub commit `cc4f7fbaa36aea23e05c6acac89be9c5caba91de`
+completed all 13 workflows but **failed** full CI, the native
+PostgreSQL 16/17/18 replay matrix, Node compatibility, WebKit/Firefox,
+security scanning, and controlled deployment dry run. Successful Docker,
+dependency and Lighthouse checks did **not** make it releasable.
+
+**Failing Mocha contracts and repairs:**
+
+- The new stock-count POST route had no public form: the form-reachability
+  test now records an explicit **temporary exception** with its reason.
+  The route itself is flag-disabled and requires verified employee
+  identity. This is *not* proof of a customer UX; accessible employee
+  submission and independent-owner review screens remain activation blockers.
+- The authorization guard enumerated every `process.env.X === "true"`
+  as if it were a manual-tenant-ID bypass. It now verifies the new review
+  flag's authentication, origin, independent reviewer and error guards
+  separately; it still rejects any **other** newly introduced bypass.
+- `inventory_stock_count_requests` is now queried by an actual
+  organization-filtered route, so it no longer belongs in the catalog
+  of orphaned/unqueried tables; its entry was removed.
+- The generated handoff's outdated 513 Mocha files was corrected to
+  **524**, matching the preceding CI's actual Mocha test-file census.
+- Moving the new route-registration block to the **end** of the existing
+  SONARA route-registration function preserves original line numbers of
+  the older routes. The exact source-level route-handler tests were
+  updated to follow that relocated block. The derived capability
+  inventory still requires a fully regenerated comparison on exact head.
+
+**Native replay root cause:** The 25 scoped RLS policies **passed**
+their attestation, but a separate subscription-policy assertion failed
+with **zero matching named policies in synthetic PostgreSQL**. The
+connected Supabase project has two such named policies, but the replay's
+isolated schema does not seed them. The Phase 12 test has been restored
+to its exact 25-policy responsibility. Subscription authorization is
+**not** declared verified by replay; it needs its own two-user,
+deny/allow integration matrix against a seeded staging schema.
+PostgreSQL documents default deny when RLS is enabled and no policy
+exists, but that alone is **not** proof that real customer subscriptions
+are accessible as intended.
+
+**Verification:** Seven isolated procurement/stock/RLS source suites
+returned **84/84** passing checks after the changes, including review
+route relocation and exact 25-policy fixtures. This is not native
+PostgreSQL proof. All new SQL, browser behavior, generated inventories,
+full application CI and security checks must pass at the same exact
+GitHub commit before the branch becomes mergeable for production.
+
+**Release guard:** PR #566 remains DRAFT. Stock review flag OFF. No
+production migration, no stock movement, no provider payment,
+no branch merge and no production deployment were performed.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
