@@ -444,11 +444,13 @@ function registerRouteRegistryRoutes(app, deps) {
           ? "Use Check readiness on a provider above. This reads SONARA's connection state only; it does not call or change the external provider."
           : "Provider checks remain disabled unless an explicit one-organization canary is enabled.")];
 
-    const workerStatus = scopedCanary
-      ? "Read-only readiness canary enabled for this organization."
-      : activation.enabled
-        ? "The readiness worker is enabled for a different canary organization."
-        : "The readiness worker is off. No provider job will be queued.";
+    const workerStatus = !activation.ok
+      ? "The readiness worker configuration is invalid, so no provider job can be queued."
+      : scopedCanary
+        ? "Read-only readiness canary enabled for this organization."
+        : activation.enabled
+          ? "The readiness worker is enabled for a different canary organization."
+          : "The readiness worker is off. No provider job will be queued.";
 
     return sendPage(res, {
       title: "Integrations",
