@@ -136,7 +136,9 @@ describe("governed adaptive learning (policy-only)", () => {
       { consentReceipt: { ...valid.consentReceipt, expiresAt: "2026-10-05T19:00:00.000Z" } },
       { consentReceipt: { ...valid.consentReceipt, expiresAt: "2027-01-09T19:00:00.000Z" } },
       { evidenceWindowStartsAt: "2026-09-30T19:00:00.000Z" },
-      { evidenceWindowStartsAt: "yesterday" }
+      { evidenceWindowStartsAt: "yesterday" },
+      { observedAt: "2026-10-01T18:00:00.000Z" },
+      { consentReceipt: { ...valid.consentReceipt, retentionDays: 1 } }
     ];
     for (const variant of variants) {
       const result = evaluateAdaptiveProposal({ ...valid, ...variant });
