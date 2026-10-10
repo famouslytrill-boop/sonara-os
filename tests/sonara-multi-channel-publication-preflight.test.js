@@ -1,9 +1,7 @@
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 "use strict";
 const assert = require("node:assert/strict");
-const nodeTest = require("node:test");
-const describe = global.describe || nodeTest.describe;
-const it = global.it || nodeTest.it;
+// Mocha is SONARA's authoritative test runner; no node:test registration.
 const { publicationSnapshotHash, evaluatePublicationBatch } =
   require("../lib/sonara-multi-channel-publication-preflight.cjs");
 
