@@ -12,7 +12,14 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Public message: **Build. Create. Grow.**
 - Repo: `famouslytrill-boop/sonara-os`, default branch `main`.
 - Production: `https://sonaraindustries.com` on Vercel.
-- Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
+- Package manager: `pnpm@12.7.0` only. Never add `package-lock.json`.
+
+## Shared skill and formula memory (Claude Code / ChatGPT / Codex)
+
+- `.ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md` is a generated, source-grounded discovery index of every repository skill manifest and the named keys from authoritative formula and agent-strategy catalogues. It also points to other quantitative code modules and migrations.
+- `AGENTS.md` owns repository guardrails; `CLAUDE.md` links Claude-specific onboarding; this file carries stable project facts. Each assistant must read the relevant skill/module and current tests before applying a method. A skill, proposed formula, or research record does **not** grant execution privileges or prove production readiness.
+- Run `node scripts/generate-assistant-knowledge-index.mjs` after skill/formula changes. `pnpm run verify:agent-sync` checks that the committed index is current.
+- This is **repository project memory**, not automatic synchronization into the personal memory of ChatGPT or Claude accounts. Repository access and supported host/tool discovery are required.
 
 ## Batch convergence (research through Batch 24)
 
