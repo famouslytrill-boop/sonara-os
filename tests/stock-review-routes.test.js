@@ -30,10 +30,10 @@ function make() {
   const opts={
     getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:orgId,role:"owner"})
   };
-  const run=new Function("app","deps","requireBusinessManager","procurementMutationLimiter",
+  const run=new Function("app","deps","requireBusinessManager","requireCustomer","procurementMutationLimiter",
     "getConfig","supabaseInsert","supabaseList","isUuid","process","URL",section);
   const environment={env:{SONARA_ENABLE_STOCK_COUNT_REVIEW:"true"}};
-  run(app,opts,()=>{},()=>{},()=>({ok:true,url:"https://database.example",serviceRoleKey:"test"}),
+  run(app,opts,()=>{},()=>{},()=>{},()=>({ok:true,url:"https://database.example",serviceRoleKey:"test"}),
     async(_cfg,endpoint,payload)=>{
       rpc.push({endpoint,payload});
       if(endpoint.includes("submit"))return {ok:true,rows:{ok:true,request_id:requestId,code:"review_requested"}};
@@ -66,9 +66,23 @@ describe("Feature-flagged SONARA two-person stock count review",()=>{
     const e=make();
     assert.equal(e.endpoints.length,3);
     assert.equal(e.endpoints.filter(x=>x.method==="POST").length,2);
-    assert.ok(section.includes("requireBusinessManager, procurementMutationLimiter"));
+    assert.ok(section.includes("requireCustomer, procurementMutationLimiter"));
+    assert.ok(!section.includes("requireBusinessManager, procurementMutationLimiter"));
     assert.ok(section.includes("getCustomerPrimaryOrganization"));
     assert.ok(!section.includes("resolveOrganization(req, deps)"));
+    assert.ok(section.includes("autoBootstrap: false"));
+  });
+  it("allows a verified business employee to submit but never approve a count",async()=>{
+    const e=make();
+    const request=await e.hit("POST",queue,{role:"employee",body:valid});
+    assert.equal(request.code,201);
+    const forbidden=await e.hit("POST",review,{
+      user:reviewerId,role:"employee",params:{requestId},body:{action:"approve"}
+    });
+    assert.equal(forbidden.code,403);
+    assert.equal(forbidden.payload.code,"independent_owner_review_required");
+    assert.equal(e.rpc.length,1);
+    assert.equal(e.rpc[0].endpoint,"rpc/sonara_submit_stock_count_request");
   });
   it("is unavailable until the explicitly scoped release flag is enabled",async()=>{
     const e=make();e.environment.env.SONARA_ENABLE_STOCK_COUNT_REVIEW="false";
