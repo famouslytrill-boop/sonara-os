@@ -340,7 +340,10 @@ test.describe("public experience browser contract", () => {
 
   test("first steady-state Tab lands on the skip link", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto(BASE_URL, { waitUntil: "load" });
+    // Keyboard readiness depends on parsed markup and the loader being gone,
+    // not every externally sourced image/font reaching window.load. Firefox
+    // intermittently hung at load under parallel browser CI despite a ready DOM.
+    await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#sonara-loader")).toBeHidden({ timeout: 3000 });
 
     const skip = page.locator(".sonara-skip");
