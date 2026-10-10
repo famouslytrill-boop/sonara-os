@@ -104,8 +104,9 @@ BEGIN
 END
 $drift$;
 
--- The only DDL in this disposable transaction; all 25 guarded policies stay
--- byte-for-byte unchanged. No grant, ownership or row modification occurs.
+-- The only policy DDL in this disposable transaction (the temp table is
+-- diagnostic only). All 25 guarded policies stay byte-for-byte unchanged.
+-- No grant, ownership or persistent customer-row modification occurs.
 DROP POLICY "Users can view their own subscription" ON public.subscriptions;
 
 DO $postflight$
