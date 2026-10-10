@@ -22,6 +22,7 @@ function record({ platform = "android", profile = "motion_web", cases, ...rest }
     browserVersion: "test-version",
     installMode: profile === "android_twa" ? "play_internal_test" : profile === "ios_internal_shell" ? "internal_signed_shell" : "browser",
     buildIdentity: "qa-build-1",
+    evidenceBundleRef: "qa/device-proof/bundle-1",
     evidenceBundleSha256: "b".repeat(64),
     cases: cases || qualification.PROFILE_CASES[profile].map((key) => CASE(key)),
     ...rest
@@ -60,6 +61,12 @@ describe("physical-device qualification evidence", () => {
     assert.equal(qualification.validateRecord({ ...record(), evidenceBundleSha256: "" }).code, "evidence_bundle_hash_invalid");
     assert.equal(qualification.validateRecord({ ...record(), evidenceBundleSha256: "x".repeat(64) }).code, "evidence_bundle_hash_invalid");
   });
+
+  it("requires a non-secret reference where the reviewed evidence bundle can be retrieved", () => {
+    assert.equal(qualification.validateRecord({ ...record(), evidenceBundleRef: "" }).code, "evidence_bundle_reference_invalid");
+    assert.equal(qualification.validateRecord({ ...record(), evidenceBundleRef: "x".repeat(301) }).code, "evidence_bundle_reference_invalid");
+  });
+
 
 
   it("refuses duplicate or missing cases", () => {
