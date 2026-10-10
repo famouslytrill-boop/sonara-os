@@ -25,6 +25,10 @@ Bar sales, age/licensing verification, food safety, worker classification, finan
 
 Example capacity scenario: 100 baseline jobs * 150% declared seasonal factor = 150 scenario jobs; two workers, eight hours each, 10% reserve and 45 minutes per job = 864 usable minutes, 19 feasible jobs and 131 unserved. This is arithmetic on supplied assumptions, not a claim about a real business or customer forecast.
 
+## October 2026 regulatory research update
+
+The FDA's **2026** Food Code is the current model release; the 2022 edition is historical. The 2026 changes explicitly introduce a *mobile food establishment* definition and written illness policy provisions. SONARA must store the user's jurisdiction and verified regulatory version before suggesting that any food-truck checklist is compliant. There is no automatic certification, food-temperature verification, age-gated transaction or establishment permit check in this module. Local adoption may lag the FDA model. For contractor use, the IRS common-law evidence categories (behavioral control, financial control, and relationship) require actual review; a selected "independent contractor" playbook must never classify a person automatically.
+
 ## Device accelerometers and gyroscopes
 
 Do not duplicate draft PR #600. Merge its work only after security and integration review, tests and separate production authorization. Browser device motion/orientation access must be triggered by a user gesture where permission is required, use HTTPS and Permissions-Policy, sample only in visible foreground, offer an accessible no-sensor fallback, stop promptly on page hide/cancel, and never infer crash/fall/driver behavior from noisy raw motion alone.
@@ -55,8 +59,9 @@ This PR introduces **no routes, database migrations, permissions, feature flags,
 
 ## Reference standards
 
-- IRS employee vs independent contractor relationship: https://www.irs.gov/businesses/small-businesses-self-employed/independent-contractor-self-employed-or-employee
-- FDA Food Code 2022 reference (state/local adoption varies): https://www.fda.gov/food/fda-food-code/food-code-2022
+- IRS employee vs independent contractor relationship (behavioral and financial control; relationship facts must be assessed, not inferred from a label): https://www.irs.gov/businesses/small-businesses-self-employed/independent-contractor-self-employed-or-employee
+- FDA Food Code **2026** (released September 17, 2026; model code, not automatic local law): https://www.fda.gov/food/fda-food-code/food-code-2026
+- FDA 2026 changes (including a new mobile-food-establishment definition and written employee-illness policies): https://www.fda.gov/food/fda-food-code/summary-changes-2026-fda-food-code
 - OWASP API resource consumption: https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/
 - NIST microservices security/resilience: https://csrc.nist.gov/pubs/sp/800/204/final
 - Node zlib gzip: https://nodejs.org/api/zlib.html
