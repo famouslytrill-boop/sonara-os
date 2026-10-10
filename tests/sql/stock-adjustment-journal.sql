@@ -17,13 +17,15 @@ insert into auth.users(id,email) values
   ('25000000-0000-4000-8000-000000000002','reviewer@example.invalid'),
   ('25000000-0000-4000-8000-000000000015','business-staff@example.invalid'),
   ('25000000-0000-4000-8000-000000000016','business-owner@example.invalid'),
-  ('25000000-0000-4000-8000-000000000017','suspended-staff@example.invalid');
+  ('25000000-0000-4000-8000-000000000017','suspended-staff@example.invalid'),
+  ('25000000-0000-4000-8000-000000000018','viewer-only@example.invalid');
 insert into public.organizations(id,name) values
   ('25000000-0000-4000-8000-000000000003','Stock adjustment tenant'),
   ('25000000-0000-4000-8000-000000000004','Unrelated tenant');
 insert into public.organization_memberships(organization_id,user_id,role,status) values
   ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000001','manager','active'),
-  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000002','owner','active');
+  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000002','owner','active'),
+  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000018','viewer','active');
 
 -- Application session resolver also accepts active business_memberships.
 -- Those employees must be admitted by the service-only SQL contract, but
@@ -420,6 +422,12 @@ select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
     '25000000-0000-4000-8000-000000000014',
     '25000000-0000-4000-8000-000000000017',
     'inactive-count-002',0,7)$q$,
+  'stock_count_actor_unauthorized');
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000018',
+    'viewer-count-002',0,7)$q$,
   'stock_count_actor_unauthorized');
 
 select pg_temp.require_true(
