@@ -4,8 +4,9 @@
 -- must validate their POST-migration state rather than require pre-migration
 -- predicates and falsely report drift on every policy.
 -- Assert the exact roles/commands/predicates for 25 policies and, in a
--- rolled-back transaction, verify one strictly identical duplicate
--- subscriptions SELECT policy could be dropped. No production DDL occurs.
+-- rolled-back transaction, guard the production-observed subscriptions
+-- duplicate if that drift is present. Canonical replay may contain neither
+-- drift-only policy name. No production DDL occurs.
 \set ON_ERROR_STOP on
 BEGIN;
 SET LOCAL lock_timeout='2s';
@@ -43,7 +44,7 @@ INSERT INTO expected_rls_p1 VALUES
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL);
 
 DO $drift$
-DECLARE bad int;
+DECLARE bad int; duplicate_named_count int;
 BEGIN
  SELECT count(*) INTO bad
  FROM expected_rls_p1 e LEFT JOIN pg_policies p
@@ -61,46 +62,52 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
- -- These two permissive policies must be identical in every security
- -- dimension before one can safely be dropped. Do not require a guessed role
- -- label here: CREATE POLICY defaults TO PUBLIC when TO is omitted, while
- -- pg_policy.polroles records the actual role OIDs. The dedup invariant is
- -- exact equivalence, not a particular role spelling.
- --
- -- pg_policies.qual is deparsed display text and may vary in harmless
- -- formatting across PostgreSQL versions. Compare PostgreSQL's catalog policy
- -- trees instead: same SELECT command, role set, permissive mode, USING AST
- -- and WITH CHECK AST.
- IF (SELECT count(*) FROM pg_policy p
-     JOIN pg_class c ON c.oid=p.polrelid
-     JOIN pg_namespace n ON n.oid=c.relnamespace
-     WHERE n.nspname='public' AND c.relname='subscriptions'
-       AND p.polname IN ('Users can view own subscriptions',
-                         'Users can view their own subscription')
-       AND p.polcmd='r'
-       AND p.polpermissive=true
-       AND p.polqual IS NOT NULL
-       AND p.polwithcheck IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy command/permissive definitions drifted; abort';
- END IF;
+ -- These human-named subscription policies were observed as production drift;
+ -- canonical migrations create subscriptions_select_member instead. Zero or
+ -- one of these names is therefore a valid replay state. If both ever appear,
+ -- they must be exact security duplicates before one may be removed.
+ SELECT count(*) INTO duplicate_named_count
+ FROM pg_policy p
+ JOIN pg_class c ON c.oid=p.polrelid
+ JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relname='subscriptions'
+   AND p.polname IN ('Users can view own subscriptions',
+                     'Users can view their own subscription');
 
- IF (SELECT count(*)
-     FROM pg_policy left_policy
-     JOIN pg_class c ON c.oid=left_policy.polrelid
-     JOIN pg_namespace n ON n.oid=c.relnamespace
-     JOIN pg_policy right_policy
-       ON right_policy.polrelid=left_policy.polrelid
-      AND right_policy.polname='Users can view their own subscription'
-     WHERE n.nspname='public'
-       AND c.relname='subscriptions'
-       AND left_policy.polname='Users can view own subscriptions'
-       AND left_policy.polcmd=right_policy.polcmd
-       AND left_policy.polroles=right_policy.polroles
-       AND left_policy.polpermissive=right_policy.polpermissive
-       AND left_policy.polqual::text IS NOT DISTINCT FROM right_policy.polqual::text
-       AND left_policy.polwithcheck::text IS NOT DISTINCT FROM right_policy.polwithcheck::text
-   ) <> 1 THEN
-   RAISE EXCEPTION 'subscriptions policies are not exact catalog-AST duplicates; abort';
+ IF duplicate_named_count > 1 THEN
+   IF (SELECT count(*) FROM pg_policy p
+       JOIN pg_class c ON c.oid=p.polrelid
+       JOIN pg_namespace n ON n.oid=c.relnamespace
+       WHERE n.nspname='public' AND c.relname='subscriptions'
+         AND p.polname IN ('Users can view own subscriptions',
+                           'Users can view their own subscription')
+         AND p.polcmd='r'
+         AND p.polpermissive=true
+         AND p.polqual IS NOT NULL
+         AND p.polwithcheck IS NULL) <> 2 THEN
+     RAISE EXCEPTION 'subscriptions duplicate policy command/permissive definitions drifted; abort';
+   END IF;
+
+   IF (SELECT count(*)
+       FROM pg_policy left_policy
+       JOIN pg_class c ON c.oid=left_policy.polrelid
+       JOIN pg_namespace n ON n.oid=c.relnamespace
+       JOIN pg_policy right_policy
+         ON right_policy.polrelid=left_policy.polrelid
+        AND right_policy.polname='Users can view their own subscription'
+       WHERE n.nspname='public'
+         AND c.relname='subscriptions'
+         AND left_policy.polname='Users can view own subscriptions'
+         AND left_policy.polcmd=right_policy.polcmd
+         AND left_policy.polroles=right_policy.polroles
+         AND left_policy.polpermissive=right_policy.polpermissive
+         AND left_policy.polqual::text IS NOT DISTINCT FROM right_policy.polqual::text
+         AND left_policy.polwithcheck::text IS NOT DISTINCT FROM right_policy.polwithcheck::text
+     ) <> 1 THEN
+     RAISE EXCEPTION 'subscriptions policies are not exact catalog-AST duplicates; abort';
+   END IF;
+ ELSIF duplicate_named_count = 0 THEN
+   RAISE NOTICE 'canonical replay contains no production-only named subscription duplicate';
  END IF;
 END
 $drift$;
@@ -109,7 +116,22 @@ $drift$;
 -- 20261008100000 migration. Changing them again here would regress that work.
 -- Exercise only the still-unapplied subscriptions dedup in this rollback test.
 
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+DO $dedup$
+DECLARE duplicate_named_count int;
+BEGIN
+ SELECT count(*) INTO duplicate_named_count
+ FROM pg_policy p
+ JOIN pg_class c ON c.oid=p.polrelid
+ JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relname='subscriptions'
+   AND p.polname IN ('Users can view own subscriptions',
+                     'Users can view their own subscription');
+
+ IF duplicate_named_count = 2 THEN
+   DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+ END IF;
+END
+$dedup$;
 
 DO $postflight$
 DECLARE bad int;
@@ -131,16 +153,8 @@ BEGIN
      JOIN pg_class c ON c.oid=p.polrelid
      JOIN pg_namespace n ON n.oid=c.relnamespace
      WHERE n.nspname='public' AND c.relname='subscriptions'
-       AND p.polname='Users can view own subscriptions'
-       AND p.polcmd='r'
-       AND p.polpermissive=true
-       AND p.polqual IS NOT NULL
-       AND p.polwithcheck IS NULL)<>1
- OR (SELECT count(*) FROM pg_policy p
-     JOIN pg_class c ON c.oid=p.polrelid
-     JOIN pg_namespace n ON n.oid=c.relnamespace
-     WHERE n.nspname='public' AND c.relname='subscriptions'
-       AND p.polname='Users can view their own subscription')<>0
+       AND p.polname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription')) > 1
  THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
 END
 $postflight$;
