@@ -324,7 +324,7 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
     });
     assert.equal(complete.endToEndComplete, true);
     assert.deepEqual(complete.missingPhases, []);
-    for (const bad of ["x".repeat(241), "untrusted\\nlog injection"]) {
+    for (const bad of ["x".repeat(241), "untrusted" + String.fromCharCode(10) + "log injection"]) {
       assert.equal(mapLearningSequence({
         organizationId: ORG, serverOrganizationId: ORG,
         purpose: bad, steps: orderedStages
