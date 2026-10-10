@@ -97,7 +97,12 @@ BEGIN
        AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
        AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort';
+   RAISE EXCEPTION 'subscriptions policy drift; inspect names, roles, commands, predicates: %', (
+     SELECT coalesce(string_agg(format('%s roles=%s cmd=%s qual=%s check=%s',
+          policyname, roles::text, cmd, qual, coalesce(with_check,'NULL')), ' | ' ORDER BY policyname), '<none>')
+     FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
+       AND policyname IN ('Users can view own subscriptions', 'Users can view their own subscription')
+   );
  END IF;
 END
 $preflight$;
