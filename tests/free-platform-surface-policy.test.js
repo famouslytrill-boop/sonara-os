@@ -633,7 +633,7 @@ describe("unapplied private SQL proposal contract (static checks only)", () => {
 
 
 describe("attested Growth public discovery projection (unmounted, no real source)", () => {
-  const { projectGrowthPost, createGrowthPublicProjectionSource } =
+  const { projectGrowthPost, growthContentDigest, createGrowthPublicProjectionSource } =
     require("../lib/sonara-growth-public-projections.cjs");
   const { createCommunityFeedReader } = require("../lib/sonara-community-feed-reader.cjs");
   const VIEWER = "33333333-3333-4333-8333-333333333333";
@@ -657,6 +657,7 @@ describe("attested Growth public discovery projection (unmounted, no real source
   const proof = (override = {}) => ({
     postId: POST, channelId: CHANNEL, organizationId: ORG,
     postVersion: PG_STAMP, channelVersion: PG_STAMP,
+    contentDigest: growthContentDigest(post(), channel()),
     moderationStatus: "approved", rightsStatus: "cleared",
     sponsored: false, aiGenerated: false, originalityVerified: true,
     quality: 0.25, diversity: 0.5,
@@ -740,6 +741,28 @@ describe("attested Growth public discovery projection (unmounted, no real source
     ]) {
       assert.equal(projectGrowthPost(post(), channel(), evidence, NOW), null);
     }
+  });
+
+  it("rejects silent post edits despite unchanged updated_at timestamps", () => {
+    const approved = proof();
+    const modified = post({ body: "Materially altered after moderation approval" });
+    assert.equal(modified.updated_at, post().updated_at);
+    assert.equal(projectGrowthPost(modified, channel(), approved, NOW), null);
+    const changedHandle = channel({ handle: "new-handle" });
+    assert.equal(changedHandle.updated_at, channel().updated_at);
+    assert.equal(projectGrowthPost(post(), changedHandle, approved, NOW), null);
+  });
+
+  it("binds evidence to deterministic canonical SHA-256 source bytes", () => {
+    const digest = growthContentDigest(post(), channel());
+    assert.match(digest, /^[0-9a-f]{64}$/);
+    assert.equal(growthContentDigest(post(), channel()), digest);
+    assert.equal(growthContentDigest(post({ body: "altered" }), channel()) === digest, false);
+    assert.equal(growthContentDigest(post(), channel({ state: "hidden" })) === digest, false);
+    assert.equal(projectGrowthPost(post(), channel(),
+      proof({ contentDigest: "0".repeat(64) }), NOW), null);
+    assert.equal(projectGrowthPost(post(), channel(),
+      proof({ contentDigest: null }), NOW), null);
   });
 
   it("denies stale, expired, future, or over-long attestation windows", () => {
