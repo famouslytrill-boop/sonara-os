@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { SOURCES, inspectRanking, auditEvidencePacket, scoreCapabilityIdeas } = require("../lib/sonara-research-benchmark-gates.cjs");
+const { SOURCES, inspectRanking, auditEvidencePacket, planResearchFormulaEvaluation, scoreCapabilityIdeas } = require("../lib/sonara-research-benchmark-gates.cjs");
 
 function row(rank, name = "Company " + rank, sourceId = "us_revenue_2026") {
   return { rank, name, sourceUrl: SOURCES[sourceId].url };
@@ -305,6 +305,105 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(packet.overallStatus, "no_evidence");
     assert.equal(packet.independentlyVerified, false);
     assert.throws(() => auditEvidencePacket({ reviewedAt: "2026-10-09", maxAgeDays: 500, observations: [] }), /maxAgeDays/);
+  });
+
+  it("links a restaurant formula to canonical metadata without executing it", () => {
+    const plan = planResearchFormulaEvaluation({
+      formulaKey: "recipe_cost", claimId: "restaurant_menu_cost",
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "restaurant_menu_cost", stance: "supports",
+          observedAt: "2026-10-09", sourceUrl: "https://example.org/restaurant-spec" }
+      ]
+    });
+    assert.equal(plan.formula.key, "recipe_cost");
+    assert.equal(plan.formula.domain, "restaurant");
+    assert.equal(plan.formula.engineVersion.length > 0, true);
+    assert.equal(plan.product, "business_builder");
+    assert.equal(plan.evidenceStatus, "human_source_review_required");
+    assert.equal(plan.evidenceCount, 1);
+    assert.equal(plan.formulaEvaluated, false);
+    assert.equal(plan.inputsVerified, false);
+    assert.equal(plan.canUseForCustomerDecisions, false);
+    assert.equal(plan.productionAuthorized, false);
+    assert.equal(plan.publicationAuthorized, false);
+    assert.equal(Object.prototype.hasOwnProperty.call(plan, "value"), false);
+  });
+
+  it("maps creator media formulas without duplicating runtime handlers", () => {
+    const plan = planResearchFormulaEvaluation({
+      formulaKey: "video_pacing", claimId: "edited_video_pacing",
+      reviewedAt: "2026-10-09", observations: []
+    });
+    assert.equal(plan.product, "creator_studio");
+    assert.equal(plan.formula.domain, "media");
+    assert.equal(plan.claimStatus, "no_evidence");
+    assert.equal(plan.evidenceStatus, "no_evidence");
+    assert.equal(plan.evidenceCount, 0);
+    assert.equal(plan.productionAuthorized, false);
+  });
+
+  it("blocks registered but non-research formulas, unknown keys and missing claim IDs", () => {
+    const request = { formulaKey: "eoq", claimId: "inventory_quantity",
+      reviewedAt: "2026-10-09", observations: [] };
+    assert.throws(() => planResearchFormulaEvaluation({
+      ...request, formulaKey: "security_risk"
+    }), /allowlist/);
+    assert.throws(() => planResearchFormulaEvaluation({
+      ...request, formulaKey: "__proto__"
+    }), /allowlist/);
+    assert.throws(() => planResearchFormulaEvaluation({
+      ...request, claimId: "Bad Claim!"
+    }), /claimId/);
+  });
+
+  it("refuses mixed-claim research and unrequested customer input payloads", () => {
+    const request = { formulaKey: "eoq", claimId: "inventory_quantity",
+      reviewedAt: "2026-10-09",
+      observations: [{ claimId: "another_claim", stance: "supports",
+        observedAt: "2026-10-09", sourceUrl: "https://example.org/a" }]
+    };
+    assert.throws(() => planResearchFormulaEvaluation(request), /requested claimId/);
+    assert.throws(() => planResearchFormulaEvaluation({
+      ...request, observations: [], inputs: { customerName: "Sensitive" }
+    }), /refuses formula inputs/);
+    assert.throws(() => planResearchFormulaEvaluation({
+      ...request, observations: Array(101).fill(0)
+    }), /at most 100/);
+    assert.throws(() => planResearchFormulaEvaluation(null), /request object/);
+  });
+
+  it("propagates contradictory evidence into an unapproved formula plan", () => {
+    const plan = planResearchFormulaEvaluation({
+      formulaKey: "little_law", claimId: "queue_size",
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "queue_size", stance: "supports",
+          observedAt: "2026-10-08", sourceUrl: "https://example.org/a" },
+        { claimId: "queue_size", stance: "contradicts",
+          observedAt: "2026-10-09", sourceUrl: "https://different.example/b" }
+      ]
+    });
+    assert.equal(plan.evidenceStatus, "contradictions_found");
+    assert.equal(plan.claimStatus, "contradiction_review");
+    assert.equal(plan.canUseForCustomerDecisions, false);
+  });
+
+  it("rejects malformed, stale and inaccessible provenance as calculation evidence", () => {
+    const base = { formulaKey: "eoq", claimId: "inventory_quantity",
+      reviewedAt: "2026-10-09", maxAgeDays: 7 };
+    const stale = planResearchFormulaEvaluation({
+      ...base, observations: [{ claimId: "inventory_quantity", stance: "supports",
+        observedAt: "2026-09-01", sourceUrl: "https://example.org/old" }]
+    });
+    assert.equal(stale.evidenceStatus, "stale_evidence");
+    const invalid = planResearchFormulaEvaluation({
+      ...base, observations: [{ claimId: "inventory_quantity", stance: "supports",
+        observedAt: "2026-10-09", sourceUrl: "http://localhost/admin" }]
+    });
+    assert.equal(invalid.evidenceStatus, "invalid_intake");
+    assert.equal(invalid.evidenceCount, 0);
+    assert.equal(invalid.productionAuthorized, false);
   });
 
   it("prevents invalid numeric inputs and duplicated project ids", () => {
