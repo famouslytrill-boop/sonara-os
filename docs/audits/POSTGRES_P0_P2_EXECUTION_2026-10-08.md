@@ -79,6 +79,16 @@ The full migration history now includes `20261008100000_tighten_service_role_rls
 The remediation branch `fix/p1-rls-guarded-replay-current-baseline-20261010` updates the staging-only SQL probe to require **exactly those 25 hardened definitions** and then transactionally test the previously verified subscriptions SELECT-policy duplication. It does not create another production migration, drop or rewrite any of the 25 protected policies, change grants, or remove the abort-on-drift check. The entire probe ends with `ROLLBACK`; the separate P0 synthetic two-tenant role/write-deny matrix continues to run first. **This is an unverified draft until native replay succeeds at the exact PR SHA.** Security reviewers must still inspect production identity, migration history, and live Supabase advisors before any activation.
 
 
+### Connected Supabase preview read-only verification, October 10, 2026
+
+Source: Supabase project `yqncsonkxgwhcxedgevk` (`preview` release channel, PostgreSQL 17.6). **Not verified production.** No DDL or customer-data queries were run.
+
+- Supabase's migration ledger returned **163 entries**, ending with `20261008100000_tighten_service_role_rls_policies`.
+- Executed a **read-only** query that joined the exact `expected_rls_p1` 25-row baseline from `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` against `pg_policies` and compared schema/table/policy name, permissiveness, role array, command, `qual`, and `with_check` using `IS DISTINCT FROM`. Result: **25 expected policy rows; 0 mismatches**.
+- Queried only `pg_policies` metadata for the two `subscriptions` SELECT policies. Result: **2 expected policy names; 1 distinct definition**. Both are scoped to `{authenticated}`, command `SELECT`, predicate `(( SELECT auth.uid() AS uid) = user_id)`, with no `WITH CHECK`. This supports, but does not execute, the existing transaction-rolled-back duplicate-policy proof.
+- Current preview Supabase security advisors reported **10 WARN** findings: one `extension_in_public`, eight `authenticated_security_definer_function_executable`, and one `auth_leaked_password_protection`. They also reported **66 INFO** `rls_enabled_no_policy` findings. These must be triaged against actual roles/grants, deliberate internal-only tables, and the Auth configuration; **do not bulk-add permissive policies or revoke helpers without role/tenant regression proof**. Official remediations: https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public , https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable , https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
+- Acceptance is still conditional on **exact-head native PostgreSQL 16/17/18 replay, synthetic role-write/deny tests, full CI, protected-main governance, and separate production migration identity verification**. Read-only preview comparison alone is not a green release.
+
 ## 3. P1 — 1,292 overlapping permissive-policy warnings
 
 These are **lint findings**, not 1,292 independent privacy leaks.
