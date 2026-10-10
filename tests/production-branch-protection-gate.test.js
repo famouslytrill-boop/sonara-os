@@ -13,19 +13,23 @@ describe("production release rejects unprotected main", () => {
     "utf8"
   );
 
-  it("reads main branch metadata and denies unprotected state", () => {
+  it("reads main governance metadata and runs the fail-closed verifier before matrix evaluation", () => {
     const start = workflow.indexOf("- name: Require exact-SHA post-merge green matrix");
     const end = workflow.indexOf("- uses: pnpm/action-setup@", start);
     assert.ok(start >= 0 && end > start, "release gate must run before package installation");
     const gate = workflow.slice(start, end);
+
     assert.match(gate, /api\.github\.com\/repos\/\$GITHUB_REPOSITORY\/branches\/main/);
-    assert.match(gate, /main\?\.protected\s*!==\s*true/);
-    assert.match(gate, /Production release blocked: main has no enforced GitHub branch protection/);
-    const branchCheck = gate.indexOf("main?.protected !== true");
-    const failure = gate.indexOf("process.exit(3);", branchCheck);
-    const matrix = gate.indexOf("const states = [];", branchCheck);
-    assert.ok(branchCheck >= 0 && failure > branchCheck && matrix > failure,
-      "unprotected branch must fail before a passing matrix can release");
+    assert.match(gate, /api\.github\.com\/repos\/\$GITHUB_REPOSITORY\/rules\/branches\/main/);
+    assert.match(
+      gate,
+      /node scripts\/verify-release-branch-governance\.cjs main-branch\.json main main-rules\.json/
+    );
+
+    const verifier = gate.indexOf("verify-release-branch-governance.cjs");
+    const matrix = gate.indexOf("const states = [];");
+    assert.ok(verifier >= 0 && matrix > verifier,
+      "branch governance must fail closed before a passing workflow matrix can release");
   });
 
   it("keeps the production secrets and deploy steps after the branch gate", () => {
