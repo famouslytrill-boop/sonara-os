@@ -41,6 +41,7 @@ const {
   listFormulaDefinitions,
   getFormulaDefinition
 } = require("../lib/sonara-formula-library.cjs");
+const { inputKind } = require("../lib/sonara-formula-pages.cjs");
 
 // The eight evaluators that divide, with a denominator input for each.
 const DIVIDING = Object.freeze([
@@ -68,8 +69,9 @@ const UNIT_INTERVAL_SAMPLE_INPUTS = new Set([
 ]);
 
 function validSmokeInput(key) {
-  if (key === "ingredients") return [{ quantity: 2, unit_cost: 2 }];
-  if (key === "cash_flows") return [2, 2];
+  const kind = inputKind(key);
+  if (kind === "ingredients") return [{ quantity: 2, unit_cost: 2 }];
+  if (kind === "list") return [2, 2];
   if (UNIT_INTERVAL_SAMPLE_INPUTS.has(key)) return 0.5;
   return 2;
 }
