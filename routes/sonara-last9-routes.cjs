@@ -2291,6 +2291,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
       const org = await stockReviewIdentity(req);
       if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner","manager","employee","staff"].includes(org.role))
+        return res.status(403).json({ok:false,code:"stock_count_staff_role_required"});
       const itemId = String(req.body?.inventory_item_id || "");
       const requestKey = String(req.body?.idempotency_key || "");
       const version = String(req.body?.expected_stock_version ?? "");
@@ -2319,6 +2321,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
       const org = await stockReviewIdentity(req);
       if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner","manager","employee","staff"].includes(org.role))
+        return res.status(403).json({ok:false,code:"stock_count_staff_role_required"});
       const config = getConfig(deps);
       if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
       // This read uses a service-role credential. Nonowners may see only their
