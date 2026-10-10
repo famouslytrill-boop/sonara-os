@@ -6,43 +6,54 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
 async function mountLocalComponent(page, markup, scriptPath) {
+  // Keep this whitelist narrow. This is a browser fixture, not an arbitrary
+  // external resource loader or a way to relax CSP for generated content.
+  const globals = {
+    "/creator-project-graph-core.js": "SonaraCreatorGraph",
+    "/creator-image-core.js": "SonaraImageCore",
+    "/creator-project-audio.js": null
+  };
+  if (!Object.hasOwn(globals, scriptPath)) throw new Error("Unknown local component asset");
+
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  // Preserve the real same-origin page, CSS and Content-Security-Policy.
-  // The inert markup has already had its own script elements removed.
-  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
 
-  // An asset that passes the HTTP smoke check may still be rejected by
-  // browser CSP, MIME handling or cross-engine script loading. Preserve that
-  // distinction instead of bypassing CSP or downgrading WebKit coverage.
-  const scriptUrl = new URL(scriptPath, BASE_URL).href;
-  const asset = await page.request.get(scriptUrl);
+  // Parse the real same-origin script during a genuine navigation rather than
+  // dynamically injecting it into WebKit. route.fetch + fulfill preserves the
+  // application's CSP and security headers; it does not enable unsafe-inline
+  // or bypass cross-origin checks.
+  const path = new URL("/tools", BASE_URL).href;
+  const assetPath = new URL(scriptPath, BASE_URL).href;
+  const asset = await page.request.get(assetPath);
   const contentType = asset.headers()["content-type"] || "missing";
   if (!asset.ok() || !/(javascript|ecmascript)/i.test(contentType)) {
     throw new Error(`Local component asset unavailable: ${scriptPath}; HTTP ${asset.status()}; content-type ${contentType}`);
   }
-
-  await page.evaluate(() => {
-    globalThis.__sonaraCspFailures = [];
-    document.addEventListener("securitypolicyviolation", (event) => {
-      globalThis.__sonaraCspFailures.push({
-        directive: event.effectiveDirective,
-        blocked: event.blockedURI
-      });
-    }, { once: false });
-  });
+  let fixtureAdded = false;
+  const fixtureRoute = async (route) => {
+    const response = await route.fetch();
+    if (!response.ok()) throw new Error(`Fixture page failed: ${response.status()}`);
+    const originalHtml = await response.text();
+    if (!/<\\/body>/i.test(originalHtml)) throw new Error("Missing body close tag");
+    const fixture = `<section data-sonara-playwright-fixture>${inertMarkup}</section><script src="${scriptPath}"></script>`;
+    const modified = originalHtml.replace(/<\\/body>/i, `${fixture}</body>`);
+    fixtureAdded = true;
+    await route.fulfill({ response, body: modified });
+  };
+  await page.route(path, fixtureRoute);
   try {
-    await page.addScriptTag({ url: scriptUrl });
-  } catch (error) {
-    const context = await page.evaluate(() => ({
-      origin: location.origin,
-      baseURI: document.baseURI,
-      violations: globalThis.__sonaraCspFailures || []
-    }));
-    throw new Error(`Same-origin script load failed: ${scriptPath}; HTTP ${asset.status()}; content-type ${contentType}; page ${JSON.stringify(context)}; ${error.message}`);
+    await page.goto(path, { waitUntil: "load" });
+  } finally {
+    await page.unroute(path, fixtureRoute);
+  }
+  if (!fixtureAdded) throw new Error("Fixture route did not intercept the page");
+  const actualScript = await page.locator(`script[src="${scriptPath}"]`).count();
+  if (actualScript !== 1) throw new Error(`Expected one parser-loaded same-origin script: ${scriptPath}`);
+  if (globals[scriptPath] && !await page.evaluate((key) => Boolean(globalThis[key]), globals[scriptPath])) {
+    throw new Error(`Parser-loaded script did not initialize: ${scriptPath}`);
   }
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
