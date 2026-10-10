@@ -69,28 +69,44 @@ BEGIN
     RAISE EXCEPTION 'P1 hardened policy definition drift on % of 25 policies; abort',bad;
   END IF;
 
-  -- The two customer-visible SELECT policies must be identical before
-  -- removal of the duplicate can be staged. No broadening is permitted.
-  -- Fresh replay and active preview may spell the SAME owner predicate
-  -- differently (direct auth.uid() vs scalar initplan). Require an exact
-  -- equivalence between the two actual policies AND an allow-listed strict
-  -- owner equality: never accept a tautology, a broader role or a mixed OR.
+  -- Fresh migration replay can legitimately contain one canonical policy;
+  -- a hosted database may carry a second duplicate. Preserve only a
+  -- direct owner-equality SELECT granted to authenticated users. If there
+  -- are two, they must be byte-for-byte equivalent before staging removal.
+  IF (SELECT count(*) FROM pg_policies
+      WHERE schemaname='public' AND tablename='subscriptions'
+        AND policyname='Users can view own subscriptions') <> 1
+  THEN RAISE EXCEPTION 'subscriptions canonical owner policy absent; abort'; END IF;
+
   IF (SELECT count(*) FROM pg_policies
       WHERE schemaname='public' AND tablename='subscriptions'
         AND policyname IN ('Users can view own subscriptions',
-                           'Users can view their own subscription')
-        AND permissive='PERMISSIVE'
-        AND roles=ARRAY['authenticated']::name[]
-        AND cmd='SELECT' AND with_check IS NULL
-        AND regexp_replace(lower(qual),'[[:space:]()]','','g') IN
+                           'Users can view their own subscription')) NOT BETWEEN 1 AND 2
+  THEN RAISE EXCEPTION 'subscriptions owner policy count drifted; abort'; END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='subscriptions'
+      AND policyname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription')
+      AND (
+        permissive <> 'PERMISSIVE' OR
+        roles <> ARRAY['authenticated']::name[] OR
+        cmd <> 'SELECT' OR with_check IS NOT NULL OR
+        regexp_replace(lower(qual),'[[:space:]()]','','g') NOT IN
           ('auth.uid=user_id', 'user_id=auth.uid',
-           'selectauth.uidasuid=user_id','user_id=selectauth.uidasuid')
-     ) <> 2
-     OR (SELECT count(DISTINCT qual) FROM pg_policies
-         WHERE schemaname='public' AND tablename='subscriptions'
-         AND policyname IN ('Users can view own subscriptions',
-                            'Users can view their own subscription')) <> 1
-  THEN RAISE EXCEPTION 'subscriptions policy definitions drifted; abort'; END IF;
+           'selectauth.uidasuid=user_id', 'user_id=selectauth.uidasuid')
+      )
+  ) THEN RAISE EXCEPTION 'subscriptions owner predicate or grants drifted; abort'; END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+      AND tablename='subscriptions'
+      AND policyname='Users can view their own subscription')
+    AND (SELECT count(DISTINCT qual) FROM pg_policies WHERE schemaname='public'
+      AND tablename='subscriptions'
+      AND policyname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription')) <> 1
+  THEN RAISE EXCEPTION 'subscriptions duplicate differs from canonical; abort'; END IF;
 END
 $drift$;
 
@@ -102,7 +118,16 @@ CREATE TEMP TABLE subscription_select_baseline ON COMMIT DROP AS
     AND policyname='Users can view own subscriptions';
 
 -- This is a staging-only proof; no permanent policy is modified.
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+-- If a fresh replay has no duplicate, there is nothing to drop.
+DO $deduplicate$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+       AND tablename='subscriptions'
+       AND policyname='Users can view their own subscription') THEN
+    EXECUTE 'DROP POLICY "Users can view their own subscription" ON public.subscriptions';
+  END IF;
+END
+$deduplicate$;
 
 DO $postflight$
 DECLARE bad int;
