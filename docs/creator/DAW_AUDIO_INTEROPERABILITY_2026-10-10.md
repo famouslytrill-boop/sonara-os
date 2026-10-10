@@ -1,4 +1,18 @@
 # Creator Studio: DAW, audio/video I/O and interchange — 2026-10-10
+## Local Standard MIDI File export increment (stacked feature branch)
+
+Status: development implementation on `feature/creator-midi-interchange-20261010` stacked on #613 → #611. This is **not** a native DAW session, uploaded MIDI import, persistent note sequencer, published feature, or cleared full CI.
+
+`public/creator-project-midi.js` writes genuine MIDI 1.0 **Standard MIDI File Format 0**, with one `MThd` header, one `MTrk` chunk, division=480 PPQ, tempo meta event (`FF 51 03`), bounded note-on/note-off events and End of Track (`FF 2F 00`). Musical note names use the common C4=60 convention; exact MIDI note integers 0–127 are also accepted. Tempo is entered by the user (40–240 whole BPM), as are tick offsets, duration and velocity; channel is an explicit 1–16 selector.
+
+The active Creator project page includes a local-only sketch form. Customers enter rows `pitch,startTicks,durationTicks,velocity` and click **Create MIDI file**, then **Download MIDI**. Up to 128 notes, 8192 text characters and 256 beats are accepted; simultaneous same-pitch overlap is rejected to avoid ambiguous single-channel note-offs. The writer sorts notes and places note-offs before note-ons at the same tick; no randomness, provider, microphone, uploaded source, file persistence or server-side effect.
+
+`tests/creator-midi-interchange.test.js` checks a byte-for-byte golden binary fixture, tempo encoding, deterministic sorting, exact ticks, VLQ boundaries, pitch naming, alternate MIDI channel, rejection of overlapping pitches, note limits and malformed rows. `tests/creator-project-graph.test.js` additionally asserts that the route actually exposes the controls.
+
+**Not implemented:** Format 1 multitrack MIDI import/export, MIDI 2.0 UMP, native .ptx/.als/.flp sessions, real-time MIDI keyboards, virtual instruments or synth audio rendering. This module outputs note events only; note sounds depend on the receiving DAW and its instrument configuration. MIDI source data is not falsely inferred from a recorded WAV. Hardware I/O still requires a permissioned native/browser integration.
+
+Primary standard: MIDI Association, Standard MIDI Files specification, https://midi.org/standard-midi-files. Keep any proprietary/native DAW SDK integrations separately reviewed.
+
 ## Follow-on source-stem export increment (stacked feature branch)
 
 **Status:** implemented in `feature/creator-source-stems-20261010`, which builds on the unmerged draft PR #611. This section is not evidence of a deployed capability, main-branch integration, formal CI approval or mobile-device quality signoff.
