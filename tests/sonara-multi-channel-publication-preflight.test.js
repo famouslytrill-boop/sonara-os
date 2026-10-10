@@ -51,6 +51,17 @@ function input(overrides = {}) {
     destinations: [target()]
   };
   Object.assign(result, overrides);
+  if (!Object.hasOwn(overrides, "serverPublishingManifest")) {
+    const base = manifest();
+    result.serverPublishingManifest = manifest({
+      destinationCopy: result.destinations.map(dest => ({
+        ...base.destinationCopy[0], providerKey: dest.providerKey, accountId: dest.accountId
+      }))
+    });
+  }
+  const digest = publishingManifestHash(result.serverPublishingManifest);
+  if (!Object.hasOwn(overrides, "publishingManifestHash")) result.publishingManifestHash = digest;
+  if (!Object.hasOwn(overrides, "serverPublishingManifestHash")) result.serverPublishingManifestHash = digest;
   const hash = publicationSnapshotHash(result);
   result.approval = {
     organizationId: ORG, serverOrganizationId: ORG,
@@ -102,6 +113,17 @@ describe("multi-channel publishing is preflight only", () => {
     const forgedMedia = input({serverContentHash:"b".repeat(64)});
     assert.equal(evaluatePublicationBatch(forgedMedia, env).code, "publication_material_integrity_unverified");
     assert.equal(evaluatePublicationBatch(input(), env).state,"worker_claim_candidate");
+  });
+  it("refuses provider copy whose account differs from the approved batch", () => {
+    const candidate = input();
+    candidate.serverPublishingManifest.destinationCopy[0].accountId = "other-page";
+    const manifestDigest = publishingManifestHash(candidate.serverPublishingManifest);
+    candidate.publishingManifestHash = manifestDigest;
+    candidate.serverPublishingManifestHash = manifestDigest;
+    const approvalDigest = publicationSnapshotHash(candidate);
+    candidate.approval.proposalSnapshotHash = approvalDigest;
+    candidate.approval.decisions[0].snapshotHash = approvalDigest;
+    assert.equal(evaluatePublicationBatch(candidate, env).code, "publication_manifest_destinations_mismatch");
   });
   it("rejects expired and noncanonical trusted timestamps", () => {
     const candidate = input({serverNow: "2026-10-10T16:00:00.000Z"});
