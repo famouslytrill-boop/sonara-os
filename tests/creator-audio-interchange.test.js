@@ -69,6 +69,14 @@ describe("Creator DAW WAV interoperability and local meters", () => {
     assert.throws(() => readWav(invalid), /incomplete/);
     const nonFinite = sourceWav({ bits: 32, encoding: 3, samples: repeated(NaN) });
     assert.throws(() => render(graph(), { rec: nonFinite }), /non-finite/);
+    const oddChunk = new Uint8Array(source.byteLength + 9);
+    oddChunk.set(new Uint8Array(source));
+    const oddView = new DataView(oddChunk.buffer);
+    oddView.setUint32(4, oddChunk.byteLength - 8, true);
+    for (const [i, c] of [..."JUNK"].entries()) oddView.setUint8(source.byteLength + i, c.charCodeAt(0));
+    oddView.setUint32(source.byteLength + 4, 1, true);
+    oddView.setUint8(source.byteLength + 8, 42);
+    assert.throws(() => readWav(oddChunk.buffer), /incomplete/);
   });
   it("returns a silent, bounded visualizer when all clips are muted", () => {
     const result = render(graph([{ id: "mute", kind: "clip", sourceId: "rec", inMs: 0, outMs: 10, startMs: 0, muted: true }]), {});
