@@ -75,6 +75,8 @@ const TEST_ONLY = new Map([
     "Storefront-region-aware purchase classification research, test-only pending trusted server catalog / iOS StoreKit / Google Play program and provider verification. Not a route, checkout, entitlement, or payment activation."],
   ["lib/sonara-community-feed-reader.cjs",
     "Draft authenticated public-feed read orchestrator; its discovery policy dependency is now reached from this module. Test-only until verified server identity, viewer-owned preferences, reviewed public projections, RLS proof and an explicitly approved feature-flagged route exist. No live feed or publishing."],
+  ["lib/sonara-social-preference-policy.cjs",
+    "Draft pure user-owned feed preference mutation planner and CAS preflight; waits for server-authenticated actor proof, independent consent receipts, isolated private-schema SQL replay and a separately reviewed writer. It performs no DB action or reciprocal account blocking."],
   // Explicitly staged governance work from #442/#443; these remain unconnected.
   ["lib/sonara-content-compliance-engine.cjs",
     "Draft content/legal review policy; waits for authenticated tenant evidence and a human-review route. It does not certify compliance or publish."],
