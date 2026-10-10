@@ -2014,11 +2014,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const config = getConfig(deps);
     const motionPermission = await accountMotionPermission(config, req.sonaraUser?.id);
     res.set("Permissions-Policy", permissionsPolicyFor(motionPermission.ok ? "device_feedback" : "default"));
+    const releaseShaRaw = String(deps.getEnv?.("VERCEL_GIT_COMMIT_SHA") || "").trim().toLowerCase();
+    const releaseSha = /^[0-9a-f]{40}$/.test(releaseShaRaw) ? releaseShaRaw : null;
     const motionConfig = JSON.stringify({
       endpoint: "/api/motion/events",
       sampleWindowMs: 5000,
       sampleIntervalMs: 100,
       maxSamples: 50,
+      releaseSha,
       applicationPermissionAllowed: motionPermission.ok === true,
       applicationPermissionState: motionPermission.state,
       applicationPermissionMessage: motionPermission.ok
@@ -2035,12 +2038,12 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       body: "Test supported device features. Nothing starts automatically. Sounds, vibration, motion, and GPS need user action and browser permission.",
       sections: [
         `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" data-sonara-feedback-test>Test success feedback</button><p class="fine" role="status" aria-live="polite" data-sonara-feedback-status></p><p class="fine" data-sonara-device-capabilities></p></div>`,
-        `<div class="card"><h2>Record one motion sample</h2><p>${ui.escape(motionPermissionCopy)}</p><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p></div>`,
+        `<div class="card"><h2>Record one motion sample</h2><p>${ui.escape(motionPermissionCopy)}</p><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><button type="button" data-sonara-motion-receipt>Download diagnostic receipt</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p><p class="fine" role="status" aria-live="polite" data-sonara-motion-receipt-status></p></div>`,
         ui.card("Privacy", "Location and motion data should be used only for clock-ins, job-site check-ins, routes, inspections, delivery stops, and approved creator cue workflows."),
         ui.card("Fallbacks", "If vibration, motion, or GPS is unsupported, the app must show a plain setup or unsupported message.")
       ],
       actions: [ui.link("/account/permissions", "Device permissions"), ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
-    }).replace("</body>", '<script src="/sensory-device-client.js"></script><script src="/sonara-motion-capture.js"></script></body>'));
+    }).replace("</body>", '<script src="/sensory-device-client.js"></script><script src="/sonara-device-diagnostic-receipt.js"></script><script src="/sonara-motion-capture.js"></script></body>'));
   });
 
   Object.entries(RESOURCE_MAP).forEach(([path, resource]) => registerRestResource(app, path, resource, deps, requireBusinessManager));
