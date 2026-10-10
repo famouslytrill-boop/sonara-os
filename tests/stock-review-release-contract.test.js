@@ -24,9 +24,9 @@ describe("Stock review release-gate regressions",()=>{
   it("requires genuine RLS attestation, never replaying the obsolete policy rewrite",()=>{
     assert.match(replay,/p1-current-policy-contract\.sql/);
     assert.doesNotMatch(replay,/fs\.readFileSync\(path\.join\(root, "tests\/sql\/p1-rls-initplan-policy-dedup-rollback\.sql"/);
-    assert.match(policy,/subscription_count NOT BETWEEN 1 AND 2/);
-    assert.match(policy,/subscription_invalid <> 0/);
-    assert.match(policy,/\) IS DISTINCT FROM TRUE\)/);
+    assert.match(policy,/IF expected_count <> 25 THEN/);
+    assert.match(policy,/safe IS DISTINCT FROM true/);
+    assert.doesNotMatch(policy,/subscription_count|subscription_invalid|subscription policy baseline drift/);
   });
   it("mounts browser fixture in an actual origin-bound served page, not an opaque replacement",()=>{
     assert.match(browser,/browser_component_origin_mismatch/);
