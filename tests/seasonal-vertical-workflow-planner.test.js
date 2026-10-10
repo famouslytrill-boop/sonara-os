@@ -2,10 +2,11 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const assert = require("node:assert/strict");
+const { gunzipSync } = require("node:zlib");
 const {
   VERTICALS, VERTICAL_KEYS, SEASONS, MAX_EVENTS,
   getVerticalPlaybook, planSeasonalCapacity, calculateJobQuote,
-  summarizeOperationalEvents
+  summarizeOperationalEvents, compressOperationalSummary
 } = require("../lib/sonara-seasonal-vertical-playbooks.cjs");
 
 const ORG_A = "11111111-1111-4111-8111-111111111111";
@@ -122,6 +123,13 @@ describe("seasonal vertical planning boundary", () => {
     assert.equal(summary.statusCounts.delivered, 1);
     assert.equal(summary.statusCounts.invoiced, 1);
     assert.equal(summary.containsRawCustomerData, false);
+    const packed = compressOperationalSummary(summary);
+    assert.equal(packed.format, "gzip+base64");
+    assert.equal(packed.encrypted, false);
+    const original = JSON.parse(gunzipSync(Buffer.from(packed.data, "base64")).toString("utf8"));
+    assert.equal(original.uniqueEvents, 2);
+    assert.equal(original.version, 1);
+    assert.ok(!JSON.stringify(original).includes("private@example.com"));
     assert.ok(!JSON.stringify(summary).includes("private@example.com"));
     assert.ok(!JSON.stringify(summary).includes("private street"));
   });
@@ -136,6 +144,9 @@ describe("seasonal vertical planning boundary", () => {
     assert.throws(() => summarizeOperationalEvents({
       organizationId: "not-a-uuid", events: []
     }), /invalid_organization/);
+    assert.throws(() => compressOperationalSummary({
+      organizationId: ORG_A, customerEmail: "private@example.com"
+    }), /unvalidated_operational_summary/);
   });
 
   it("bounds event batch sizes and disallows arbitrary status/revision values", () => {
