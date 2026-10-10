@@ -62,6 +62,9 @@ describe("consented bounded motion capture", () => {
     assert.match(policy, /camera=\(\)/);
     assert.match(page, /data-sonara-motion-start/);
     assert.match(page, /data-sonara-motion-cancel/);
+    assert.match(page, /data-sonara-motion-receipt/);
+    assert.match(page, /releaseSha/);
+    assert.match(page, /sonara-device-diagnostic-receipt\.js/);
     assert.match(page, /sonara-motion-capture\.js/);
     assert.doesNotMatch(page, /onclick=/);
     assert.match(page, /Individual sensor events are not uploaded/);
