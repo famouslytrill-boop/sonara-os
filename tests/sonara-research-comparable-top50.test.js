@@ -23,6 +23,8 @@ describe("SONARA comparable Top 50 research candidates",()=>{
     const rows=make(51).map(x=>({...x,value:x.value===1?2:x.value}));
     const r=planComparableTop50(base({observations:rows}));
     assert.equal(r.cutoffTieRequiresReview,true);
+    assert.equal(r.hasFiftyComparableRecords,true);
+    assert.equal(r.candidateTop50.length,0);
     assert.ok(r.blockers.includes("rank_50_cutoff_tie_requires_review"));
   });
   it("keeps competition rank positions consistent with numeric ties",()=>{
