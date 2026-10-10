@@ -171,3 +171,182 @@ describe("governed adaptive learning (policy-only)", () => {
     assert.equal(readiness.types.length, ADAPTATION_TYPES.length);
   });
 });
+
+const {
+  DAILY_METRICS, PHASES, forecastDailyAggregate, mapLearningSequence,
+  assessOperationalSignals, getPredictiveMappingReadiness
+} = require("../lib/sonara-adaptive-prediction-mapping.cjs");
+
+const forecastHistory = Object.freeze(Array.from({ length: 42 }, (_, i) => Object.freeze({
+  date: new Date(Date.UTC(2026, 7, 25 + i)).toISOString().slice(0, 10),
+  value: 10 + (i % 7) * 2
+})));
+const forecastValid = Object.freeze({
+  organizationId: ORG,
+  serverOrganizationId: ORG,
+  metric: "daily_orders",
+  aggregateEvidenceVerified: true,
+  privacyReviewed: true,
+  smallCellSuppressionVerified: true,
+  distinctContributors: 30,
+  provenance: "server-owned approved daily aggregate",
+  trustedToday: "2026-10-09",
+  horizonDays: 14,
+  series: forecastHistory
+});
+const orderedStages = PHASES.map((phase, index) => ({
+  id: phase, phase,
+  dependsOn: index === 0 ? [] : [PHASES[index - 1]],
+  estimatedCostUnits: 3
+}));
+
+describe("adaptive prediction and sequence mapping policy (no runtime execution)", () => {
+  it("previews a 14-day seven-day baseline with a held-out backtest", () => {
+    const result = forecastDailyAggregate(forecastValid);
+    assert.equal(result.state, "forecast_preview_only");
+    assert.equal(result.predictions.length, 14);
+    assert.equal(result.backtest.holdoutDays, 7);
+    assert.equal(result.backtest.mae, 0);
+    assert.equal(result.backtest.wapePercent, 0);
+    assert.equal(result.trainedModel, false);
+    assert.equal(result.predictions[0].value, forecastHistory[35].value);
+    assert.equal(result.predictions[7].value, result.predictions[0].value);
+    assert.equal(result.predictions[0].date, "2026-10-06");
+    assert.equal(result.readOnly, true);
+    assert.equal(result.executionAuthorized, false);
+    assert.equal(result.dataWritten, false);
+  });
+
+  it("reports holdout errors and uncertainty honestly without fitted intervals", () => {
+    const changed = forecastHistory.map((point, i) =>
+      i >= 35 ? { ...point, value: point.value + 5 } : point);
+    const result = forecastDailyAggregate({ ...forecastValid, series: changed });
+    assert.equal(result.backtest.mae, 5);
+    assert.equal(result.backtest.residualP80, 5);
+    assert.equal(result.backtest.errorBandCalibrated, false);
+    assert.equal(result.predictions[0].residualBand.lower, result.predictions[0].value - 5);
+    assert.equal(forecastDailyAggregate({
+      ...forecastValid, series: forecastHistory.map(point => ({ ...point, value: 0 }))
+    }).backtest.wapePercent, null);
+  });
+
+  it("blocks cross-tenant, unapproved, small-population and non-aggregate forecasting", () => {
+    for (const invalid of [
+      { serverOrganizationId: USER },
+      { metric: "individual_browsing_history" },
+      { aggregateEvidenceVerified: false },
+      { privacyReviewed: false },
+      { smallCellSuppressionVerified: false },
+      { distinctContributors: 9 },
+      { provenance: "" },
+      { horizonDays: 0 },
+      { horizonDays: 15 },
+      { horizonDays: 1.5 },
+      { series: forecastHistory.slice(0, 20) },
+      { series: [] },
+      { trustedToday: "2026-10-04" },
+      { trustedToday: "2026-11-11" },
+      { trustedToday: "2026-02-30" }
+    ]) {
+      const result = forecastDailyAggregate({ ...forecastValid, ...invalid });
+      assert.equal(result.state, "blocked", JSON.stringify(invalid).slice(0, 90));
+      assert.equal(result.executionAuthorized, false);
+    }
+  });
+
+  it("rejects missing, duplicate, out-of-order, malformed and impossible daily values", () => {
+    const variants = [
+      forecastHistory.map((v,i) => i === 10 ? { ...v, date: forecastHistory[9].date } : v),
+      forecastHistory.map((v,i) => i === 10 ? { ...v, date: "2026-02-30" } : v),
+      forecastHistory.map((v,i) => i === 10 ? { ...v, value: -1 } : v),
+      forecastHistory.map((v,i) => i === 10 ? { ...v, value: 1.1 } : v),
+      forecastHistory.map((v,i) => i === 10 ? { ...v, value: Infinity } : v),
+      forecastHistory.map((v,i) => i === 10 ? { ...v, value: 1000001 } : v)
+    ];
+    for (const series of variants) {
+      assert.equal(forecastDailyAggregate({ ...forecastValid, series }).state, "blocked");
+    }
+    assert.equal(forecastDailyAggregate(null).state, "blocked");
+    assert.equal(DAILY_METRICS.length, 5);
+  });
+
+  it("produces a stable phase-by-phase read-only DAG plan", () => {
+    const args = { organizationId: ORG, serverOrganizationId: ORG,
+      purpose: "explainable aggregate demand and workflow feedback", steps: orderedStages };
+    const result = mapLearningSequence(args);
+    assert.equal(result.state, "reviewable_sequence_only");
+    assert.deepEqual(result.orderedSteps.map(x => x.phase), PHASES);
+    assert.equal(result.totalEstimatedCostUnits, 24);
+    assert.equal(result.maxSequentialDepth, 8);
+    assert.deepEqual(result.parallelBatches.map(batch => batch.length), Array(8).fill(1));
+    assert.deepEqual(mapLearningSequence({ ...args, steps: [...orderedStages].reverse() }).orderedSteps,
+      result.orderedSteps);
+    assert.equal(result.canScheduleOrExecute, false);
+    assert.equal(result.executionAuthorized, false);
+    assert.equal(result.approvalStatus, "not_requested");
+  });
+
+  it("rejects skipped phases, cycles, missing edges, duplicate names and budget bypasses", () => {
+    const args = { organizationId: ORG, serverOrganizationId: ORG,
+      purpose: "auditable readonly process", steps: orderedStages };
+    for (const steps of [
+      [{ ...orderedStages[0] }, { ...orderedStages[3], dependsOn: ["observe"] }],
+      [...orderedStages.slice(0, -1), { ...orderedStages[7], dependsOn: ["verify"] }],
+      [...orderedStages, orderedStages[0]],
+      [...orderedStages.slice(0, 2), { ...orderedStages[2], dependsOn: ["missing"] }, ...orderedStages.slice(3)],
+      [...orderedStages.slice(0, 1), { ...orderedStages[1], dependsOn: ["observe", "validate"] }, ...orderedStages.slice(2)],
+      [...orderedStages.slice(0, 1), { ...orderedStages[1], id: "__proto__" }, ...orderedStages.slice(2)],
+      orderedStages.map(v => ({ ...v, estimatedCostUnits: 101 })),
+      orderedStages.map(v => ({ ...v, dependsOn: Array(9).fill("observe") }))
+    ]) {
+      assert.equal(mapLearningSequence({ ...args, steps }).state, "blocked");
+    }
+    assert.equal(mapLearningSequence({ ...args, serverOrganizationId: USER }).state, "blocked");
+    assert.equal(mapLearningSequence({ ...args, purpose: "" }).state, "blocked");
+    assert.equal(mapLearningSequence(null).state, "blocked");
+  });
+
+  it("maps parallel branches without claiming to execute or approve them", () => {
+    const steps = [...orderedStages, {
+      id: "validate_extra", phase: "validate", dependsOn: ["observe"], estimatedCostUnits: 5
+    }];
+    const result = mapLearningSequence({ organizationId: ORG, serverOrganizationId: ORG,
+      purpose: "plan duplicate review", steps });
+    assert.equal(result.maxSequentialDepth, 8);
+    assert.deepEqual(result.parallelBatches[1], ["validate", "validate_extra"]);
+    assert.equal(result.humanReviewStillRequired, true);
+  });
+
+  it("triages operational telemetry without autorepair or self-coding", () => {
+    const baseline = { organizationId: ORG, serverOrganizationId: ORG,
+      telemetryVerified: true, provenance: "trusted request metric",
+      requests: 1000, failedRequests: 1, p95LatencyMs: 120,
+      reviewedErrorRateThreshold: 0.01, reviewedLatencyThresholdMs: 500 };
+    const healthy = assessOperationalSignals(baseline);
+    assert.equal(healthy.state, "within_supplied_thresholds");
+    assert.equal(healthy.errorRate, 0.001);
+    assert.equal(healthy.automaticRepairAuthorized, false);
+    assert.equal(assessOperationalSignals({ ...baseline, failedRequests: 50 }).state,
+      "operator_review_recommended");
+    assert.equal(assessOperationalSignals({ ...baseline, p95LatencyMs: 650 }).state,
+      "operator_review_recommended");
+    for (const override of [
+      { telemetryVerified: false }, { serverOrganizationId: USER },
+      { failedRequests: 1001 }, { requests: 20 },
+      { reviewedErrorRateThreshold: 0 }, { p95LatencyMs: NaN },
+      { reviewedLatencyThresholdMs: 0 }, { provenance: "" }
+    ]) {
+      assert.equal(assessOperationalSignals({ ...baseline, ...override }).state, "blocked");
+    }
+  });
+
+  it("labels prediction, operational awareness, and planning as non-executing", () => {
+    const metadata = getPredictiveMappingReadiness();
+    assert.equal(metadata.modelWeightsUpdated, false);
+    assert.equal(metadata.personalHabitsCollected, false);
+    assert.equal(metadata.automatedActionsAdded, 0);
+    assert.equal(metadata.providerActivated, false);
+    assert.equal(getAdaptiveLearningReadiness().predictiveMapping.status,
+      "pure_policy_and_preview_only");
+  });
+});
