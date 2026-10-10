@@ -95,4 +95,42 @@ describe("customer cohort proof", () => {
     assert.equal(result.report.activatedOrganizations, 1);
     assert.equal(run([org(A, "2026-09-31T10:00:00.000Z")], []).ok, false);
   });
+
+  it("reports D30 and D60 mature product activity without confusing billing events with retention", () => {
+    const observed = "2026-08-02T00:00:00.000Z";
+    const created = "2026-06-01T10:00:00.000Z";
+    const result = run([org(A, created), org(B, created)], [
+      event(A, "account.organization_created", created),
+      event(B, "account.organization_created", created),
+      event(A, "business_builder.intake_created", "2026-07-01T11:00:00.000Z"),
+      event(A, "business_builder.intake_created", "2026-07-31T11:00:00.000Z"),
+      event(B, "billing.purchase_completed", "2026-07-31T12:00:00.000Z"),
+      event(B, "business_builder.intake_created", "2026-08-01T11:00:00.000Z")
+    ], { from: "2026-06-01T00:00:00.000Z", to: "2026-06-02T00:00:00.000Z", asOf: observed });
+    assert.equal(result.ok, true);
+    assert.equal(result.report.matureDay30ActivatedOrganizations, 2);
+    assert.equal(result.report.day30RetainedOrganizations, 1);
+    assert.equal(result.report.day30ProductActivityRetentionRate, 0.5);
+    assert.equal(result.report.matureDay60ActivatedOrganizations, 2);
+    assert.equal(result.report.day60RetainedOrganizations, 1);
+    assert.equal(result.report.day60ProductActivityRetentionRate, 0.5);
+    assert.equal(result.report.verifiedDay60PayingCustomerRetentionRate, null);
+    assert.equal(result.report.paidEvidenceStatus, "provider_reconciliation_required");
+  });
+
+  it("withholds D60 rates until every eligible D60 observation window is complete", () => {
+    const created = "2026-06-01T10:00:00.000Z";
+    const result = run([org(A, created)], [
+      event(A, "account.organization_created", created),
+      event(A, "business_builder.intake_created", "2026-07-31T11:00:00.000Z")
+    ], { from: "2026-06-01T00:00:00.000Z", to: "2026-06-02T00:00:00.000Z",
+      asOf: "2026-07-31T12:00:00.000Z" });
+    assert.equal(result.ok, true);
+    assert.equal(result.report.matureDay60ActivatedOrganizations, 0);
+    assert.equal(result.report.day60RetainedOrganizations, 0);
+    assert.equal(result.report.day60ProductActivityRetentionRate, null);
+    assert.equal(result.report.matureDay30ActivatedOrganizations, 1);
+    assert.equal(result.report.day30ProductActivityRetentionRate, 0);
+  });
+
 });
