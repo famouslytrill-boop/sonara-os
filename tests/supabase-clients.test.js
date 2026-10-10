@@ -210,7 +210,7 @@ describe("the policies that make user-scoped reads possible", () => {
 });
 
 
-describe("fail-closed scoped evidence reads (new learning-adapter preflight)", async () => {
+describe("fail-closed scoped evidence reads (new learning-adapter preflight)", () => {
   const org = "11111111-1111-4111-8111-111111111111";
   const user = "22222222-2222-4222-8222-222222222222";
   const liveProof = Object.freeze({
@@ -320,6 +320,7 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", a
       publishableKey: "sb_publishable_test_public", secretKey: "sb_secret_test_private",
       serviceRoleKey: "legacy-private-key"
     };
+    const verified = await verifiedInput();
     for (const override of [
       { config: { ...keys, publishableKey: keys.secretKey } },
       { config: { ...keys, publishableKey: keys.serviceRoleKey } },
@@ -328,7 +329,7 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", a
       { accessToken: "sb_secret_other", config: keys },
       { accessToken: "sb_publishable_other", config: keys }
     ]) {
-      assert.throws(() => requireVerifiedUserScopedRead({ ...(await verifiedInput()), ...override }),
+      assert.throws(() => requireVerifiedUserScopedRead({ ...verified, ...override }),
         SupabaseClientError);
     }
   });
@@ -404,11 +405,12 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", a
   });
 
   it("does not change legacy chooseClient fallback behavior for existing routes", async () => {
+    const verified = await verifiedInput();
     assert.equal(chooseClient({
       method: "GET", table: "sonara_learning_aggregates",
       accessToken: "", readyTables: new Set([liveProof.table])
     }).client, "service_role");
-    assert.throws(() => requireVerifiedUserScopedRead({ ...(await verifiedInput()), accessToken: "" }),
+    assert.throws(() => requireVerifiedUserScopedRead({ ...verified, accessToken: "" }),
       SupabaseClientError);
   });
 });
