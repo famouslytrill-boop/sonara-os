@@ -208,9 +208,15 @@ These are **research-plan allowlist entries**, not new formulas. Existing `campa
 
 ### Test evidence and release gates
 
-At the Phase 5 commit, **29/29 source-linked targeted JavaScript assertions** passed in a V8 harness with the actual committed formula-engine/industry-registry metadata, but a simulated URL constructor and stubbed cryptographic hash constructor. Thus this is *not* actual Node 24, mocha, pnpm, database, deployment, or independent security evidence.
+At the Phase 5 commit, **30/30 source-linked targeted JavaScript assertions** passed in a V8 harness with the actual committed formula-engine/industry-registry metadata, but a simulated URL constructor and stubbed cryptographic hash constructor. Thus this is *not* actual Node 24, mocha, pnpm, database, deployment, or independent security evidence.
 
 The next release requirement remains:
 1. Confirm why GitHub required jobs are queued before further reruns. Inspect runner scheduling, Actions permissions, billable minutes, queue policy and capacity as applicable using authorized repository administration, without bypassing branch protection.
 2. Obtain actual exact-head Node 24 test, lint, typecheck, build, migration replay, dependency scan and security results. Investigate any real failure and revalidate after every commit.
 3. Only then consider a separate authenticated read-only Research Lab integration with explicit tenant authorizations, reviewer identity, timestamped attestations and provider-rights records. A self-reported URL, shared-host count, or consent checkbox must not be treated as a verified fact or an authorization to calculate from customer data.
+
+### Phase 5 additional intake/privacy hardening
+
+Evidence receipts accept **only** `claimId`, `sourceUrl`, `stance`, and `observedAt`. An extra field, including customer identity, unapproved commentary or a purported approval, is rejected without echoing its content. Plans accept only `formulaKey`, `claimId`, `observations`, `reviewedAt`, and `maxAgeDays`. In particular, input values and customer details do not travel through the planning interface.
+
+A targeted mutation study confirmed tests fail when the formula-evaluated guard is flipped, when unknown request fields are allowed, or when unapproved receipt fields are admitted. The targeted suite is now **30/30 passing in the isolated V8 harness**; full repository CI has not executed and no production outcome follows from this result.
