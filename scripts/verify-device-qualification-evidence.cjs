@@ -12,6 +12,21 @@ const ROOT = path.resolve(__dirname, "..");
 const DATA_PATH = path.join(ROOT, "data", "device-qualification-evidence.json");
 
 function headSha() {
+  // On pull_request workflows GITHUB_SHA may be the synthetic refs/pull/*/merge
+  // commit. Qualification belongs to the source revision under review, so use
+  // the event's pull_request.head.sha when it is available.
+  const eventPath = String(process.env.GITHUB_EVENT_PATH || "").trim();
+  if (eventPath) {
+    try {
+      const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
+      const pullRequestHead = String(event?.pull_request?.head?.sha || "").trim();
+      if (evidence.validSha(pullRequestHead)) return pullRequestHead.toLowerCase();
+    } catch {
+      // A missing/unreadable event file is not proof; continue to other exact
+      // sources rather than guessing.
+    }
+  }
+
   const fromEnv = String(process.env.GITHUB_SHA || "").trim();
   if (evidence.validSha(fromEnv)) return fromEnv.toLowerCase();
   try {
@@ -20,7 +35,7 @@ function headSha() {
   } catch {
     // Fall through to explicit failure below.
   }
-  throw new Error("Could not determine an exact 40-character repository HEAD SHA.");
+  throw new Error("Could not determine an exact 40-character repository source SHA.");
 }
 
 function track(key) {
