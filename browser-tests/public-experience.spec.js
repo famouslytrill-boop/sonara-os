@@ -37,9 +37,9 @@ async function mountLocalComponent(page, markup, scriptPath) {
     const response = await route.fetch();
     if (!response.ok()) throw new Error(`Fixture page failed: ${response.status()}`);
     const originalHtml = await response.text();
-    if (!/<\\/body>/i.test(originalHtml)) throw new Error("Missing body close tag");
+    if (!new RegExp("</body>", "i").test(originalHtml)) throw new Error("Missing body close tag");
     const fixture = `<section data-sonara-playwright-fixture>${inertMarkup}</section><script src="${scriptPath}"></script>`;
-    const modified = originalHtml.replace(/<\\/body>/i, `${fixture}</body>`);
+    const modified = originalHtml.replace(new RegExp("</body>", "i"), `${fixture}</body>`);
     fixtureAdded = true;
     await route.fulfill({ response, body: modified });
   };
