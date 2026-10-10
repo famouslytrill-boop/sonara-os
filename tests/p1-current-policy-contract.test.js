@@ -28,18 +28,12 @@ describe("Current P1 policy replay contract",()=>{
     assert.match(sql,/p\.cmd='ALL'/);
     assert.match(sql,/safe IS DISTINCT FROM true/);
   });
-  it("allows only owner-scoped subscription SELECT, even when a replay has deduped the legacy pair",()=>{
-    assert.match(sql,/Users can view own subscriptions/);
-    assert.match(sql,/Users can view their own subscription/);
-    assert.match(sql,/subscription policy baseline drift/);
-    assert.match(sql,/subscription_count NOT BETWEEN 1 AND 2/);
-    assert.match(sql,/subscription_invalid <> 0/);
-    // NULL from an absent/malformed qualifier must be treated as failure.
-    assert.match(sql,/with_check IS NULL\s*\n\s*\) IS DISTINCT FROM TRUE\)/);
-    assert.match(sql,/roles=ARRAY\['authenticated'\]::name\[\]/);
-    assert.match(sql,/qual IN \(/);
-    assert.match(sql,/auth\.uid\(\) = user_id/);
-    assert.match(sql,/with_check IS NULL/);
+  it("does not infer subscription-policy access from an unseeded replay fixture",()=>{
+    // The isolated PG replay creates no named subscription SELECT policies.
+    // Live authorization checks remain separate and must not be declared passed
+    // by this 25-policy security-source attestation.
+    assert.doesNotMatch(sql,/subscription_count|subscription_invalid|subscription policy baseline drift/);
+    assert.match(sql,/IF expected_count <> 25 THEN/);
   });
   it("does not rewrite or disable policies merely to make a replay green",()=>{
     assert.doesNotMatch(sql,/\bALTER POLICY\b|\bDROP POLICY\b|\bCREATE POLICY\b|\bDISABLE ROW LEVEL SECURITY\b/i);
