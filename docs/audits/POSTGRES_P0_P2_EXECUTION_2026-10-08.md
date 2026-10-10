@@ -72,6 +72,13 @@ policies on 25 tables, divided into:
   A/B write/deny and role grants on populated test tables; then create
   a forward migration with the Supabase CLI. Do not edit historic migration.
 
+### Follow-on correction, October 10, 2026 — native replay expectations
+
+The full migration history now includes `20261008100000_tighten_service_role_rls_policies.sql`, which postdates this October 8 snapshot's older P1 proposal. GitHub's PostgreSQL 16 and 18 native-replay logs demonstrated that all 25 expected pre-hardening policies **no longer match** the replay catalog: 21 pure service-role predicates are now `TO service_role USING (true)` (with `WITH CHECK (true)` for ALL), and four ownership policies already use a `SELECT auth.uid()` initPlan. Re-running the old `ALTER POLICY` statements would regress the policy design.
+
+The remediation branch `fix/p1-rls-guarded-replay-current-baseline-20261010` updates the staging-only SQL probe to require **exactly those 25 hardened definitions** and then transactionally test the previously verified subscriptions SELECT-policy duplication. It does not create another production migration, drop or rewrite any of the 25 protected policies, change grants, or remove the abort-on-drift check. The entire probe ends with `ROLLBACK`; the separate P0 synthetic two-tenant role/write-deny matrix continues to run first. **This is an unverified draft until native replay succeeds at the exact PR SHA.** Security reviewers must still inspect production identity, migration history, and live Supabase advisors before any activation.
+
+
 ## 3. P1 — 1,292 overlapping permissive-policy warnings
 
 These are **lint findings**, not 1,292 independent privacy leaks.
