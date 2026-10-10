@@ -39,7 +39,7 @@ const valid = Object.freeze({
   provenance: "verified tenant aggregate success records",
   rollbackPlanReviewed: true,
   explanation: "Preview a reversible workflow layout with opt-out.",
-  trustedNow: "2026-10-09T19:00:00Z",
+  trustedNow: "2026-10-09T19:00:00.000Z",
   observedAt: "2026-10-08T19:00:00Z",
   baselineTrials: 100,
   baselineSuccesses: 25,
