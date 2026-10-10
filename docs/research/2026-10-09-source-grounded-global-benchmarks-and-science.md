@@ -123,6 +123,26 @@ Source review on 2026-10-09 confirmed the following direct publisher/authority p
 
 **Implemented policy changes:** All ranking publishers default to `automatedIngestionAllowed: false` and `republicationRightsCleared: false`. Any rejected source row yields `invalid_transcription`, even if 50 valid rank numbers are present. Input evidence URLs and customer counts are explicitly unverified claims. Ideas with complete self-reported fields receive `independent_validation_required`, not 'ready' or production authority. Recognized high-impact classifications and *unknown* risk tags require specialist and owner review.
 
-**Test changes:** 14 targeted contract/negative test cases now cover malformed rankings, complete-but-unverified lists, publisher rights denial, forecast-risk taxonomy, unknown tags, missing evidence, spoofed links, and production-denial invariants. A check that runs these tests in isolated V8 is diagnostic only; official pnpm/Node test, CI, license scans and release proof remain required.
+**Test changes:** 21 targeted contract/negative test cases now cover malformed rankings, complete-but-unverified lists, publisher rights denial, forecast-risk taxonomy, unknown tags, missing evidence, spoofed links, and production-denial invariants. A check that runs these tests in isolated V8 is diagnostic only; official pnpm/Node test, CI, license scans and release proof remain required.
 
 **Implementation stages after this PR:** (1) wait for exact-head CI and merge governance; (2) human rights/terms check before any external intake; (3) reuse existing source evidence registration and tenant-safe research storage with no parallel duplicate database; (4) implement an opt-in read-only, properly labeled Research Lab surface; (5) controlled pilot with at least one customer, bounded budget and measured time-to-answer. Do not grant a research module any authority over Stripe, publishing, security, customer communication or repository deployments.
+
+## Phase 3: cross-source contradiction graph and hostile evidence input
+
+**New read-only function:** `auditEvidencePacket({ observations, reviewedAt, maxAgeDays })` groups source-supported research claims by stable claim ID. Each item contains an HTTPS source URL, observation date, and explicit `supports` or `contradicts` stance. The function does not fetch content, grant rights, authorize publication, change a customer record or claim to authenticate supplied URLs.
+
+It reports:
+- `contradiction_review` for claims with both supporting and contradictory observations;
+- `unsupported_claim` for only adverse evidence;
+- `stale_evidence` for inputs outside an explicitly bounded age window;
+- `invalid_intake` for duplicate source/claim combinations, invalid dates/URLs and malformed records;
+- `no_evidence` for an empty research set;
+- `human_source_review_required` even for a clean packet, because URLs and other metadata supplied by the caller remain unverified.
+
+**Source and risk controls:** Ranking names reject leading spreadsheet-formula initiators, including Unicode compatibility variants, and invisible/control/bidirectional override characters. Evidence URL inputs are HTTPS-only and capped at 2,048 characters. Localhost, local/internal DNS, common private-network IPv4 ranges, IPv6 literals, embedded credentials and control characters fail admission. There is **no network request** in this module. The URL policy is defense-in-depth for future approved adapters, not proof that arbitrary hosts are safe to fetch.
+
+**Research basis:** W3C provenance separates *entity*, *activity* and *agent*, suitable for audit-ready attribution and contradiction chains (https://www.w3.org/TR/prov-o/). NIST AI RMF distinguishes governance, contextual mapping, independent measurement and risk management (https://airc.nist.gov/airmf-resources/airmf/5-sec-core/). OWASP warns that exporting untrusted text to CSV can trigger formula execution, and that generic escaping is not universally reliable across spreadsheet software (https://owasp.org/www-community/attacks/CSV_Injection). This implementation rejects unsafe identifier shapes, but does **not** claim to provide a CSV exporter or general spreadsheet-output sanitization.
+
+**Verifiable engineering boundary:** Unit assertions test contradictory signals, bad provenance, source freshness, private/internal citation URLs, unsafe ranking names, publisher rights restrictions and fail-closed authorization. A mutation test deliberately granting production authorization to a claim must fail. Since GitHub Actions remain queued, merge is blocked until full exact-SHA Node/CI validation completes. No extra claims of readiness follow from test counts alone.
+
+**Next implementation phase once exact-head gates are green:** typed imports from an approved source and explicit rights record, signed/tenant-scoped human review receipts, review UI reuse within the existing Research Lab route registration, and measured pilot. Any new database storage requires schema/RLS/migration review; do not create duplicate research source tables.
