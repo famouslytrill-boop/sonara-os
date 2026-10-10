@@ -476,7 +476,7 @@ async function mintedTestEvidenceRead() {
     organizationId: ORG, userId: USER, rowId: ownRow,
     otherOrganizationId: foreignOrg, otherUserId: foreignUser,
     otherRowId: foreignRow, accessToken: ownToken, otherAccessToken: foreignToken,
-    trustedNow: "2026-10-09T18:00:00.000Z"
+    trustedNow: "2026-10-09T18:55:00.000Z"
   });
   return requireVerifiedUserScopedRead({
     config: adapterReadConfig, accessToken: ownToken,
