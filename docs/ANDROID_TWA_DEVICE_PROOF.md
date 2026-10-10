@@ -1,5 +1,7 @@
 # Android TWA Device Proof
 
+> Machine-readable acceptance is governed by `docs/device/PHYSICAL_DEVICE_QUALIFICATION_2026-10-09.md` and `data/device-qualification-evidence.json`. This checklist does not qualify a release until an `android_twa` record for the exact release SHA passes `pnpm run verify:device-qualification`.
+
 This checklist records evidence for the Android capability. Packaging CI is automated; the device and Play-signing rows remain manual because CI cannot truthfully substitute for a Play-signed install on a real device.
 
 ## Automated packaging evidence
