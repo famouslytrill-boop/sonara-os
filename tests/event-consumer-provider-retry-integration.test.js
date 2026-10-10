@@ -157,7 +157,7 @@ describe("provider delay integration with the existing event consumer", () => {
         kinds: [CANARY_KIND],
         producers: ["sonara-event-consumer-canary:retry-bridge"]
       });
-      assert.equal(result.status, "claim_mismatch");
+      assert.equal(result.status, "claim_scope_mismatch");
       assert.equal(result.code, "claim_scope_mismatch");
       assert.equal(called, 0);
       assert.equal(settled, 0);

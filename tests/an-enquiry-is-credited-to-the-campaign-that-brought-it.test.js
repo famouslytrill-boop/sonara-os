@@ -106,7 +106,7 @@ describe("an enquiry is credited to the campaign that brought it", () => {
           const body = JSON.parse(options.body);
           const batch = Array.isArray(body) ? body : [body];
           sent.push(...batch);
-          return { ok: true, status: 200, json: async () => ({ data: batch.map((unused, index) => ({ id: `id-${index}` })) }) };
+          return { ok: true, status: 200, json: async () => (Array.isArray(body) ? { data: batch.map((unused, index) => ({ id: `id-${index}` })) } : { id: "id-single" }) };
         }
       });
       assert.equal(result.sent, 1, JSON.stringify(result));

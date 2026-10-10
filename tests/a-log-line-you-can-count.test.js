@@ -257,28 +257,23 @@ describe("a log line you can count", () => {
       assert.equal(terminal[0].detail.recorded, true);
     });
 
-    it("calls a send that reached some of the list partial, not ok and not failed", async () => {
+    it("calls an incomplete batch receipt uncertain and never resends it", async () => {
       const decision = authorised(2);
-      let call = 0;
+      let calls = 0;
       const { result, events } = await runCapturingEvents(() => dispatchCampaign({
-        ...SEND,
-        decision,
+        ...SEND, decision,
         appendLedger: async () => ({ ok: true, code: "recorded" }),
-        // The batch response carries one id, not two, so the dispatcher falls
-        // back to individual sends; the second is refused.
-        fetchImpl: async () => {
-          call += 1;
-          if (call === 1) return jsonOk({ data: [{ id: "msg-a" }] });
-          if (call === 2) return jsonOk({ id: "msg-a" });
-          return jsonOk({ message: "bad address" }, 422);
-        },
+        fetchImpl: async () => { calls += 1; return jsonOk({ data: [{ id: "msg-a" }] }); },
         recordSends: async (rows) => ({ ok: true, code: "recorded", written: rows.length })
       }));
-
-      assert.equal(result.sent, 1, "fixture did not produce a partial send; the assertion below would prove nothing");
+      assert.equal(calls, 1, "an incomplete receipt must never trigger automatic replay");
+      assert.equal(result.sent, 0);
+      assert.equal(result.uncertain.length, 2);
       const terminal = events.filter((event) => event.event === "campaign.dispatch");
       assert.equal(terminal.length, 1);
-      assert.equal(terminal[0].outcome, "partial");
+      assert.equal(terminal[0].outcome, "degraded");
+      assert.equal(terminal[0].detail.charged, false);
+      assert.equal(terminal[0].detail.unconfirmed, 2);
     });
 
     it("calls a gate refusal refused, so it does not spend error budget", async () => {

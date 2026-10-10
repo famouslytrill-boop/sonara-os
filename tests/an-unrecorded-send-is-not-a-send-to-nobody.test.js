@@ -375,25 +375,20 @@ describe("an unrecorded send is not a send to nobody", () => {
     });
 
     it("changes the not-attempted sentence with whether the record survived", async () => {
-      // The sentence an owner reads is the product here. With a record, the
-      // remainder is workable; without one, sending again re-mails everybody.
+      // Incomplete receipts stop later batches regardless of record durability.
       const many = () => authorised(301);
-      const fetchImpl = async (url, options) => {
-        const payload = JSON.parse(options.body);
-        // Batches never return one id per email, so every batch falls back; the
-        // fallback budget then runs out and the rest are not attempted.
-        // A batch whose `data` is short cannot be reconciled, so every batch
-        // falls back to individual sends -- which is how the fallback budget
-        // runs out and the remainder becomes not-attempted.
-        return Array.isArray(payload) ? ok({ data: [] }, 200) : ok({ id: "msg" }, 200);
-      };
+      let calls = 0;
+      const fetchImpl = async () => { calls += 1; return ok({ data: [] }, 200); };
 
       const withRecord = await dispatchCampaign({
         ...SEND, decision: many(), appendLedger: async () => ({ ok: true }), fetchImpl,
         recordSends: async (rows) => ({ ok: true, code: "recorded", written: rows.length })
       });
       assert.ok(withRecord.notAttempted.length > 0, "fixture produced no not-attempted recipients");
-      assert.match(withRecord.detail, /who was already reached is on record/);
+      assert.equal(withRecord.sent, 0);
+      assert.equal(withRecord.uncertain.length, 100);
+      assert.equal(calls, 1);
+      assert.match(withRecord.detail, /do not send the remainder until reconciliation/);
       assert.doesNotMatch(withRecord.detail, /would re-mail everyone above/);
 
       const withoutRecord = await dispatchCampaign({
@@ -402,7 +397,10 @@ describe("an unrecorded send is not a send to nobody", () => {
         report: () => {}
       });
       assert.ok(withoutRecord.notAttempted.length > 0);
-      assert.match(withoutRecord.detail, /NOT recorded, so sending this campaign again would re-mail everyone above/);
+      assert.equal(withoutRecord.sent, 0);
+      assert.equal(withoutRecord.uncertain.length, 100);
+      assert.equal(calls, 2);
+      assert.match(withoutRecord.detail, /do not send the remainder until reconciliation/);
     });
 
     it("says so when no record writer was supplied at all", async () => {

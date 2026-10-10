@@ -142,6 +142,13 @@ describe("the migrations are executed somewhere, not only read", () => {
         assert.doesNotMatch(block, /insert\s+into\s+public\./i);
       });
 
+      it("models the documented existing-project table grants before replay", () => {
+        assert.match(block, /alter default privileges for role postgres in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role/);
+        assert.match(block, /https:\/\/supabase\.com\/docs\/guides\/api\/securing-your-api/);
+        assert.doesNotMatch(block, /grant all (?:privileges )?on all tables in schema public/i);
+        assert.ok(source.indexOf("for (const [name, sql] of SHIM)") < source.indexOf("for (const name of files)"), "defaults must precede application table creation");
+      });
+
       it("only supplies schemas a hosted Supabase project supplies", () => {
         const schemas = [...block.matchAll(/create schema if not exists (\w+)/g)].map((match) => match[1]);
         assert.ok(schemas.length >= 2, "no schemas parsed out of the shim; this check has gone blind");

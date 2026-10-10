@@ -55,9 +55,9 @@ describe("verified Stripe periods reach generation billing", () => {
         safeCountTable: async () => ({ ok: true, count: 0 }), formatMetric: () => "", insertActivityEvent: async () => ({ ok: true }) });
       assert.equal((await billing.synchronizeBillingFromStripeEvent({ type: "customer.subscription.updated", created: start,
         data: { object: { id: "sub_test", customer: "cus_test", status: "active", metadata: { organization_id: "org-a", plan: "workspace_monthly", workspace: "creator_studio" },
-          items: { data: [{ current_period_start: start, current_period_end: end }] } } } })).ok, true);
+          items: { data: [{ current_period_start: start, current_period_end: end, price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false } } } })).ok, true);
       assert.equal(writes.length, 2);
-      for (const { row } of writes) { assert.equal(row.organization_id, "org-a"); assert.equal(row.metadata.current_period_start, new Date(start * 1000).toISOString()); assert.equal(row.metadata.current_period_end, new Date(end * 1000).toISOString()); assert.equal(row.metadata.workspace, "creator_studio"); }
+      for (const { row } of writes) { assert.equal(row.organization_id, "org-a"); assert.equal(row.provider_event_at, new Date(start * 1000).toISOString()); assert.equal(row.metadata.current_period_start, new Date(start * 1000).toISOString()); assert.equal(row.metadata.current_period_end, new Date(end * 1000).toISOString()); assert.equal(row.metadata.workspace, "creator_studio"); }
       assert.equal(writes[0].row.current_period_end, new Date(end * 1000).toISOString());
     } finally { global.fetch = previous; }
   });

@@ -121,7 +121,7 @@ describe("event consumer activation readiness", () => {
       getSupabaseServerConfig: () => ({ ok: true, url: "https://example.supabase.co", serviceRoleKey: "test-service-role" }),
       fetchImpl: async (url, init) => {
         calls.push({ url, init });
-        return response({ body: [row()] });
+        return response({ body: [row({ claimed_by: JSON.parse(init.body).p_consumer })] });
       }
     });
 

@@ -202,7 +202,9 @@ describe("a replayed Stripe event changes nothing twice", () => {
           "that is not trustworthy, so stamping on arrival records exactly the wrong number"
       );
       for (const table of ["billing_subscriptions", "billing_entitlements"]) {
-        const write = region.slice(region.indexOf(table));
+        const writeOffset = region.indexOf(`/rest/v1/${table}?on_conflict=`);
+        assert.ok(writeOffset >= 0, `missing ${table} upsert request`);
+        const write = region.slice(writeOffset);
         assert.ok(
           write.slice(0, 900).includes("provider_event_at: providerEventAt"),
           `the ${table} write no longer carries provider_event_at, so a late event overwrites newer state again`
