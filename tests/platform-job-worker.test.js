@@ -78,6 +78,38 @@ describe("platform job worker repository", () => {
     assert.deepEqual({ ok: result.ok, recovered: result.recovered, skipped: result.skipped }, { ok: true, recovered: 1, skipped: 0 });
   });
 
+  it("leaves a stale lease untouched when the visible record cannot be reconciled first", async () => {
+    let patches = 0;
+    const repo = createPlatformJobWorkerRepository({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://db.example", serviceRoleKey: "service" }),
+      now: () => new Date("2026-10-09T20:00:00.000Z"),
+      fetchImpl: async (url, init) => {
+        if ((init.method || "GET") === "GET") {
+          return response(200, [{
+            id: "job-blocked",
+            job_type: "integration.provider_readiness_probe:org",
+            status: "processing",
+            locked_at: "2026-10-09T19:50:00.000Z",
+            locked_by: "worker#old",
+            attempts: 1,
+            max_attempts: 3,
+            input: { integrationJobId: "visible" }
+          }]);
+        }
+        patches += 1;
+        return response(500, {});
+      }
+    });
+    const result = await repo.recoverStale({
+      jobType: "integration.provider_readiness_probe:org",
+      beforeRecover: async () => ({ ok: false, code: "visible_update_failed" })
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.recovered, 0);
+    assert.equal(result.skipped, 1);
+    assert.equal(patches, 0, "durable lease changed before visible reconciliation succeeded");
+  });
+
   it("dead-letters a stale lease that already consumed its final attempt", async () => {
     let terminalPatch = null;
     let terminalEvent = null;
