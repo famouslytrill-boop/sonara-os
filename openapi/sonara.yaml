@@ -2092,6 +2092,26 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/integrations/readiness-probes:
+    post:
+      operationId: createIntegrationReadinessProbe
+      tags: [Integrations]
+      summary: Queue one read-only provider readiness check for the explicitly enabled canary organization.
+      description: >-
+        The check reads SONARA's provider catalog and tenant connection status only.
+        It does not contact, mutate, authorize, bill, publish to, or refresh credentials
+        with the external provider. The worker is off by default and refuses organizations
+        outside SONARA_INTEGRATION_READINESS_CANARY_ORG_ID.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "202": { $ref: "#/components/responses/Success" }
+        "303": { description: Browser form redirect to the integrations page. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business/operations/analytics:
     get:
       operationId: getBusinessOperationsAnalytics
