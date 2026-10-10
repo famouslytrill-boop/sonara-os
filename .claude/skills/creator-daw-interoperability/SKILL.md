@@ -17,7 +17,7 @@ Use this when a change touches `public/creator-project-audio.js`, `routes/sonara
 ## Choose the smallest interoperable artifact
 
 - **Audio:** prioritize PCM WAV/BWF handoff, deterministic channel routing and synchronized per-track files. Keep source rates, sample format, origin offset and output rate explicit.
-- **MIDI:** prefer SMF import/export with tested tempo/tick conversions before proposing native project parsing. No invented BPM metadata.
+- **MIDI:** use the executable `public/creator-project-midi.js` Format 0 writer for explicit user-authored note rows: integer 40–240 BPM, 480 PPQ, one track, 128 notes maximum, 256-beat ceiling, channel 1–16, bounded variable-length deltas. Keep `tests/creator-midi-interchange.test.js` golden fixture intact. Do not infer notes from audio, invent BPM metadata, or claim Format 1, native DAW projects, MIDI 2.0, MIDI input or virtual instruments. Build new formats behind explicit typed contracts and test round trips.
 - **Video:** treat frames, audio clock, timecode, variable frame rate, proxies, captions, rights and delivery encoding as separate validated contracts.
 - **Production:** distinguish local proof, provider/worker requirement, native desktop integration and production-enabled capability.
 
