@@ -100,3 +100,27 @@ describe("post-hardening P1 replay proof remains fail-closed", () => {
     assert.match(fixture, /SELECT 'p1_rls_hygiene_staging_passed';\s*ROLLBACK;\s*$/);
   });
 });
+
+
+describe("subscription policy drift report is read-only", () => {
+  it("compares migration-defined access with both untracked preview policies without writing DDL", () => {
+    const audit = fs.readFileSync(path.join(root, "scripts", "sql", "postgres-p1-p2-candidate-review.sql"), "utf8");
+    const marker = "-- Subscription migration-vs-catalog RLS drift";
+    const at = audit.indexOf(marker);
+    assert.ok(at >= 0, "the cross-environment subscription policy report is missing");
+    const section = audit.slice(at);
+    for (const policy of ["subscriptions_select_member", "Users can view own subscriptions",
+      "Users can view their own subscription"]) {
+      assert.ok(section.includes(policy), "missing comparison for " + policy);
+    }
+    for (const result of ["missing_migration_policy", "migration_policy_definition_drift",
+      "extra_policy_not_in_migration_history", "migration_policy_matches"]) {
+      assert.ok(section.includes(result), "missing explicit review status " + result);
+    }
+    const unquotedSql = section.replace(/^--[^\n]*$/gm, "").replace(/'(?:[^']|'')*'/g, "''");
+    assert.doesNotMatch(unquotedSql, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|GRANT|REVOKE|TRUNCATE)\b/i,
+      "this audit must only read catalog metadata");
+    assert.match(section, /FROM pg_policies/);
+    assert.match(section, /ORDER BY n.name;\s*$/);
+  });
+});
