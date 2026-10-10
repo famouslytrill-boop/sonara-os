@@ -782,7 +782,8 @@ describe("attested Growth public discovery projection (unmounted, no real source
     assert.equal(projectGrowthPost(post({ body: "<script>\u0000" }), channel(), proof(), NOW), null);
     assert.equal(projectGrowthPost(post(), channel(), proof({ topic: "\nspam" }), NOW), null);
     assert.equal(projectGrowthPost(post({ created_at: "bad date" }), channel(), proof(), NOW), null);
-    const htmlText = projectGrowthPost(post({ body: "<b>Text</b>" }), channel(), proof(), NOW);
+    const htmlText = projectGrowthPost(post({ body: "<b>Text</b>" }), channel(),
+      proof({ contentDigest: growthContentDigest(post({ body: "<b>Text</b>" }), channel()) }), NOW);
     assert.equal(htmlText.title, "<b>Text</b>"); // escape in frontend; never innerHTML
   });
 
