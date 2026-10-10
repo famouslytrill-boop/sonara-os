@@ -8,6 +8,8 @@ const { publicationSnapshotHash, evaluatePublicationBatch } =
   require("../lib/sonara-multi-channel-publication-preflight.cjs");
 
 const { classifyPublicationReceipt } = require("../lib/sonara-publication-receipt-reconciliation.cjs");
+const { publishingManifestHash, canonicalPublishingManifest } =
+  require("../lib/sonara-publishing-manifest.cjs");
 
 const ORG = "11111111-1111-4111-8111-111111111111";
 const OWNER = "22222222-2222-4222-8222-222222222222";
@@ -42,7 +44,9 @@ function target(overrides = {}) {
 function input(overrides = {}) {
   const result = {
     organizationId: ORG, serverOrganizationId: ORG,
-    contentHash: "a".repeat(64), publishingManifestHash: "c".repeat(64), scheduledAt: null,
+    contentHash: "a".repeat(64), serverContentHash: "a".repeat(64),
+    publishingManifestHash: "c".repeat(64), serverPublishingManifestHash: "c".repeat(64),
+    scheduledAt: null,
     serverNow: "2026-10-10T15:02:00.000Z",
     destinations: [target()]
   };
@@ -91,6 +95,13 @@ describe("multi-channel publishing is preflight only", () => {
     candidate.publishingManifestHash = "d".repeat(64);
     assert.equal(evaluatePublicationBatch(candidate, env).code, "approval_snapshot_mismatch");
     assert.equal(publicationSnapshotHash({...candidate, publishingManifestHash:null}), null);
+  });
+  it("requires independent server-derived media and final manifest hashes", () => {
+    const forgedCopy = input({serverPublishingManifestHash:"d".repeat(64)});
+    assert.equal(evaluatePublicationBatch(forgedCopy, env).code, "publication_material_integrity_unverified");
+    const forgedMedia = input({serverContentHash:"b".repeat(64)});
+    assert.equal(evaluatePublicationBatch(forgedMedia, env).code, "publication_material_integrity_unverified");
+    assert.equal(evaluatePublicationBatch(input(), env).state,"worker_claim_candidate");
   });
   it("rejects expired and noncanonical trusted timestamps", () => {
     const candidate = input({serverNow: "2026-10-10T16:00:00.000Z"});
@@ -283,5 +294,63 @@ describe("provider receipt classification is non-executing and never enables bli
   it("rejects malformed receipt inputs instead of throwing", () => {
     assert.equal(classifyPublicationReceipt(null).state,"blocked");
     assert.equal(classifyPublicationReceipt({}).state,"blocked");
+  });
+});
+
+
+function manifest(overrides = {}) {
+  return {
+    title:"Weekend release", caption:"Our exact approved campaign caption.",
+    altText:"A musician at a keyboard.", hashtags:["Music","SONARA"],
+    thumbnailHash:"a".repeat(64), rightsEvidenceHash:"b".repeat(64),
+    destinationCopy:[{
+      providerKey:"linkedin_marketing",accountId:"company-page",
+      title:"Company announcement",caption:"SONARA campaign post.",
+      altText:"Image of a recording studio.",hashtags:["Creators"]
+    }],
+    ...overrides
+  };
+}
+describe("canonical publishing manifest copies and licensing evidence", () => {
+  it("produces a stable SHA-256 digest independent of JavaScript object property order", () => {
+    const a=manifest();
+    const b={destinationCopy:a.destinationCopy,rightsEvidenceHash:a.rightsEvidenceHash,
+      thumbnailHash:a.thumbnailHash,hashtags:a.hashtags,altText:a.altText,
+      caption:a.caption,title:a.title};
+    assert.equal(publishingManifestHash(a),publishingManifestHash(b));
+    assert.match(publishingManifestHash(a),/^[a-f0-9]{64}$/);
+  });
+  it("changes hash when caption, alternate text, thumbnail or rights evidence changes", () => {
+    const a=manifest();
+    const original=publishingManifestHash(a);
+    for (const altered of [
+      manifest({caption:"Updated exact approved caption."}),
+      manifest({altText:"Different accessibility information."}),
+      manifest({thumbnailHash:"c".repeat(64)}),
+      manifest({rightsEvidenceHash:"d".repeat(64)}),
+      manifest({destinationCopy:[{...a.destinationCopy[0],caption:"Changed provider copy."}]})
+    ]) assert.notEqual(publishingManifestHash(altered),original);
+  });
+  it("rejects unexpected and unbound metadata keys instead of ignoring them", () => {
+    assert.equal(publishingManifestHash(manifest({licenseStatus:"approved"})),null);
+    assert.equal(publishingManifestHash(manifest({destinationCopy:[{
+      ...manifest().destinationCopy[0],unreviewedText:"Different post"
+    }]})),null);
+  });
+  it("rejects duplicate destinations, malformed hashes and duplicate hashtags", () => {
+    const a=manifest();
+    assert.equal(publishingManifestHash(manifest({destinationCopy:[a.destinationCopy[0],a.destinationCopy[0]]})),null);
+    assert.equal(publishingManifestHash(manifest({rightsEvidenceHash:"not-a-digest"})),null);
+    assert.equal(publishingManifestHash(manifest({hashtags:["Music","music"]})),null);
+  });
+  it("rejects noncanonical Unicode and bidirectional control characters", () => {
+    assert.equal(publishingManifestHash(manifest({title:"Cafe\u0301"})),null);
+    assert.equal(publishingManifestHash(manifest({caption:"Text\u202ehidden"})),null);
+  });
+  it("validates the frozen versioned projection and rejects malformed inputs", () => {
+    assert.equal(canonicalPublishingManifest(manifest()).version,1);
+    assert.equal(publishingManifestHash(null),null);
+    assert.equal(publishingManifestHash([]),null);
+    assert.equal(publishingManifestHash(manifest({caption:"   "})),null);
   });
 });
