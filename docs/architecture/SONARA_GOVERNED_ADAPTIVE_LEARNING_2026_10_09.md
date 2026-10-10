@@ -49,6 +49,49 @@ It **requires**, in addition to the already governed proposal rules:
 
 **Current review-only statuses:** malformed/missing/stale/revoked receipt `blocked`, insufficient aggregate evidence `needs_more_evidence`, conservatively supported candidate `review_ready`. None authorizes execution.
 
+## Implemented prediction, workflow mapping, and operational-state triage (policy-only)
+
+The second engineering pass adds `lib/sonara-adaptive-prediction-mapping.cjs` and exports its bounded readiness description within the existing `/api/ecosystem/learning-memory` **static metadata**. There is no live forecast endpoint, customer data reader, scheduler, user-habit pipeline, database migration, model-fitting job, or automatic operational action.
+
+### 1. Forecasting: defensible deterministic baseline
+
+`forecastDailyAggregate` supports **five allowlisted daily, aggregate count metrics**: orders, bookings, creative jobs, opted-in leads, and workflow runs. It accepts 35–180 strictly contiguous UTC-dated observations, 1–14 days of horizon, a trusted tenant assertion, reviewed aggregate evidence, small-cell suppression, and an attested contributing population of at least ten. Input numbers must be nonnegative safe integers bounded by 1,000,000. The last observation must not be in the future or over seven days old.
+
+**Prediction formula:** for horizon day `h`, `prediction[h] = last_observed_week[(h-1) mod 7]`. This is a **seven-day seasonal-naive benchmark**, not trained machine learning. It preserves known weekday patterns when data are genuinely daily and contiguous. It does not model holidays, closures, seasonality changes, promotions, supplier shocks, or gradual growth; therefore **customer staffing, purchasing, inventory, campaign spend or revenue should not be automatically changed using its output**.
+
+**True held-out backtest:** reserve the last seven observed days; generate that week's predictions from only the seven days immediately *before* them. The holdout outcomes are used only to score errors, never to select or fit the model. Report:
+- `MAE = sum(abs(actual - predicted)) / 7`;
+- `WAPE = 100 * sum(abs(actual - predicted)) / sum(actual)`, reported as **null** when the denominator is zero;
+- 80th percentile of seven holdout absolute errors as a **descriptive historical residual reference**. It is **NOT a calibrated predictive interval**, despite being used to show a nominal error band;
+- forecast output only as `forecast_preview_only` with `executionAuthorized=false`.
+
+A seven-point historical backtest is too small for reliable future uncertainty coverage or model selection. Later candidates should use rolling-origin evaluation, holdout separation, explicit horizon-specific scoring, holiday/closure covariates, calibrated intervals and drift alerts. Forecast outputs must be measured against reality, not against their own predictions.
+
+### 2. Sequencing and dependency mapping
+
+`mapLearningSequence` validates a deterministic graph of at most 32 numbered/typed steps and 1,000 estimated cost units, including dependencies and strict phase order:
+
+`observe → validate → map → predict → evaluate → propose → review → verify`
+
+- A step after `observe` must depend directly on a step of the immediately preceding phase.
+- Missing/deviating dependencies, duplicate identifiers, cycles, invalid step types and excess budgets are blocked.
+- Steps are returned in stable phase/name order with auditable dependency links, graph depth and potential parallel groups.
+- `review` in a graph is **not human authorization**, and the returned graph can neither execute nor schedule tools, create user data, modify source, or approve its own effects.
+
+### 3. Operational awareness as verified telemetry
+
+`assessOperationalSignals` classifies a bounded snapshot of request errors and p95 latency against previously reviewed thresholds. It requires at least 100 counted requests and an independently verified telemetry source. Threshold breaches yield `operator_review_recommended`; no incident remediation, credential use, source changes, deployment, shutdown or restart occurs. A single telemetry window never establishes full platform health.
+
+### 4. Next-phase security and product proof
+
+- Make evidence/tenant/consent/telemetry authority a real **authenticated server-side contract**, never caller-provided flags.
+- Add scoped database aggregates with user opt-in where personalization is involved, small-cell suppression, RLS write/read/deny tests, provenance and deletion/retention checks.
+- Build a read-only forecast and sequence-review UI with assumptions, reference dates, data adequacy, input/metric units, holdout quality, limitations and user dismissal.
+- Add deterministic, timestamped offline metrics to an approved observability pipeline and verify production cost/latency/error budgets.
+- Allow external side effects only through the existing agent authority, independently authenticated human approval, durable workflow/retry/rollback and release gates.
+
+**Research alignment:** Google's Rules of Machine Learning and Google Cloud predictive ML quality guidance emphasize distinguishing training/serving skew, continuously measuring drift and monitoring prediction quality. NIST AI RMF requires risk mapping, measurement, governance and management; OWASP calls out model/tool authorization, memory poisoning and context spoofing. These references guide planned stages but are not proof that SONARA has passed an audit.
+
 ## User experience and product scope
 
 | Product | Initial safe learning output | Not automatically allowed |
@@ -85,5 +128,8 @@ Suggested future tables (names only, **no SQL applied**): `org_learning_consents
 
 - NIST AI RMF and Generative AI Profile: https://www.nist.gov/itl/ai-risk-management-framework
 - OWASP Top 10 for Agentic Applications 2026: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/\n- OWASP Memory & Context Poisoning (ASI06): https://genai.owasp.org/2026/05/13/memory-is-a-feature-it-is-also-an-attack-surface/\n- Supabase row-level security and role boundaries: https://supabase.com/docs/guides/database/postgres/row-level-security
+- Google's Rules of Machine Learning: https://developers.google.com/machine-learning/guides/rules-of-ml
+- Google Cloud ML quality guidelines: https://docs.cloud.google.com/architecture/guidelines-for-developing-high-quality-ml-solutions
+- OpenTelemetry general metrics conventions: https://opentelemetry.io/docs/specs/semconv/general/metrics/
 - OpenAI Agents SDK human review: https://openai.github.io/openai-agents-js/guides/human-in-the-loop/
 - OpenFeature evaluation context: https://openfeature.dev/specification/sections/evaluation-context/
