@@ -89,54 +89,131 @@ BEGIN
    RAISE EXCEPTION 'P1 legacy per-row role lookup survived on % policies; abort', legacy;
  END IF;
 
- -- Two subscriptions policies may be consolidated only if EXACTLY identical.
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions policy drift; inspect names, roles, commands, predicates: %', (
-     SELECT coalesce(string_agg(format('%s roles=%s cmd=%s qual=%s check=%s',
-          policyname, roles::text, cmd, qual, coalesce(with_check,'NULL')), ' | ' ORDER BY policyname), '<none>')
-     FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions', 'Users can view their own subscription')
-   );
- END IF;
 END
 $preflight$;
 
--- Only prove duplicate removal in this ephemeral, rolled-back transaction.
--- Do NOT reintroduce auth.role() predicates or undo migration hardening.
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
-
-DO $postflight$
+-- The *fresh migration history* creates no such pair on public.subscriptions.
+-- The connected preview database does have a pair, but those definitions must
+-- not be silently injected into a replay or mistaken for tracked migrations.
+-- This assertion will fail if the source history changes, forcing review.
+DO $history$
 BEGIN
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 1
- OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription') <> 0
- THEN RAISE EXCEPTION 'P1 subscription dedup proof failed'; END IF;
+ IF EXISTS (
+   SELECT 1 FROM pg_policies WHERE schemaname='public'
+     AND tablename='subscriptions'
+     AND policyname IN ('Users can view own subscriptions',
+                        'Users can view their own subscription')
+ ) THEN
+   RAISE EXCEPTION 'subscription history now includes a named policy; re-review synthetic fixture';
+ END IF;
 END
-$postflight$;
+$history$;
+
+-- Create an isolated RLS table entirely inside a transaction that rolls back.
+-- This demonstrates that an EXACTLY duplicate owner-read policy can be removed
+-- without widening access, but DOES NOT prove the preview schema matches Git.
+CREATE TABLE public.sonara_p1_subscription_policy_fixture (
+  id integer PRIMARY KEY, user_id uuid NOT NULL
+);
+ALTER TABLE public.sonara_p1_subscription_policy_fixture ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.sonara_p1_subscription_policy_fixture TO authenticated, anon;
+INSERT INTO public.sonara_p1_subscription_policy_fixture (id,user_id) VALUES
+  (1, '11111111-1111-4111-8111-111111111111'),
+  (2, '22222222-2222-4222-8222-222222222222');
+
+CREATE POLICY "Users can view own subscriptions"
+ ON public.sonara_p1_subscription_policy_fixture FOR SELECT
+ TO authenticated USING ((SELECT auth.uid()) = user_id);
+CREATE POLICY "Users can view their own subscription"
+ ON public.sonara_p1_subscription_policy_fixture FOR SELECT
+ TO authenticated USING ((SELECT auth.uid()) = user_id);
+
+DO $identical$
+DECLARE count_matching int;
+BEGIN
+ SELECT count(*) INTO count_matching
+ FROM pg_policies WHERE
+   schemaname='public'
+   AND tablename='sonara_p1_subscription_policy_fixture'
+   AND policyname IN ('Users can view own subscriptions',
+                      'Users can view their own subscription')
+   AND permissive='PERMISSIVE'
+   AND roles=ARRAY['authenticated']::name[]
+   AND cmd='SELECT'
+   AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+   AND with_check IS NULL;
+ IF count_matching<>2 THEN
+   RAISE EXCEPTION 'synthetic RLS policies not identical; abort';
+ END IF;
+END
+$identical$;
+
+-- A sees only A, B sees only B, and anon sees no rows; the checks run as
+-- the actual roles, rather than as the bypass-RLS migration superuser.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+DO $user_a$
+DECLARE seen text;
+BEGIN
+ SELECT string_agg(id::text, ',') INTO seen
+ FROM public.sonara_p1_subscription_policy_fixture;
+ IF seen IS DISTINCT FROM '1' THEN
+   RAISE EXCEPTION 'owner A read isolation failed: %', seen;
+ END IF;
+END
+$user_a$;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+DO $user_b$
+DECLARE seen text;
+BEGIN
+ SELECT string_agg(id::text, ',') INTO seen
+ FROM public.sonara_p1_subscription_policy_fixture;
+ IF seen IS DISTINCT FROM '2' THEN
+   RAISE EXCEPTION 'owner B read isolation failed: %', seen;
+ END IF;
+END
+$user_b$;
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $anonymous$
+DECLARE seen int;
+BEGIN
+ SELECT count(*) INTO seen FROM public.sonara_p1_subscription_policy_fixture;
+ IF seen <> 0 THEN
+   RAISE EXCEPTION 'anonymous subscription read was visible: %', seen;
+ END IF;
+END
+$anonymous$;
+RESET ROLE;
+
+DROP POLICY "Users can view their own subscription"
+ ON public.sonara_p1_subscription_policy_fixture;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+DO $after_dedup$
+DECLARE seen text;
+BEGIN
+ SELECT string_agg(id::text, ',') INTO seen
+ FROM public.sonara_p1_subscription_policy_fixture;
+ IF seen IS DISTINCT FROM '1' THEN
+   RAISE EXCEPTION 'deduplicated policy changed owner A visibility: %', seen;
+ END IF;
+END
+$after_dedup$;
+RESET ROLE;
 
 ROLLBACK;
 
--- The test may never quietly leave a policy dropped after its success marker.
+-- The fixture and its two policies must be gone after rollback.
 DO $rollback_verification$
 BEGIN
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')) <> 2
- THEN
-   RAISE EXCEPTION 'P1 rolled-back policy proof did not restore both originals';
+ IF to_regclass('public.sonara_p1_subscription_policy_fixture') IS NOT NULL
+ OR EXISTS (
+   SELECT 1 FROM pg_policies WHERE schemaname='public'
+     AND tablename='sonara_p1_subscription_policy_fixture'
+ ) THEN
+   RAISE EXCEPTION 'P1 synthetic policy fixture survived rollback';
  END IF;
 END
 $rollback_verification$;
