@@ -8,6 +8,8 @@ function renderIndex(paths, contents) {
   const sorted = [...new Set(paths)].sort();
   const skills = sorted.filter(p => /^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(p) || /^\.ai\/shared\/[A-Z_]+_SKILL\.md$/.test(p));
   if (skills.length < 10 || !skills.some(p => p.startsWith(".ai/shared/"))) throw new Error("Skill discovery returned implausibly few skills");
+  const codexSkills = sorted.filter(p => /^\.agents\/skills\/[^/]+\/SKILL\.md$/.test(p));
+  if (codexSkills.length < 15) throw new Error("Codex bridge discovery returned implausibly few skills");
   const formulaModules = sorted.filter(p => /^lib\/[^/]+\.cjs$/.test(p) && /(formula|algorithm|science|labour|capacity|scenario|cost|margin|budget|risk|inventory|pay-period|score|metric)/i.test(p.split("/").at(-1)));
   if (formulaModules.length < 10) throw new Error("Formula-source discovery returned implausibly few modules");
   const migrationFiles = sorted.filter(p => /^supabase\/migrations\/[^/]+\.sql$/.test(p) && /formula/i.test(p));
@@ -52,11 +54,17 @@ function renderIndex(paths, contents) {
     "4. Distinguish a research design, a registered formula, a tested executable handler, and a production-activated capability. No listing below grants authorization.",
     "5. Prefer the source code and tests over prose summaries. Keep tenant isolation, human approval, provider credentials, licensing, provenance, pricing and release gates intact.",
     "",
-    "## All repository agent skill manifests (" + skills.length + ")",
+    "## Canonical SONARA skill procedures (" + skills.length + ")",
     "",
     ...skills.map(p => "- `" + p + "`"),
     "",
     "Shared skills are reference procedures for both assistants; `.claude/skills/` manifests are Claude-discoverable workflows. An external skill still requires licence and security review before adaptation.",
+    "",
+    "## Generated Codex skill bridges (" + codexSkills.length + ")",
+    "",
+    ...codexSkills.map(p => "- `" + p + "`"),
+    "",
+    "Codex bridge files load the canonical full skill from the current authorized repository. For standalone API skills, generate separate offline bundles using `scripts/export-assistant-model-skill-packs.mjs`.",
     "",
     "## Catalogued formula and agent-strategy keys",
     "",
