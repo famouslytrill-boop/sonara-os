@@ -143,6 +143,19 @@ describe("Feature-flagged SONARA two-person stock count review",()=>{
     assert.deepEqual(e.rpc[0],{endpoint:"rpc/sonara_review_stock_count_request",
       payload:{p_organization_id:orgId,p_request_id:requestId,p_reviewer_user_id:reviewerId}});
   });
+  it("lets employees read only their own count requests, while owners can review the whole tenant queue",async()=>{
+    const e=make();
+    const staff=await e.hit("GET",queue,{role:"employee",user:actorId});
+    assert.equal(staff.code,200);
+    assert.equal(e.queries.length,1);
+    assert.ok(e.queries[0].query.includes("organization_id=eq."+orgId));
+    assert.ok(e.queries[0].query.includes("actor_user_id=eq."+actorId));
+    const owner=await e.hit("GET",queue,{role:"owner",user:reviewerId});
+    assert.equal(owner.code,200);
+    assert.equal(e.queries.length,2);
+    assert.ok(e.queries[1].query.includes("organization_id=eq."+orgId));
+    assert.ok(!e.queries[1].query.includes("actor_user_id=eq."));
+  });
   it("refuses implicit approval and filters the read queue to the current organization",async()=>{
     const e=make();
     const no=await e.hit("POST",review,{user:reviewerId,params:{requestId},body:{action:"preview"}});
