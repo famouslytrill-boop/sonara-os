@@ -79,3 +79,20 @@ Examples from read-only inspection: `agent_pending_actions` has a `{service_role
 These facts do not by themselves prove the exact state of the *disposable database replayed from migrations*, nor that every textual difference affects effective access. The CI replay must now emit the bounded policy diagnostic on its newest exact commit and security reviewers must compare the replayed and preview baselines before any policy change. Preserve the fail-closed guard and perform two-user, anonymous and service-role deny/allow regression tests after any staged proposal.
 
 The optimization technique of wrapping row-independent auth calls in a scalar `SELECT` is documented by Supabase, but does not justify changing policy scopes or bypassing role checks: https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv . Column semantics are defined by PostgreSQL: https://www.postgresql.org/docs/17/view-pg-policies.html .
+
+
+## P1 rollback probe reconciliation — October 10, 2026
+
+Exact-head PR #580 at `c500b83e7395ffee1a58444ef5131461263f2e3c` yielded two remaining failed workflows (of nine). The detailed native PostgreSQL 17 job log (Node 24) showed all 25 policies present; 21 service-role policies had the already-restricted role and `true` predicates; four user-owned SELECT policies had a scalar `(SELECT auth.uid())` ownership check. The **old** P1 test expected `TO public` + `auth.role() = 'service_role'` for many policies and nonoptimized `auth.uid()` calls for four others, so every comparison failed. Those expected values were obsolete and changing actual RLS to satisfy them would risk loosening the database.
+
+I compared the **full, explicit 25-policy expected snapshot** used in the revised staging SQL against connected preview project `yqncsonkxgwhcxedgevk`, using a read-only CTE joined to `pg_policies`. Its response: `policies=25`, `mismatches=0`, `duplicate_subscription_policies=2`. This is a database catalog comparison, not a role-based positive/negative write test or proof of production environment identity.
+
+The staging-only SQL now checks 25 exact names, role sets, commands, predicates and checks: 21 `{service_role}` / `ALL` / `true` policies, plus four `{authenticated}` / `SELECT` / optimized owner-only policies. Drift still raises an exception. It no longer attempts **any** of the obsolete 25 `ALTER POLICY` rewrites. The only DDL it performs is a single `DROP POLICY` of one *exact* subscriptions duplicate, following proof both policies are identical, before a second check of the unrelated 25. The trial ends in `ROLLBACK`, and no permanent migration has been created or applied.
+
+`tests/native-migration-replay-installer-resilience.test.js` now checks the unchanged required native replay, diagnostic bounds, exact reviewed baseline and no unintended `ALTER POLICY`/grant/permission changes. Six cases passed in a dependency-stubbed JavaScript test harness; a real 9-job PostgreSQL 16/17/18 CI matrix is necessary before calling the P1 probe green.
+
+**Separate CI failure also fixed:** `verify:capability-coverage` was still failing after the corrected count because the industry formula listing omitted `activation_rate` and `retention_rate`. It was regenerated in the exact 40-item order of `lib/sonara-industry-algorithm-expansion.cjs`, not hand-approximated.
+
+**Stop conditions:** Do not merge or deploy until full exact-head checks pass. A passing *rolled-back* duplicate-policy simulation does not authorize dropping the duplicate in production. Require tenant isolation deny/allow tests, reviewed grants, migration generation with approved CLI procedure, rollback rehearsal, and a verified target project for any future database change. Existing applied migrations remain untouched.
+
+References: https://github.com/famouslytrill-boop/sonara-os/actions/runs/37961827643, https://supabase.com/docs/guides/database/postgres/row-level-security, https://www.postgresql.org/docs/current/view-pg-policies.html .
