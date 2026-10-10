@@ -2321,8 +2321,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!org.ok) return res.status(403).json(org);
       const config = getConfig(deps);
       if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      // This read uses a service-role credential. Nonowners may see only their
+      // own submitted counts, not their coworkers' work or identities.
+      // Owners get the complete organization-scoped review queue.
+      const reviewerRole = ["owner","admin","business_owner"].includes(org.role);
+      const actorScope = reviewerRole ? "" : `&actor_user_id=eq.${encodeURIComponent(org.userId)}`;
       const found = await supabaseList(config,"inventory_stock_count_requests",
-        `?select=id,inventory_item_id,actor_user_id,expected_stock_version,expected_unit,expected_location_id,counted_quantity,created_at&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=50`);
+        `?select=id,inventory_item_id,actor_user_id,expected_stock_version,expected_unit,expected_location_id,counted_quantity,created_at&organization_id=eq.${encodeURIComponent(org.organizationId)}${actorScope}&order=created_at.desc&limit=50`);
       if (!found.ok) return res.status(503).json({ok:false,code:"stock_review_queue_unavailable"});
       return res.status(200).json({ok:true,requests:found.rows});
     });
