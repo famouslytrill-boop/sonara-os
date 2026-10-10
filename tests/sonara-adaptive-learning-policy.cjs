@@ -7,6 +7,7 @@ const {
   wilson95,
   evaluateLearningConsent,
   evaluateAdaptiveProposal,
+  createAdaptiveProposalReader,
   getAdaptiveLearningReadiness
 } = require("../lib/sonara-adaptive-learning-policy.cjs");
 
@@ -436,5 +437,165 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
     assert.equal(metadata.providerActivated, false);
     assert.equal(getAdaptiveLearningReadiness().predictiveMapping.status,
       "pure_policy_and_preview_only");
+  });
+});
+
+
+const adapterEvidence = Object.freeze({
+  sourceVerified: true,
+  organizationId: ORG,
+  changeType: "workspace_layout",
+  definitionId: "workflow_completion_rate",
+  smallCellSuppressionVerified: true,
+  distinctContributors: 25,
+  provenance: "approved organization aggregate: version 4",
+  evidenceWindowStartsAt: valid.evidenceWindowStartsAt,
+  observedAt: valid.observedAt,
+  baselineTrials: valid.baselineTrials,
+  baselineSuccesses: valid.baselineSuccesses,
+  candidateTrials: valid.candidateTrials,
+  candidateSuccesses: valid.candidateSuccesses
+});
+
+function mockAdaptiveReaders(overrides = {}) {
+  let consentReads = 0;
+  let aggregateReads = 0;
+  const reader = createAdaptiveProposalReader({
+    resolvePrincipal: overrides.resolvePrincipal || (async () => ({
+      authenticated: true, membershipVerified: true, canReadLearningEvidence: true,
+      userId: USER, organizationId: ORG
+    })),
+    readLatestConsent: overrides.readLatestConsent || (async () => {
+      consentReads++;
+      return { verifiedLatest: true, receipt: valid.consentReceipt };
+    }),
+    readAggregateEvidence: overrides.readAggregateEvidence || (async () => {
+      aggregateReads++;
+      return adapterEvidence;
+    }),
+    readGovernance: overrides.readGovernance || (async () => ({
+      controlsVerified: true, rollbackPlanReviewed: true,
+      explanation: "An approved, reversible workspace layout preview."
+    })),
+    clock: overrides.clock || (() => valid.trustedNow)
+  });
+  return {
+    reader, calls: () => ({ consentReads, aggregateReads })
+  };
+}
+
+describe("trusted-source adaptive preview adapter (inactive integration boundary)", () => {
+  it("reads authenticated consent twice and produces only a proposal", async () => {
+    const { reader, calls } = mockAdaptiveReaders();
+    const result = await reader.preview({
+      organizationId: ORG, changeType: "workspace_layout", sessionContext: { session: "test-only" }
+    });
+    assert.equal(result.state, "review_ready");
+    assert.deepEqual(calls(), { consentReads: 2, aggregateReads: 1 });
+    assert.equal(result.mayExecuteTools, false);
+    assert.equal(result.mayWriteCustomerMemory, false);
+    assert.equal(reader.mayExecuteTools, false);
+  });
+
+  it("blocks unauthenticated and cross-tenant sessions before reading evidence", async () => {
+    for (const principal of [
+      null,
+      { authenticated: false, membershipVerified: true, canReadLearningEvidence: true, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: false, canReadLearningEvidence: true, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: true, canReadLearningEvidence: false, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: true, canReadLearningEvidence: true, userId: USER, organizationId: USER }
+    ]) {
+      const { reader, calls } = mockAdaptiveReaders({ resolvePrincipal: async () => principal });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked");
+      assert.deepEqual(calls(), { consentReads: 0, aggregateReads: 0 });
+    }
+  });
+
+  it("does not accept request body verified flags as an authority", async () => {
+    const { reader, calls } = mockAdaptiveReaders({
+      readLatestConsent: async () => ({ verifiedLatest: false, receipt: valid.consentReceipt })
+    });
+    const result = await reader.preview({
+      organizationId: ORG, changeType: "workspace_layout",
+      verifiedConsent: true, aggregateEvidenceVerified: true,
+      latestConsentReadVerified: true, requestedByUserId: USER
+    });
+    assert.equal(result.state, "blocked");
+    assert.equal(result.blockers[0], "latest_consent_not_verified");
+    assert.equal(calls().aggregateReads, 0);
+  });
+
+  it("rejects changed or revoked consent snapshots", async () => {
+    const revoked = mockAdaptiveReaders({
+      readLatestConsent: async () => ({ verifiedLatest: true, receipt: {
+        ...valid.consentReceipt, status: "revoked", revokedAt: valid.observedAt
+      } })
+    });
+    assert.equal((await revoked.reader.preview({
+      organizationId: ORG, changeType: "workspace_layout"
+    })).state, "blocked");
+    const changed = mockAdaptiveReaders({
+      readLatestConsent: (() => {
+        let count = 0;
+        return async () => ({ verifiedLatest: true, receipt: {
+          ...valid.consentReceipt, revision: ++count
+        } });
+      })()
+    });
+    const result = await changed.reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+    assert.equal(result.state, "blocked");
+    assert.equal(result.blockers[0], "consent_changed_during_read");
+  });
+
+  it("refuses raw personal records, cross-tenant evidence, and absent aggregation proof", async () => {
+    for (const evidence of [
+      { ...adapterEvidence, organizationId: USER },
+      { ...adapterEvidence, sourceVerified: false },
+      { ...adapterEvidence, distinctContributors: 5 },
+      { ...adapterEvidence, smallCellSuppressionVerified: false },
+      { ...adapterEvidence, definitionId: "__proto__" },
+      { ...adapterEvidence, rawRows: [{ email: "must-not-appear@example.com" }] }
+    ]) {
+      const { reader } = mockAdaptiveReaders({ readAggregateEvidence: async () => evidence });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked");
+      assert.equal(JSON.stringify(result).includes("must-not-appear@example.com"), false);
+    }
+  });
+
+  it("fails closed on missing governance controls and stale evidence", async () => {
+    const noControls = mockAdaptiveReaders({
+      readGovernance: async () => ({ controlsVerified: false, rollbackPlanReviewed: true, explanation: "test" })
+    });
+    assert.equal((await noControls.reader.preview({
+      organizationId: ORG, changeType: "workspace_layout"
+    })).state, "blocked");
+    const stale = mockAdaptiveReaders({
+      readAggregateEvidence: async () => ({
+        ...adapterEvidence, evidenceWindowStartsAt: "2026-09-15T19:00:00.000Z"
+      })
+    });
+    assert.equal((await stale.reader.preview({
+      organizationId: ORG, changeType: "workspace_layout"
+    })).state, "blocked");
+  });
+
+  it("redacts exceptions and requires all server-side functions", async () => {
+    assert.throws(() => createAdaptiveProposalReader({}), /server-owned/);
+    const { reader } = mockAdaptiveReaders({
+      readAggregateEvidence: async () => { throw new Error("private database password is secret"); }
+    });
+    const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+    assert.equal(result.state, "blocked");
+    assert.equal(result.blockers[0], "trusted_evidence_source_unavailable");
+    assert.doesNotMatch(JSON.stringify(result), /private database password/);
+  });
+
+  it("denies malformed scope without calling the trusted readers", async () => {
+    const { reader, calls } = mockAdaptiveReaders();
+    const result = await reader.preview({ organizationId: USER, changeType: "production_deployment" });
+    assert.equal(result.state, "blocked");
+    assert.deepEqual(calls(), { consentReads: 0, aggregateReads: 0 });
   });
 });
