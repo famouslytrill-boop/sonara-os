@@ -189,6 +189,8 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(packet.acceptedEvidenceCount, 2);
     assert.equal(packet.claims[0].supports, 2);
     assert.equal(packet.claims[0].independentlyVerified, false);
+    assert.equal(packet.claims[0].authorizedForPublication, false);
+    assert.equal(packet.claims[0].authorizedForProduction, false);
     assert.equal(packet.authorizedForPublication, false);
     assert.equal(packet.authorizedForProduction, false);
   });
