@@ -83,8 +83,8 @@ BEGIN
        AND permissive='PERMISSIVE'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
-       AND qual LIKE '%is_org_member(organization_id)%'
-       AND qual LIKE '%is_admin_or_founder()%'
+       AND replace(regexp_replace(lower(qual), '[[:space:]()]', '', 'g'), 'public.', '')
+           = 'is_org_memberorganization_idoris_admin_or_founder'
        AND with_check IS NULL) <> 1 THEN
    RAISE EXCEPTION 'canonical subscriptions_select_member definition drifted; abort';
  END IF;
@@ -121,8 +121,8 @@ BEGIN
        AND permissive='PERMISSIVE'
        AND roles=ARRAY['authenticated']::name[]
        AND cmd='SELECT'
-       AND qual LIKE '%is_org_member(organization_id)%'
-       AND qual LIKE '%is_admin_or_founder()%'
+       AND replace(regexp_replace(lower(qual), '[[:space:]()]', '', 'g'), 'public.', '')
+           = 'is_org_memberorganization_idoris_admin_or_founder'
        AND with_check IS NULL) <> 1
  OR (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
