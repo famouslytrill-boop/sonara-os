@@ -521,6 +521,32 @@ test.describe("device media and bounded image processing", () => {
     ]);
     expect(require("node:fs").statSync(await download.path()).size).toBeGreaterThan(0);
   });
+  test("stalled MediaRecorder finalization releases the microphone and provides no download", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      const nativeTimeout = window.setTimeout.bind(window);
+      window.setTimeout = (fn, delay, ...args) => {
+        if (delay === 5000) { window.forceFinalizationTimeout = fn; return 4242; }
+        return nativeTimeout(fn, delay, ...args);
+      };
+      class StalledRecorder {
+        constructor() { this.state = "inactive"; this.mimeType = "audio/webm"; }
+        static isTypeSupported() { return true; }
+        start() { this.state = "recording"; }
+        stop() { this.state = "inactive"; /* browser never fires onstop */ }
+      }
+      window.MediaRecorder = StalledRecorder;
+    });
+    await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => typeof window.forceFinalizationTimeout)).toBe("function");
+    await page.evaluate(() => window.forceFinalizationTimeout());
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Microphone disconnected");
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Start voice recording", exact: true })).toBeEnabled();
+  });
   test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page }) => {
     await mountMedia(page);
     await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
