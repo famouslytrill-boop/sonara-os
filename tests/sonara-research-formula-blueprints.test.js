@@ -2,6 +2,12 @@
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const originalLoad = Module._load;
+// Fixture imports must not poison the real module cache for other Mocha suites.
+// Capture the pre-existing module (if any), run this unit fixture cold,
+// then restore exactly the previous cache state in finally.
+const fixtureModulePath = require.resolve("../lib/sonara-research-formula-blueprints.cjs");
+const cachedRealModule = require.cache[fixtureModulePath];
+delete require.cache[fixtureModulePath];
 const stub = {
   "./sonara-formula-engine.cjs": {
     listExecutableFormulas: () => [
@@ -26,6 +32,8 @@ try {
   catalogue = require("../lib/sonara-research-formula-blueprints.cjs");
 } finally {
   Module._load = originalLoad;
+  delete require.cache[fixtureModulePath];
+  if (cachedRealModule) require.cache[fixtureModulePath] = cachedRealModule;
 }
 const { BLUEPRINTS, listFormulaBlueprints, planFormulaForAtlas, getFormulaResearchCoverage } = catalogue;
 

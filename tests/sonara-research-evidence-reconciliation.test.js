@@ -2,6 +2,12 @@
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const originalLoad = Module._load;
+// Fixture imports must not poison the real module cache for other Mocha suites.
+// Capture the pre-existing module (if any), run this unit fixture cold,
+// then restore exactly the previous cache state in finally.
+const fixtureModulePath = require.resolve("../lib/sonara-research-evidence-reconciliation.cjs");
+const cachedRealModule = require.cache[fixtureModulePath];
+delete require.cache[fixtureModulePath];
 const fakeObservation = (n) => ({entityId:`org_${n}`,evidenceId:`evidence_${n}`});
 const comparison = () => ({categoryId:"us_restaurants",metric:"annual_revenue",unit:"usd",
   period:"2025",geography:"US",reviewedAt:"2026-10-09",
@@ -25,7 +31,11 @@ try {
     return originalLoad.call(this,request,parent,isMain);
   };
   ({reconcileComparableEvidence}=require("../lib/sonara-research-evidence-reconciliation.cjs"));
-} finally {Module._load=originalLoad;}
+} finally {
+  Module._load = originalLoad;
+  delete require.cache[fixtureModulePath];
+  if (cachedRealModule) require.cache[fixtureModulePath] = cachedRealModule;
+}
 const receipt=(n,stance="supports",sourceUrl="https://example.org/source")=>({
   entityId:`org_${n}`,evidenceId:`evidence_${n}`,sourceUrl,stance,observedAt:"2026-10-01"});
 const make=(n=50)=>Array.from({length:n},(_,i)=>receipt(i));

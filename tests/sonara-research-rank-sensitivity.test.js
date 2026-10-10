@@ -2,6 +2,12 @@
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const originalLoad = Module._load;
+// Fixture imports must not poison the real module cache for other Mocha suites.
+// Capture the pre-existing module (if any), run this unit fixture cold,
+// then restore exactly the previous cache state in finally.
+const fixtureModulePath = require.resolve("../lib/sonara-research-rank-sensitivity.cjs");
+const cachedRealModule = require.cache[fixtureModulePath];
+delete require.cache[fixtureModulePath];
 const fixturePlan = comparison => ({
   categoryId: comparison.categoryId, unit: comparison.unit, metric: comparison.metric,
   direction: comparison.direction || "descending", geography: comparison.geography,
@@ -14,7 +20,11 @@ try {
     return originalLoad.call(this, request, parent, isMain);
   };
   ({ assessTop50RankSensitivity: analyze } = require("../lib/sonara-research-rank-sensitivity.cjs"));
-} finally { Module._load = originalLoad; }
+} finally {
+  Module._load = originalLoad;
+  delete require.cache[fixtureModulePath];
+  if (cachedRealModule) require.cache[fixtureModulePath] = cachedRealModule;
+}
 const rows = n => Array.from({ length: n }, (_, i) => ({
   entityId: "company_" + String(i+1).padStart(3,"0"), value: i+1,
   evidenceId: "source_" + (i+1)
