@@ -113,4 +113,5 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   });
 };
 module.exports.audioRenderForm = audioRenderForm;
+module.exports.midiSketchForm = midiSketchForm;
 module.exports.offlineDraftForm = offlineDraftForm;
