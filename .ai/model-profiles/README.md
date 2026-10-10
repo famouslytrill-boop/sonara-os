@@ -25,3 +25,7 @@ These files are configuration assets, **not an API upload**. A future adapter ma
 ## Verification
 
 `node scripts/generate-codex-skill-bridges.mjs --check`; `node scripts/generate-assistant-knowledge-index.mjs --check`; `pnpm run verify:agent-sync`; `pnpm test`; full release gates. The live PR head and CI results determine readiness, not these instructions.
+
+## Offline API skill packages
+
+Run `node scripts/export-assistant-model-skill-packs.mjs --dry-run` to audit inputs, or `--write` to produce reviewed local-only skill folders for Claude and OpenAI under `output/assistant-model-packs/`. Their policy/formula snapshots and hashes are in `manifest.json`; no provider upload or account memory change occurs. See `docs/research/OFFLINE_ASSISTANT_SKILL_PACKAGES.md`.
