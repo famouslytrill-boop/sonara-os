@@ -114,3 +114,7 @@ pnpm run verify:stripe
 ```
 
 Validation must report configured/not configured states without printing raw secret values.
+
+### Creator Studio World Bible persistence
+
+`SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED` is an optional server-only rollout flag and defaults to `false`. Do **not** enable it until `docs/sql-proposals/creator-world-bibles-2026-10-09.sql` has been reviewed, converted to an approved numbered migration, replayed in an isolated database, and validated for cross-organization access, revisions and service-only writes. It is not a model provider flag and does not turn on media generation or publishing.

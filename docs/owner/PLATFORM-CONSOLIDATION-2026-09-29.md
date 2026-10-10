@@ -51,7 +51,7 @@ Expected: Node 24.x, pnpm 12.7.0, and each command exits zero. A failing command
 ## Navigation and migration verification
 
 - Live route smoke: 281 assertions passed against the deployed baseline, covering selected public routes, redirects, protected endpoints and assets. This is not an exhaustive crawl of every external link or authenticated journey.
-- Static production schema check: 161 migrations, 146 required tables, eight operational indexes and seven private buckets passed the repository contract.
+- Static production schema check: 178 migrations, 146 required tables, eight operational indexes and seven private buckets passed the repository contract.
 - Frozen migration check: 133 existing migration entries are unchanged; three entries remain generator-owned. Fresh database replay and live database state are not proven by this check.
 - Local navigation fix: cancelled and alternate-window clicks no longer trigger the blocking loader; failed navigation recovers after eight seconds. Three focused regression tests cover click handling, timeout recovery and browser-history restoration. These edits are not deployed.
 

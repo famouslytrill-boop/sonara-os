@@ -317,6 +317,48 @@ describe("HTTP observability middleware", () => {
     assert.equal(event.organization, "11111111-1111-4111-8111-111111111111");
   });
 
+  it("uses a bounded OpenTelemetry HTTP method dimension", () => {
+    const { safeHttpMethod } = freshModule();
+    for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QUERY"]) {
+      assert.equal(safeHttpMethod(method), method);
+    }
+    for (const candidate of ["PROPFIND", "CUSTOM-" + "x".repeat(512), "get", "", null, undefined]) {
+      assert.equal(safeHttpMethod(candidate), "_OTHER");
+    }
+  });
+
+  it("never injects user-controlled Express router mount paths into metric route labels", () => {
+    const { safeRouteTemplate } = freshModule();
+    const requestWithSensitiveMount = {
+      baseUrl: "/organizations/tenant-secret-123",
+      originalUrl: "/organizations/tenant-secret-123/jobs/order-secret-456?token=sensitive",
+      route: { path: "/jobs/:jobId" }
+    };
+    assert.equal(safeRouteTemplate(requestWithSensitiveMount), "/jobs/:jobId");
+    assert.doesNotMatch(safeRouteTemplate(requestWithSensitiveMount), /tenant-secret|order-secret|sensitive/);
+    assert.equal(safeRouteTemplate({ route: { path: "/api/health" }, baseUrl: "" }), "/api/health");
+    assert.equal(safeRouteTemplate({ route: null, originalUrl: "/private/customer@example.com" }), "unmatched");
+  });
+
+  it("redacts mounted dynamic identifiers from both logged HTTP events and metrics labels", async () => {
+    const { installHttpObservability } = freshModule();
+    const app = express();
+    installHttpObservability(app);
+    const router = express.Router({ mergeParams: true });
+    router.get("/jobs/:jobId", (req, res) => res.json({ ok: true }));
+    app.use("/organizations/:organizationId", router);
+    const { value: response, lines } = await captureStderrUntilSettled(() =>
+      request(app).get("/organizations/tenant-secret-123/jobs/job-secret-456")
+    );
+    assert.equal(response.status, 200);
+    const eventLine = lines.find((line) => line.includes('"http.request"'));
+    assert.ok(eventLine, "the completed request never emitted a structured event");
+    const event = JSON.parse(eventLine);
+    assert.equal(event.detail.route, "/jobs/:jobId");
+    assert.doesNotMatch(eventLine, /tenant-secret|job-secret/, "a path identifier reached the telemetry event");
+    assert.equal(event.reason, "2xx");
+  });
+
   it("reports an unmatched path as unmatched rather than as itself", async () => {
     const app = appWith();
     const { lines } = await captureStderrUntilSettled(() => request(app).get("/no-such-route"));

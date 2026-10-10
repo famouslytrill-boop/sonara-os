@@ -1,0 +1,121 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
+"use strict";
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { verifyProposalSql, verifyFiles } = require("../scripts/verify-social-sql-proposals.cjs");
+
+const channel = fs.readFileSync(path.join(__dirname, "..", "docs", "sql-proposals",
+  "2026-10-09-growth-channel-blocking-moderation.sql"), "utf8");
+
+describe("proposed social database migration preflight", () => {
+  it("passes every current review-only social SQL proposal", () => {
+    const reports = verifyFiles(path.join(__dirname, ".."));
+    assert.ok(reports.length >= 1);
+    for (const report of reports) assert.deepEqual(report.issues, [], report.filename);
+  });
+
+  it("rejects a single-dollar PL/pgSQL opener and closer", () => {
+    // The specific regression encountered in the October 9 block-limit RPC.
+    const malformed = channel.replace("as $$\nbegin", "as $\nbegin");
+    const result = verifyProposalSql("malformed.sql", malformed);
+    assert.equal(result.ok, false);
+    assert.ok(result.issues.some((e) => e.includes("invalid_dollar_quote_opening")));
+  });
+
+  it("rejects unterminated functions and semicolon loss", () => {
+    const missingClose = channel.replace("end;\n$$;\nrevoke all on function public.sonara_growth_channel_block_action",
+      "end;\nrevoke all on function public.sonara_growth_channel_block_action");
+    assert.ok(verifyProposalSql("missing-close.sql", missingClose).issues.some(
+      (e) => e.includes("unterminated_dollar_quote")));
+    const missingTerminator = channel.replace("end;\n$$;\nrevoke all on function public.sonara_growth_channel_block_action",
+      () => "end;\n$$\nrevoke all on function public.sonara_growth_channel_block_action");
+    assert.ok(verifyProposalSql("missing-terminator.sql", missingTerminator).issues.some(
+      (e) => e.includes("missing_function_semicolon")));
+  });
+
+  it("requires table RLS, revoke, RPC grants, and invoker security", () => {
+    const withoutRls = channel.replace("alter table public.growth_channel_blocks enable row level security;", "");
+    assert.ok(verifyProposalSql("no-rls.sql", withoutRls).issues.some(e => e.includes("missing_rls")));
+    const withoutRevoke = channel.replace("revoke all on public.growth_channel_blocks from public, anon, authenticated, service_role;", "");
+    assert.ok(verifyProposalSql("no-revoke.sql", withoutRevoke).issues.some(e => e.includes("missing_client_revoke")));
+    const withDefiner = channel.replace("returns text language plpgsql security invoker",
+      "returns text language plpgsql security definer");
+    assert.ok(verifyProposalSql("definer.sql", withDefiner).issues.some(e => e.includes("unexpected_security_definer")));
+  });
+
+  it("rejects inherited service-role rights and unintended audit-history writes", () => {
+    const noServerRevoke = channel.replace(
+      "from public, anon, authenticated, service_role;",
+      "from public, anon, authenticated;");
+    assert.ok(verifyProposalSql("missing-service-revoke.sql", noServerRevoke).issues.some(
+      e => e.includes("missing_service_role_default_revoke")));
+    const overwriteAudit = channel.replace(
+      "grant select, insert on public.growth_channel_moderation_events to service_role;",
+      "grant select, insert, update, delete on public.growth_channel_moderation_events to service_role;");
+    assert.ok(verifyProposalSql("overgrant-audit.sql", overwriteAudit).issues.some(
+      e => e.includes("unexpected_service_role_privileges")));
+  });
+
+  it("does not claim to parse PostgreSQL or verify migrations", () => {
+    const output = verifyProposalSql("review-only.sql", channel);
+    assert.ok(output.ok);
+    assert.equal(output.functions.length, 2);
+    assert.equal(output.tables.length, 2);
+  });
+});
+
+
+describe("disabled-only social schema references cannot silently become live", () => {
+  const root = path.join(__dirname, "..");
+  const verifier = fs.readFileSync(path.join(root, "scripts", "verify-supabase-contract.mjs"), "utf8");
+  const route = fs.readFileSync(path.join(root, "routes", "sonara-growth-channel-routes.cjs"), "utf8");
+
+  function check(routeSource, sqlSource) {
+    const start = verifier.indexOf("const SOCIAL_PROPOSAL_TABLES");
+    const end = verifier.indexOf("const reviewedExtensionTables", start);
+    assert.ok(start >= 0 && end > start, "pending social proposal must have a separate reviewed gate");
+    const code = verifier.slice(start, end);
+    const failures = [];
+    const fileAccess = { readFileSync(file) {
+      return String(file).endsWith(".sql") ? sqlSource : routeSource;
+    }};
+    const sandboxPath = { join: (...pieces) => pieces.join("/") };
+    new Function("fs", "path", "root", "fail", code)(
+      fileAccess, sandboxPath, "/repo", (error) => failures.push(error)
+    );
+    return failures;
+  }
+
+  it("recognizes review-only tables without claiming they are migrated", () => {
+    assert.deepEqual(check(route, channel), []);
+    const section = verifier.slice(verifier.indexOf("const SOCIAL_PROPOSAL_TABLES"),
+      verifier.indexOf("const reviewedExtensionTables"));
+    assert.ok(!section.includes("DATABASE_TABLES.push"));
+    assert.match(verifier, /!SOCIAL_PROPOSAL_TABLES\.includes\(table\)/);
+  });
+
+  it("fails the contract if the configured off-by-default safety switch is removed", () => {
+    const activated = route.replace(
+      'getEnv("SONARA_GROWTH_CHANNEL_SAFETY_ENABLED") === "true"',
+      "true"
+    );
+    assert.notEqual(activated, route);
+    assert.ok(check(activated, channel).some(m => m.includes("default-off")));
+  });
+
+  it("fails contract if review-only SQL loses RLS or its least-privilege revoke", () => {
+    const rlsRemoved = channel.replace(
+      "alter table public.growth_channel_blocks enable row level security;", ""
+    );
+    assert.notEqual(rlsRemoved, channel);
+    assert.ok(check(route, rlsRemoved).some(m => m.includes("growth_channel_blocks")));
+    const grantLeak = channel.replace(
+      "revoke all on public.growth_channel_moderation_events from public, anon, authenticated, service_role;",
+      "revoke all on public.growth_channel_moderation_events from public, anon, authenticated;"
+    );
+    assert.notEqual(grantLeak, channel);
+    assert.ok(check(route, grantLeak).some(m => m.includes("growth_channel_moderation_events")));
+  });
+});

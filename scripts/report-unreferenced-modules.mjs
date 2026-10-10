@@ -71,10 +71,22 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-stock-reconciliation.cjs",
+    "Staged cycle-count variance and hold-integrity preflight; intentionally no stock writes. Requires a persisted stock version, server-scoped reservation snapshot, authorization, dual-approval workflow and atomic stock adjustment ledger before routing."],
+  ["lib/sonara-procurement-three-way-match.cjs",
+    "Test-only deterministic PO/received/invoice comparison. No payment initiation, trusted database source, tenant authorization, customer API, or approval action; waits for scoped provider evidence and a reviewed invoice dashboard."],
+  ["lib/sonara-physical-supply-chain.cjs",
+    "Staged deterministic production, B2B receipt and retailer replenishment preflight. Not customer routed: waits for reviewed tenant/partner authorization, locked idempotent stock receipt transactions, RLS, and staging canary."],
   ["lib/sonara-mobile-billing-classification.cjs",
     "Storefront-region-aware purchase classification research, test-only pending trusted server catalog / iOS StoreKit / Google Play program and provider verification. Not a route, checkout, entitlement, or payment activation."],
-  ["lib/sonara-community-discovery.cjs",
-    "Deterministic public-discovery research policy; explicitly NOT runtime-wired. It waits for reviewed server-owned public projections, authenticated consent/tenant checks, moderation and rights evidence, report/takedown controls, and a one-tenant gated pilot. Never activates social publishing."],
+  ["lib/sonara-community-feed-reader.cjs",
+    "Draft authenticated public-feed read orchestrator; its discovery policy dependency is now reached from this module. Test-only until verified server identity, viewer-owned preferences, reviewed public projections, RLS proof and an explicitly approved feature-flagged route exist. No live feed or publishing."],
+  ["lib/sonara-social-preference-policy.cjs",
+    "Draft pure user-owned feed preference mutation planner and CAS preflight; waits for server-authenticated actor proof, independent consent receipts, isolated private-schema SQL replay and a separately reviewed writer. It performs no DB action or reciprocal account blocking."],
+  ["lib/sonara-growth-public-projections.cjs",
+    "Unconnected Growth discovery projection policy; canonical public post/channel states alone do not provide moderation, rights or disclosure approval. Requires independently verified fresh version-bound attestations, approved public-only source and real RLS evidence before a runtime consumer."],
+  ["lib/sonara-review-attestation-verifier.cjs",
+    "Staged, unmounted Ed25519 dual-role moderation and rights verifier. Test-only until independent reviewer roster, signer-key custody, durable report holds, revocation ledger, public projection source, native crypto and DB concurrency proof, and owner-approved release. It cannot sign, moderate, grant rights or publish."],
   // Explicitly staged governance work from #442/#443; these remain unconnected.
   ["lib/sonara-content-compliance-engine.cjs",
     "Draft content/legal review policy; waits for authenticated tenant evidence and a human-review route. It does not certify compliance or publish."],
@@ -94,6 +106,8 @@ const TEST_ONLY = new Map([
     "Review authorship/moderation preflight; waits for separate customer text confirmation and owner publication workflows."],
   ["lib/sonara-deterministic-capacity-planner.cjs",
     "Integer scenario planning; waits for measured workload/pricing inputs and a customer scenario screen. Outputs are not benchmarks."],
+  ["lib/sonara-seasonal-vertical-playbooks.cjs",
+    "Reviewed test-only seasonal planning and counts-only compression. Waits for measured owner inputs, authenticated tenant adapter, audited approval gates and an explicitly reviewed customer scenario screen; not live dispatch, food compliance or payments."],
   ["lib/sonara-deterministic-risk-assessment.cjs",
     "Risk triage math; waits for a tenant-scoped risk register with measured evidence. It cannot decide credit, housing or insurance eligibility."],
   ["lib/sonara-file-storage-policy.cjs",

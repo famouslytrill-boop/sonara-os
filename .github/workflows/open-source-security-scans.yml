@@ -1,6 +1,9 @@
 name: Open Source Security Scans
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
     branches: [main]
     paths:
@@ -21,8 +24,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: sonara-open-source-security-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel obsolete PR-head runs only; never lose main, manual or queued-merge proof.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   scanners:
@@ -32,6 +36,7 @@ jobs:
       - name: Checkout exact head with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Prepare evidence directory
@@ -340,9 +345,9 @@ jobs:
           OPENVOICE_OUTCOME: ${{ steps.osv_openvoice.outcome }}
           HISTORY_OUTCOME: ${{ steps.gitleaks_history.outcome }}
         run: |
-          node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
+          EXACT_HEAD="$(git rev-parse HEAD)" node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
           const summary = {
-            exactHead: process.env.GITHUB_SHA,
+            exactHead: process.env.EXACT_HEAD,
             sourceUpload: false,
             rawSecretReportPersisted: false,
             blockingScanners: {

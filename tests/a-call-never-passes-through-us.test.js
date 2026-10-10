@@ -6,6 +6,7 @@ const crypto = require("node:crypto");
 const signalling = require("../lib/sonara-call-signalling.cjs");
 const store = require("../lib/sonara-call-sessions.cjs");
 const routes = require("../routes/sonara-call-routes.cjs");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
 
 const ORG = "11111111-1111-4111-8111-111111111111";
 const CALL = "22222222-2222-4222-8222-222222222222";
@@ -380,12 +381,12 @@ describe("the routes and the pages", () => {
   });
 
   it("holds the microphone open to this origin only, and still denies the camera", () => {
-    const server = fs.readFileSync(require.resolve("../server.js"), "utf8");
-    const header = server.match(/setHeader\("Permissions-Policy", "([^"]+)"\)/);
-    assert.ok(header, "the Permissions-Policy header has moved; this check has gone blind");
-    assert.match(header[1], /microphone=\(self\)/);
-    assert.doesNotMatch(header[1], /microphone=\*/);
-    assert.match(header[1], /camera=\(\)/);
+    const header = permissionsPolicyFor("default");
+    assert.match(header, /microphone=\(self\)/);
+    assert.doesNotMatch(header, /microphone=\*/);
+    assert.match(header, /camera=\(\)/);
+    assert.match(header, /accelerometer=\(\)/);
+    assert.match(header, /gyroscope=\(\)/);
   });
 
   it("records the reason for the header change where AGENTS.md requires it", () => {

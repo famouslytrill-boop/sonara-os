@@ -8,7 +8,7 @@ Continue the SONARA Industries/SONARA One source implementation from GitHub `fam
 - Reviewed main `1e42bdee96c35ee99e77037d99436f5558fc4742` on October 8.
 - PR #445 old conflict repaired structurally in `305933929b03190e2219af70d84736c288a149aa`, GitHub reported mergeable true; exact-head full CI still unproven at inspection.
 - PR #446 repaired structurally in `77ea60e3ec17be34082373fcbc651fa748fdff2a` and later updated externally to `1c5b32657a683d6bd2b0d9b57abe743334535f79` at inspection. GitHub mergeable true; workflow status `action_required` was not equivalent to tests passing. Do not overwrite concurrent changes.
-- Supabase `yqncsonkxgwhcxedgevk` ACTIVE_HEALTHY, 160 migrations ending `20261007120000`; #446's newer `20261007130000` migration not applied. No production writes in ChatGPT repair pass.
+- Supabase `yqncsonkxgwhcxedgevk` ACTIVE_HEALTHY, 178 migrations ending `20261007120000`; #446's newer `20261007130000` migration not applied. No production writes in ChatGPT repair pass.
 - Vercel `prj_QN8mHacmlaJWSieVbjMFV5D7fmuY` live false, newest deploy BLOCKED. Keep offline.
 - New engineering research and acceptance matrix in research pass above. Target status distinctions: designed, source-implemented, CI-verified, provider-verified, real-customer-proven.
 

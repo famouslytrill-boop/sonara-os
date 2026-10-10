@@ -107,3 +107,6 @@ pnpm-audit.json
 # 18 September 2026 while sweeping for the SPRINT_LOG.md corruption; ignored
 # here so the next `> test-output.txt` on a Windows checkout does not come back.
 test-output.txt
+
+# Local-only unpublished Claude/OpenAI skill bundle exports.
+output/assistant-model-packs/

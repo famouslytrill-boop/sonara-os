@@ -19,7 +19,7 @@
 
   const dictionaries = {
     en: {
-      platform: "SONARA One", products: "Companies", productsNav: "Products", workspaces: "Workspaces", account: "Account", preferences: "Preferences",
+      platform: "SONARA One", products: "Companies", productsNav: "Products", workspaces: "Workspaces", dockHome: "Home", dockBuild: "Build", dockCreate: "Create", dockGrow: "Grow", account: "Account", preferences: "Preferences",
       workspaceHomeHeading: "Your workspaces", workspaceHomeBody: "One account. Choose where you want to work.",
       businessBuilder: "Business Builder", businessBuilderDescription: "Plan and run your business.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organize and publish your creative work.", growthStudio: "Growth Studio", growthStudioDescription: "Find and keep customers.", openWorkspace: "Open workspace",
       workspaceSetupTitle: "Set up your workspace", workspaceSetupDescription: "Create or connect an organization before saving work to your account.", workspaceSetupAction: "Continue setup",
@@ -37,7 +37,7 @@
       motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"
     },
     es: {
-      platform: "SONARA One", products: "Empresas", productsNav: "Productos", workspaces: "Espacios de trabajo", account: "Cuenta", preferences: "Preferencias",
+      platform: "SONARA One", products: "Empresas", productsNav: "Productos", workspaces: "Espacios de trabajo", dockHome: "Inicio", dockBuild: "Negocio", dockCreate: "Crear", dockGrow: "Crecer", account: "Cuenta", preferences: "Preferencias",
       workspaceHomeHeading: "Tus espacios de trabajo", workspaceHomeBody: "Una cuenta. Elige dónde quieres trabajar.",
       businessBuilder: "Business Builder", businessBuilderDescription: "Prepara ofertas y gestiona las operaciones diarias.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organiza archivos, derechos y planes de lanzamiento.", growthStudio: "Growth Studio", growthStudioDescription: "Planifica campañas y da seguimiento a clientes potenciales.", openWorkspace: "Abrir espacio de trabajo",
       workspaceSetupTitle: "Configura tu espacio de trabajo", workspaceSetupDescription: "Crea o conecta una organización antes de guardar trabajo en tu cuenta.", workspaceSetupAction: "Continuar configuración",
@@ -55,7 +55,7 @@
       motion: "Movimiento", sound: "Sonido", haptics: "Respuesta táctil"
     },
     fr: {
-      platform: "SONARA One", products: "Entreprises", productsNav: "Produits", workspaces: "Espaces de travail", account: "Compte", preferences: "Préférences",
+      platform: "SONARA One", products: "Entreprises", productsNav: "Produits", workspaces: "Espaces de travail", dockHome: "Accueil", dockBuild: "Gérer", dockCreate: "Créer", dockGrow: "Croître", account: "Compte", preferences: "Préférences",
       workspaceHomeHeading: "Vos espaces de travail", workspaceHomeBody: "Un compte. Choisissez où travailler.",
       businessBuilder: "Business Builder", businessBuilderDescription: "Préparez vos offres et gérez les opérations quotidiennes.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organisez les ressources, les droits et les plans de sortie.", growthStudio: "Growth Studio", growthStudioDescription: "Planifiez des campagnes et assurez le suivi des prospects.", openWorkspace: "Ouvrir l’espace de travail",
       workspaceSetupTitle: "Configurez votre espace de travail", workspaceSetupDescription: "Créez ou reliez une organisation avant d’enregistrer votre travail.", workspaceSetupAction: "Continuer la configuration",
@@ -73,7 +73,7 @@
       motion: "Animation", sound: "Retour sonore", haptics: "Retour tactile"
     },
     de: {
-      platform: "SONARA One", products: "Unternehmen", productsNav: "Produkte", workspaces: "Arbeitsbereiche", account: "Konto", preferences: "Einstellungen",
+      platform: "SONARA One", products: "Unternehmen", productsNav: "Produkte", workspaces: "Arbeitsbereiche", dockHome: "Start", dockBuild: "Betrieb", dockCreate: "Erstellen", dockGrow: "Wachsen", account: "Konto", preferences: "Einstellungen",
       workspaceHomeHeading: "Ihre Arbeitsbereiche", workspaceHomeBody: "Ein Konto. Wählen Sie Ihren Arbeitsbereich.",
       businessBuilder: "Business Builder", businessBuilderDescription: "Erstellen Sie Angebote und steuern Sie den Tagesbetrieb.", creatorStudio: "Creator Studio", creatorStudioDescription: "Verwalten Sie Medien, Rechte und Veröffentlichungspläne.", growthStudio: "Growth Studio", growthStudioDescription: "Planen Sie Kampagnen und verfolgen Sie Interessenten.", openWorkspace: "Arbeitsbereich öffnen",
       workspaceSetupTitle: "Arbeitsbereich einrichten", workspaceSetupDescription: "Erstellen oder verbinden Sie eine Organisation, bevor Sie Arbeit speichern.", workspaceSetupAction: "Einrichtung fortsetzen",
@@ -91,7 +91,7 @@
       motion: "Bewegung", sound: "Klangfeedback", haptics: "Haptisches Feedback"
     },
     pt: {
-      platform: "SONARA One", products: "Empresas", productsNav: "Produtos", workspaces: "Espaços de trabalho", account: "Conta", preferences: "Preferências",
+      platform: "SONARA One", products: "Empresas", productsNav: "Produtos", workspaces: "Espaços de trabalho", dockHome: "Início", dockBuild: "Negócio", dockCreate: "Criar", dockGrow: "Crescer", account: "Conta", preferences: "Preferências",
       workspaceHomeHeading: "Seus espaços de trabalho", workspaceHomeBody: "Uma conta. Escolha onde trabalhar.",
       businessBuilder: "Business Builder", businessBuilderDescription: "Prepare ofertas e gerencie as operações diárias.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organize ativos, direitos e planos de lançamento.", growthStudio: "Growth Studio", growthStudioDescription: "Planeje campanhas e acompanhe clientes potenciais.", openWorkspace: "Abrir espaço de trabalho",
       workspaceSetupTitle: "Configure seu espaço de trabalho", workspaceSetupDescription: "Crie ou conecte uma organização antes de salvar seu trabalho.", workspaceSetupAction: "Continuar configuração",
@@ -425,6 +425,22 @@
       const path = new window.URL(link.href, window.location.href).pathname.replace(/\/$/, "") || "/";
       if (path === current) link.setAttribute("aria-current", "page");
     });
+    // A studio shortcut represents its whole section when the current page
+    // lives deeper than its linked home. Do not say "page" for another URL;
+    // aria-current="location" preserves the distinction for screen readers.
+    // Never infer a section from an external URL or a substring collision.
+    const dock = document.querySelector(".sonara-workspace-dock");
+    if (!dock) return;
+    const sections = [
+      ["/business-builder", "/business-builder/dashboard"],
+      ["/creator-studio", "/creator-studio/assets"],
+      ["/growth-studio", "/growth-studio/campaigns"]
+    ];
+    for (const [prefix, href] of sections) {
+      if (current !== prefix && !current.startsWith(prefix + "/")) continue;
+      const link = dock.querySelector('a[href="' + href + '"]');
+      if (link && !link.hasAttribute("aria-current")) link.setAttribute("aria-current", "location");
+    }
   }
 
   function closeMenusAfterNavigation() {

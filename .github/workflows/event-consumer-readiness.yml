@@ -17,6 +17,7 @@ on:
       - "supabase/applied-migration-checksums.json"
       - "tests/event-consumer-readiness.test.js"
       - "tests/runtime-capabilities.test.js"
+      - "tests/openfeature.test.js"
       - ".github/workflows/event-consumer-readiness.yml"
   workflow_dispatch:
     inputs:
@@ -42,6 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
@@ -63,7 +66,7 @@ jobs:
           node --check scripts/run-event-consumer-canary.mjs
 
       - name: Prove claim, settle, retry, dead-letter, concurrency, canary, and SLO behavior
-        run: pnpm exec mocha --config .mocharc.targeted.json tests/event-outbox.test.js tests/event-consumer-readiness.test.js tests/runtime-capabilities.test.js --reporter dot
+        run: pnpm exec mocha --config .mocharc.targeted.json tests/openfeature.test.js tests/event-outbox.test.js tests/event-consumer-readiness.test.js tests/runtime-capabilities.test.js --reporter dot
 
       - name: Verify environment classification remains fail-closed
         run: pnpm run verify:env
@@ -80,6 +83,8 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:

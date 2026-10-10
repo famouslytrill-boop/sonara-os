@@ -1,0 +1,63 @@
+name: Integration Readiness Worker Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_read_only_canary:
+        description: "Run the one-tenant read-only provider readiness worker"
+        required: true
+        default: false
+        type: boolean
+      max_jobs:
+        description: "Maximum queued readiness jobs to process (1-20)"
+        required: true
+        default: "5"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-integration-readiness-canary
+  cancel-in-progress: false
+
+jobs:
+  readiness-canary:
+    if: inputs.confirm_read_only_canary == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SONARA_INTEGRATION_READINESS_WORKER_ENABLED: ${{ vars.SONARA_INTEGRATION_READINESS_WORKER_ENABLED }}
+      SONARA_INTEGRATION_READINESS_CANARY_ORG_ID: ${{ vars.SONARA_INTEGRATION_READINESS_CANARY_ORG_ID }}
+      SONARA_INTEGRATION_READINESS_MAX_JOBS: ${{ inputs.max_jobs }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 12.7.0
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Verify exact source before worker execution
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          pnpm run build
+          pnpm exec mocha --config .mocharc.targeted.json             tests/platform-job-worker.test.js             tests/integration-readiness-worker.test.js             --reporter dot
+
+      - name: Run bounded read-only readiness worker
+        run: node scripts/run-integration-readiness-worker.mjs

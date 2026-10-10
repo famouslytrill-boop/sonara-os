@@ -12,7 +12,7 @@ Read actual GitHub PR/branch exact heads first, then `AGENTS.md`, `CLAUDE.md`, `
 - Last fully read PR #461 Node24 full suite: 7013 tests passed, 8 failed: 7 legacy waitlist compatibility/copy/API races, 1 plain-language protected-route count. Follow-on source addresses these candidates, **pending exact-head verification**.
 - Last PR #461 Browser Quality 40/41: failure in marketplace reconciliation desktop because unexpected Chromium `ViewTransition opt-in disabled` page error. Another prior head passed browser suite, so investigate without dismissing as harmless without proof.
 - In PR #461, source policy covers 4 × 3 basic account-based free public platforms; **policy-only**, not all twelve experiences shipped. Draft legal/release forms are not legally finalized or accepted.
-- Supabase `yqncsonkxgwhcxedgevk`: 161 migrations through `20261007130000`, no new migrations. RLS enabled in inspected seller/creator/growth source tables; public projections require separate reviewed RLS policies; do not broad-grant underlying tables.
+- Supabase `yqncsonkxgwhcxedgevk`: 178 migrations through `20261007130000`, no new migrations. RLS enabled in inspected seller/creator/growth source tables; public projections require separate reviewed RLS policies; do not broad-grant underlying tables.
 - Vercel `prj_QN8mHacmlaJWSieVbjMFV5D7fmuY`: live=false, latest deployment BLOCKED. Nothing in the follow-on branch authorizes an unpause.
 - GitHub issue #460: draft PRs repeatedly merged by other actor while full checks pending or red; branch protection endpoint inaccessible (403). Require admin-side fix. Issue #462: shared free SONARA ecosystem next-stage runtime.
 

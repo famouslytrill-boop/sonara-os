@@ -1,5 +1,13 @@
 # SONARA Project Memory
 
+## P0 PostgreSQL replay policy-source boundary (October 10, 2026, draft PR #617)
+
+- Native replay must validate **migration-defined** `subscriptions_select_member` on `public.subscriptions` (migration `011_sonara_saas_launch_system.sql`) and **not** expect or drop two extra preview-only `Users can view ... subscription` policies that are not in repository migrations.
+- The 25-policy P1 exact catalog baseline must reflect `20261008100000_tighten_service_role_rls_policies.sql`: 21 service_role-only `USING/WITH CHECK true` shapes plus four authenticated ownership checks using the cached auth.uid() InitPlan. Reapplying legacy policies regresses hardening.
+- `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` enforces exact predicates, aborts on drift, performs no subscription policy DDL and finishes with `ROLLBACK`. `tests/p1-rls-replay-baseline.test.js` locks the static constraints. `scripts/sql/postgres-subscriptions-policy-reconciliation.sql` is read-only live-preview metadata evidence.
+- Read-only connected Supabase **preview**, not production, had 25/25 hardened policy matches and two identical extra subscription SELECT policies. Remediation requires separate approved migration, true production-project identity and synthetic tenant/member allow-deny checks. Draft code and queued CI are not release proof.
+
+
 Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-derive. Update only with evidence. This file is development-project memory, not customer/runtime memory and not an authorization grant.
 
 ## Identity and current authority
@@ -12,7 +20,14 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Public message: **Build. Create. Grow.**
 - Repo: `famouslytrill-boop/sonara-os`, default branch `main`.
 - Production: `https://sonaraindustries.com` on Vercel.
-- Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
+- Package manager: `pnpm@12.7.0` only. Never add `package-lock.json`.
+
+## Shared skill and formula memory (Claude Code / ChatGPT / Codex)
+
+- `.ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md` is a generated, source-grounded discovery index of every repository skill manifest and the named keys from authoritative formula and agent-strategy catalogues. It also points to other quantitative code modules and migrations.
+- `AGENTS.md` owns repository guardrails; `CLAUDE.md` links Claude-specific onboarding; this file carries stable project facts. Each assistant must read the relevant skill/module and current tests before applying a method. A skill, proposed formula, or research record does **not** grant execution privileges or prove production readiness.
+- Run `node scripts/generate-assistant-knowledge-index.mjs` after skill/formula changes. `pnpm run verify:agent-sync` checks that the committed index is current.
+- This is **repository project memory**, not automatic synchronization into the personal memory of ChatGPT or Claude accounts. Repository access and supported host/tool discovery are required.
 
 ## Batch convergence (research through Batch 24)
 
@@ -66,6 +81,26 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - `data/repository-intake-2026-09-18.json` adds exactly 30 research-only repositories and 30 exact-SHA pinned install targets across GitHub, GitLab, and Higgsfield sources; `pnpm run verify:repository-intake` enforces the split, uniqueness, pinning, licence-review and non-execution rules.
 - `lib/sonara-batch-convergence-engine.cjs` consumes this as Batch 13. Both lanes remain non-executing in convergence; an install target is not evidence of runtime installation or activation.
 - No third-party repository source was bulk-copied into SONARA. Package/tool adoption still requires a pnpm lockfile change, a real SONARA call site or explicitly developer/test-only classification, full CI/security/tenant checks, and the product-specific canary gate.
+
+## Creator microphone capture finalization (October 10, 2026, draft-only)
+
+- On the WAV Creator branch #611, browser-test evidence showed Firefox sometimes produced no local voice download when `MediaRecorder.stop()` was followed by synchronous microphone-track release. The client now keeps tracks live through final `dataavailable`, releasing after `onstop`. A 5000 ms onstop watchdog fails closed by releasing tracks and withholding incomplete downloads if finalization stalls; browser regression is `stalled MediaRecorder finalization releases the microphone and provides no download`. Both normal and stalled paths passed isolated event-sequence simulation (not full Playwright). Cancellation, permission-revocation and pagehide remain fail-closed and immediately discard pending media.
+- The `browser-tests/public-experience.spec.js` controlled-recorder regression asserts final-chunk-before-release, nonempty local download, and exactly one track stop. Isolated V8 event-sequence harness passed; real Firefox/WebKit/Chromium CI remains mandatory. W3C standard event ordering: https://www.w3.org/TR/mediastream-recording/ .
+- CI browser snapshots and production activation are not proved by in-memory tests. Never claim all-green until exact-head workflows complete.
+
+## Creator Studio MIDI Format 1 (stacked draft, October 10, 2026)
+
+- Development branch `feature/creator-midi-format1-20261010` adds a bounded real SMF1 writer and an optional two-instrument download form, stacked on #614's SMF0 MIDI. Writer supports one tempo conductor track, 1–4 named instrument tracks with distinct MIDI channels and at most 128 total explicit notes (UI shows two). No cloud worker or MIDI 2.0, VST/AAX, audio rendering, transcription, native DAW project or persistence.
+- Proof: `tests/creator-midi-format1.test.js` binary framing, event reuse, ordering, validations; `browser-tests/public-experience.spec.js` real download test pending GitHub Playwright. Re-run exact-head CI, review and controlled release. Unmerged branches are NOT production features.
+
+## Creator Studio DAW/media interchange (October 10, 2026; draft-only)
+
+- Development PR chain: #611 (PCM16/24/32 and float WAV import, 44.1/48 kHz stereo mixdown and waveform meters) → #613 (four-source, zero-aligned stereo WAV source-group stems) → #614 (real SMF Format 0 note sketch export). These are **unmerged drafts**, never proof of production activation. Check exact-head status before quoting readiness.
+- Active code under review: `public/creator-project-audio.js`, `public/creator-project-midi.js`, `routes/sonara-creator-project-routes.cjs`, `tests/creator-audio-interchange.test.js`, `tests/creator-source-stems.test.js`, `tests/creator-midi-interchange.test.js`, `docs/creator/DAW_AUDIO_INTEROPERABILITY_2026-10-10.md`, and `.claude/skills/creator-daw-interoperability/SKILL.md`.
+- The MIDI writer accepts **explicit** note events only, using 480 PPQ, tempo meta events, channel-specific note-on/off and SMF0 track framing. Limits: BPM 40–240, up to 128 notes, 256 beats, one track, one channel; MIDI is not synthesized audio or inferred/transcribed from a recording. Receiving DAWs assign instruments and are responsible for playback.
+- Existing source-group stems are not multi-bus/native DAW projects. PCM resampling is linear-interpolation preview/handoff, not certified mastering, LUFS, dBTP or BWF. No ASIO/AAX/VST, Pro Tools .ptx, Ableton .als or FL Studio .flp interoperability is implemented. Hardware audio and recording require explicit device permissions.
+- Respect rights, file/resource caps, tenant boundaries and owner approval for publishing; never auto-enable media workers or connect external providers because an interface/skill exists.
+- Standard evidence: https://midi.org/standard-midi-files ; https://help.ableton.com/hc/en-us/articles/209068169-Understanding-MIDI-files ; https://tech.ebu.ch/publications/tech3285/ ; https://ffmpeg.org/ffmpeg-resampler.html . A local V8 test harness passing is **not** a pnpm, browser or CI pass.
 
 ## Learning and memory truth
 

@@ -13,7 +13,7 @@ Main at branch start: `9b89404e2ec6b588f5a88a3683fa2e9b19afc9d1`. Research/docs/
 3. Model free participation as **no platform subscription/post/listing fees**; sellers' items, third-party processors, taxes, compute, storage and approved optional premium services need transparent terms. Do not imply free merchant processing or waive legally required obligations.
 4. Next P1: connect parent company cross-ecosystem aggregation through **public, owner-consented projections only**, with source `organization_id`, creator rights/visibility, takedown propagation, rate limits, non-custodial settlement. Reuse existing `growth_channels`, `merchant_storefronts`, `creator_marketplace_entries`; no unnecessary duplicate tables.
 5. Next P1: Excel/CSV safe import (type/size/virus/formula injection) and Microsoft/Google/Apple OAuth connectors with per-tenant scopes, credential vault, provider approvals and idempotent background jobs. No unsupported live claims.
-6. P0 complete CI and original issues #457 and #460; need exact-head green and audited main protection. Supabase latest 161 migrations through `20261007130000`. No SQL changes in this branch. Keep Vercel OFFLINE.
+6. P0 complete CI and original issues #457 and #460; need exact-head green and audited main protection. Supabase latest 178 migrations through `20261007130000`. No SQL changes in this branch. Keep Vercel OFFLINE.
 
 ## Return exact evidence
 `LATEST_MAIN_SHA, BRANCH_AND_PR, FILES_CHANGED, TEST_COMMANDS_AND_RESULTS, GREEN_AND_RED_CI_URLS, LEGAL_AND_PERMISSIONS_REVIEW, DB_MIGRATIONS, PROVIDER_ACTIONS, VERCEL_OFFLINE_STATUS, NEXT_SAFE_IMPLEMENTATION`.

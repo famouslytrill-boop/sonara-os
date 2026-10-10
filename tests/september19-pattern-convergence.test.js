@@ -16,6 +16,10 @@ const {
   shardRequirement,
   replicaRequirement,
   boundedLoopStatus,
+  planWorkflowSequence,
+  replayWorkflowTrace,
+  replayScopedWorkflowTrace,
+  evaluateWorkflowRetry,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
 const {
@@ -44,6 +48,11 @@ const {
   retryDelayMs,
   sloBudgetState,
   repairAuthorityDecision,
+  OPERATIONAL_MODES,
+  operationalTransitionDecision,
+  reviewOperationalTransitionLedger,
+  maintenanceActionDecision,
+  operationalAlertDecision,
   ragQualityScore,
   evaluateProductWorkflowTransition,
   getBackendOperationsIntelligence
@@ -88,6 +97,8 @@ const {
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 const { SONARA_BRAND_REGISTRY, getBrandProduct } = require("../lib/sonara-brand-registry.cjs");
+const { operationalTransitionCoordinator } = require("../lib/sonara-operational-transition-coordinator.cjs");
+const { createPostgresOperationalStore } = require("../lib/sonara-postgres-operational-store.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -170,6 +181,1022 @@ describe("September 19 platform pattern convergence", () => {
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, verified: true }), { continue: false, reason: "verified" });
     assert.deepEqual(boundedLoopStatus({ attempt: 1, maxIterations: 3, blocked: true }), { continue: false, reason: "policy_blocked" });
     assert.deepEqual(boundedLoopStatus({ attempt: 3, maxIterations: 3 }), { continue: false, reason: "iteration_budget_exhausted" });
+  });
+
+  it("governs pause, resume, maintenance, lockdown, shutdown and startup without bypass", () => {
+    const base = {
+      from: "active", to: "paused", expectedRevision: 4, observedRevision: 4,
+      scope: "platform", scopeVerified: true, actorAuthorized: true, ownerApproved: true
+    };
+    assert.deepEqual(OPERATIONAL_MODES, ["active", "paused", "maintenance", "lockdown", "offline"]);
+    let out = operationalTransitionDecision(base);
+    assert.equal(out.candidate, true);
+    assert.equal(out.nextRevision, 5);
+    assert.equal(out.transitionExecuted, false);
+    assert.equal(out.releaseAuthorized, false);
+    assert.equal(out.requiresDurableCompareAndSwap, true);
+    assert.equal(operationalTransitionDecision({ ...base, expectedRevision: 3 }).reason, "stale_or_missing_revision");
+    assert.equal(operationalTransitionDecision({ ...base, observedRevision: 3 }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, ownerApproved: false }).reason, "owner_approval_required");
+    assert.equal(operationalTransitionDecision({ ...base, actorAuthorized: false }).reason, "operator_authority_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, scopeVerified: false }).reason, "scope_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, bypassRequested: true }).reason, "policy_bypass_refused");
+    assert.equal(operationalTransitionDecision({ ...base, overrideReleaseGate: true }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "paused" }).reason, "no_op_transition");
+    assert.equal(operationalTransitionDecision({ ...base, from: "offline", to: "active" }).reason, "transition_not_allowed");
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "active" }).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, to: "nonsense" }).reason, "unknown_operational_mode");
+    assert.equal(operationalTransitionDecision({ ...base, to: "lockdown" }).reason, "incident_evidence_missing");
+    out = operationalTransitionDecision({ ...base, to: "lockdown", verifiedSecurityIncident: true });
+    assert.equal(out.candidate, true);
+    out = operationalTransitionDecision({ ...base, to: "maintenance" });
+    assert.equal(out.reason, "in_flight_jobs_not_drained");
+    assert.equal(operationalTransitionDecision({ ...base, to: "maintenance", inFlightJobsDrained: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "paused" }).reason, "recovery_evidence_missing");
+    assert.equal(operationalTransitionDecision({ ...base, from: "lockdown", to: "paused",
+      incidentClearedVerified: true, recoveryVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "offline", to: "paused",
+      incidentClearedVerified: true, recoveryVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "active",
+      healthVerified: true, releaseGatesVerified: true }).reason, "startup_release_or_health_unverified");
+    assert.equal(operationalTransitionDecision({ ...base, from: "paused", to: "active",
+      healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true }).candidate, true);
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline" }).reason, "shutdown_plan_unreviewed");
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true })
+      .reason, "shutdown_jobs_not_drained");
+    assert.equal(operationalTransitionDecision({ ...base, to: "offline", safeShutdownPlanReviewed: true,
+      inFlightJobsDrained: true }).candidate, true);
+    assert.equal(operationalTransitionDecision(null).candidate, false);
+    assert.equal(operationalTransitionDecision({ ...base, observedRevision: Number.MAX_SAFE_INTEGER })
+      .reason, "stale_or_missing_revision");
+  });
+
+  it("replays version-bound operational receipts and refuses stale authorization or replay", () => {
+    const actor = "11111111-1111-4111-8111-111111111111";
+    const approver = "22222222-2222-4222-8222-222222222222";
+    const evidence = { scopeVerified: true, actorAuthorized: true };
+    const make = (id, revision, from, to, occurredAtMs, extra = {}) => ({
+      eventId: "evt_" + id, actorId: actor, scope: "platform", organizationId: null,
+      from, to, revision, occurredAtMs,
+      evidence: { ...evidence, ...extra },
+      approval: {
+        approvalId: "app_" + id, approvedBy: approver,
+        scope: "platform", organizationId: null, from, to,
+        expectedRevision: revision - 1,
+        issuedAtMs: occurredAtMs - 100, expiresAtMs: occurredAtMs + 500
+      }
+    });
+    const a = make("pause", 8, "active", "paused", 2000);
+    const b = make("maintenance", 9, "paused", "maintenance", 3000,
+      { inFlightJobsDrained: true });
+    const c = make("end", 10, "maintenance", "paused", 4000);
+    const d = make("resume", 11, "paused", "active", 5000,
+      { healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true });
+    const input = {
+      scope: "platform", initialMode: "active", initialRevision: 7,
+      events: [a, b, c, d, a]
+    };
+    let state = reviewOperationalTransitionLedger(input);
+    assert.equal(state.mode, "active");
+    assert.equal(state.revision, 11);
+    assert.equal(state.acceptedEvents, 4);
+    assert.equal(state.replayedEvents, 1);
+    assert.equal(state.transitionExecuted, false);
+    assert.equal(state.authorizationVerified, false);
+    assert.equal(state.durableConsistencyProven, false);
+    assert.equal(reviewOperationalTransitionLedger({ ...input, events: [] }).revision, 7);
+
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [b]
+    }), /Out-of-order/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, revision: 11 }]
+    }), /approval|Out-of-order/i);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, occurredAtMs: 1999 }]
+    }), /Stale, cross-scope or unbound|Out-of-order/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, approval: { ...b.approval, approvalId: a.approval.approvalId } }]
+    }), /approval reused/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...a, evidence: { ...a.evidence, bypassRequested: true } }]
+    }), /Conflicting operational event replay/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [a, { ...b, evidence: { ...b.evidence, bypassRequested: true } }]
+    }), /policy_bypass_refused/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expectedRevision: 6 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expiresAtMs: 1999 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, approval: { ...a.approval, expiresAtMs: 9000000 } }]
+    }), /Stale, cross-scope or unbound/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, evidence: { ...a.evidence, actorAuthorized: false } }]
+    }), /operator_authority_unverified/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: [{ ...a, scope: "tenant" }]
+    }), /Invalid operational ledger event/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, scope: "tenant", organizationId: "33333333-3333-4333-8333-333333333333"
+    }), /Invalid operational ledger event/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      ...input, events: new Array(513).fill(a)
+    }), /512/);
+    assert.throws(() => reviewOperationalTransitionLedger(null), /object/);
+
+    const org = "33333333-3333-4333-8333-333333333333";
+    const tenantA = {
+      ...a, scope: "tenant", organizationId: org,
+      approval: { ...a.approval, scope: "tenant", organizationId: org }
+    };
+    state = reviewOperationalTransitionLedger({
+      scope: "tenant", organizationId: org,
+      initialMode: "active", initialRevision: 7, events: [tenantA]
+    });
+    assert.equal(state.mode, "paused");
+    assert.equal(state.organizationId, org);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "tenant", organizationId: org, initialMode: "active", initialRevision: 7,
+      events: [{ ...tenantA, approval: { ...tenantA.approval, organizationId: "44444444-4444-4444-8444-444444444444" } }]
+    }), /Stale, cross-scope or unbound/);
+  });
+
+  it("requires incident clearance before lockdown recovery and full release proof before startup", () => {
+    const who = "55555555-5555-4555-8555-555555555555";
+    const proof = { scopeVerified: true, actorAuthorized: true };
+    const event = (name, from, to, revision, evidence) => ({
+      eventId: "event_" + name, actorId: who, scope: "platform",
+      organizationId: null, from, to, revision, occurredAtMs: revision * 1000,
+      evidence: { ...proof, ...evidence },
+      approval: {
+        approvalId: "approve_" + name, approvedBy: who, scope: "platform", organizationId: null,
+        from, to, expectedRevision: revision - 1,
+        issuedAtMs: revision * 1000 - 100, expiresAtMs: revision * 1000 + 100
+      }
+    });
+    const lock = event("lock", "active", "lockdown", 2, { verifiedSecurityIncident: true });
+    const cleared = event("clear", "lockdown", "paused", 3,
+      { incidentClearedVerified: true, recoveryVerified: true });
+    const start = event("start", "paused", "active", 4,
+      { healthVerified: true, releaseGatesVerified: true, incidentClearedVerified: true });
+    let result = reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, cleared, start]
+    });
+    assert.equal(result.mode, "active");
+    assert.equal(result.revision, 4);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [{ ...lock, evidence: proof }]
+    }), /incident_evidence_missing/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, { ...cleared, evidence: proof }]
+    }), /recovery_evidence_missing/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, cleared, { ...start, evidence: { ...proof, healthVerified: true } }]
+    }), /startup_release_or_health_unverified/);
+    assert.throws(() => reviewOperationalTransitionLedger({
+      scope: "platform", initialMode: "active", initialRevision: 1,
+      events: [lock, { ...start, revision: 3, from: "lockdown" }]
+    }), /Stale, cross-scope or unbound|transition_not_allowed/);
+  });
+
+  it("proposes bounded scans and maintenance but never executes cleanup or defragmentation", () => {
+    const base = { action: "security_scan", mode: "active", scopeVerified: true,
+      actorAuthorized: true, maxItems: 20, maxDurationMs: 3000 };
+    let out = maintenanceActionDecision(base);
+    assert.equal(out.candidate, true);
+    assert.equal(out.executed, false);
+    assert.equal(out.dataDeleted, false);
+    assert.equal(out.commandIssued, false);
+    assert.equal(maintenanceActionDecision({ ...base, command: "rm -rf /" }).reason, "arbitrary_command_or_bypass_refused");
+    assert.equal(maintenanceActionDecision({ ...base, path: "/customer/private" }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, force: true }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, bypassRequested: true }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, maxItems: 1001 }).reason, "unbounded_maintenance_budget");
+    assert.equal(maintenanceActionDecision({ ...base, maxDurationMs: 0 }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, actorAuthorized: false }).candidate, false);
+    assert.equal(maintenanceActionDecision(null).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, action: "service_restart" }).ownerReviewRequired, true);
+    assert.equal(maintenanceActionDecision({ ...base, action: "disk_defragmentation" }).candidate, false);
+    assert.equal(maintenanceActionDecision({ ...base, action: "retention_purge_review",
+      mode: "maintenance", ownerApproved: true, inFlightJobsDrained: true,
+      backupVerified: true }).reason, "retention_policy_and_storage_authority_review_required");
+    const maintain = { ...base, mode: "maintenance", ownerApproved: true,
+      inFlightJobsDrained: true, backupVerified: true };
+    assert.equal(maintenanceActionDecision({ ...base, action: "cache_cleanup_review" }).reason, "maintenance_mode_required");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review", legalHold: true })
+      .reason, "legal_or_incident_hold");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review" })
+      .reason, "cache_scope_or_retention_protection_unverified");
+    out = maintenanceActionDecision({ ...maintain, action: "cache_cleanup_review",
+      cacheOnlyTargetsVerified: true, retentionProtectedTargetsExcluded: true });
+    assert.equal(out.candidate, true);
+    assert.equal(out.dataDeleted, false);
+    assert.equal(out.ownerReviewRequired, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "vacuum_analyze_review" })
+      .reason, "database_metrics_or_window_missing");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "vacuum_analyze_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true }).candidate, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "reindex_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true }).reason, "database_lock_impact_unreviewed");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "reindex_review",
+      databaseMetricsVerified: true, maintenanceWindowApproved: true,
+      lockImpactReviewed: true }).candidate, true);
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "isolated_restore_drill" })
+      .reason, "isolated_restore_environment_missing");
+    assert.equal(maintenanceActionDecision({ ...maintain, action: "isolated_restore_drill",
+      isolatedEnvironmentVerified: true }).candidate, true);
+  });
+
+  it("classifies trusted operational alerts without auto-lockdown or duplicate notifications", () => {
+    const base = {
+      signal: "security_bypass_attempt", scopeVerified: true, evidenceVerified: true,
+      consecutiveFailures: 3, threshold: 2, nowMs: 300000, cooldownMs: 60000,
+      lastAlertAtMs: null
+    };
+    let decision = operationalAlertDecision(base);
+    assert.equal(decision.notifyCandidate, true);
+    assert.equal(decision.severity, "critical");
+    assert.equal(decision.alertSent, false);
+    assert.equal(decision.lockdownExecuted, false);
+    assert.equal(decision.shutdownExecuted, false);
+    assert.equal(decision.nextEligibleAlertAtMs, 360000);
+    assert.equal(operationalAlertDecision({ ...base, signal: "nonsense" }).reason, "unknown_alert_signal");
+    assert.equal(operationalAlertDecision({ ...base, evidenceVerified: false }).reason, "unverified_alert_evidence");
+    assert.equal(operationalAlertDecision({ ...base, scopeVerified: false }).notifyCandidate, false);
+    assert.equal(operationalAlertDecision({ ...base, consecutiveFailures: 1 }).reason, "below_alert_threshold");
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 250000 }).reason, "alert_cooldown_active");
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 240000 }).notifyCandidate, true);
+    assert.equal(operationalAlertDecision({ ...base, lastAlertAtMs: 300001 }).reason, "invalid_last_alert_clock");
+    assert.equal(operationalAlertDecision({ ...base, cooldownMs: 0 }).reason, "invalid_alert_budget");
+    assert.equal(operationalAlertDecision({ ...base, threshold: 21 }).notifyCandidate, false);
+    assert.equal(operationalAlertDecision({ ...base, nowMs: Number.MAX_SAFE_INTEGER })
+      .reason, "invalid_alert_budget");
+    assert.equal(operationalAlertDecision(null).notifyCandidate, false);
+    decision = operationalAlertDecision({ ...base, signal: "backup_evidence_missing" });
+    assert.equal(decision.severity, "high");
+    assert.equal(decision.notifyCandidate, true);
+    decision = operationalAlertDecision({ ...base, signal: "job_queue_stalled" });
+    assert.equal(decision.severity, "warning");
+    assert.equal(decision.notifyCandidate, true);
+  });
+
+  it("plans stable dependency stages, reports the critical path, and rejects graph hazards", () => {
+    const steps = [
+      { id: "publish", dependsOn: ["review"], estimatedMs: 3 },
+      { id: "review", dependsOn: ["render"], estimatedMs: 8, maxAttempts: 2 },
+      { id: "render", estimatedMs: 20 },
+      { id: "bill", estimatedMs: 5 }
+    ];
+    const plan = planWorkflowSequence(steps);
+    assert.deepEqual(plan.order, ["bill", "render", "review", "publish"]);
+    assert.deepEqual(plan.stages, [["bill", "render"], ["review"], ["publish"]]);
+    assert.equal(plan.criticalPathMs, 31);
+    assert.deepEqual(plan.criticalPath, ["render", "review", "publish"]);
+    assert.deepEqual(planWorkflowSequence([...steps].reverse()), plan);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }, { id: "b", dependsOn: ["a"] }]), /cycle/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["b"] }]), /Unknown dependency/);
+    assert.throws(() => planWorkflowSequence([{ id: "a" }, { id: "a" }]), /Duplicate step/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", maxAttempts: 100 }]), /maxAttempts/);
+    assert.throws(() => planWorkflowSequence([{ id: "a", dependsOn: ["a"] }]), /Self-dependency/);
+  });
+
+  it("replays step traces without duplicate effects or out-of-order transitions", () => {
+    const plan = planWorkflowSequence([
+      { id: "publish", dependsOn: ["review"] },
+      { id: "review", dependsOn: ["render"], maxAttempts: 2 },
+      { id: "render" },
+      { id: "bill" }
+    ]);
+    assert.deepEqual(replayWorkflowTrace(plan, []).eligible, ["bill", "render"]);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      { eventId: "z", stepId: "publish", action: "started", attempt: 1 }
+    ]), /Out-of-sequence/);
+
+    const events = [
+      { eventId: "a", stepId: "render", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "b", stepId: "render", action: "succeeded", attempt: 1 },
+      { eventId: "c", stepId: "review", action: "started", attempt: 1 },
+      { eventId: "d", stepId: "review", action: "failed", attempt: 1 },
+      { eventId: "e", stepId: "review", action: "started", attempt: 2 },
+      { eventId: "f", stepId: "review", action: "succeeded", attempt: 2 },
+      { eventId: "g", stepId: "publish", action: "started", attempt: 1 },
+      { eventId: "h", stepId: "publish", action: "succeeded", attempt: 1 },
+      { eventId: "i", stepId: "bill", action: "started", attempt: 1 },
+      { eventId: "j", stepId: "bill", action: "succeeded", attempt: 1 }
+    ];
+    const replay = replayWorkflowTrace(plan, events);
+    assert.equal(replay.complete, true);
+    assert.equal(replay.replayedEvents, 1);
+    assert.equal(replay.acceptedEvents, 10);
+    assert.deepEqual(replay.eligible, []);
+    assert.throws(() => replayWorkflowTrace(plan, [
+      events[0], { ...events[0], action: "failed" }
+    ]), /Conflicting replay event id/);
+
+    const singleAttempt = planWorkflowSequence([{ id: "once", maxAttempts: 1 }]);
+    const failed = [
+      { eventId: "start", stepId: "once", action: "started", attempt: 1 },
+      { eventId: "fail", stepId: "once", action: "failed", attempt: 1 }
+    ];
+    assert.deepEqual(replayWorkflowTrace(singleAttempt, failed).exhausted, ["once"]);
+    assert.throws(() => replayWorkflowTrace(singleAttempt, [
+      ...failed, { eventId: "retry", stepId: "once", action: "started", attempt: 2 }
+    ]), /Out-of-sequence/);
+  });
+
+  it("rejects cross-tenant, mixed-run, reordered and conflicting durable event histories", () => {
+    const organizationId = "11111111-1111-4111-8111-111111111111";
+    const runId = "run:42";
+    const plan = planWorkflowSequence([
+      { id: "render", maxAttempts: 2 },
+      { id: "publish", dependsOn: ["render"] }
+    ]);
+    const definitionHash = plan.definitionHash;
+    const start = {
+      organizationId, runId, definitionHash, sequence: 1, eventId: "one",
+      stepId: "render", action: "started", attempt: 1,
+      traceId: "0123456789abcdef0123456789abcdef"
+    };
+    const finish = {
+      organizationId, runId, definitionHash, sequence: 2, eventId: "two",
+      stepId: "render", action: "succeeded", attempt: 1
+    };
+    const input = { plan, organizationId, runId, definitionHash, events: [start, finish, start] };
+    const state = replayScopedWorkflowTrace(input);
+    assert.equal(state.complete, false);
+    assert.equal(state.organizationId, organizationId);
+    assert.equal(state.runId, runId);
+    assert.equal(state.definitionHash, definitionHash);
+    assert.equal(state.lastSequence, 2);
+    assert.equal(state.acceptedEvents, 2);
+    assert.equal(state.replayedEvents, 1);
+    assert.deepEqual(state.eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [start, finish] }).eligible, ["publish"]);
+    assert.deepEqual(replayScopedWorkflowTrace({ ...input, events: [] }).eligible, ["render"]);
+
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, organizationId: "22222222-2222-4222-8222-222222222222" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, runId: "another" }]
+    }), /Cross-scope/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: [finish] }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 3 }]
+    }), /sequence gap/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, sequence: 1 }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, eventId: "one" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...start, traceId: "fedcba9876543210fedcba9876543210" }]
+    }), /Conflicting durable/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [start, { ...finish, action: "succeeded", attempt: 2 }]
+    }), /Out-of-sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, organizationId: "wrong" }), /canonical lowercase UUID/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, definitionHash: "0".repeat(64)
+    }), /Workflow definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: "0".repeat(64) }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, definitionHash: undefined }]
+    }), /Workflow event definition mismatch/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input,
+      plan: planWorkflowSequence([
+        { id: "render", maxAttempts: 3 },
+        { id: "publish", dependsOn: ["render"] }
+      ])
+    }), /Workflow definition mismatch/);
+    assert.equal(
+      planWorkflowSequence([...plan.steps].reverse()).definitionHash,
+      definitionHash
+    );
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, traceId: "00000000000000000000000000000000" }]
+    }), /Invalid trace id/);
+    assert.throws(() => replayScopedWorkflowTrace({
+      ...input, events: [{ ...start, sequence: 0 }]
+    }), /Invalid workflow event sequence/);
+    assert.throws(() => replayScopedWorkflowTrace({ ...input, events: new Array(4097).fill(start) }), /4096/);
+  });
+
+  it("schedules bounded deterministic retries only after explicit safety checks", () => {
+    const plan = planWorkflowSequence([
+      { id: "ingest", maxAttempts: 3 },
+      { id: "publish", dependsOn: ["ingest"], maxAttempts: 2 }
+    ]);
+    const events = [
+      { eventId: "a", stepId: "ingest", action: "started", attempt: 1 },
+      { eventId: "b", stepId: "ingest", action: "failed", attempt: 1 }
+    ];
+    const input = {
+      plan, events, stepId: "ingest", runId: "run:001",
+      startedAtMs: 1000, nowMs: 1100, maxElapsedMs: 20000,
+      baseDelayMs: 100, capDelayMs: 1000, failureKind: "transient",
+      authorizationConfirmed: true, effectReplaySafe: true, budgetApproved: true
+    };
+    const scheduled = evaluateWorkflowRetry(input);
+    assert.equal(scheduled.action, "schedule");
+    assert.equal(scheduled.nextAttempt, 2);
+    assert.equal(scheduled.remainingAttempts, 1);
+    assert.equal(scheduled.notBeforeMs, 1100 + scheduled.delayMs);
+    assert.ok(scheduled.delayMs >= 1 && scheduled.delayMs <= 100);
+    assert.deepEqual(evaluateWorkflowRetry(input), scheduled);
+    assert.deepEqual(evaluateWorkflowRetry({ ...input, events: [...events, events[1]] }), scheduled);
+
+    const refusals = [
+      ["cancellationRequested", true, "cancel_requested"],
+      ["failureKind", "permanent", "non_retryable_failure"],
+      ["failureKind", undefined, "non_retryable_failure"],
+      ["authorizationConfirmed", false, "authorization_unconfirmed"],
+      ["effectReplaySafe", false, "idempotency_unconfirmed"],
+      ["budgetApproved", false, "resource_budget_unconfirmed"]
+    ];
+    for (const [field, value, reason] of refusals) {
+      assert.equal(evaluateWorkflowRetry({ ...input, [field]: value }).reason, reason);
+    }
+    assert.equal(evaluateWorkflowRetry({ ...input, nowMs: 21001 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, maxElapsedMs: 101 }).reason, "time_budget_exhausted");
+    assert.equal(evaluateWorkflowRetry({ ...input, events: [] }).reason, "step_not_failed");
+    assert.equal(evaluateWorkflowRetry({ ...input, plan: planWorkflowSequence([{ id: "ingest", maxAttempts: 1 }]) }).reason, "attempt_budget_exhausted");
+
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited" }).reason, "provider_backoff_unverified");
+    assert.equal(evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 3000 }).reason, "provider_backoff_exceeds_cap");
+    const throttled = evaluateWorkflowRetry({ ...input, failureKind: "rate_limited", providerRetryAfterMs: 800 });
+    assert.equal(throttled.action, "schedule");
+    assert.equal(throttled.delayMs, 800);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, runId: "PII leaked /token" }), /runId/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, baseDelayMs: 0 }), /baseDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, capDelayMs: 3, baseDelayMs: 4 }), /capDelayMs/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, nowMs: 999 }), /precedes/);
+    assert.throws(() => evaluateWorkflowRetry({ ...input, stepId: "unknown" }), /Unknown/);
+
+    const secondAttempt = [
+      ...events,
+      { eventId: "c", stepId: "ingest", action: "started", attempt: 2 },
+      { eventId: "d", stepId: "ingest", action: "failed", attempt: 2 }
+    ];
+    const next = evaluateWorkflowRetry({ ...input, events: secondAttempt });
+    assert.equal(next.nextAttempt, 3);
+    assert.ok(next.delayMs <= 200);
+    const exhausted = [
+      ...secondAttempt,
+      { eventId: "e", stepId: "ingest", action: "started", attempt: 3 },
+      { eventId: "f", stepId: "ingest", action: "failed", attempt: 3 }
+    ];
+    assert.equal(evaluateWorkflowRetry({ ...input, events: exhausted }).reason, "attempt_budget_exhausted");
+  });
+
+  function operationalCoordinatorFixture(options = {}) {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const approverId = "22222222-2222-4222-8222-222222222222";
+    const command = {
+      scope: "tenant", organizationId: org, expectedRevision: 7,
+      to: "paused", eventId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      approvalId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    };
+    let committed = {
+      state: { scope: "tenant", organizationId: org, mode: "active", revision: 7 },
+      approval: {
+        id: command.approvalId, status: "approved", consumedAtMs: null,
+        scope: "tenant", organizationId: org, from: "active", to: "paused",
+        expectedRevision: 7, approvedBy: approverId,
+        issuedAtMs: 1900, expiresAtMs: 2600
+      },
+      events: []
+    };
+    Object.assign(committed.approval, options.approval || {});
+    const store = {
+      async withTransaction(work) {
+        // The fixture, unlike production, is an in-memory transactional stand-in.
+        // Discard every staged change if ANY callback throws or denies.
+        const draft = globalThis.structuredClone(committed);
+        const tx = {
+          async nowMs() { return options.nowMs ?? 2000; },
+          async readStateForUpdate() { return { ...draft.state }; },
+          async readApprovalForUpdate() { return { ...draft.approval }; },
+          async consumeApproval(input) {
+            if (options.consumeConflict || draft.approval.consumedAtMs != null ||
+                draft.approval.id !== input.approvalId) return 0;
+            draft.approval.consumedAtMs = options.nowMs ?? 2000;
+            return 1;
+          },
+          async compareAndSwapState(input) {
+            if (options.casConflict || draft.state.revision !== input.expectedRevision ||
+                draft.state.mode !== input.expectedMode) return 0;
+            draft.state.mode = input.nextMode;
+            draft.state.revision = input.nextRevision;
+            return 1;
+          },
+          async appendAuditEvent(input) {
+            if (options.auditConflict || draft.events.some(e => e.eventId === input.eventId)) return 0;
+            draft.events.push({ ...input });
+            return 1;
+          }
+        };
+        if (options.omitAuditWriter) delete tx.appendAuditEvent;
+        const result = await work(tx);
+        if (options.transactionReject) {
+          const failure = new Error("PRIVATE_DB_INTERNAL_DETAILS");
+          failure.operationalDenial = "PRIVATE_DB_INTERNAL_DETAILS";
+          throw failure;
+        }
+        committed = draft;
+        return result;
+      }
+    };
+    const authorizer = {
+      async authorize({ session }) {
+        if (session !== "server_validated") return null;
+        return {
+          actorId, authorized: options.actorAuthorized !== false,
+          scope: "tenant", organizationId: options.principalOrg || org
+        };
+      },
+      async verifyApproval() { return options.approvalVerified !== false; }
+    };
+    const evidenceVerifier = {
+      async verify() { return options.proof ?? {}; }
+    };
+    return {
+      coordinator: operationalTransitionCoordinator({ store, authorizer, evidenceVerifier }),
+      command, view() { return globalThis.structuredClone(committed); }
+    };
+  }
+
+  it("commits reviewed operational state, consumed approval and audit as one transaction", async () => {
+    const f = operationalCoordinatorFixture();
+    let result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+    assert.equal(result.applied, true);
+    assert.equal(result.reason, "transaction_committed");
+    assert.equal(result.revision, 8);
+    assert.equal(result.transitionExecuted, true);
+    assert.equal(result.auditCommitted, true);
+    assert.equal(f.view().state.mode, "paused");
+    assert.equal(f.view().state.revision, 8);
+    assert.equal(f.view().events.length, 1);
+    assert.equal(f.view().events[0].eventId, f.command.eventId);
+    assert.ok(f.view().approval.consumedAtMs !== null);
+    result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+    assert.equal(result.applied, false);
+    assert.equal(result.reason, "stale_or_unavailable_operational_state");
+    assert.equal(f.view().events.length, 1);
+  });
+
+  it("refuses caller-supplied proofs, foreign identities and stale or forged approvals", async () => {
+    for (const key of [
+      "actorId", "ownerApproved", "actorAuthorized", "evidence",
+      "scopeVerified", "releaseGatesVerified", "overrideReleaseGate"
+    ]) {
+      const f = operationalCoordinatorFixture();
+      const result = await f.coordinator.transition({
+        session: "server_validated", command: { ...f.command, [key]: true }
+      });
+      assert.equal(result.reason, "untrusted_evidence_or_command_shape");
+      assert.equal(f.view().state.revision, 7);
+    }
+    for (const [settings,session,expected] of [
+      [{}, "forged", "actor_authorization_unverified"],
+      [{ principalOrg: "44444444-4444-4444-8444-444444444444" }, "server_validated", "actor_authorization_unverified"],
+      [{ actorAuthorized: false }, "server_validated", "actor_authorization_unverified"],
+      [{ approvalVerified: false }, "server_validated", "independent_approval_unverified"],
+      [{ nowMs: 2700 }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { approvedBy: "11111111-1111-4111-8111-111111111111" } },
+        "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { organizationId: "44444444-4444-4444-8444-444444444444" } },
+        "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { expectedRevision: 6 } }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { consumedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"],
+      [{ approval: { revokedAtMs: 1999 } }, "server_validated", "approval_missing_expired_or_reused"]
+    ]) {
+      const f = operationalCoordinatorFixture(settings);
+      const result = await f.coordinator.transition({ session, command: f.command });
+      assert.equal(result.reason, expected);
+      assert.equal(result.applied, false);
+      assert.equal(f.view().state.revision, 7);
+      assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("rolls back consumed approval and changed mode when CAS or audit fails", async () => {
+    for (const [settings, expected] of [
+      [{ consumeConflict: true }, "approval_claim_conflict"],
+      [{ casConflict: true }, "operational_revision_conflict"],
+      [{ auditConflict: true }, "operational_audit_conflict"],
+      [{ omitAuditWriter: true }, "transaction_contract_missing"]
+    ]) {
+      const f = operationalCoordinatorFixture(settings);
+      const result = await f.coordinator.transition({ session: "server_validated", command: f.command });
+      assert.equal(result.applied, false);
+      assert.equal(result.reason, expected);
+      assert.equal(f.view().state.mode, "active");
+      assert.equal(f.view().state.revision, 7);
+      assert.equal(f.view().approval.consumedAtMs, null);
+      assert.equal(f.view().events.length, 0);
+    }
+  });
+
+  it("refuses forged non-UUID operational event and approval identifiers", async () => {
+    const f = operationalCoordinatorFixture();
+    for (const key of ["eventId", "approvalId"]) {
+      const command = { ...f.command, [key]: "arbitrary_opaque_id" };
+      const result = await f.coordinator.transition({
+        session: "server_validated", command
+      });
+      assert.equal(result.applied, false);
+      assert.equal(result.reason, "invalid_operational_command");
+      assert.equal(f.view().state.revision, 7);
+    }
+  });
+
+  it("fails closed when the transaction engine cannot commit or supply a trusted clock", async () => {
+    const failed = operationalCoordinatorFixture({ transactionReject: true });
+    const result = await failed.coordinator.transition({
+      session: "server_validated", command: failed.command
+    });
+    assert.equal(result.applied, false);
+    assert.equal(result.reason, "operational_transaction_failed");
+    assert.equal(failed.view().state.mode, "active");
+    assert.equal(failed.view().events.length, 0);
+    assert.equal(failed.view().approval.consumedAtMs, null);
+    for (const nowMs of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const f = operationalCoordinatorFixture({ nowMs });
+      const rejected = await f.coordinator.transition({
+        session: "server_validated", command: f.command
+      });
+      assert.equal(rejected.reason, "trusted_clock_unverified");
+      assert.equal(f.view().state.revision, 7);
+    }
+  });
+
+  it("requires separately verified lockdown, recovery and release facts", async () => {
+    const f = operationalCoordinatorFixture({
+      approval: { to: "lockdown" }, proof: {}
+    });
+    const lock = { ...f.command, to: "lockdown" };
+    const denial = await f.coordinator.transition({ session: "server_validated", command: lock });
+    assert.equal(denial.reason, "policy_denied_incident_evidence_missing");
+    assert.equal(f.view().state.revision, 7);
+    const ok = operationalCoordinatorFixture({
+      approval: { to: "lockdown" }, proof: { verifiedSecurityIncident: true }
+    });
+    const success = await ok.coordinator.transition({ session: "server_validated", command: lock });
+    assert.equal(success.applied, true);
+    assert.equal(ok.view().state.mode, "lockdown");
+    const start = operationalCoordinatorFixture({
+      approval: { to: "active" }, proof: { healthVerified: true,
+        releaseGatesVerified: true, incidentClearedVerified: true }
+    });
+    const startResult = await start.coordinator.transition({
+      session: "server_validated", command: { ...start.command, to: "active" }
+    });
+    assert.equal(startResult.reason, "policy_denied_no_op_transition");
+  });
+
+  it("binds all PostgreSQL state and approval identifiers, preserving one connection", async () => {
+    const sqlLog = [];
+    let released = 0;
+    const org = "33333333-3333-4333-8333-333333333333";
+    const approval = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const event = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const actor = "11111111-1111-4111-8111-111111111111";
+    const client = {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (/^select floor\(extract\(epoch from clock_timestamp/.test(sql))
+          return { rowCount: 1, rows: [{ now_ms: "2000" }] };
+        if (/^select id, scope, organization_id, mode/.test(sql))
+          return { rowCount: 1, rows: [{ scope: "tenant", organization_id: org,
+            mode: "active", revision: "7" }] };
+        if (/^select a.id, a.status/.test(sql))
+          return { rowCount: 1, rows: [{ id: approval, status: "approved",
+            consumed_at: null, revoked_at: null, scope: "tenant",
+            organization_id: org, from_mode: "active", to_mode: "paused",
+            expected_revision: "7", approved_by: "22222222-2222-4222-8222-222222222222",
+            issued_ms: "1900", expires_ms: "2600" }] };
+        if (/^(update sonara_operations|insert into sonara_operations)/.test(sql))
+          return { rowCount: 1, rows: [{ id: "fixture_id" }] };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    };
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return client; } }, environmentKey: "staging"
+    });
+    const state = await store.withTransaction(async tx => {
+      assert.equal(await tx.nowMs(), 2000);
+      assert.equal((await tx.readStateForUpdate({ scope: "tenant", organizationId: org })).revision, 7);
+      const approved = await tx.readApprovalForUpdate({
+        approvalId: approval, scope: "tenant", organizationId: org
+      });
+      assert.equal(approved.id, approval);
+      assert.equal(approved.approvedBy, "22222222-2222-4222-8222-222222222222");
+      assert.equal(await tx.consumeApproval({ approvalId: approval, eventId: event,
+        scope: "tenant", organizationId: org, expectedRevision: 7 }), 1);
+      assert.equal(await tx.compareAndSwapState({ scope: "tenant", organizationId: org,
+        expectedMode: "active", expectedRevision: 7, nextMode: "paused", nextRevision: 8 }), 1);
+      assert.equal(await tx.appendAuditEvent({ eventId: event, approvalId: approval, actorId: actor,
+        scope: "tenant", organizationId: org, from: "active", to: "paused", revision: 8 }), 1);
+      return "prepared";
+    });
+    assert.equal(state, "prepared");
+    assert.equal(released, 1);
+    assert.equal(sqlLog[0].sql, "BEGIN");
+    assert.equal(sqlLog[sqlLog.length - 1].sql, "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    const secured = sqlLog.filter(x => x.values.includes(org));
+    assert.equal(secured.length, 5);
+    for (const q of secured) {
+      assert.equal(q.sql.includes(org), false);
+      assert.equal(q.values.includes("staging"), true);
+      assert.ok(q.sql.includes("sonara_operations."));
+    }
+    assert.equal(sqlLog.some(x => x.sql.includes("is not distinct from")), true);
+    assert.equal(sqlLog.some(x => x.sql.includes("revision + 1 = $7::bigint")), true);
+    assert.equal(sqlLog.some(x => x.sql.includes("on conflict do nothing returning id")), true);
+  });
+
+  it("rolls back PostgreSQL adapter callbacks and flags uncertain COMMIT results", async () => {
+    const runs = [];
+    for (const stage of ["callback", "commit"]) {
+      const statements = [];
+      let released = 0;
+      const store = createPostgresOperationalStore({
+        pool: { async connect() { return {
+          async query(sql) {
+            statements.push(sql);
+            if (stage === "commit" && sql === "COMMIT") {
+              const err = new Error("lost_commit_ack_with_possible_write");
+              err.code = "ECONNRESET";
+              throw err;
+            }
+            return { rowCount: 0, rows: [] };
+          },
+          release() { released++; }
+        }; } },
+        environmentKey: "staging"
+      });
+      let error;
+      try {
+        await store.withTransaction(async () => {
+          if (stage === "callback") throw new Error("failed_audit_write");
+          return "ready";
+        });
+      } catch (e) { error = e; }
+      assert.ok(error);
+      assert.equal(error.code === "SONARA_COMMIT_OUTCOME_UNKNOWN", stage === "commit");
+      assert.equal(statements.includes("ROLLBACK"), true);
+      assert.equal(released, 1);
+      runs.push(statements);
+    }
+    assert.equal(runs[0].includes("COMMIT"), false);
+    assert.equal(runs[1].includes("COMMIT"), true);
+    assert.throws(() => createPostgresOperationalStore({
+      pool: { connect() {} }, environmentKey: "random_schema"
+    }), /trusted_postgres_pool_and_environment_required/);
+  });
+
+  it("coordinates full lifecycle through the PostgreSQL transaction interface", async () => {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const approvalId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const eventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const sqlLog = [];
+    let released = 0;
+    const pool = { async connect() { return {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (sql.includes("as now_ms")) return { rowCount: 1, rows: [{ now_ms: "2000" }] };
+        if (sql.startsWith("select id, scope, organization_id"))
+          return { rowCount: 1, rows: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            scope: "tenant", organization_id: org, mode: "active", revision: "7" }] };
+        if (sql.startsWith("select a.id, a.status"))
+          return { rowCount: 1, rows: [{ id: approvalId, status: "approved",
+            consumed_at: null, revoked_at: null, scope: "tenant", organization_id: org,
+            from_mode: "active", to_mode: "paused", expected_revision: "7",
+            approved_by: "22222222-2222-4222-8222-222222222222",
+            issued_ms: "1900", expires_ms: "2600" }] };
+        if (/^(update sonara_operations|insert into sonara_operations)/.test(sql))
+          return { rowCount: 1, rows: [{ id: "fixture_id" }] };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    }; } };
+    const store = createPostgresOperationalStore({ pool, environmentKey: "staging" });
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: {
+        async authorize({ tx }) {
+          assert.equal(typeof tx.authorizedQuery, "function");
+          return { actorId, authorized: true, scope: "tenant", organizationId: org };
+        },
+        async verifyApproval({ approval }) {
+          return approval.approvedBy !== actorId;
+        }
+      },
+      evidenceVerifier: { async verify() { return {}; } }
+    });
+    const result = await coordinator.transition({
+      session: { trustedServerSession: true },
+      command: { eventId, approvalId, scope: "tenant", organizationId: org,
+        expectedRevision: 7, to: "paused" }
+    });
+    assert.equal(result.applied, true);
+    assert.equal(result.reason, "transaction_committed");
+    assert.equal(result.auditCommitted, true);
+    assert.equal(released, 1);
+    const order = sqlLog.map(x => x.sql.slice(0, 12));
+    assert.equal(order[0], "BEGIN");
+    assert.equal(order[order.length - 1], "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    assert.equal(sqlLog.filter(x => /^(update sonara_operations|insert into sonara_operations)/.test(x.sql)).length, 3);
+    assert.ok(sqlLog.filter(x => x.values.includes(org)).every(x => !x.sql.includes(org)));
+  });
+
+  it("surfaces indeterminate PostgreSQL COMMIT as reconciliation required, not safe retry", async () => {
+    const f = operationalCoordinatorFixture({ transactionReject: true });
+    // An ordinary audit/write failure remains a definite failure.
+    const ordinary = await f.coordinator.transition({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(ordinary.reason, "operational_transaction_failed");
+    const store = {
+      async withTransaction() {
+        const error = new Error("private provider error");
+        error.code = "SONARA_COMMIT_OUTCOME_UNKNOWN";
+        throw error;
+      }
+    };
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: { async authorize() { return null; }, async verifyApproval() { return false; } },
+      evidenceVerifier: { async verify() { return null; } }
+    });
+    const result = await coordinator.transition({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(result.applied, false);
+    assert.equal(result.transitionExecuted, false);
+    assert.equal(result.reason, "commit_outcome_unknown_reconciliation_required");
+    assert.equal(Object.hasOwn(result, "sql"), false);
+  });
+
+  it("reconciles an exact committed event in a read-only tenant-authorized transaction", async () => {
+    const org = "33333333-3333-4333-8333-333333333333";
+    const eventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const approvalId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const actorId = "11111111-1111-4111-8111-111111111111";
+    const sqlLog = [];
+    let released = 0;
+    const client = {
+      async query(sql, values = []) {
+        sqlLog.push({ sql, values });
+        if (sql.startsWith("select e.id, e.approval_id")) return {
+          rowCount: 1, rows: [{
+            id: eventId, approval_id: approvalId, actor_id: actorId,
+            from_mode: "active", to_mode: "paused",
+            revision: "8", expected_revision: "7",
+            scope: "tenant", organization_id: org
+          }]
+        };
+        return { rowCount: 0, rows: [] };
+      },
+      release() { released++; }
+    };
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return client; } }, environmentKey: "staging"
+    });
+    const coordinator = operationalTransitionCoordinator({
+      store,
+      authorizer: {
+        async authorize({ tx, session, organizationId }) {
+          assert.equal(session, "server_validated");
+          assert.equal(typeof tx.authorizedQuery, "function");
+          return { actorId, authorized: true, scope: "tenant", organizationId };
+        },
+        async verifyApproval() { return true; }
+      },
+      evidenceVerifier: { async verify() { return {}; } }
+    });
+    const result = await coordinator.reconcile({
+      session: "server_validated",
+      command: { eventId, approvalId, scope: "tenant",
+        organizationId: org, expectedRevision: 7, to: "paused" }
+    });
+    assert.equal(result.outcome, "confirmed_committed");
+    assert.equal(result.revision, 8);
+    assert.equal(result.retryAuthorized, false);
+    assert.equal(released, 1);
+    assert.equal(sqlLog[0].sql, "BEGIN TRANSACTION READ ONLY");
+    assert.equal(sqlLog[sqlLog.length - 1].sql, "COMMIT");
+    assert.equal(sqlLog.some(x => x.sql === "ROLLBACK"), false);
+    const receipt = sqlLog.find(x => x.sql.startsWith("select e.id, e.approval_id"));
+    assert.deepEqual(receipt.values, [eventId, approvalId, "staging", "tenant",
+      org, actorId, "8", "paused", "7"]);
+    assert.equal(receipt.sql.includes(org), false);
+    assert.ok(receipt.sql.includes("a.consumed_event_id = e.id"));
+    assert.ok(receipt.sql.includes("e.revision = a.expected_revision + 1"));
+    assert.equal(sqlLog.some(x => /^(update|insert|delete)/i.test(x.sql)), false);
+  });
+
+  it("never treats missing, cross-tenant or forged receipts as retry authorization", async () => {
+    const f = operationalCoordinatorFixture();
+    const noRead = await f.coordinator.reconcile({
+      session: "server_validated", command: f.command
+    });
+    assert.equal(noRead.outcome, "unresolved");
+    assert.equal(noRead.retryAuthorized, false);
+    const org = f.command.organizationId;
+    const base = { ...f.command };
+    for (const trial of ["missing", "unauthorized", "mismatched", "error"]) {
+      const queries = [];
+      const store = createPostgresOperationalStore({
+        pool: { async connect() { return {
+          async query(sql, _values) {
+            queries.push(sql);
+            if (trial === "error" && sql.startsWith("select e.id"))
+              throw new Error("SENSITIVE_SQL_AND_USER_DETAILS");
+            if (sql.startsWith("select e.id") && trial === "mismatched") return {
+              rowCount: 1, rows: [{
+                id: base.eventId, approval_id: base.approvalId,
+                actor_id: "99999999-9999-4999-8999-999999999999",
+                from_mode: "active", to_mode: "paused",
+                revision: "8", expected_revision: "7",
+                scope: "tenant", organization_id: org
+              }]
+            };
+            return { rowCount: 0, rows: [] };
+          },
+          release() {}
+        }; } }, environmentKey: "staging"
+      });
+      const coord = operationalTransitionCoordinator({
+        store,
+        authorizer: {
+          async authorize() {
+            return { actorId: "11111111-1111-4111-8111-111111111111",
+              authorized: trial !== "unauthorized",
+              scope: "tenant", organizationId: org };
+          },
+          async verifyApproval() { return true; }
+        },
+        evidenceVerifier: { async verify() { return {}; } }
+      });
+      const result = await coord.reconcile({ session: "server_validated", command: base });
+      assert.equal(result.outcome, trial === "unauthorized" ? "refused" : "unresolved");
+      assert.equal(result.retryAuthorized, false);
+      assert.equal(JSON.stringify(result).includes("SENSITIVE_SQL"), false);
+      assert.equal(queries.some(sql => sql.startsWith("select e.id")), trial !== "unauthorized");
+      assert.equal(queries.includes("ROLLBACK"), trial === "error");
+    }
+    for (const command of [
+      { ...base, eventId: "forged" },
+      { ...base, actorId: "11111111-1111-4111-8111-111111111111" },
+      { ...base, scope: "tenant", organizationId: "invalid_uuid" }
+    ]) {
+      const result = await f.coordinator.reconcile({ session: "server_validated", command });
+      assert.equal(result.outcome, "refused");
+      assert.equal(result.retryAuthorized, false);
+    }
+  });
+
+  it("retains confirmed commit outcomes when pooled connection release itself fails", async () => {
+    const sqlLog = [];
+    const store = createPostgresOperationalStore({
+      pool: { async connect() { return {
+        async query(sql) {
+          sqlLog.push(sql);
+          return { rowCount: 0, rows: [] };
+        },
+        release() { throw new Error("pool_release_failure_after_commit"); }
+      }; } },
+      environmentKey: "staging"
+    });
+    const result = await store.withTransaction(async () => "durably_prepared");
+    assert.equal(result, "durably_prepared");
+    assert.equal(sqlLog.includes("COMMIT"), true);
+    assert.equal(sqlLog.includes("ROLLBACK"), false);
+    const read = await store.withReadOnlyTransaction(async tx => {
+      assert.equal(typeof tx.readCommittedEvent, "function");
+      return "read_verified";
+    });
+    assert.equal(read, "read_verified");
+    assert.equal(sqlLog.includes("BEGIN TRANSACTION READ ONLY"), true);
   });
 
   it("keeps 2026 market evidence non-executing and date-bounded", () => {

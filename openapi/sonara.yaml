@@ -1130,6 +1130,54 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/catering/estimate:
+    post:
+      operationId: estimateCateringDraft
+      tags: [Operations]
+      summary: Estimate catering quote, portion requirements, shortages and owner-review flags without saving or billing.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/events/resource-scenario:
+    post:
+      operationId: assessEventResourceScenario
+      tags: [Operations]
+      summary: Model peak concurrent event-equipment usage from supplied snapshots; never reserve a resource.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/finance/microtransaction-scenario:
+    post:
+      operationId: simulateBusinessMicrotransaction
+      tags: [Operations]
+      summary: Model per-charge processing costs and microtransaction contribution using entered assumptions.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/marketing/event-seo-preview:
+    post:
+      operationId: previewBusinessEventStructuredData
+      tags: [Operations]
+      summary: Return unpublished event structured-data preview without claiming index eligibility.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/marketing/restaurant-seo-preview:
+    post:
+      operationId: previewRestaurantStructuredData
+      tags: [Operations]
+      summary: Return unpublished restaurant structured-data preview without inventing reviews.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/nonprofits/contribution-review:
+    post:
+      operationId: reviewNonprofitContribution
+      tags: [Operations]
+      summary: Provide draft donor acknowledgment and quid-pro-quo disclosure flags without issuing a receipt.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes:
     get:
       operationId: listBusinessQuotes
@@ -1594,6 +1642,140 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
       responses:
         "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/{id}/block:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: blockGrowthChannelForAccount
+      tags: [Growth Studio]
+      summary: Hide a channel from this signed-in member's SONARA views.
+      description: Requires an authenticated member and same-origin request; a block is personal, not a platform ban.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Redirect to manage blocked channels after a stored block." }
+        "400": { description: "Invalid channel identifier." }
+        "403": { description: "Cross-origin state change denied." }
+        "503": { description: "Persistence not available or failed." }
+  /api/growth/channels/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockGrowthChannelForAccount
+      tags: [Growth Studio]
+      summary: Stop hiding one channel in the member's SONARA views.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Redirect to saved blocked-channel controls." }
+        "400": { description: "Invalid channel identifier." }
+        "403": { description: "Cross-origin state change denied." }
+        "503": { description: "Persistence not available or failed." }
+  /account/social-safety:
+    get:
+      operationId: getPersonalSocialSafety
+      tags: [SONARA One]
+      summary: Read only the signed-in account's saved creator blocks.
+      description: Feature-disabled until validated migration, consent and private canary.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: "Private account safety management page or honest feature-disabled state." }
+        "503": { description: "Safety database unavailable or preferences unreadable." }
+  /api/social/creator-profiles/{id}/block:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: blockCreatorProfileUser
+      tags: [SONARA One]
+      summary: Atomically block a creator's linked account and revoke existing follows.
+      description: Requires authenticated account, exact configured HTTPS origin, active feature flag, and verified profile owner.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Persisted user block, redirect to account safety settings." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/creator-profiles/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockCreatorProfileUser
+      tags: [SONARA One]
+      summary: Remove an account-level user block.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Persisted unblock, redirect to account safety settings." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/creator-profiles/{id}/report:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: reportCreatorProfile
+      tags: [SONARA One]
+      summary: Submit an idempotent confidential profile report to platform moderation intake.
+      description: Reporting does not automatically hide or ban the accused user.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Saved a report or safely deduplicated the same report request." }
+        "400": { description: "Invalid reason, request id or details." }
+        "429": { description: "Report rate limit reached." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /api/social/blocked-users/{id}/unblock:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: unblockPreviouslyBlockedUser
+      tags: [SONARA One]
+      summary: Unblock a user when their creator profile is no longer public.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Unblocked a stored user ID belonging to the signed-in member's block list." }
+        "403": { description: "Request-origin verification failed." }
+        "503": { description: "Feature disabled or database unavailable." }
+  /owner/social-moderation:
+    get:
+      operationId: readIndependentSocialModerationQueue
+      tags: [SONARA One]
+      summary: Private moderation queue available only to separately granted platform reviewers.
+      description: Disabled by default and backed by an explicit platform reviewer roster, not business membership.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: "Approved reviewer receives only queued report evidence and controls." }
+        "403": { description: "No platform moderator grant." }
+        "503": { description: "Feature disabled, invalid response or database unavailable." }
+  /api/social/moderation/reports/{id}/decision:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: decideIndependentSocialModerationReport
+      tags: [SONARA One]
+      summary: Review an abuse report with a logged dismiss, escalate or reopen decision.
+      description: Each decision is role-checked inside PostgreSQL and audited atomically; it does not ban a user.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "303": { description: "Audited decision committed, reviewer redirected to their queue." }
+        "400": { description: "Invalid decision or explanation." }
+        "403": { description: "Request origin or separate moderator authorization invalid." }
+        "503": { description: "Feature disabled or persistence failed." }
   /api/business/storefront:
     post:
       operationId: saveMerchantStorefront
@@ -2092,6 +2274,26 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/integrations/readiness-probes:
+    post:
+      operationId: createIntegrationReadinessProbe
+      tags: [Integrations]
+      summary: Queue one read-only provider readiness check for the explicitly enabled canary organization.
+      description: >-
+        The check reads SONARA's provider catalog and tenant connection status only.
+        It does not contact, mutate, authorize, bill, publish to, or refresh credentials
+        with the external provider. The worker is off by default and refuses organizations
+        outside SONARA_INTEGRATION_READINESS_CANARY_ORG_ID.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "202": { $ref: "#/components/responses/Success" }
+        "303": { description: Browser form redirect to the integrations page. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business/operations/analytics:
     get:
       operationId: getBusinessOperationsAnalytics
@@ -2177,6 +2379,15 @@ paths:
       summary: List deterministic media workflow templates and execution safeguards.
       security: [{ bearerAuth: [] }]
       responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator/worldbuilding/plan:
+    post:
+      operationId: planCreatorWorldbuilding
+      tags: [Creator Studio]
+      summary: Validate a bounded world bible, ordered scenes and resource estimates without saving or rendering.
+      description: Requires Creator Studio workspace access. Does not create game files, recordings, streams, publications or rights clearances. Returns a SHA256 fingerprint of the deterministic preview, not an authenticated signature.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
   /api/creator/workflows/plan:
     post:
       operationId: planCreatorMediaWorkflow
@@ -3502,6 +3713,262 @@ paths:
           description: Project and graph without server credentials
         '404':
           description: Project not found in this workspace
+  /api/creator-studio/projects/{id}/world-bible:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Read the private World Bible for a tenant-authorized Creator project.
+      description: Feature is disabled by default; requires independently applied and verified World Bible schema. Returns null when no record exists.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Tenant-scoped World Bible and its version, or null }
+        '401': { description: Sign-in required }
+        '403': { description: Creator subscription or owner authorization required }
+        '404': { description: Project unavailable within workspace }
+        '503': { description: Feature disabled or storage unavailable }
+    post:
+      operationId: saveCreatorProjectWorldBible
+      tags: [Creator Studio]
+      summary: Save a validated World Bible using revision CAS, never silently overwriting concurrent edits.
+      description: Default-off and unavailable pending database migration and security evidence. Does not publish, generate media or authorize usage rights.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision, draft]
+              properties:
+                expectedRevision: { type: integer, minimum: 0 }
+                draft:
+                  type: object
+                  required: [title, medium, scenes]
+                  properties:
+                    title: { type: string, maxLength: 160 }
+                    medium: { type: string, enum: [game, interactive, film, book, podcast, vlog, stream, music] }
+                    entities: { type: array, maxItems: 128 }
+                    scenes: { type: array, minItems: 1, maxItems: 64 }
+                    resources: { type: object }
+      responses:
+        '200': { description: Saved revision and fingerprint }
+        '400': { description: Invalid revision or draft }
+        '401': { description: Sign-in required }
+        '403': { description: Creator subscription or owner authorization required }
+        '404': { description: Project not found within this tenant }
+        '409': { description: Revision conflict or archived project }
+        '503': { description: Feature disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/export/markdown:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: exportCreatorProjectWorldBibleMarkdown
+      tags: [Creator Studio]
+      summary: Download a private, author-editable World Bible Markdown outline.
+      description: Default-off, no generated media or copyright clearance. Requires project membership and saved World Bible; output is HTML-escaped/Markdown-escaped text.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Private Markdown attachment
+          content:
+            text/markdown:
+              schema: { type: string }
+        '403': { description: Creator authorization required }
+        '404': { description: Project or World Bible not found }
+        '503': { description: Persistence disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/draft:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorSavedStoryDraft
+      tags: [Creator Studio]
+      summary: Read latest private revision-controlled interactive story draft.
+      description: Default-off until reviewed SQL RPC and tenant controls. Returns null when no draft exists; stale World Bible drafts are recovery-only and cannot be simulated without reconciliation. Never returns provider credentials.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Authorized latest story snapshot and current World Bible revision }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project or World Bible not found }
+        '422': { description: World Bible medium is not game or interactive }
+        '503': { description: Storage not enabled or verified }
+    post:
+      operationId: saveCreatorStoryDraftRevision
+      tags: [Creator Studio]
+      summary: Atomically save canonical interactive story and an append-only revision.
+      description: Default-off. Requires JSON, same-origin and x-sonara-intent story-save. Checks source World Bible revision, authored reference schema, project archival and 0..99 expected story revision; committed revision must atomically match server RPC response.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: x-sonara-intent
+          in: header
+          required: true
+          schema: { type: string, enum: [story-save] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision, expectedWorldRevision, story]
+              properties:
+                expectedRevision: { type: integer, minimum: 0, maximum: 99 }
+                expectedWorldRevision: { type: integer, minimum: 1 }
+                story:
+                  type: object
+                  required: [version, startSceneId, state, scenes]
+                  properties:
+                    version: { type: integer, const: 1 }
+                    startSceneId: { type: string }
+                    state: { type: array, maxItems: 16, items: { type: object } }
+                    scenes: { type: array, maxItems: 64, items: { type: object } }
+      responses:
+        '200': { description: Confirmed new private story draft revision }
+        '400': { description: Invalid story content or revision preconditions }
+        '403': { description: Permission denied or cross-origin mutation }
+        '404': { description: Project or World Bible not found }
+        '409': { description: Conflict, archived project, changed World Bible or revision ceiling }
+        '413': { description: Payload too large }
+        '415': { description: JSON and story-save intent header required }
+        '422': { description: World Bible medium must be game or interactive }
+        '503': { description: Storage disabled, unsupported or unconfirmed }
+  /api/creator-studio/projects/{id}/world-bible/interactive/revisions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: listCreatorStoryDraftRevisions
+      tags: [Creator Studio]
+      summary: List metadata for 1..25 private saved story revisions, newest first.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 25, default: 25 }
+      responses:
+        '200': { description: Tenant-authorized revision metadata, no story bytes }
+        '400': { description: Invalid revision limit }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project or World Bible not found }
+        '503': { description: Feature disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/revisions/{revision}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: revision
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 100 }
+    get:
+      operationId: getCreatorStoryDraftRevision
+      tags: [Creator Studio]
+      summary: Recover a specific private historical story snapshot without changing current revision.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Authorized historical authored story, with World Bible stale warning }
+        '400': { description: Invalid revision }
+        '403': { description: Creator authorization denied }
+        '404': { description: Project, World Bible or requested revision not found }
+        '503': { description: Feature disabled or storage unavailable }
+  /api/creator-studio/projects/{id}/world-bible/interactive/preview:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: previewCreatorInteractiveStoryDraft
+      tags: [Creator Studio]
+      summary: Simulate an ephemeral author-supplied interactive story draft with explicit choices and bounded state.
+      description: Private, default-off, JSON-only with x-sonara-intent interactive-preview; requires an authorized and saved game/interactive World Bible plus its exact expected revision. Never persists story drafts, executes external scripts, publishes content, invokes providers, or compiles games. World scene prerequisites are not player transitions.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: x-sonara-intent
+          in: header
+          required: true
+          schema: { type: string, enum: [interactive-preview] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedWorldRevision, story, decisions]
+              properties:
+                expectedWorldRevision: { type: integer, minimum: 1 }
+                decisions:
+                  type: array
+                  maxItems: 32
+                  items: { type: string }
+                story:
+                  type: object
+                  required: [version, startSceneId, state, scenes]
+                  properties:
+                    version: { type: integer, const: 1 }
+                    startSceneId: { type: string }
+                    state: { type: array, maxItems: 16, items: { type: object } }
+                    scenes: { type: array, maxItems: 64, items: { type: object } }
+      responses:
+        '200': { description: Private, unsaved preview and deterministic state; no media generation }
+        '400': { description: Invalid scene, dialogue, choice, state, or decision sequence }
+        '401': { description: Authentication required }
+        '403': { description: Creator authorization or cross-origin check failed }
+        '404': { description: World Bible or project missing in authorized workspace }
+        '409': { description: Supplied World Bible revision was stale }
+        '413': { description: Request exceeds the interactive preview budget }
+        '415': { description: JSON request or explicit editor intent header required }
+        '503': { description: Preview feature or World Bible storage is not enabled }
+  /api/creator-studio/projects/{id}/world-bible/export/{format}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: format
+        in: path
+        required: true
+        schema: { type: string, enum: [csv, otio, midi, audit, dot, fountain, quest] }
+    get:
+      operationId: exportCreatorProjectWorldBibleInterchange
+      tags: [Creator Studio]
+      summary: Download project cue sheets, narrative structural analysis, DOT, Fountain, game prerequisites, or timed OTIO/MIDI placeholders.
+      description: Private, authenticated, read-only attachment, disabled until project World Bible persistence is approved. CSV preserves unknown timing as blank. Audit is advisory deterministic JSON, DOT encodes authored prerequisites, Fountain is a blank beat-outline template, and quest JSON encodes design prerequisites only (not playable branches or actions). OTIO requires complete scene durations and produces gaps without linked media. MIDI requires complete scene durations and uses 480 ticks per quarter at 120 BPM, with markers only and no notes, sound or licensed media. No publishing authorization or rendering occurs.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Tenant-scoped interchange download (never rendered media).
+          content:
+            text/csv:
+              schema: { type: string }
+            application/vnd.otio+json:
+              schema: { type: string }
+            audio/midi:
+              schema: { type: string, format: binary }
+            application/json:
+              schema: { type: string }
+            text/vnd.graphviz:
+              schema: { type: string }
+            text/plain:
+              schema: { type: string }
+        '400': { description: Unsupported export format or frame rate }
+        '401': { description: Authentication required }
+        '403': { description: Creator authorization required }
+        '404': { description: Project or World Bible not found }
+        '422': { description: Complete timing needed for OTIO/MIDI, or game/interactive medium needed for quest export }
+        '503': { description: Persistence disabled or storage unavailable }
   /api/creator-studio/projects/{id}/commands:
     parameters:
       - name: id
@@ -3586,6 +4053,82 @@ paths:
           description: Downloadable UTF-8 file; no media rendering or publishing occurs
         '409':
           description: A source is unavailable or archived
+
+  /api/creator-studio/editorial/preview:
+    post:
+      operationId: previewCreatorEditorialDraft
+      tags: [Creator Studio]
+      summary: Preview a deterministic editorial draft without writing or publishing it
+      description: Requires Creator Studio workspace access and an operator-enabled feature flag. English-only rule suggestions, user-entered rights evidence and travel assumptions are not legal or live travel verification.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditorialDraftInput" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/creator-studio/editorial/save:
+    post:
+      operationId: saveCreatorEditorialDraftRevision
+      tags: [Creator Studio]
+      summary: Explicitly save a new organization-scoped editorial draft revision
+      description: Requires Creator Studio access and a custom X-Sonara-Intent header; user-entered comparison passages are never persisted. Does not publish, license, or book anything.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      parameters:
+        - name: X-Sonara-Intent
+          in: header
+          required: true
+          schema: { type: string, const: save-editorial-draft }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditorialDraftInput" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/editorial/drafts:
+    get:
+      operationId: listCreatorEditorialDraftRevisions
+      tags: [Creator Studio]
+      summary: List the latest 20 drafts belonging to the authenticated user's organization
+      description: Requires Creator Studio access, resolves organization server-side, and never lists another organization's records.
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/editorial/drafts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorEditorialDraftRevision
+      tags: [Creator Studio]
+      summary: Open one specific organization-scoped editorial revision
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
 
 components:
   securitySchemes:
@@ -3692,6 +4235,35 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   schemas:
+    EditorialDraftInput:
+      type: object
+      required: [kind, title]
+      additionalProperties: true
+      properties:
+        kind: { type: string, enum: [note, blog, storyboard, vlog, gaming, travel] }
+        title: { type: string, minLength: 1, maxLength: 160 }
+        body: { type: string, maxLength: 12000 }
+        language: { type: string, default: en }
+        topic: { type: string, maxLength: 240 }
+        durationSeconds: { type: integer, minimum: 3, maximum: 1800 }
+        sceneCount: { type: integer, minimum: 3, maximum: 8 }
+        comparisonText:
+          type: string
+          maxLength: 12000
+          description: Ephemeral user-supplied comparison passage, never saved in input_payload or output_payload.
+        assets:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [name, status]
+            properties:
+              name: { type: string, maxLength: 160 }
+              status: { type: string, enum: [owned, licensed, permission, public_domain_claimed, unknown] }
+              evidence: { type: string, maxLength: 500 }
+        travel:
+          type: object
+          description: User-supplied destination, dates, stops and budget; no live travel-provider claims.
     JsonObject:
       type: object
       additionalProperties: true

@@ -1,0 +1,49 @@
+name: Industry Capacity Model
+
+on:
+  push:
+    paths:
+      - "scripts/simulate-industry-capacity.mjs"
+      - "scripts/plan-industry-portfolio.mjs"
+      - ".github/workflows/industry-capacity-model.yml"
+  pull_request:
+    paths:
+      - "scripts/simulate-industry-capacity.mjs"
+      - "package.json"
+      - ".github/workflows/industry-capacity-model.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capacity-model:
+    name: Deterministic capacity model (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["24", "26"]
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run offline deterministic model assertions
+        run: node scripts/simulate-industry-capacity.mjs --self-test
+      - name: Verify simultaneous multi-industry demand model
+        run: node scripts/plan-industry-portfolio.mjs --self-test
+      - name: Print aggregate illustrative scenario
+        run: node scripts/plan-industry-portfolio.mjs
+      - name: Evaluate healthy illustrative scenario
+        run: node scripts/simulate-industry-capacity.mjs --strict --tenants=100 --averageRequestsPerSecondPerTenant=0.02
+      - name: Prove overcapacity is rejected in strict mode
+        run: |
+          if node scripts/simulate-industry-capacity.mjs --strict --tenants=10000; then
+            echo "Expected overloaded planning scenario to exit non-zero" >&2
+            exit 1
+          fi

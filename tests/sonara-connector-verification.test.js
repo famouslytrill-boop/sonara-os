@@ -14,6 +14,8 @@ const {
 const {
   READONLY_SCOPE,
   PAGE_SIZE,
+  SEARCH_CONSOLE_QUOTA_RETRY_SECONDS,
+  PROVIDER_DATE_ZONE,
   getGoogleSearchConsoleReadContract,
   readDailySearchPerformance
 } = require("../lib/sonara-google-search-console-read.cjs");
@@ -204,8 +206,19 @@ describe("SONARA verified connector depth", () => {
     assert.equal(contract.auth.offlineRefreshRequiredForBackgroundSync, true);
     assert.equal(contract.implementationStage, "adapter_contract");
     assert.equal(contract.productionEnabled, false);
-    assert.ok(contract.verificationBlockers.includes("tenant_oauth_credential_vault"));
+    assert.ok(contract.verificationBlockers.includes("supabase_vault_runtime_adapter"));
+    assert.ok(contract.verificationBlockers.includes("provider_oauth_route_and_cookie_wiring"));
+    assert.equal(contract.auth.oauthTransaction, "signed_tenant_bound_pkce_s256");
+    assert.equal(contract.auth.incrementalAuthorization, false);
+    assert.equal(contract.auth.exactScopeGrantRequired, true);
+    assert.equal(contract.auth.credentialBroker, "contract_implemented_backend_pending");
+    assert.equal(contract.auth.backgroundCredentialResolution, "broker_resolved_contract_implemented");
+    assert.equal(contract.auth.disconnectLifecycle, "provider_revoke_then_local_revoke_contract_implemented");
+    assert.equal(contract.auth.authorizationRoute, "not_wired");
     assert.ok(contract.verificationBlockers.includes("one_tenant_production_canary"));
+    assert.equal(contract.sync.providerDateZone, PROVIDER_DATE_ZONE);
+    assert.equal(contract.sync.dataState, "final");
+    assert.equal(contract.sync.quotaRetryMode, "durable_deferred");
   });
 
   it("fails closed before Search Console network access without tenant scope and least privilege", async () => {
@@ -278,18 +291,69 @@ describe("SONARA verified connector depth", () => {
     assert.equal(calls[1].body.rowLimit, PAGE_SIZE);
     assert.equal(calls[1].body.startDate, "2026-09-21");
     assert.equal(calls[1].body.endDate, "2026-09-21");
+    assert.equal(calls.every((call) => call.body.dataState === "final"), true);
+    assert.equal(result.report.coverage.providerDateZone, PROVIDER_DATE_ZONE);
     assert.equal(calls.every((call) => call.authorization === "Bearer secret-token"), true);
     assert.equal(JSON.stringify(result).includes("secret-token"), false);
     assert.match(result.report.evidenceHash, /^[a-f0-9]{64}$/);
   });
 
-  it("uses bounded retry for transient Search Console failures without leaking provider credentials", async () => {
+  it("defers Search Console quota exhaustion instead of retrying inside the request", async () => {
     let call = 0;
     const delays = [];
     const fetchImpl = async () => {
       call += 1;
-      if (call === 1) return providerResponse(429, { error: { status: "RESOURCE_EXHAUSTED" } }, { "retry-after": "0" });
-      if (call === 2) return providerResponse(200, { rows: [] });
+      return providerResponse(429, { error: { status: "RESOURCE_EXHAUSTED" } });
+    };
+
+    const result = await readDailySearchPerformance({
+      organizationId: "org-1",
+      businessId: "biz-1",
+      connectionId: "connection-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-09-21",
+      accessToken: "secret-token",
+      fetchImpl,
+      sleepImpl: async (delay) => delays.push(delay)
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "provider_rate_limited");
+    assert.equal(result.retryMode, "durable_deferred");
+    assert.equal(result.retryAfterSeconds, SEARCH_CONSOLE_QUOTA_RETRY_SECONDS);
+    assert.equal(call, 1);
+    assert.deepEqual(delays, []);
+    assert.equal(JSON.stringify(result).includes("secret-token"), false);
+  });
+
+  it("preserves a meaningful provider Retry-After value for the durable queue", async () => {
+    const result = await readDailySearchPerformance({
+      organizationId: "org-1",
+      businessId: "biz-1",
+      connectionId: "connection-1",
+      grantedScopes: [READONLY_SCOPE],
+      siteUrl: "sc-domain:example.com",
+      date: "2026-09-21",
+      accessToken: "secret-token",
+      fetchImpl: async () => providerResponse(
+        429,
+        { error: { status: "RESOURCE_EXHAUSTED" } },
+        { "retry-after": "120" }
+      ),
+      sleepImpl: async () => { throw new Error("quota deferral must not sleep in-request"); }
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.retryMode, "durable_deferred");
+    assert.equal(result.retryAfterSeconds, 120);
+  });
+
+  it("still uses bounded in-request retries for transient Search Console 5xx failures", async () => {
+    let call = 0;
+    const delays = [];
+    const fetchImpl = async () => {
+      call += 1;
+      if (call === 1) return providerResponse(503, { error: { status: "UNAVAILABLE" } }, { "retry-after": "0" });
       return providerResponse(200, { rows: [] });
     };
 
@@ -309,7 +373,6 @@ describe("SONARA verified connector depth", () => {
     assert.equal(result.report.health.status, "recovered_after_retry");
     assert.equal(result.report.health.retries, 1);
     assert.deepEqual(delays, [0]);
-    assert.equal(JSON.stringify(result).includes("secret-token"), false);
   });
 
   it("scores engineering depth deterministically without changing verification stage", () => {

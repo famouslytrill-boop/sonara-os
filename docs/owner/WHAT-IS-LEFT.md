@@ -93,7 +93,7 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 269 reviewed repositories, 36 carry a
+**Some of it cannot be built as stated.** Of 270 reviewed repositories, 36 carry a
 reciprocal licence. Of those, 18 are network-triggered, 15 trigger on
 distribution, and 3 are custom or qualified enough that the individual record
 must be read; 18 declare no licence at all — which is not a review item, it is
@@ -138,11 +138,11 @@ rather than fixed.
 Each of the figures below except the last is now derived by
 `scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
 
-- **303** registered GET routes
-- **375** tables created by the migrations, **274** of them organization-scoped
+- **310** registered GET routes
+- **381** tables created by the migrations, **280** of them organization-scoped
 - **28** owner record pages
-- **74** verification commands in the release chain
-- **269** external repositories reviewed with their licences read off each one
+- **77** verification commands in the release chain
+- **270** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
 - **27** record checks

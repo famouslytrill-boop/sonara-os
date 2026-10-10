@@ -51,6 +51,82 @@ describe("workspace dashboard summary", () => {
     assert.deepEqual(result.activation, { ok: false, summary: null });
   });
 
+  it("seeks the first genuine first-value event after activation, not an earlier import", async () => {
+    const deps = dependencies({
+      safeListTable: async (table, query) => {
+        assert.equal(table, "activity_events");
+        if (query.includes("order=created_at.desc")) return { ok: true, rows: [] };
+        if (query.includes("account.organization_created")) {
+          return { ok: true, rows: [{ event_type: "account.organization_created", created_at: "2026-09-23T10:00:00.000Z" }] };
+        }
+        if (query.includes("creator_studio.output_downloaded")) {
+          assert.ok(query.includes("created_at=gte.2026-09-23T10%3A00%3A00.000Z"));
+          return { ok: true, rows: [{ event_type: "creator_studio.output_downloaded", created_at: "2026-09-23T10:12:00.000Z" }] };
+        }
+        if (query.includes("growth_studio.conversion_recorded")) {
+          assert.ok(query.includes("created_at=gte.2026-09-23T10%3A00%3A00.000Z"));
+          return { ok: true, rows: [{ event_type: "growth_studio.conversion_recorded", created_at: "2026-09-23T10:04:00.000Z" }] };
+        }
+        return { ok: true, rows: [] };
+      }
+    });
+    const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "growth_studio", deps);
+    assert.equal(result.activation.ok, true);
+    assert.equal(result.activation.summary.firstValueReached, true);
+    assert.equal(result.activation.summary.firstValueEvent, "growth_studio.conversion_recorded");
+    assert.equal(result.activation.summary.timeToFirstValueSeconds, 240);
+  });
+
+  it("keeps first-value evidence available if no organization-created event exists", async () => {
+    const deps = dependencies({
+      safeListTable: async (table, query) => {
+        if (query.includes("order=created_at.desc") || query.includes("account.organization_created")) {
+          return { ok: true, rows: [] };
+        }
+        if (query.includes("creator_studio.output_downloaded")) {
+          assert.equal(query.includes("created_at=gte."), false);
+          return { ok: true, rows: [{ event_type: "creator_studio.output_downloaded", created_at: "2026-09-23T10:04:00.000Z" }] };
+        }
+        return { ok: true, rows: [] };
+      }
+    });
+    const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "creator_studio", deps);
+    assert.equal(result.activation.ok, true);
+    assert.equal(result.activation.summary.workspaceActivated, false);
+    assert.equal(result.activation.summary.firstValueReached, true);
+    assert.equal(result.activation.summary.timeToFirstValueSeconds, null);
+  });
+
+  it("marks invalid activation boundary unreadable instead of reporting a false zero", async () => {
+    let milestoneReads = 0;
+    const deps = dependencies({
+      safeListTable: async (table, query) => {
+        if (query.includes("order=created_at.desc")) return { ok: true, rows: [] };
+        milestoneReads += 1;
+        return { ok: true, rows: [{ event_type: "account.organization_created", created_at: null }] };
+      }
+    });
+    const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "business_builder", deps);
+    assert.deepEqual(result.activation, { ok: false, summary: null });
+    assert.equal(milestoneReads, 1);
+  });
+
+  it("fails closed on malformed first-value read results", async () => {
+    const deps = dependencies({
+      safeListTable: async (table, query) => {
+        if (query.includes("order=created_at.desc")) return { ok: true, rows: [] };
+        if (query.includes("account.organization_created")) {
+          return { ok: true, rows: [{ event_type: "account.organization_created", created_at: "2026-09-23T10:00:00.000Z" }] };
+        }
+        return query.includes("creator_studio.output_downloaded")
+          ? { ok: true, rows: null }
+          : { ok: true, rows: [] };
+      }
+    });
+    const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "business_builder", deps);
+    assert.deepEqual(result.activation, { ok: false, summary: null });
+  });
+
   it("skips five activation event reads when the dashboard does not display activation", async () => {
     const deps = dependencies();
     const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "creator_studio", deps, { includeActivation: false });

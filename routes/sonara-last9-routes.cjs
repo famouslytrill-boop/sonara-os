@@ -37,6 +37,9 @@ const recordArchive = require("../lib/sonara-record-archive.cjs");
 const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
+const { normalizeMotionSample } = require("../lib/sonara-motion-sample.cjs");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
+const devicePermissions = require("../lib/sonara-device-permissions.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -117,7 +120,7 @@ const RESOURCE_MAP = {
   // Accounts receivable. customer_invoices records who raised it; the payments
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
-  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
+  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" }, references: { customer_id: "customers" } },
   "/api/business/work-orders": {
     table: "business_work_orders",
     required: ["title"],
@@ -239,6 +242,32 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         getSupabaseServerConfig: deps.getSupabaseServerConfig
       })
     : passthrough;
+
+  const motionSampleLimiter = typeof deps.createRateLimiter === "function"
+    ? deps.createRateLimiter({
+        name: "device.motion_sample",
+        windowSeconds: 60,
+        maxAttempts: 12,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig: deps.getSupabaseServerConfig
+      })
+    : passthrough;
+
+  async function accountMotionPermission(config, userId) {
+    if (!config?.ok || !userId) {
+      return devicePermissions.mayAsk({ grants: [], readable: false }, "motion");
+    }
+    const listed = await supabaseList(
+      config,
+      "device_permission_grants",
+      `?select=capability,state,decided_at&user_id=eq.${encodeURIComponent(userId)}&capability=eq.motion&order=decided_at.desc&limit=20`
+    );
+    return devicePermissions.mayAsk(
+      { grants: listed.ok ? listed.rows : [], readable: listed.ok },
+      "motion"
+    );
+  }
 
   registerVerticalTemplates(app, deps, ui);
 
@@ -1978,19 +2007,43 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
   });
 
-  app.get("/settings/device-feedback", requireCustomer, (req, res) => {
+  app.get("/settings/device-feedback", requireCustomer, async (req, res) => {
+    // Device motion is a powerful sensor surface. The browser policy is only
+    // one gate: the account-level permission must also be granted, and a failed
+    // permission read is treated as off rather than as "never asked".
+    const config = getConfig(deps);
+    const motionPermission = await accountMotionPermission(config, req.sonaraUser?.id);
+    res.set("Permissions-Policy", permissionsPolicyFor(motionPermission.ok ? "device_feedback" : "default"));
+    const releaseShaRaw = String(deps.getEnv?.("VERCEL_GIT_COMMIT_SHA") || "").trim().toLowerCase();
+    const releaseSha = /^[0-9a-f]{40}$/.test(releaseShaRaw) ? releaseShaRaw : null;
+    const motionConfig = JSON.stringify({
+      endpoint: "/api/motion/events",
+      sampleWindowMs: 5000,
+      sampleIntervalMs: 100,
+      maxSamples: 50,
+      releaseSha,
+      applicationPermissionAllowed: motionPermission.ok === true,
+      applicationPermissionState: motionPermission.state,
+      applicationPermissionMessage: motionPermission.ok
+        ? "SONARA motion permission is on. Your browser still decides whether the sensor may be used."
+        : motionPermission.message
+    }).replaceAll("<", "\\u003c");
+    const motionPermissionCopy = motionPermission.ok
+      ? "Your SONARA motion permission is on. The browser still asks separately when required."
+      : `${motionPermission.message} Change this under Device permissions before asking the browser.`;
     return res.status(200).type("html").send(ui.layout({
       title: "Device Feedback",
       eyebrow: "Premium app feel",
       heading: "Sound, Vibration, Motion, and Location",
       body: "Test supported device features. Nothing starts automatically. Sounds, vibration, motion, and GPS need user action and browser permission.",
       sections: [
-        `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" onclick="window.SONARA?.sensoryDevice?.feedback('success')">Test success feedback</button><p class="fine" id="deviceCaps"></p></div>`,
+        `<div class="card"><h2>Test feedback</h2><p>Use this to verify browser support for sound and vibration.</p><button type="button" data-sonara-feedback-test>Test success feedback</button><p class="fine" role="status" aria-live="polite" data-sonara-feedback-status></p><p class="fine" data-sonara-device-capabilities></p></div>`,
+        `<div class="card"><h2>Record one motion sample</h2><p>${ui.escape(motionPermissionCopy)}</p><p>Nothing is read until you press the button. The page samples for at most five seconds while it stays visible, keeps only a running average in memory, rounds it to one decimal place, and sends one summary. Individual sensor events are not uploaded and nothing resumes in the background.</p><script type="application/json" id="sonara-motion-config">${motionConfig}</script><button type="button" data-sonara-motion-start>Save a 5-second motion sample</button><button type="button" data-sonara-motion-cancel hidden>Cancel sample</button><button type="button" data-sonara-motion-receipt>Download diagnostic receipt</button><p class="fine" role="status" aria-live="polite" data-sonara-motion-status></p><p class="fine" role="status" aria-live="polite" data-sonara-motion-receipt-status></p></div>`,
         ui.card("Privacy", "Location and motion data should be used only for clock-ins, job-site check-ins, routes, inspections, delivery stops, and approved creator cue workflows."),
         ui.card("Fallbacks", "If vibration, motion, or GPS is unsupported, the app must show a plain setup or unsupported message.")
       ],
-      actions: [ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
-    }).replace("</body>", `<script src="/sensory-device-client.js"></script><script>if(window.SONARA&&SONARA.sensoryDevice){document.getElementById('deviceCaps').textContent=JSON.stringify(SONARA.sensoryDevice.supports());}</script></body>`));
+      actions: [ui.link("/account/permissions", "Device permissions"), ui.link("/staff/location", "Staff Location"), ui.link("/creator-studio/device-cues", "Creator Cues"), ui.link("/settings", "Settings")]
+    }).replace("</body>", '<script src="/sensory-device-client.js"></script><script src="/sonara-device-diagnostic-receipt.js"></script><script src="/sonara-motion-capture.js"></script></body>'));
   });
 
   Object.entries(RESOURCE_MAP).forEach(([path, resource]) => registerRestResource(app, path, resource, deps, requireBusinessManager));
@@ -2101,9 +2154,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
-    // A replay may arrive after a session or workspace switch. Capture scope is
-    // a consistency check, never an authorization source; use the live session.
-    if ((req.body.capture_user_id && req.body.capture_user_id !== org.userId)
+    // The signed-in session, not client-provided IDs, selects the organization.
+    // Delayed check-ins must carry BOTH original identities. A legacy record
+    // with no capture IDs could otherwise be attached to whichever account
+    // happens to be signed in on a shared phone/browser.
+    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
+    if ((sentLater && (!req.body.capture_user_id || !req.body.capture_organization_id))
+      || (req.body.capture_user_id && req.body.capture_user_id !== org.userId)
       || (req.body.capture_organization_id && req.body.capture_organization_id !== org.organizationId)) {
       return res.status(403).json({ ok: false, code: "check_in_scope_changed" });
     }
@@ -2184,7 +2241,6 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       }
       capturedAt = new Date(when).toISOString();
     }
-    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
 
     const payload = {
       organization_id: org.organizationId,
@@ -2220,26 +2276,66 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.status(200).json(saved);
   });
 
-  app.post("/api/motion/events", requireCustomer, async (req, res) => {
+  app.post("/api/motion/events", requireCustomer, motionSampleLimiter, async (req, res) => {
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+
+    const motionPermission = await accountMotionPermission(config, org.userId);
+    if (!motionPermission.ok) {
+      const unreadable = motionPermission.state === devicePermissions.STATE.unreadable;
+      const code = unreadable
+        ? "motion_permission_unreadable"
+        : motionPermission.state === devicePermissions.STATE.denied
+          ? "motion_permission_denied"
+          : "motion_permission_required";
+      return res.status(unreadable ? 503 : 403).json({
+        ok: false,
+        code,
+        state: motionPermission.state,
+        message: motionPermission.message
+      });
+    }
+
+    const normalized = normalizeMotionSample(req.body || {});
+    if (!normalized.ok) return res.status(400).json(normalized);
+
+    // Keep metadata as evidence about the bounded sample, not as an arbitrary
+    // client-controlled telemetry bag. Counts/timing are capped to the exact
+    // client contract and the precision is always server-owned.
+    const incomingMetadata = sanitizeObject(req.body.metadata);
+    const boundedInteger = (value, min, max) => {
+      const number = Number(value);
+      return Number.isInteger(number) && number >= min && number <= max ? number : null;
+    };
+    const metadata = {
+      aggregation: incomingMetadata.aggregation === "mean" ? "mean" : "summary",
+      sample_count: boundedInteger(incomingMetadata.sample_count, 1, 50),
+      sample_window_ms: boundedInteger(incomingMetadata.sample_window_ms, 1000, 5000),
+      sample_interval_ms: boundedInteger(incomingMetadata.sample_interval_ms, 100, 1000),
+      precision_step: normalized.precisionStep,
+      source_page: incomingMetadata.source_page === "settings_device_feedback"
+        ? "settings_device_feedback"
+        : "other_explicit_client"
+    };
+
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
-      event_type: sanitizeChoice(req.body.event_type, "device_motion"),
-      alpha: toNumberOrNull(req.body.alpha),
-      beta: toNumberOrNull(req.body.beta),
-      gamma: toNumberOrNull(req.body.gamma),
-      acceleration_x: toNumberOrNull(req.body.acceleration_x || req.body.accelerationX),
-      acceleration_y: toNumberOrNull(req.body.acceleration_y || req.body.accelerationY),
-      acceleration_z: toNumberOrNull(req.body.acceleration_z || req.body.accelerationZ),
-      rotation_alpha: toNumberOrNull(req.body.rotation_alpha || req.body.rotationAlpha),
-      rotation_beta: toNumberOrNull(req.body.rotation_beta || req.body.rotationBeta),
-      rotation_gamma: toNumberOrNull(req.body.rotation_gamma || req.body.rotationGamma),
-      gesture_label: sanitizeText(req.body.gesture_label),
-      metadata: sanitizeObject(req.body.metadata)
+      source: "browser",
+      event_type: normalized.eventType,
+      alpha: normalized.values.alpha,
+      beta: normalized.values.beta,
+      gamma: normalized.values.gamma,
+      acceleration_x: normalized.values.acceleration_x,
+      acceleration_y: normalized.values.acceleration_y,
+      acceleration_z: normalized.values.acceleration_z,
+      rotation_alpha: normalized.values.rotation_alpha,
+      rotation_beta: normalized.values.rotation_beta,
+      rotation_gamma: normalized.values.rotation_gamma,
+      gesture_label: normalized.gestureLabel,
+      metadata
     };
     return res.status(200).json(await supabaseInsert(config, "motion_sensor_events", payload));
   });
@@ -2253,6 +2349,112 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const results = await Promise.all(tables.map((table) => supabaseCount(config, table).then((result) => ({ table, ...result }))));
     return res.status(200).json({ ok: true, tables: results });
   });
+  // Staged stock count review: feature-flagged OFF by default until native
+  // PostgreSQL replay, tenant adversarial tests and a reviewed DB deployment.
+  // The actor and reviewer are ALWAYS the logged-in person; never use a user
+  // ID, role, organization ID or approval decision from request body fields.
+  const stockReviewEnabled = () => process.env.SONARA_ENABLE_STOCK_COUNT_REVIEW === "true";
+  const stockReviewIdentity = async (req) => {
+    const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user;
+    if (!user || !isUuid(user.id) || typeof deps.getCustomerPrimaryOrganization !== "function") {
+      return { ok: false, code: "verified_session_required" };
+    }
+    // Never use resolveOrganization here: its nonproduction manual-org escape
+    // hatch is inappropriate for any privileged stock movement.
+    const org = await deps.getCustomerPrimaryOrganization(user, { autoBootstrap: false });
+    if (!org?.ok || !isUuid(org.organizationId) || !org.role) {
+      return { ok: false, code: "verified_membership_required" };
+    }
+    return {
+      ok: true, organizationId: org.organizationId, userId: user.id,
+      role: String(org.role).toLowerCase()
+    };
+  };
+  const stockReviewOriginValid = (req) => {
+    const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
+    if (!contentType.startsWith("application/json")) return false;
+    const origin = String(req.headers?.origin || "");
+    const host = String(req.headers?.host || "");
+    // Browser forms cannot bypass consent with a cross-site POST. Nonbrowser
+    // integrations must send a proper origin and go through the same session.
+    if (!origin || !host) return false;
+    try { return new URL(origin).host.toLowerCase() === host.toLowerCase(); }
+    catch { return false; }
+  };
+  app.post("/api/business/inventory/stock-count-requests",
+    requireCustomer, procurementMutationLimiter, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner","manager","employee","staff"].includes(org.role))
+        return res.status(403).json({ok:false,code:"stock_count_staff_role_required"});
+      const itemId = String(req.body?.inventory_item_id || "");
+      const requestKey = String(req.body?.idempotency_key || "");
+      const version = String(req.body?.expected_stock_version ?? "");
+      const count = String(req.body?.counted_quantity ?? "");
+      if (!isUuid(itemId) || !/^[A-Za-z0-9._:-]{8,128}$/.test(requestKey)
+        || !/^(0|[1-9][0-9]{0,17})$/.test(version)
+        || !/^(0|[1-9][0-9]{0,8})(?:\.[0-9]{1,3})?$/.test(count)
+        || Number(count) > 999999999.999) {
+        return res.status(400).json({ok:false,code:"stock_count_input_invalid"});
+      }
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      const posted = await supabaseInsert(config,"rpc/sonara_submit_stock_count_request",{
+        p_organization_id:org.organizationId,p_inventory_item_id:itemId,
+        p_actor_user_id:org.userId,p_idempotency_key:requestKey,
+        p_expected_version:version,p_counted_quantity:Number(count)
+      });
+      if (!posted.ok) return res.status(409).json({ok:false,code:"stock_review_request_refused"});
+      const result = Array.isArray(posted.rows) ? posted.rows[0] : posted.rows;
+      if (!result?.ok || !isUuid(result.request_id))
+        return res.status(502).json({ok:false,code:"stock_review_receipt_missing"});
+      return res.status(201).json(result);
+    });
+  app.get("/api/business/inventory/stock-count-requests",
+    requireCustomer, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner","manager","employee","staff"].includes(org.role))
+        return res.status(403).json({ok:false,code:"stock_count_staff_role_required"});
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      // This read uses a service-role credential. Nonowners may see only their
+      // own submitted counts, not their coworkers' work or identities.
+      // Owners get the complete organization-scoped review queue.
+      const reviewerRole = ["owner","admin","business_owner"].includes(org.role);
+      const actorScope = reviewerRole ? "" : `&actor_user_id=eq.${encodeURIComponent(org.userId)}`;
+      const found = await supabaseList(config,"inventory_stock_count_requests",
+        `?select=id,inventory_item_id,actor_user_id,expected_stock_version,expected_unit,expected_location_id,counted_quantity,created_at&organization_id=eq.${encodeURIComponent(org.organizationId)}${actorScope}&order=created_at.desc&limit=50`);
+      if (!found.ok) return res.status(503).json({ok:false,code:"stock_review_queue_unavailable"});
+      return res.status(200).json({ok:true,requests:found.rows});
+    });
+  app.post("/api/business/inventory/stock-count-requests/:requestId/review",
+    requireCustomer, procurementMutationLimiter, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner"].includes(org.role))
+        return res.status(403).json({ok:false,code:"independent_owner_review_required"});
+      const requestId = String(req.params.requestId || "");
+      if (!isUuid(requestId) || req.body?.action !== "approve")
+        return res.status(400).json({ok:false,code:"explicit_review_action_required"});
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      const approved = await supabaseInsert(config,"rpc/sonara_review_stock_count_request",{
+        p_organization_id:org.organizationId,p_request_id:requestId,
+        p_reviewer_user_id:org.userId
+      });
+      if (!approved.ok) return res.status(409).json({ok:false,code:"stock_review_posting_refused"});
+      const result = Array.isArray(approved.rows) ? approved.rows[0] : approved.rows;
+      if (!result?.ok || !isUuid(result.request_id) || !isUuid(result.review_id))
+        return res.status(502).json({ok:false,code:"stock_review_proof_missing"});
+      return res.status(200).json(result);
+    });
+
 };
 
 function registerRestResource(app, path, resource, deps, middleware) {
@@ -2342,6 +2544,22 @@ function registerRestResource(app, path, resource, deps, middleware) {
       for (const key of Object.keys(submitted)) {
         if (key.startsWith("approval_")) delete submitted[key];
       }
+    }
+    if (resource.table === "quotes") {
+      // Quotes have a downstream invoice/work-order path: the generic creator
+      // must never accept forged acceptance, customer ownership or provider
+      // markers. Only the canonical draft-summary fields may be saved here.
+      const permitted = new Set(["title", "customer_id", "amount_cents", "metadata"]);
+      for (const field of Object.keys(submitted)) {
+        if (!permitted.has(field)) delete submitted[field];
+      }
+      if (submitted.amount_cents !== undefined) {
+        const value = String(submitted.amount_cents);
+        if (!/^[0-9]{1,10}$/.test(value) || Number(value) > 2147483647) {
+          return respond(400, { ok: false, code: "quote_amount_invalid" });
+        }
+      }
+      submitted.status = "draft";
     }
     if (resource.table === "business_work_orders") {
       // The lifecycle begins at draft. Quote linkage is written only by the

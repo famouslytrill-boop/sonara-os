@@ -25,7 +25,7 @@ Base main SHA: `08bea0602644f907932a4040da9b5954144eb414`
 - [#506](https://github.com/famouslytrill-boop/sonara-os/pull/506) — `73a486ef0ee709dd2c41f2f6b00ef909c04760df`
 
 ## Collision resolution
-- `docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md`: #483/#493/#501/#506/#482 superseded by #494's 163 migration count, with #500's two additional formulas accounted for (61 definitions, 40 industry formulas). Must verify via generator.
+- `docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md`: #483/#493/#501/#506/#482 superseded by #494's 163 migration count, with #500's two additional industry formulas accounted for (59 library definitions, 40 industry formulas), as confirmed by the generator. The earlier 61-definition claim was incorrect.
 - `scripts/generate-capability-inventory.cjs`: #482's reviewed source-based renderer-path inspection preserved. #501/#502/#493 redundant diagnostic approaches consolidated to bounded detail strings (20 records, 300 characters each), with failure behavior intact.
 - `lib/sonara-community-discovery.cjs`: #488's more stringent element validation and deterministic ordering retained; #505's error contract represented through the stricter fail-closed behavior. Source #505's moderator grant is preserved in `lib/sonara-free-platform-surface-policy.cjs`.
 - `tests/free-platform-surface-policy.test.js`: #505 and #488 regression cases combined, with the error code matching the stricter #488 validator.
@@ -38,3 +38,7 @@ Base main SHA: `08bea0602644f907932a4040da9b5954144eb414`
 - Protected `main` and independently reviewed protected production environment. No merge of this draft while controls are missing.
 - Actual provider and device tests are separate release gates; documentation or passing unit tests alone are not production proof.
 - Source PRs remain open for traceability until their intent has been reviewed against the integration diff. Closing them, applying migrations and deploying require separate review.
+
+## Post-consolidation generated-evidence repair
+
+On PR #508, both `data/capability-inventory.json` and `docs/CAPABILITY_MAP.md` were rebuilt from the actual merged source through a one-time isolated GitHub Actions job. That job deleted its own temporary workflow file in the generated commit. The final validation must use the exact new PR head, not prior runs or bot-authored `action_required` checks. The PR is not production-approved merely because generated artifacts match.

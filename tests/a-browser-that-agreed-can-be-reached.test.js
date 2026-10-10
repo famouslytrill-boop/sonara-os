@@ -94,14 +94,42 @@ describe("keeping the browsers that agreed", () => {
 
     // Without this a person who granted permission twice hears everything
     // twice, and nothing anywhere reports it.
-    it("updates rather than duplicating when the same browser subscribes again", async () => {
-      let seen = null;
-      await store.save(deps(), { organizationId: "org-1", ...VALID }, async (url, options) => {
-        seen = { url, prefer: options.headers.Prefer };
-        return jsonResponse([{ id: "row" }]);
+    it("updates a duplicate endpoint only when its tenant and creator match", async () => {
+      const calls = [];
+      const result = await store.save(deps(), {
+        organizationId: "org-1", createdBy: "user-1", ...VALID
+      }, async (url, options) => {
+        calls.push({ url: new URL(url), options });
+        if (options.method === "POST") return jsonResponse([]); // duplicate, nothing inserted
+        return jsonResponse([{ id: "existing" }]);
       });
-      assert.match(seen.url, /on_conflict=endpoint/);
-      assert.match(seen.prefer, /merge-duplicates/);
+      assert.equal(result.ok, true);
+      assert.equal(calls.length, 2);
+      assert.match(calls[0].url.href, /on_conflict=endpoint/);
+      assert.match(calls[0].options.headers.Prefer, /ignore-duplicates/);
+      assert.equal(calls[1].options.method, "PATCH");
+      assert.equal(calls[1].url.searchParams.get("organization_id"), "eq.org-1");
+      assert.equal(calls[1].url.searchParams.get("created_by"), "eq.user-1");
+      assert.equal(calls[1].url.searchParams.get("endpoint"), "eq." + VALID.endpoint);
+      const patch = JSON.parse(calls[1].options.body);
+      assert.equal(Object.hasOwn(patch, "organization_id"), false);
+      assert.equal(Object.hasOwn(patch, "created_by"), false);
+    });
+
+    it("refuses to move a duplicate browser to another organization or user", async () => {
+      const result = await store.save(deps(), {
+        organizationId: "org-foreign", createdBy: "user-foreign", ...VALID
+      }, async (_url, options) => jsonResponse(options.method === "POST" ? [] : []));
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "subscription_owned_elsewhere");
+    });
+
+    it("records failure instead of claiming success when inserted rows cannot be inspected", async () => {
+      const result = await store.save(deps(), {
+        organizationId: "org-1", createdBy: "user-1", ...VALID
+      }, async () => jsonResponse({ unrecognized: "response" }));
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "unreadable");
     });
 
     it("truncates a browser-supplied label rather than refusing it", async () => {
@@ -160,7 +188,7 @@ describe("keeping the browsers that agreed", () => {
     function router({ pushStatus }) {
       return async (url, options) => {
         if (String(url).includes("supabase.co")) {
-          if (options?.method === "DELETE") return jsonResponse({}, { status: 204 });
+          if (options?.method === "DELETE") return jsonResponse([{ id: "deleted" }]);
           return jsonResponse(subscribers);
         }
         return { ok: pushStatus(url) < 400, status: pushStatus(url) };
@@ -191,7 +219,7 @@ describe("keeping the browsers that agreed", () => {
       const deleted = [];
       const fetchImpl = async (url, options) => {
         if (String(url).includes("supabase.co")) {
-          if (options?.method === "DELETE") { deleted.push(url); return jsonResponse({}, { status: 204 }); }
+          if (options?.method === "DELETE") { deleted.push(url); return jsonResponse([{ id: "deleted" }]); }
           return jsonResponse(subscribers);
         }
         return { ok: false, status: 429 };
@@ -203,11 +231,29 @@ describe("keeping the browsers that agreed", () => {
       assert.equal(result.failures[0].code, "retry_later");
     });
 
+    it("reports unsuccessful cleanup of a permanently gone push endpoint", async () => {
+      const result = await store.notify(deps(), {
+        organizationId: "org-1", topic: "invoice_paid", payload: "x"
+      }, {
+        fetchImpl: async (url, options) => {
+          if (String(url).includes("supabase.co")) {
+            if (options?.method === "DELETE") return jsonResponse(null, { ok: false, status: 503 });
+            return jsonResponse(subscribers);
+          }
+          return { ok: false, status: 410 };
+        }
+      });
+      assert.equal(result.ok, true);
+      assert.equal(result.removed, 0);
+      assert.equal(result.failures.length, 2);
+      assert.equal(result.failures.every((entry) => entry.code === "cleanup_unwritable"), true);
+    });
+
     it("does not delete when the push service could not be reached at all", async () => {
       const deleted = [];
       const fetchImpl = async (url, options) => {
         if (String(url).includes("supabase.co")) {
-          if (options?.method === "DELETE") { deleted.push(url); return jsonResponse({}, { status: 204 }); }
+          if (options?.method === "DELETE") { deleted.push(url); return jsonResponse([{ id: "deleted" }]); }
           return jsonResponse(subscribers);
         }
         throw new Error("network down");

@@ -1,88 +1,64 @@
-# Support And Contact Setup
+# SONARA public support and contact setup
 
-SONARA includes public support and contact paths for beta users without requiring production email credentials during build.
+Date reviewed: 2026-10-08
+Status: source-code contract, not proof of live email delivery.
 
-## Public Routes
+This runbook covers the same backend used by the SONARA Industries website, Business Builder™, Creator Studio™ and Growth Studio™. The two public write paths have different front doors but share validation, request storage, email dispatch and an abuse budget.
 
-- `/contact` for general questions, sales/pricing, billing/refund, technical support, security reports, legal/privacy, and partnership requests.
-- `/support` for the support-center landing page.
-- `/help` for the documentation and policy index.
-- `/feedback` for beta feedback, bugs, feature requests, friction, pricing, mobile, accessibility, and general feedback.
+## Routes and request outcomes
 
-## Email Routing And Outbound Provider
+| Route | Purpose | Sign-in |
+| --- | --- | --- |
+| `GET /contact` | Public question/contact page | No |
+| `POST /contact` | Public support request submission | No |
+| `GET /support` | Public support center; account-specific requests visible only when authenticated and authorized | No for public content |
+| `POST /support/request` | Support-center request submission | No |
+| `GET /help` | Help and FAQ | No |
+| `GET /tutorials` | Guided product instructions | No |
 
-Cloudflare Email Routing can forward inbound messages to real inboxes. It does not send outbound app notifications from support/contact forms.
+Both Express POST endpoints pass through the same rate limiter, validators and `saveSupportRequest()`. A durable Postgres RPC provides the distributed rate decision. **Production support/contact submissions fail HTTP 503 rather than send mail or store a record when that durable decision is unavailable**; a bounded per-process fallback remains available for development and other explicitly approved routes. The browser-facing Supabase tables currently have overly broad direct grants and an anonymous INSERT policy that can bypass Express entirely; see `docs/security/PROPOSED_SUPPORT_BROWSER_GRANTS_2026-10-08.sql` for a non-applied staging fix. Do not claim end-to-end protection until database grants are hardened.
 
-The current server-side outbound adapter supports Resend when these values are configured:
+A successfully stored row gets a reference ID whether or not an email notification succeeds. If storage fails but the email provider accepts the request, the response says acceptance is **not verified inbox delivery**. If both fail, return HTTP 503 and **no reference ID**; there is no fallback queue.
 
-- `SUPPORT_EMAIL`
-- `CONTACT_EMAIL`
-- `HELP_EMAIL`
-- `BILLING_EMAIL`
-- `SECURITY_EMAIL`
-- `PRIVACY_EMAIL`
-- `LEGAL_EMAIL`
-- `NEXT_PUBLIC_SUPPORT_CONTACT_LABEL`
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
+The shared form labels all fields, warns against sending secrets, and caps name (120), email (254), subject (160), and message (4000) characters. The hidden honeypot is supplemental; automated clients may omit it. An unvalidated body, missing consent or filled honeypot must not reach storage or the mail provider.
 
-`RESEND_API_KEY` is sensitive and server-only. Do not commit it, print it, put it in `NEXT_PUBLIC_*`, or paste it into screenshots.
+## Current runtime email configuration
 
-## Safe Degradation
+The authoritative requirement list is `lib/sonara-infrastructure-manifest.cjs`, used by `scripts/verify-email-env.mjs` and readiness checks.
 
-The forms validate requests server-side. If email provider env vars are missing, the user sees a clear message that the email provider is not configured.
+- `RESEND_API_KEY`: secret, server side only.
+- `RESEND_FROM_EMAIL`: verified sending address.
+- `SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`: destination that actually receives support notifications.
+- Optional other email workflows have their **own** provider and permission requirements. Supabase Auth SMTP, campaign delivery, and support notifications are not interchangeable.
 
-If Supabase server env vars are configured and the `support_requests` or `feedback_reports` table exists, the server action attempts to store the request. If Supabase is missing or the table is not deployed yet, the public page does not crash.
+The legacy `SUPPORT_EMAIL` and `CONTACT_EMAIL` names are not read by the support notification runtime. Do not claim they configure delivery; keep aliases and DNS records consistent with the actual sender and recipient.
 
-If neither storage nor outbound email is configured, the form returns a clear fallback with a reference ID and asks the user to use the listed support inbox.
+Cloudflare Email Routing can forward incoming mail, but is not an outbound SMTP provider. Public contact text must not advertise an inbox that has not been confirmed active.
 
-## Spam Protection
+## Operational verification
 
-The forms include:
+1. Run `pnpm run verify:email-env -- --strict` with staging values; do not publish environment contents.
+2. Run `pnpm run test:email` for a local dry run. Only `pnpm run test:email -- --send` attempts a real provider message; use an approved staging destination.
+3. Verify the sender domain, SPF/DKIM, DMARC alignment where applicable, provider acceptance, bounce/suppression handling and actual inbox receipt. A provider HTTP 2xx does **not** prove delivery.
+4. Test both POST routes for 400 validation, 429 abuse throttling, 503 write-and-email failure, safe redaction, and tenant-isolated request-history access.
+5. Monitor the existing structured `support.request_submission` and `rate_limit.degraded` events without putting names, email addresses, messages or raw IP values into logs.
+6. Audit the legal/privacy wording, retention/deletion obligations, contact channels and incident escalation contacts before live customer activation.
 
-- A hidden honeypot field.
-- A form timestamp check to block instant bot submits.
-- Server-side validation with Zod.
+## Cross-suite help and security expectations
 
-These are basic controls, not a replacement for provider-level abuse protection, CAPTCHA, rate limiting, or support-tool moderation.
+Every page built by the shared page frame exposes consistent About, Help and FAQs, Tutorials, Contact, Support, Security, Accessibility and canonical legal links. Each product tutorial must give a working route to its relevant task plus a support/recovery destination. Authentication and tenant authorization are **server-enforced**, not satisfied by displaying a link or hiding a control.
 
-## Privacy And Legal Review
+Current legal notices are drafts requiring human review. Do not present a published notice, untested sender, unconfigured payment provider or security assurance as verified solely because a route renders.
 
-Do not ask users to submit passwords, card numbers, payout details, API keys, private customer records, or legal documents through public forms.
+## Related authorities
 
-The support/contact copy and data retention behavior should be reviewed before paid public launch.
+- `lib/sonara-trust-navigation.cjs`
+- `lib/sonara-shell.cjs`
+- `server.js`
+- `routes/sonara-service-lifecycle-routes.cjs`
+- `lib/sonara-rate-limit.cjs`
+- `lib/sonara-support-outcome.cjs`
+- `docs/security/PUBLIC_TRUST_SUPPORT_ENGINEERING_2026-10-08.md`
+- `docs/legal/2026-09-23-LEGAL-TERMS-TRADEMARK-GOVERNANCE.md`
 
-## Real Support Channel
-
-Configure the real support destination in hosting secrets or provider dashboards. Use `NEXT_PUBLIC_SUPPORT_CONTACT_LABEL` only for a safe label such as `your account settings`, not for secrets.
-
-## Verification
-
-```powershell
-pnpm run verify:env
-```
-
-> **Both commands now exist.** This note said "No email tooling exists in this
-> repository" and that neither command was defined. That was true of
-> `package.json` and false of the repository: `scripts/verify-email-env.mjs` and
-> `scripts/test-email-config.mjs` had been sitting there since 25 August 2026
-> with nothing pointing at them. `pnpm run verify:email-env` and
-> `pnpm run test:email` were wired up on 18 September 2026 and both work.
->
-> Two things changed with them, and they matter if you set these variables from
-> an older copy of this file. `verify:email-env` reads its requirement from
-> `lib/sonara-infrastructure-manifest.cjs` — the same declaration
-> `/api/readiness` uses — and applies the application's own rules, so
-> `RESEND_API_KEY=replace-me` fails rather than passing. And the recipient
-> variables are **`SUPPORT_TO_EMAIL`** or **`CONTACT_TO_EMAIL`**, not
-> `SUPPORT_EMAIL`/`CONTACT_EMAIL`; nothing in the runtime has ever read the
-> latter pair.
->
-> `pnpm run test:email` is a dry run and reaches no provider.
-> `pnpm run test:email -- --send` posts a real message to Resend — run it
-> deliberately, from a machine with the production values, and not from CI.
->
-> Provider acceptance is not delivery. `--send` tells you Resend took the
-> message; confirm it arrived in the real inbox before claiming outbound email
-> is live.
-
+References: https://owasp.org/projects/asvs, https://www.w3.org/TR/WCAG22/, https://supabase.com/docs/guides/api/securing-your-api, https://resend.com/docs/webhooks/introduction.

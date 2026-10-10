@@ -119,6 +119,16 @@ if (files.length === 0) {
 const functions = new Map(); // name -> { name, securityDefiner, file }
 const policies = []; // { name, table, file, body }
 const policyExpressions = []; // every using(...) / with check(...) body, parsed independently
+const privateDefinerNames = new Set();
+const POLICY_HELPERS = Object.freeze([
+  "can_manage_entity",
+  "has_entity_role",
+  "has_org_role",
+  "is_entity_member",
+  "is_org_member",
+  "is_org_owner_or_admin",
+  "sonara_is_org_member"
+]);
 
 for (const file of files) {
   const sql = withoutComments(fs.readFileSync(path.join(migrationsDirectory, file), "utf8"));
@@ -135,6 +145,21 @@ for (const file of files) {
     // Last definition wins: a later migration replacing a function is the one
     // in force.
     functions.set(name, { name, securityDefiner, file });
+  }
+
+  // Privileged policy logic can live outside the exposed public schema. The
+  // current hardening architecture keeps compatibility wrappers in public as
+  // SECURITY INVOKER and moves the table-reading SECURITY DEFINER bodies into
+  // private. Parse those separately: treating "no public definer is referenced"
+  // as blindness would make the safer end-state impossible to verify.
+  const privateFunctionPattern = /create\s+(?:or\s+replace\s+)?function\s+private\.([a-z0-9_]+)\s*\(([\s\S]*?)\)\s*returns[\s\S]*?(?:\$\$[\s\S]*?\$\$|\$function\$[\s\S]*?\$function\$)([^;]*);/gi;
+  for (const match of sql.matchAll(privateFunctionPattern)) {
+    const name = match[1].toLowerCase();
+    const tail = match[3] || "";
+    const head = match[0];
+    if (/security\s+definer/i.test(head) || /security\s+definer/i.test(tail)) {
+      privateDefinerNames.add(name);
+    }
   }
 
   // The policy name may be a quoted string containing spaces. The first
@@ -280,7 +305,9 @@ if (undefinedInRepo.length) {
 }
 lines.push("");
 
-lines.push(`Advisor-named functions this repository defines as SECURITY DEFINER: ${advisorDefiner.length} of ${ADVISOR_REPORTED.length}`);
+lines.push(`Advisor-named functions this repository defines as exposed public SECURITY DEFINER: ${advisorDefiner.length} of ${ADVISOR_REPORTED.length}`);
+lines.push(`Private-schema SECURITY DEFINER helper names: ${privateDefinerNames.size}`);
+for (const name of [...privateDefinerNames].sort()) lines.push(`  private.${name}`);
 
 const report = lines.join("\n");
 console.log(report);
@@ -295,8 +322,31 @@ if (checkOnly) {
   if (functions.size === 0) blind.push("no functions parsed out of the migrations");
   if (policies.length === 0) blind.push("no RLS policies parsed out of the migrations");
   if (policyExpressions.length === 0) blind.push("no using/with-check expressions parsed, so the cross-check is not running");
-  if (definerFunctions.length === 0) blind.push("no SECURITY DEFINER functions found, though the advisor reports twelve");
-  if (referenced.length === 0) blind.push("no SECURITY DEFINER function is referenced by any policy, which would mean the policies stopped calling them");
+  if (definerFunctions.length === 0 && privateDefinerNames.size === 0) {
+    blind.push("no SECURITY DEFINER functions found in public or private; the parser has stopped seeing the authorization layer");
+  }
+
+  const privatePolicyHelpers = POLICY_HELPERS.filter((name) => privateDefinerNames.has(name));
+  if (privatePolicyHelpers.length > 0 && privatePolicyHelpers.length !== POLICY_HELPERS.length) {
+    blind.push(
+      `private authorization-helper transition is partial: found ${privatePolicyHelpers.length} of ${POLICY_HELPERS.length} expected helper names`
+    );
+  }
+
+  if (privatePolicyHelpers.length === POLICY_HELPERS.length) {
+    const stillPublicDefiner = POLICY_HELPERS.filter((name) => functions.get(name)?.securityDefiner === true);
+    if (stillPublicDefiner.length) {
+      blind.push(`policy helper(s) remain exposed SECURITY DEFINER after private transition: ${stillPublicDefiner.join(", ")}`);
+    }
+    for (const name of POLICY_HELPERS) {
+      const publicEntry = functions.get(name);
+      if (!publicEntry) blind.push(`public compatibility wrapper is missing: ${name}`);
+      else if (!appearsInAnyPolicyExpression(name)) blind.push(`policy helper wrapper is no longer referenced by any policy: ${name}`);
+    }
+  } else if (referenced.length === 0) {
+    blind.push("no exposed SECURITY DEFINER function is referenced by any policy and the private-wrapper transition is not complete");
+  }
+
   if (blind.length) {
     for (const problem of blind) console.error(`ERROR: ${problem}`);
     console.error("This report has gone blind rather than found nothing.");

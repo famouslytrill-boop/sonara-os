@@ -2,9 +2,11 @@
 
 **Status:** source-only, restricted internal test shell. This is **not** an App Store product, production activation, or approval for purchases.
 
+Physical-device acceptance is governed by `docs/device/PHYSICAL_DEVICE_QUALIFICATION_2026-10-09.md`. The shell remains unqualified until an `ios_internal_shell` record for the exact release SHA passes `pnpm run verify:device-qualification`.
+
 ## Build
 
-Install Xcode and the open-source XcodeGen tool on a macOS development machine. From `ios/` run:
+Install Xcode and XcodeGen (a separately licensed third-party project generator) on a macOS development machine. From `ios/` run:
 
 ```bash
 xcodegen generate

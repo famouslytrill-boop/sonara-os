@@ -30,6 +30,8 @@ jobs:
         browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
@@ -72,7 +74,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
         run: |
           set -o pipefail
-          pnpm exec playwright test browser-tests/public-experience.spec.js browser-tests/marketplace-reconciliation.spec.js browser-tests/reservation-workflows.spec.js \
+          pnpm exec playwright test browser-tests/public-experience.spec.js browser-tests/marketplace-reconciliation.spec.js browser-tests/reservation-workflows.spec.js browser-tests/pwa-cache-trust.spec.js \
             --browser="${{ matrix.browser }}" \
             --reporter=line 2>&1 | tee artifacts/browser/playwright.log
 

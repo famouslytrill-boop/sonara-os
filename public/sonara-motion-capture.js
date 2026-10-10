@@ -1,0 +1,323 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
+/* global performance, AbortController */
+/* Explicit, bounded motion capture for /settings/device-feedback.
+ *
+ * Nothing starts on page load. A signed-in person presses the button, the
+ * browser permission prompt runs where required, and this client samples only
+ * while the page remains visible. It aggregates in memory and sends one coarse
+ * summary row; individual sensor events are never uploaded.
+ */
+(function () {
+  "use strict";
+
+  const configNode = document.getElementById("sonara-motion-config");
+  if (!configNode) return;
+
+  let config;
+  try {
+    config = JSON.parse(configNode.textContent || "{}");
+  } catch {
+    return;
+  }
+
+  const startButton = document.querySelector("[data-sonara-motion-start]");
+  const cancelButton = document.querySelector("[data-sonara-motion-cancel]");
+  const statusNode = document.querySelector("[data-sonara-motion-status]");
+  const capsNode = document.querySelector("[data-sonara-device-capabilities]");
+  const feedbackButton = document.querySelector("[data-sonara-feedback-test]");
+  const feedbackStatus = document.querySelector("[data-sonara-feedback-status]");
+  const receiptButton = document.querySelector("[data-sonara-motion-receipt]");
+  const receiptStatus = document.querySelector("[data-sonara-motion-receipt-status]");
+  const device = window.SONARA && window.SONARA.sensoryDevice;
+  const receiptApi = window.SONARA && window.SONARA.deviceDiagnosticReceipt;
+
+  if (!startButton || !cancelButton || !statusNode || !device) return;
+
+  const sampleWindowMs = Math.min(5000, Math.max(1000, Number(config.sampleWindowMs) || 5000));
+  const sampleIntervalMs = Math.min(1000, Math.max(100, Number(config.sampleIntervalMs) || 100));
+  const maxSamples = Math.min(50, Math.max(1, Number(config.maxSamples) || 50));
+  const endpoint = String(config.endpoint || "");
+  const numericKeys = [
+    "accelerationX", "accelerationY", "accelerationZ",
+    "rotationAlpha", "rotationBeta", "rotationGamma"
+  ];
+
+  let active = null;
+  let permissionPending = false;
+  let pendingPost = null;
+  const diagnostic = {
+    browserPermissionState: device.supports().deviceMotion ? "not_requested" : "unsupported",
+    captureState: "not_run",
+    boundedSampleCount: 0,
+    hiddenInterruptionObserved: false
+  };
+
+  function setStatus(message) {
+    statusNode.textContent = message;
+  }
+
+  function setButtons(running) {
+    startButton.disabled = running || permissionPending;
+    cancelButton.hidden = !running;
+    cancelButton.disabled = !running;
+  }
+
+  function showCapabilities() {
+    if (!capsNode) return;
+    const caps = device.supports();
+    capsNode.textContent = caps.deviceMotion
+      ? "Motion sensor support is available on this browser. Permission may still be required."
+      : "This browser does not expose device motion to this page.";
+  }
+
+  function stopListener() {
+    if (!active) return;
+    clearTimeout(active.timer);
+    active.listener && active.listener.stop && active.listener.stop();
+    active = null;
+    setButtons(false);
+  }
+
+  function cancelCapture(message, state = "cancelled") {
+    if (!active && !permissionPending && !pendingPost) return;
+    stopListener();
+    permissionPending = false;
+    if (pendingPost) {
+      pendingPost.abort();
+      pendingPost = null;
+    }
+    diagnostic.captureState = state;
+    setButtons(false);
+    setStatus(message || "Motion sample cancelled. Nothing was saved.");
+  }
+
+  function addSample(sample) {
+    if (!active || document.hidden) return;
+    const now = performance.now();
+    if (now - active.lastAcceptedAt < sampleIntervalMs) return;
+    if (active.sampleCount >= maxSamples) return;
+
+    let accepted = false;
+    for (const key of numericKeys) {
+      const raw = sample[key];
+      // Number(null) and Number("") are both zero. Missing sensor fields are
+      // absence, not a measured zero, so refuse the coercion before Number().
+      if (raw === null || raw === undefined || raw === "") continue;
+      const value = Number(raw);
+      if (!Number.isFinite(value)) continue;
+      active.sums[key] = (active.sums[key] || 0) + value;
+      active.counts[key] = (active.counts[key] || 0) + 1;
+      accepted = true;
+    }
+    if (!accepted) return;
+    active.sampleCount += 1;
+    active.lastAcceptedAt = now;
+  }
+
+  function coarseMean(key) {
+    const count = active && active.counts[key];
+    if (!count) return null;
+    return Math.round((active.sums[key] / count) * 10) / 10;
+  }
+
+  async function postSummary(payload) {
+    const controller = new AbortController();
+    pendingPost = controller;
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      const body = await response.json().catch(() => ({}));
+      return { ok: response.ok && body.ok !== false, status: response.status, body };
+    } catch (error) {
+      return { ok: false, status: 0, body: { code: error && error.name === "AbortError" ? "timeout" : "network_error" } };
+    } finally {
+      clearTimeout(timeout);
+      if (pendingPost === controller) pendingPost = null;
+    }
+  }
+
+  async function finishCapture() {
+    if (!active) return;
+    const snapshot = active;
+    if (document.hidden) {
+      diagnostic.hiddenInterruptionObserved = true;
+      cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.", "hidden_interrupted");
+      return;
+    }
+    if (snapshot.sampleCount === 0) {
+      stopListener();
+      diagnostic.captureState = "no_readings";
+      diagnostic.boundedSampleCount = 0;
+      setStatus("No motion readings arrived. Nothing was saved.");
+      return;
+    }
+
+    const payload = {
+      event_type: "device_motion",
+      acceleration_x: coarseMean("accelerationX"),
+      acceleration_y: coarseMean("accelerationY"),
+      acceleration_z: coarseMean("accelerationZ"),
+      rotation_alpha: coarseMean("rotationAlpha"),
+      rotation_beta: coarseMean("rotationBeta"),
+      rotation_gamma: coarseMean("rotationGamma"),
+      metadata: {
+        aggregation: "mean",
+        sample_count: snapshot.sampleCount,
+        sample_window_ms: sampleWindowMs,
+        sample_interval_ms: sampleIntervalMs,
+        precision_step: 0.1,
+        source_page: "settings_device_feedback"
+      }
+    };
+
+    stopListener();
+    setStatus("Saving one coarse motion summary…");
+    const saved = await postSummary(payload);
+    diagnostic.boundedSampleCount = snapshot.sampleCount;
+    diagnostic.captureState = saved.ok ? "saved" : "save_failed";
+    setStatus(saved.ok
+      ? `Saved one coarse summary from ${snapshot.sampleCount} foreground sample${snapshot.sampleCount === 1 ? "" : "s"}.`
+      : "The motion summary was not saved. Nothing will retry in the background.");
+  }
+
+  async function startCapture() {
+    if (active || permissionPending) return;
+    if (config.applicationPermissionAllowed !== true) {
+      setStatus(config.applicationPermissionMessage || "Motion is off in Device permissions.");
+      return;
+    }
+    if (!endpoint || !endpoint.startsWith("/")) {
+      setStatus("Motion capture is not configured.");
+      return;
+    }
+    if (document.hidden) {
+      setStatus("Bring this page to the foreground before starting a motion sample.");
+      return;
+    }
+    if (!device.supports().deviceMotion) {
+      diagnostic.browserPermissionState = "unsupported";
+      diagnostic.captureState = "unsupported";
+      setStatus("Device motion is not supported by this browser.");
+      return;
+    }
+
+    permissionPending = true;
+    setButtons(false);
+    setStatus("Waiting for motion permission…");
+    const permission = await device.requestMotionPermission();
+    permissionPending = false;
+    diagnostic.browserPermissionState = permission && permission.ok === true
+      ? "granted"
+      : permission && /denied/.test(String(permission.reason || ""))
+        ? "denied"
+        : "failed";
+
+    if (document.hidden) {
+      setButtons(false);
+      setStatus("The page was hidden before permission completed. Nothing started or saved.");
+      return;
+    }
+    if (!permission || permission.ok !== true) {
+      diagnostic.captureState = diagnostic.browserPermissionState === "denied" ? "permission_denied" : "permission_failed";
+      setButtons(false);
+      setStatus("Motion permission was not granted. Nothing was saved.");
+      return;
+    }
+
+    const listener = device.listenMotion(addSample);
+    if (!listener || listener.ok !== true) {
+      diagnostic.captureState = "unsupported";
+      setButtons(false);
+      setStatus("This browser could not start a motion sample.");
+      return;
+    }
+
+    active = {
+      listener,
+      timer: null,
+      sampleCount: 0,
+      sums: Object.create(null),
+      counts: Object.create(null),
+      lastAcceptedAt: -Infinity
+    };
+    active.timer = setTimeout(finishCapture, sampleWindowMs);
+    setButtons(true);
+    setStatus("Sampling motion for up to five seconds. Keep this page visible, or cancel.");
+  }
+
+  if (feedbackButton) {
+    feedbackButton.addEventListener("click", async function () {
+      if (feedbackStatus) feedbackStatus.textContent = "Testing feedback…";
+      const result = await device.feedback("success");
+      if (feedbackStatus) {
+        feedbackStatus.textContent = result && result.ok
+          ? "Feedback test completed."
+          : "Sound or vibration feedback is not supported here.";
+      }
+    });
+  }
+
+  if (receiptButton) {
+    receiptButton.addEventListener("click", function () {
+      if (!receiptApi || typeof receiptApi.build !== "function" || typeof receiptApi.fileName !== "function") {
+        if (receiptStatus) receiptStatus.textContent = "Diagnostic receipt support is unavailable on this page.";
+        return;
+      }
+      const receipt = receiptApi.build({
+        releaseSha: config.releaseSha,
+        secureContext: window.isSecureContext === true,
+        pageVisibleAtExport: document.hidden !== true,
+        applicationPermissionState: config.applicationPermissionState,
+        deviceMotionSupported: device.supports().deviceMotion === true,
+        browserPermissionState: diagnostic.browserPermissionState,
+        captureState: diagnostic.captureState,
+        boundedSampleCount: diagnostic.boundedSampleCount,
+        hiddenInterruptionObserved: diagnostic.hiddenInterruptionObserved,
+        reducedMotionPreferred: typeof window.matchMedia === "function"
+          && window.matchMedia("(prefers-reduced-motion: reduce)").matches === true
+      });
+      const blob = new Blob([JSON.stringify(receipt, null, 2) + "\n"], { type: "application/json" });
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = receiptApi.fileName(receipt);
+      anchor.rel = "noopener";
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+      if (receiptStatus) {
+        receiptStatus.textContent = receipt.releaseSha
+          ? "Diagnostic receipt downloaded. It contains status evidence only, not raw motion readings or account data."
+          : "Diagnostic receipt downloaded, but this runtime does not expose an exact release SHA and cannot qualify a release.";
+      }
+    });
+  }
+
+  startButton.addEventListener("click", startCapture);
+  cancelButton.addEventListener("click", function () {
+    cancelCapture("Motion sample cancelled. Nothing was saved.", "cancelled");
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      diagnostic.hiddenInterruptionObserved = true;
+      cancelCapture("Motion sample stopped because this page is no longer visible. Nothing was saved.", "hidden_interrupted");
+    }
+  });
+  window.addEventListener("pagehide", function () {
+    diagnostic.hiddenInterruptionObserved = true;
+    cancelCapture("Motion sample stopped. Nothing was saved.", "hidden_interrupted");
+  });
+
+  showCapabilities();
+  setButtons(false);
+  if (config.applicationPermissionAllowed !== true) {
+    startButton.disabled = true;
+    setStatus(config.applicationPermissionMessage || "Motion is off in Device permissions.");
+  }
+})();

@@ -2618,3 +2618,123 @@ body.sonara-home-v3 .sonara-interface-preview::before {
     font-size: 2rem;
   }
 }
+
+/* SONARA cross-device adaptive workspace navigation — 2026-10-08 */
+/* This is a narrow enhancement to the existing SONARA shell, not a theme or
+   second token authority. Width means available viewport, not device model.
+   No camera, location, sensor, microphone or notification API is requested. */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-block-start: env(safe-area-inset-top);
+    padding-inline-start: env(safe-area-inset-left);
+    padding-inline-end: env(safe-area-inset-right);
+  }
+  .sonara-site-header { top: env(safe-area-inset-top); }
+  html { scroll-padding-top: calc(var(--nx-header) + 20px + env(safe-area-inset-top)); }
+}
+
+/* Navigation exists only for signed-in, non-marketing pages. Keep the normal
+   header/menu for keyboards, mice, tablets and devices without CSS support. */
+.sonara-workspace-dock { display: none; }
+
+@media (max-width: 599px) and (pointer: coarse) {
+  /* The fixed bar needs scroll clearance as well as body padding: a tabbed-to
+     action at the bottom must not sit underneath the bar. */
+  html[data-sonara-workspace-dock="true"] {
+    scroll-padding-block-end: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  body.sonara-has-workspace-dock {
+    padding-block-end: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+  .sonara-workspace-dock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 2px;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 85;
+    min-width: 0;
+    padding: 6px max(8px, env(safe-area-inset-left, 0px))
+      calc(6px + env(safe-area-inset-bottom, 0px))
+      max(8px, env(safe-area-inset-right, 0px));
+    border-top: 1px solid var(--nx-line);
+    background: var(--nx-surface);
+    box-shadow: 0 -6px 24px rgb(0 0 0 / .12);
+  }
+  .sonara-workspace-dock a {
+    min-width: 0;
+    min-height: 48px;
+    padding: 7px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--nx-radius-sm);
+    color: var(--nx-text);
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .sonara-workspace-dock a:focus-visible {
+    outline: 3px solid var(--nx-focus);
+    outline-offset: -3px;
+  }
+  .sonara-workspace-dock a[aria-current="page"],
+  .sonara-workspace-dock a[aria-current="location"] {
+    background: var(--nx-surface-2);
+    color: var(--nx-ink);
+  }
+  /* Avoid placing fixed links over the on-screen keyboard while editing. */
+  /* When a text editor has focus, hiding the dock must also release its
+     reserved scroll clearance. Chrome Android and iOS Safari can resize only
+     the visual viewport while the on-screen keyboard is present. */
+  html[data-sonara-workspace-dock="true"]:has(body :is(input, textarea, select, [contenteditable="true"]):focus) {
+    scroll-padding-block-end: 0;
+  }
+  body.sonara-has-workspace-dock:has(:is(input, textarea, select, [contenteditable="true"]):focus) {
+    padding-block-end: 0;
+  }
+  body.sonara-has-workspace-dock:has(:is(input, textarea, select, [contenteditable="true"]):focus) .sonara-workspace-dock {
+    display: none;
+  }
+}
+
+/* A short landscape viewport should favor the task, not permanent chrome. */
+@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+  html[data-sonara-workspace-dock="true"] { scroll-padding-block-end: 0; }
+  body.sonara-has-workspace-dock { padding-block-end: 0; }
+  .sonara-workspace-dock { display: none; }
+}
+@media print {
+  html[data-sonara-workspace-dock="true"] { scroll-padding-block-end: 0; }
+  .sonara-workspace-dock { display: none !important; }
+  body.sonara-has-workspace-dock { padding-block-end: 0; }
+}
+
+/* Panel-size behavior, not phone model detection. A narrow inspector in an
+   1100px split-screen should wrap its controls just like a narrow phone.
+   Existing flex-wrap is the fallback for browsers without container queries. */
+@supports (container-type: inline-size) {
+  .sonara-ops-panel,
+  .sonara-ops-detail,
+  .sonara-ops-inspector {
+    container-type: inline-size;
+  }
+  @container (max-width: 420px) {
+    .sonara-ops-commandbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sonara-ops-commandbar > :is(button, a, input, select) {
+      width: 100%;
+      min-width: 0;
+    }
+    .sonara-ops-commandbar [data-primary-action] {
+      margin-inline-start: 0;
+    }
+  }
+}

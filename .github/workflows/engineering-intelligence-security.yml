@@ -1,6 +1,9 @@
 name: Engineering Intelligence and Security Evidence
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
     branches: [main]
   push:
@@ -13,8 +16,11 @@ permissions:
   security-events: write
 
 concurrency:
-  group: engineering-intelligence-${{ github.ref }}
-  cancel-in-progress: true
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   evidence:
@@ -26,6 +32,7 @@ jobs:
       - name: Checkout SONARA with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       # setup-node can cache pnpm only after the pnpm executable exists on PATH.
@@ -127,9 +134,10 @@ jobs:
         shell: bash
         run: |
           branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          exact_head="$(git rev-parse HEAD)"
           node scripts/generate-engineering-intelligence.mjs \
             --repository "${GITHUB_REPOSITORY}" \
-            --commit-sha "${GITHUB_SHA}" \
+            --commit-sha "${exact_head}" \
             --branch "${branch}" \
             --base-branch "${GITHUB_BASE_REF:-}" \
             --output artifacts/engineering/repository-analysis.json
@@ -284,11 +292,12 @@ jobs:
         if: always()
         shell: bash
         run: |
+          exact_head="$(git rev-parse HEAD)"
           node scripts/generate-release-evidence.mjs \
             --source artifacts \
             --output-dir artifacts/release-evidence \
             --repository "${GITHUB_REPOSITORY}" \
-            --commit-sha "${GITHUB_SHA}" \
+            --commit-sha "${exact_head}" \
             --ref "${GITHUB_REF}" \
             --event-name "${GITHUB_EVENT_NAME}" \
             --run-id "${GITHUB_RUN_ID}" \
@@ -317,6 +326,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          exact_head="$(git rev-parse HEAD)"
           node scripts/verify-release-evidence-integrity.mjs --self-test
           node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json
-          node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "${GITHUB_SHA}"
+          node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "${exact_head}"

@@ -4,9 +4,11 @@
 // The cache version stays aligned with the rendered asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.
 // Static assets use stale-while-revalidate; public navigations use network-first.
-const VERSION = "sonara-ui-20261007-v23-native-navigation";
+const VERSION = "sonara-ui-20261009-v26-public-cache-boundary";
 const CACHE_PREFIX = "sonara-public-";
-const CACHE_NAME = CACHE_PREFIX + VERSION;
+// Separate cache namespace to evict previously stored extension-matched URLs
+// when this tighter public-asset policy activates.
+const CACHE_NAME = CACHE_PREFIX + VERSION + "-public-asset-guard-v6";
 const OFFLINE_URL = "/offline";
 const PUBLIC_NAVIGATION_PATHS = new Set([
   "/",
@@ -22,9 +24,7 @@ const PUBLIC_NAVIGATION_PATHS = new Set([
   "/contact",
   "/security",
   "/accessibility",
-  "/login",
-  "/signup",
-  OFFLINE_URL,
+    OFFLINE_URL,
   "/business-builder",
   "/creator-studio",
   "/growth-studio"
@@ -39,38 +39,157 @@ const PUBLIC_STAGE = [
   "/brand/business-builder-mark-v3.svg",
   "/brand/creator-studio-mark-v3.svg",
   "/brand/growth-studio-mark-v3.svg",
-  "/sonara-application-ui.css?v=sonara-ui-20261007-v23-native-navigation",
-  "/sonara-one.js?v=sonara-ui-20261007-v23-native-navigation",
-  "/sonara-design-system.css?v=sonara-ui-20261007-v23-native-navigation",
-  "/sonara-depth.js?v=sonara-ui-20261007-v23-native-navigation",
+  "/sonara-application-ui.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-one.js?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-design-system.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/sonara-depth.js?v=sonara-ui-20261009-v26-public-cache-boundary",
   // Fonts are first-party now, so they are cacheable here. While they came from
   // fonts.gstatic.com they were cross-origin and this worker never saw them.
-  "/sonara-fonts.css?v=sonara-ui-20261007-v23-native-navigation",
-  "/fonts/geist-latin.woff2?v=sonara-ui-20261007-v23-native-navigation",
-  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261007-v23-native-navigation"
+  "/sonara-fonts.css?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/fonts/geist-latin.woff2?v=sonara-ui-20261009-v26-public-cache-boundary",
+  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20261009-v26-public-cache-boundary"
+];
+const ESSENTIAL_PUBLIC_STAGE = [
+  OFFLINE_URL,
+  `/sonara-application-ui.css?v=${VERSION}`,
+  `/sonara-design-system.css?v=${VERSION}`,
+  `/sonara-one.js?v=${VERSION}`
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
+// Offline caching is limited to files served from the known public asset
+// namespace. A private API or user-file URL must never become cacheable just
+// because its last path segment happens to end in .png or .js.
+const PUBLIC_ASSET_PATH = /^\/(?:[a-z0-9][a-z0-9-]*\.(?:css|js|svg|png|ico|webmanifest|woff2)|(?:brand|fonts|icons)\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.(?:css|js|svg|png|ico|webmanifest|woff2))$/i;
+const PUBLIC_ROOT_ASSETS = new Set([
+  ...PUBLIC_STAGE.map((asset) => new URL(asset, self.location.origin).pathname),
+  "/sonara-prepaint.js",
+  "/sonara-experience-controls.js",
+  "/sonara-product-entry.css"
+]);
+
+function isPublicStaticRequest(url, request = {}) {
+  if (["no-store", "no-cache", "reload"].includes(request.cache) || request.headers?.has("authorization")) return false;
+  if (!STATIC_PATTERN.test(url.pathname) || !PUBLIC_ASSET_PATH.test(url.pathname)) return false;
+  // Unknown root-level .js/.css URLs may be generated or customer-specific.
+  // Treat only positively enumerated public asset files as reusable.
+  if (url.pathname.lastIndexOf("/") === 0 && !PUBLIC_ROOT_ASSETS.has(url.pathname)) return false;
+  // Versioned assets use exactly the current opaque release token. Do not
+  // persist unknown query parameters (including accidental one-time tokens).
+  if (!url.search) return true;
+  return url.searchParams.size === 1 && url.searchParams.get("v") === VERSION;
+}
 
 function isPublicNavigation(pathname) {
   return PUBLIC_NAVIGATION_PATHS.has(pathname) || pathname.startsWith("/legal/");
 }
 
-function isCacheableResponse(response) {
-  if (!response || !response.ok || response.type === "opaque") return false;
+// Check both URL and response type to prevent HTML fallback / login pages
+// from being stored as scripts, styles, fonts or images (web cache deception).
+const ASSET_MEDIA_TYPES = Object.freeze({
+  css: ["text/css"],
+  js: ["text/javascript", "application/javascript"],
+  svg: ["image/svg+xml"],
+  png: ["image/png"],
+  ico: ["image/x-icon", "image/vnd.microsoft.icon"],
+  webmanifest: ["application/manifest+json", "application/json"],
+  woff2: ["font/woff2"]
+});
+
+function hasExpectedMediaType(url, response) {
+  const extension = url.pathname.split(".").pop().toLowerCase();
+  const expected = ASSET_MEDIA_TYPES[extension];
+  if (!expected) return false;
+  const mediaType = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  return expected.includes(mediaType);
+}
+
+function isSensitiveResponse(response) {
+  if (!response || response.status !== 200 || !response.ok ||
+      response.type === "opaque" || response.redirected) return true;
   const cacheControl = response.headers.get("cache-control") || "";
-  return !/(private|no-store)/i.test(cacheControl) && !response.headers.has("set-cookie");
+  const vary = response.headers.get("vary") || "";
+  return /(?:^|,)\s*(?:private|no-store|no-cache|must-revalidate)(?:\s*[,=]|\s*$)/i.test(cacheControl) ||
+    /(?:^|,)\s*(?:\*|cookie|authorization)\s*(?:,|$)/i.test(vary) ||
+    response.headers.has("set-cookie");
+}
+
+function isCacheableResponse(response, url) {
+  if (isSensitiveResponse(response) || (url && !hasExpectedMediaType(url, response))) return false;
+  // Public assets must be deliberately cacheable; an unrelated route that
+  // happens to serve .js and has no cache policy is not public by default.
+  const cacheControl = response.headers.get("cache-control") || "";
+  return /(?:^|,)\s*public\s*(?:,|$)/i.test(cacheControl);
+}
+
+function isPublicOfflineResponse(response) {
+  if (isSensitiveResponse(response)) return false;
+  const mediaType = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  // Only the explicitly public, generic /offline page is eligible. Other
+  // HTML routes keep no-store and never enter the service-worker cache.
+  const policy = response.headers.get("cache-control") || "";
+  return mediaType === "text/html" && /(?:^|,)\s*public\s*(?:,|$)/i.test(policy);
+}
+
+// A current public asset can become private, be removed or stop serving the
+// advertised MIME type. A no-store header does not evict older Cache API data.
+// Purge only on an authoritative response, never on a transient 5xx/429,
+// partial (206) revalidation or an offline network exception.
+function mustRevokePublicAsset(response, url) {
+  if (!response || isCacheableResponse(response, url)) return false;
+  return response.redirected || [200, 401, 403, 404, 410, 451].includes(response.status);
+}
+
+// Precache deliberately anonymous public resources. A worker installed while
+// someone is signed in must not store a cookie-personalized response, even if a
+// future public route forgets its Cache-Control header.
+async function precachePublicResource(cache, relativeUrl) {
+  const target = new URL(relativeUrl, self.location.origin);
+  if (relativeUrl !== OFFLINE_URL && !isPublicStaticRequest(target)) {
+    throw new Error("Unsafe asset configured for offline precache");
+  }
+  const request = new Request(target.href, {
+    credentials: "omit",
+    cache: "no-store",
+    redirect: "error"
+  });
+  const response = await fetch(request);
+  if (relativeUrl === OFFLINE_URL &&
+      !/(?:^|,)\s*public(?:\s*,|\s*$)/i.test(response.headers.get("cache-control") || "")) {
+    throw new Error("Offline fallback requires explicit public cache policy");
+  }
+  if (response.status !== 200 || !isCacheableResponse(response) || response.redirected ||
+      (response.url && new URL(response.url).origin !== self.location.origin)) {
+    throw new Error("Offline resource must be an anonymous public response");
+  }
+  if (!(relativeUrl === OFFLINE_URL ? isPublicOfflineResponse(response) : hasExpectedMediaType(target, response))) {
+    throw new Error("Offline resource returned an unexpected content type");
+  }
+  await cache.put(target.href, response);
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.add(OFFLINE_URL);
-      await Promise.allSettled(
-        PUBLIC_STAGE.filter((url) => url !== OFFLINE_URL).map((url) => cache.add(url))
-      );
-    })
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    // Validate the entire manifest before any network request or cache write.
+    if (ESSENTIAL_PUBLIC_STAGE.some((url) => !PUBLIC_STAGE.includes(url)) ||
+        PUBLIC_STAGE.some((url) => url !== OFFLINE_URL &&
+          !isPublicStaticRequest(new URL(url, self.location.origin)))) {
+      throw new Error("Unsafe asset configured for offline precache");
+    }
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      // A broken core installation must not replace a working offline shell.
+      for (const url of ESSENTIAL_PUBLIC_STAGE) {
+        await precachePublicResource(cache, url);
+      }
+      await Promise.allSettled(PUBLIC_STAGE
+        .filter((url) => !ESSENTIAL_PUBLIC_STAGE.includes(url))
+        .map((url) => precachePublicResource(cache, url)));
+    } catch (error) {
+      await caches.delete(CACHE_NAME);
+      throw error;
+    }
+  })());
+  // Do not force activation: existing tabs may still require old cache assets.
 });
 
 self.addEventListener("activate", (event) => {
@@ -84,7 +203,7 @@ self.addEventListener("activate", (event) => {
             .map((key) => caches.delete(key))
         )
       )
-      .then(() => self.clients.claim())
+
   );
 });
 
@@ -101,22 +220,46 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     if (!isPublicNavigation(url.pathname)) return;
     event.respondWith(
-      fetch(event.request, { cache: "no-store" }).catch(() => caches.match(OFFLINE_URL))
+      fetch(event.request, { cache: "no-store" }).catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(OFFLINE_URL)))
     );
     return;
   }
 
-  if (url.pathname === "/sw.js" || !STATIC_PATTERN.test(url.pathname)) return;
+  if (url.pathname === "/sw.js" || !isPublicStaticRequest(url, event.request)) return;
 
+  // Public static files must be identical for authenticated and anonymous
+  // callers. Fetch and key them without cookies or client certificates, even
+  // when the calling page uses the browser's default same-origin credentials.
+  // Never rely on reading Set-Cookie in a service worker: browsers can filter it.
+  const publicRequest = new Request(event.request, { credentials: "omit", cache: "no-cache", redirect: "error" });
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.match(event.request).then((cached) => {
-        const refresh = fetch(event.request)
-          .then((response) => {
-            if (isCacheableResponse(response)) cache.put(event.request, response.clone());
+      cache.match(publicRequest).then((cached) => {
+        // Revalidate the underlying HTTP cache even when a versioned asset
+        // has a long immutable lifetime. Otherwise CacheStorage might see
+        // only the browser's year-old 200 and never learn about a revocation.
+        // Conditional HTTP validation limits transfer when the asset is unchanged.
+        const refresh = fetch(publicRequest, { cache: "no-cache" })
+          .then(async (response) => {
+            if (isCacheableResponse(response, url)) {
+              // Cache failures must not hide a valid network response.
+              await cache.put(publicRequest, response.clone()).catch(() => {});
+            } else if (mustRevokePublicAsset(response, url)) {
+              // Do not continue serving an older public copy after a definite
+              // authorization, removal or MIME/cache-policy change.
+              await cache.delete(publicRequest).catch(async () => {
+                // If per-entry removal fails, evict the worker's own cache.
+                // Never touch other application-owned CacheStorage entries.
+                await caches.delete(CACHE_NAME).catch(() => {});
+              });
+            }
             return response;
           })
-          .catch(() => cached);
+          .catch((error) => { if (cached) return cached; throw error; });
+        // Keep the worker alive for revalidation and its CacheStorage write.
+        // A cached response remains immediate; a first download still waits
+        // for the persistence attempt, without turning an error into a 500.
+        event.waitUntil(refresh.then(() => {}, () => {}));
         return cached || refresh;
       })
     )

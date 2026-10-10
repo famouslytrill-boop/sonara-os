@@ -118,3 +118,57 @@ All existing mocked legacy Connect flows that intentionally exercise checkout no
 - Before collecting its **own SaaS subscription fees**, SONARA still needs accurate pricing, renewal/cancellation, refund, tax, consumer-protection, privacy, accessibility and security disclosures and genuine customer support. A no-custody software business has fewer financial risks; it is **not exempt from law**.
 
 **Status of code as of this draft:** fee-only is a fail-closed software default; only `connect_direct_reviewed` + `STRIPE_CONNECT_ENABLED=true` unlocks legacy Connect readiness. Sample env uses `external_only`. All money-feature changes are in an **unmerged GitHub draft PR** and have not been applied to deployment environments. In-flight seller checkouts, existing orders, and webhooks must be audited at cutover.
+
+
+## 2026-10-08 advanced low-budget payment-boundary review
+
+The prior fee-only work is now on `main`. The current hardening continuation is draft PR #552; it does not change production configuration or activate customer payments.
+
+### Why external-only remains the launch default
+
+For a low-budget software startup, the cleanest engineering boundary is still:
+
+`customer -> customer's chosen processor/account -> customer`
+
+and separately:
+
+`SONARA subscriber -> SONARA Stripe Billing -> SONARA software revenue`.
+
+SONARA may calculate amounts, create invoices/quotes, keep customer-owned ledgers, reconcile evidence, and store external references. In `external_only` mode it does not accept, hold, transmit, split, route, release, refund or pay out customer/merchant funds.
+
+This is risk reduction, **not a legal safe harbor**. FinCEN repeatedly states that money-transmitter status is facts-and-circumstances based. Its payment-processor rulings depend on specific conditions, including facilitating payment for goods/services, use of qualifying clearance/settlement systems, formal agreements, and acting at least for the seller/creditor. Another FinCEN ruling found money-transmitter status where a platform accepted/stored funds and let users release or withdraw them. Those distinctions support SONARA's product choice to avoid stored balances, wallets, escrow and general-purpose transfer instructions.
+
+### Stripe boundary
+
+Stripe documentation distinguishes payments made on connected accounts via direct charges from destination/separate-charge routing and also documents that responsibility for fees/negative balances depends on the connected-account configuration. Therefore:
+
+- direct charges can reduce the amount of customer money that enters the platform account;
+- direct charges do **not** prove SONARA has no regulatory, contractual, tax, consumer, dispute or loss responsibility;
+- application fees, destination routing, transfers and platform-managed payouts are intentionally outside low-budget launch scope;
+- the safest current option remains `external_only`; `connect_direct_reviewed` remains an explicitly funded/reviewed future mode, not the default.
+
+### New source-level release invariant
+
+Draft PR #552 adds a runtime source scan that fails if executable `lib/` or `routes/` code introduces:
+- `application_fee_amount`;
+- `transfer_data`;
+- `on_behalf_of`;
+- `source_transaction`;
+- Stripe Transfers API routing;
+- Stripe Payouts API routing.
+
+The scan strips comments before checking, so existing architecture explanations do not count as runtime behavior. Existing marketplace/storefront schema also rejects commission/application-fee columns.
+
+This is a regression tripwire, not proof that every possible payment-regulation theory has been eliminated.
+
+### Current authoritative starting points
+
+- FinCEN payment processor / ISO ruling: https://www.fincen.gov/resources/statutes-regulations/administrative-rulings/application-money-services-business
+- FinCEN stored/released funds platform ruling: https://www.fincen.gov/resources/statutes-regulations/administrative-rulings/whether-company-provides-online-real-time
+- Stripe Connect SaaS/payment model guidance: https://docs.stripe.com/connect/enable-payment-acceptance-guide
+- Stripe application fee API reference: https://docs.stripe.com/api/application_fees/object
+- CFPB stored payment-app funds issue spotlight: https://www.consumerfinance.gov/data-research/research-reports/issue-spotlight-analysis-of-deposit-insurance-coverage-on-funds-stored-through-payment-apps/full-report/
+
+### Practical startup rule
+
+If a feature requires SONARA to hold a customer balance, decide when someone else receives money, pool funds, split proceeds, lend/advance money, or represent itself as escrow/custodian, **do not ship it in the bootstrap product**. Replace it with calculation, recordkeeping, customer-owned provider links/accounts, and evidence/reconciliation until the company can afford jurisdiction-specific professional review.

@@ -6,7 +6,7 @@ describe("included generation periods", () => {
   it("supports legacy subscriptions and current Stripe item periods", () => {
     const expected = { ok: true, start: new Date(start * 1000).toISOString(), end: new Date(end * 1000).toISOString() };
     assert.deepEqual(subscriptionPeriod({ current_period_start: start, current_period_end: end }), expected);
-    assert.deepEqual(subscriptionPeriod({ items: { data: [{ current_period_start: start, current_period_end: end }] } }), expected);
+    assert.deepEqual(subscriptionPeriod({ items: { data: [{ current_period_start: start, current_period_end: end, price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false } }), expected);
     assert.deepEqual(subscriptionPeriod({ current_period_start: start, current_period_end: end, items: { data: [{ id: "legacy_item" }] } }), expected);
   });
   it("refuses mixed, missing, reversed, fractional and out-of-range periods", () => {
@@ -42,9 +42,15 @@ describe("verified Stripe periods reach generation billing", () => {
     const { createBilling } = require("../lib/sonara-billing.cjs");
     const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
     const writes = [], previous = global.fetch;
-    global.fetch = async (url, options) => { writes.push({ url, row: JSON.parse(options.body) }); return Response.json([]); };
+    global.fetch = async (url, options) => {
+      if (String(url).includes("/stripe_customers?")) return Response.json([
+        { stripe_customer_id: "cus_test", organization_id: "org-a", user_id: "user_test" }
+      ]);
+      writes.push({ url, row: JSON.parse(options.body) });
+      return Response.json([]);
+    };
     try {
-      const billing = createBilling({ STRIPE_PLANS, getEnv: () => "", getPublicAppUrl: () => "https://example.test", getSafeAbsoluteUrl: (v) => v,
+      const billing = createBilling({ STRIPE_PLANS, getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_FixtureWorkspace" : "", getPublicAppUrl: () => "https://example.test", getSafeAbsoluteUrl: (v) => v,
         getSupabaseServerConfig: () => ({ ok: true, url: "https://example.supabase.co", serviceRoleKey: "fixture-only" }), supabaseHeaders: () => ({}),
         safeCountTable: async () => ({ ok: true, count: 0 }), formatMetric: () => "", insertActivityEvent: async () => ({ ok: true }) });
       assert.equal((await billing.synchronizeBillingFromStripeEvent({ type: "customer.subscription.updated", created: start,

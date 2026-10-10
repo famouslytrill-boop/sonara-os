@@ -57,8 +57,16 @@
     return SCOPED_STORAGE_PREFIX + "." + organizationId + "." + userId;
   }
 
+  // Storage key fallback is intentionally NOT used for send/keep/pending.
+  // The legacy key remains reviewable and explicitly discardable only.
   function keyFor(options) {
     return scopeKey(options && options.scope) || STORAGE_KEY;
+  }
+
+  function matchesCaptureScope(body, scope) {
+    return Boolean(body && scope && scopeKey(scope) &&
+      String(body.capture_user_id || "").toLowerCase() === String(scope.userId || "").toLowerCase() &&
+      String(body.capture_organization_id || "").toLowerCase() === String(scope.organizationId || "").toLowerCase());
   }
 
   function read(storage, key) {
@@ -103,9 +111,11 @@
   // silently dropping the oldest, when the queue is full or storage is
   // unavailable: the person is told it was not kept.
   function keep(endpoint, body, options) {
-    if (endpoint !== "/api/location/events" || !body || !/^[0-9a-f-]{36}$/i.test(body.client_event_id || "")) {
+    if (!scopeKey(options && options.scope)) return { kept: false, reason: "scope_required" };
+    if (endpoint !== "/api/location/events" || !body || !UUID.test(body.client_event_id || "")) {
       return { kept: false, reason: "invalid_entry" };
     }
+    if (!matchesCaptureScope(body, options.scope)) return { kept: false, reason: "scope_mismatch" };
     var storage = storageOf(options);
     var key = keyFor(options);
     if (!storage) return { kept: false, reason: "no_storage" };
@@ -120,6 +130,7 @@
   }
 
   function pending(options) {
+    if (!scopeKey(options && options.scope)) return 0;
     return read(storageOf(options), keyFor(options)).length;
   }
 
@@ -127,11 +138,10 @@
     var body = item && item.body || {};
     var id = typeof body.client_event_id === "string" && UUID.test(body.client_event_id)
       ? body.client_event_id : source + ":" + index;
-    return Object.freeze({
-      id, source, reason,
-      capturedAt: typeof body.captured_at === "string" ? body.captured_at : null,
-      eventType: typeof body.event_type === "string" ? body.event_type : "check_in"
-    });
+    // Legacy records can belong to another person who previously used this
+    // browser. Do not disclose their capture time or event type merely because
+    // the current signed-in user can review and discard stale local data.
+    return Object.freeze({ id, source, reason, capturedAt: null, eventType: "check_in" });
   }
 
   // Legacy and scope-blocked records are inspectable but never silently moved
@@ -212,7 +222,14 @@
     var key = keyFor(options);
     var send = (options && options.fetch) || root.fetch;
     var now = options && options.now !== undefined ? options.now : Date.now();
-    var result = { sent: 0, duplicates: 0, refused: 0, expired: 0, waiting: 0, authenticationRequired: false, storageFailed: false };
+    var result = { sent: 0, duplicates: 0, refused: 0, expired: 0, waiting: 0, authenticationRequired: false, storageFailed: false, scopeRequired: false };
+    // A missing/invalid scope previously fell back to the legacy v1 key and
+    // could send someone else's location after account switching. That key is
+    // now review/discard only; never run network requests with no valid identity.
+    if (!scopeKey(options && options.scope)) {
+      result.scopeRequired = true;
+      return Promise.resolve(result);
+    }
     if (!storage || typeof send !== "function") return Promise.resolve(result);
     var runs = activeFlushes.get(storage);
     if (!runs) { runs = new Map(); activeFlushes.set(storage, runs); }
@@ -235,11 +252,11 @@
       if (!queue.length) { result.waiting = read(storage, key).length; return Promise.resolve(result); }
       var item = queue[0];
       var scope = options && options.scope;
-      // Legacy entries with an employee id can be retried only from that
-      // employee's page. Newly captured entries also bind user and workspace.
-      if (scope && ((item.body.employee_id && item.body.employee_id !== scope.employeeId)
-          || (item.body.capture_user_id && String(item.body.capture_user_id).toLowerCase() !== String(scope.userId).toLowerCase())
-          || (item.body.capture_organization_id && String(item.body.capture_organization_id).toLowerCase() !== String(scope.organizationId).toLowerCase()))) {
+      // A partial or missing capture identity must fail closed too. The legacy
+      // queue can be reviewed but must never be silently associated with today's
+      // session. The server independently compares these fields with session.
+      if (!item || !matchesCaptureScope(item.body, scope) ||
+          (item.body.employee_id && item.body.employee_id !== scope.employeeId)) {
         result.authenticationRequired = true;
         result.waiting = read(storage, key).length;
         return Promise.resolve(result);

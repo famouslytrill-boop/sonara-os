@@ -17,27 +17,32 @@ const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.
 // studio" and three per-studio cards each naming their two by hand, and every
 // one of those went stale the day the free set changed.
 const { FREE_TOOL_COUNT, freeToolSentence, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
+const { createPlatformJobWorkerRepository } = require("../lib/sonara-platform-job-worker.cjs");
+const {
+  createIntegrationReadinessService,
+  readIntegrationReadinessActivationConfig
+} = require("../lib/sonara-integration-readiness.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
     title: "Getting started",
     body: "Create an account, choose the product that matches the work in front of you, create a workspace, and run one free tool before considering a paid plan.",
-    steps: ["Create or sign in to your account.", "Create your organization and workspace.", "Choose Business Builder, Creator Studio, or Growth Studio.", "Run a free tool and review the generated output.", "Upgrade only when you need saved history, advanced workflows, or operator delivery."]
+    steps: ["Create or sign in to your account.", "Review your account security settings, and do not share passwords or recovery codes.", "Create your organization and workspace; give other people only the permissions they need.", "Choose Business Builder, Creator Studio, or Growth Studio.", "Run a clearly labeled free tool and review the generated output.", "Upgrade only when you need saved history or advanced workflows; confirm access before proceeding.", "Use Help and Contact if an action is blocked or does not save."]
   },
   "/tutorials/business-builder": {
     title: "Business Builder tutorial",
     body: "Move from an offer idea to an operating business without filling an empty dashboard first.",
-    steps: ["Describe the customer problem and first offer.", "Use the pricing and setup tools to test the offer.", "Create the workspace records you actually need.", "Track requests, customers, and operational follow-up.", "Use paid records only after billing access is verified."]
+    steps: ["Describe the customer problem and first offer.", "Use the pricing and setup tools to test the offer.", "Create only the workspace records you actually need, and restrict employee and customer access.", "Track requests, customers, and operational follow-up.", "Verify payment-provider readiness and permissions before accepting money.", "Use paid records only after billing access is verified; use Help when an action is unavailable."]
   },
   "/tutorials/creator-studio": {
     title: "Creator Studio tutorial",
     body: "Organize a creative system from the story and asset plan through release and delivery.",
-    steps: ["Create a creator profile outline.", "Build an asset and release checklist.", "Turn the core idea into a content brief.", "Track rights, releases, and deliverables in the creator workspace.", "Request operator review when the project needs hands-on delivery."]
+    steps: ["Create a creator profile outline.", "Build an asset and release checklist.", "Turn the core idea into a content brief.", "Confirm ownership, usage rights, consent and sharing permissions before uploading or publishing media.", "Track rights, releases, and deliverables in the creator workspace.", "Review all outbound/publication actions before approval and contact support when a delivery is blocked."]
   },
   "/tutorials/growth-studio": {
     title: "Growth Studio tutorial",
     body: "Run focused, consent-aware growth work with clear goals and review dates.",
-    steps: ["Choose one measurable campaign outcome.", "Create a campaign outline and offer angle.", "Prepare a consent-safe follow-up script.", "Track leads and the next responsible action.", "Review the signal before expanding the campaign."]
+    steps: ["Choose one measurable campaign outcome.", "Create a campaign outline and offer angle.", "Check each recipient’s consent and the sender’s verified email configuration before outreach.", "Prepare a follow-up message and review it before sending; honor opt-outs and suppressions.", "Track only the lead records your role and organization can access.", "Review delivery, bounce and campaign signals before expanding; contact support if delivery is uncertain."]
   }
 };
 
@@ -63,7 +68,9 @@ function registerRouteRegistryRoutes(app, deps) {
     displayStatus,
     accountNoticeCard,
     logoutAction,
-    safeListTable
+    safeListTable,
+    createRateLimiter,
+    getEnv
   } = deps;
 
   // Fall back to a pass-through so partially-wired callers (tests) still boot.
@@ -77,6 +84,25 @@ function registerRouteRegistryRoutes(app, deps) {
   // have animated /account/security along with /products.
   const sendMarketingPage = (res, input) => sendPage(res, { ...input, surface: "marketing" });
   const setupMessage = "This feature works, but saving needs your records connected by an administrator first.";
+
+  const platformJobs = createPlatformJobWorkerRepository({ getSupabaseServerConfig });
+  const integrationReadiness = createIntegrationReadinessService({
+    getSupabaseServerConfig,
+    platformJobs
+  });
+  const integrationProbeLimiter = typeof createRateLimiter === "function"
+    ? createRateLimiter({
+        name: "integrations.readiness_probe",
+        windowSeconds: 60,
+        maxAttempts: 12,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig
+      })
+    : passThrough;
+  const activationConfig = () => readIntegrationReadinessActivationConfig((name) =>
+    typeof getEnv === "function" ? getEnv(name) : process.env[name]
+  );
 
   app.get("/api/routes/public", (req, res) => {
     return res.status(200).json({
@@ -209,7 +235,7 @@ function registerRouteRegistryRoutes(app, deps) {
         ...tutorial.steps.map((step, index) => brandCard(`Step ${index + 1}`, step)),
         ...getGuide(route).map(([heading, detail]) => brandCard(heading, detail))
       ],
-      actions: [linkAction("/tutorials", "All tutorials"), linkAction("/start", "Start"), linkAction("/help", "Get help")]
+      actions: [linkAction("/tutorials", "All tutorials"), linkAction("/start", "Start"), linkAction("/help", "Get help and FAQs"), linkAction("/account/security", "Account security"), linkAction("/privacy", "Privacy"), linkAction("/contact", "Contact support")]
     }));
   }
 
@@ -383,14 +409,105 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/account/integrations", requireCustomer, async (req, res) => {
     const services = (await getLiveReadiness()).services || {};
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    const activation = activationConfig();
+    const scopedCanary = organization.ok
+      && activation.ok
+      && activation.allowed
+      && activation.organizationId === organization.organizationId;
+    let state = { ok: false, code: "organization_unavailable", providers: [], connections: [], jobs: [] };
+    if (organization.ok) {
+      try {
+        state = await integrationReadiness.list({ organizationId: organization.organizationId, limit: 20 });
+      } catch {
+        state = { ok: false, code: "integration_state_unreadable", providers: [], connections: [], jobs: [] };
+      }
+    }
+
+    const connectionByProvider = new Map((state.connections || []).map((row) => [row.provider_key, row]));
+    const providerSections = state.ok
+      ? state.providers.map((provider) => {
+          const connection = connectionByProvider.get(provider.provider_key);
+          const connectionStatus = connection?.connection_status || "not connected";
+          const button = scopedCanary
+            ? `<form method="post" action="/api/integrations/readiness-probes"><input type="hidden" name="provider_key" value="${escapeHtml(provider.provider_key)}"><input type="hidden" name="request_id" value="${escapeHtml(integrationReadiness.newRequestId())}"><button type="submit">Check readiness</button></form>`
+            : "";
+          return `<article class="card"><h2>${escapeHtml(provider.name)}</h2><p>${escapeHtml(provider.category)} · provider ${escapeHtml(provider.status)} · ${escapeHtml(connectionStatus)}</p>${button}</article>`;
+        })
+      : [brandCard("Provider state unavailable", "Your provider catalog or connection state could not be read. This does not mean your providers are disconnected.")];
+
+    const jobSections = state.ok && state.jobs.length
+      ? state.jobs.map((job) => brandCard(
+          `${job.provider_key}: ${job.status}`,
+          job.status === "completed"
+            ? `Readiness: ${job.readiness}.`
+            : job.error_code
+              ? `The check did not finish: ${job.error_code}.`
+              : "The readiness check has not reached a terminal result yet."
+        ))
+      : !state.ok
+        ? [brandCard("Readiness history unavailable", "We could not read your previous readiness checks. Please try again shortly.")]
+        : [brandCard("No readiness checks yet", scopedCanary
+          ? "Use Check readiness on a provider above. This reads SONARA's connection state only; it does not call or change the external provider."
+          : "Provider checks remain disabled unless an explicit one-organization canary is enabled.")];
+
+    const workerStatus = !activation.ok
+      ? "The readiness worker configuration is invalid, so no provider job can be queued."
+      : scopedCanary
+        ? "Read-only readiness canary enabled for this organization."
+        : activation.enabled
+          ? "The readiness worker is enabled for a different canary organization."
+          : "The readiness worker is off. No provider job will be queued.";
+
     return sendPage(res, {
       title: "Integrations",
       eyebrow: "Your account",
       heading: "Connected services",
-      body: "Customer-safe availability labels only. Provider credentials and internal diagnostics are visible only to administrators.",
-      sections: [brandCard("Account database", displayStatus(services.supabase || "missing")), brandCard("Payment connection", displayStatus(services.stripe || "missing")), brandCard("Email delivery", displayStatus(services.emailDelivery || "missing")), brandCard("Google sign-in", displayStatus(services.googleSignIn || "missing"))],
+      body: "Provider and connection status only. Credentials, tokens, connection settings, and internal diagnostics are never rendered here.",
+      sections: [
+        brandCard("Account database", displayStatus(services.supabase || "missing")),
+        brandCard("Payment connection", displayStatus(services.stripe || "missing")),
+        brandCard("Email delivery", displayStatus(services.emailDelivery || "missing")),
+        brandCard("Google sign-in", displayStatus(services.googleSignIn || "missing")),
+        brandCard("Readiness worker", workerStatus),
+        ...providerSections,
+        ...jobSections
+      ],
       actions: [linkAction("/account", "Account"), linkAction("/support", "Get help")]
     });
+  });
+
+  app.post("/api/integrations/readiness-probes", requireCustomer, integrationProbeLimiter, async (req, res) => {
+    const respond = (status, payload) => {
+      if (wantsJson(req)) return res.status(status).json(payload);
+      const query = payload.ok
+        ? "?probe=queued"
+        : `?problem=${encodeURIComponent(payload.code || "not_queued")}`;
+      return res.redirect(303, `/account/integrations${query}`);
+    };
+
+    const activation = activationConfig();
+    if (!activation.ok) return respond(503, { ok: false, code: activation.reason || "worker_configuration_invalid" });
+    if (!activation.allowed) return respond(403, { ok: false, code: "readiness_worker_disabled" });
+
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) return respond(403, { ok: false, code: "organization_unavailable" });
+    if (organization.organizationId !== activation.organizationId) {
+      return respond(403, { ok: false, code: "readiness_canary_scope_mismatch" });
+    }
+
+    let result;
+    try {
+      result = await integrationReadiness.enqueueProbe({
+        organizationId: organization.organizationId,
+        userId: req.sonaraUser?.id || null,
+        providerKey: req.body.provider_key,
+        requestId: req.body.request_id
+      });
+    } catch {
+      return respond(400, { ok: false, code: "validation_failed" });
+    }
+    return respond(result.ok ? 202 : result.code === "worker_queue_unavailable" ? 503 : 400, result);
   });
 
   app.get("/notifications", requireCustomer, async (req, res) => {

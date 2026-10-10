@@ -4,6 +4,7 @@
 
 const { createHash, randomUUID } = require("node:crypto");
 const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
+const { permissionsPolicyFor } = require("../lib/sonara-permissions-policy.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getProvider,
@@ -595,7 +596,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
 
   app.get("/creator-studio/generation", access, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (context.ok) res.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self), payment=(self)");
+    if (context.ok) res.set("Permissions-Policy", permissionsPolicyFor("creator_generation"));
     const config = getConfig(deps);
     let project = null;
     if (req.query.project !== undefined) {

@@ -10,7 +10,7 @@
 //   POST /account/profile/picture/remove
 //   GET  /account/profile/picture      a short-lived signed link to your own
 //   GET  /account/permissions          camera, microphone, contacts, location,
-//                                      this device's processor, a local copy
+//                                      motion, this device's processor, a local copy
 //   POST /account/permissions          record a decision
 //
 // ## What replaced what

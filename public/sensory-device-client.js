@@ -123,13 +123,24 @@
 
   async function requestMotionPermission() {
     const caps = supports();
-    if (!caps.deviceMotion && !caps.deviceOrientation) return { ok: false, reason: "unsupported" };
+    if (!caps.deviceMotion) return { ok: false, reason: "unsupported" };
 
     try {
       if (window.DeviceMotionEvent && typeof window.DeviceMotionEvent.requestPermission === "function") {
         const motion = await window.DeviceMotionEvent.requestPermission();
         if (motion !== "granted") return { ok: false, reason: "motion_denied" };
       }
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: "failed", message: error.message };
+    }
+  }
+
+  async function requestOrientationPermission() {
+    const caps = supports();
+    if (!caps.deviceOrientation) return { ok: false, reason: "unsupported" };
+
+    try {
       if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission === "function") {
         const orientation = await window.DeviceOrientationEvent.requestPermission();
         if (orientation !== "granted") return { ok: false, reason: "orientation_denied" };
@@ -209,6 +220,7 @@
     getCurrentLocation,
     watchLocation,
     requestMotionPermission,
+    requestOrientationPermission,
     listenOrientation,
     listenMotion
   };
