@@ -52,6 +52,32 @@ describe("release workflows test the commit they approve", () => {
     });
   }
 
+  it("records evidence against the checked-out commit rather than pull-request merge GITHUB_SHA", () => {
+    const engineering = fs.readFileSync(
+      path.join(ROOT, ".github", "workflows", "engineering-intelligence-security.yml"),
+      "utf8"
+    );
+    assert.doesNotMatch(engineering, /--commit-sha "\$\{GITHUB_SHA\}"/);
+    assert.doesNotMatch(engineering, /--commit "\$\{GITHUB_SHA\}"/);
+    assert.match(engineering, /exact_head="\$\(git rev-parse HEAD\)"/);
+
+    const scans = fs.readFileSync(
+      path.join(ROOT, ".github", "workflows", "open-source-security-scans.yml"),
+      "utf8"
+    );
+    assert.doesNotMatch(scans, /exactHead:\s*process\.env\.GITHUB_SHA/);
+    assert.match(scans, /EXACT_HEAD="\$\(git rev-parse HEAD\)"/);
+
+    const replay = fs.readFileSync(
+      path.join(ROOT, ".github", "workflows", "native-migration-replay.yml"),
+      "utf8"
+    );
+    assert.match(
+      replay,
+      /native-migration-replay-node-\$\{\{ matrix\.node \}\}-postgres-\$\{\{ matrix\.postgres \}\}-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/
+    );
+  });
+
   it("does not mistake separately pinned tool repositories for SONARA checkouts", () => {
     const source = fs.readFileSync(
       path.join(ROOT, ".github", "workflows", "engineering-intelligence-security.yml"),

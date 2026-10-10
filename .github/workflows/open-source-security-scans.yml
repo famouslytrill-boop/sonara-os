@@ -341,9 +341,9 @@ jobs:
           OPENVOICE_OUTCOME: ${{ steps.osv_openvoice.outcome }}
           HISTORY_OUTCOME: ${{ steps.gitleaks_history.outcome }}
         run: |
-          node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
+          EXACT_HEAD="$(git rev-parse HEAD)" node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
           const summary = {
-            exactHead: process.env.GITHUB_SHA,
+            exactHead: process.env.EXACT_HEAD,
             sourceUpload: false,
             rawSecretReportPersisted: false,
             blockingScanners: {

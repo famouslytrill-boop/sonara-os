@@ -128,9 +128,10 @@ jobs:
         shell: bash
         run: |
           branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          exact_head="$(git rev-parse HEAD)"
           node scripts/generate-engineering-intelligence.mjs \
             --repository "${GITHUB_REPOSITORY}" \
-            --commit-sha "${GITHUB_SHA}" \
+            --commit-sha "${exact_head}" \
             --branch "${branch}" \
             --base-branch "${GITHUB_BASE_REF:-}" \
             --output artifacts/engineering/repository-analysis.json
@@ -285,11 +286,12 @@ jobs:
         if: always()
         shell: bash
         run: |
+          exact_head="$(git rev-parse HEAD)"
           node scripts/generate-release-evidence.mjs \
             --source artifacts \
             --output-dir artifacts/release-evidence \
             --repository "${GITHUB_REPOSITORY}" \
-            --commit-sha "${GITHUB_SHA}" \
+            --commit-sha "${exact_head}" \
             --ref "${GITHUB_REF}" \
             --event-name "${GITHUB_EVENT_NAME}" \
             --run-id "${GITHUB_RUN_ID}" \
@@ -318,6 +320,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          exact_head="$(git rev-parse HEAD)"
           node scripts/verify-release-evidence-integrity.mjs --self-test
           node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json
-          node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "${GITHUB_SHA}"
+          node scripts/verify-release-evidence-integrity.mjs --check artifacts/release-evidence/manifest.json --source artifacts --commit "${exact_head}"
