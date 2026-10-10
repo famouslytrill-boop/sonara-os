@@ -174,3 +174,43 @@ GitHub Actions inspection of the exact PR branch showed all substantive check ru
 2. Run `pnpm install --frozen-lockfile`, `pnpm audit --audit-level moderate`, `pnpm run typecheck`, `pnpm run lint`, `pnpm test`, `pnpm run build` with current Node 24 and appropriate blocking compatibility matrix.
 3. Review the source evidence packet against W3C/NIST research requirements, actual publisher terms, and existing SONARA registries. Stop before claiming publication rights or independent publisher diversity.
 4. Merge through protected branch governance only when all required checks and approvals pass. Production deployment remains a separate controlled authorization and may remain offline.
+
+## Phase 5: research-to-formula evaluation planning (2026-10-09)
+
+### Why the existing engine is reused
+
+SONARA already has a canonical deterministic execution layer at `lib/sonara-formula-engine.cjs`. Inspecting that module at the current base showed **40 executable registered formulas** with explicit allowlisted handlers, a version, expressions, assumptions, and explicit numerical input checks. The new `planResearchFormulaEvaluation(request)` function **calls only `listExecutableFormulas()` for metadata**. It does not import a third-party expression interpreter, execute formulas, evaluate customer data, fetch URLs, mutate records, or authorize providers.
+
+**User story:** An operator researching menu costing, supplier inventory, production capacity, or media editing first assembles citations under a single claim ID. The planner matches that claim to an already-implemented SONARA formula, exposes the domain, expression, assumptions, and a unit-consistency warning, and refuses to present that plan as an independently verified computation.
+
+| Existing executable formula | SONARA product | Planning/measurement boundary |
+| --- | --- | --- |
+| `recipe_cost` | Business Builder | Normalize ingredient quantity, cost units, and usable yield |
+| `food_cost_pct` | Business Builder | Same currency and serving basis for numerator and menu price |
+| `eoq` | Business Builder | Units/year, currency/order, currency/unit/year must agree |
+| `reorder_point` | Business Builder | Lead-time demand and safety stock use a common item and time basis |
+| `takt_time` | Business Builder | Available production time and required output share the same window |
+| `little_law` | Business Builder | Stable queue; throughput rate and cycle time use reciprocal time units |
+| `pert_expected` | Business Builder | Three duration estimates share a unit and are not guaranteed outcomes |
+| `audio_beat_alignment` | Creator Studio | Beat tolerance and eligible edit-point count are explicitly defined |
+| `video_pacing` | Creator Studio | Average shot duration needs units and shot-length distribution |
+
+These are **research-plan allowlist entries**, not new formulas. Existing `campaign_roi`, `security_risk` and every unlisted executable key remain unavailable through this planning entry point, even if executable elsewhere in SONARA. The calculation handlers and their numerical tests remain solely owned by the existing formula engine.
+
+### Controls and source methodology
+
+- A plan has one validated `claimId`, one formula on the allowlist, at most 100 claim-matched evidence receipts, and an explicit review date. Mixed-claim evidence and all unknown fields—including `inputs` or personal customer data—are rejected.
+- `auditEvidencePacket` is reused to propagate contradiction, staleness, invalid intake and no-evidence states. Even a normal observation produces `human_source_review_required`, not 'approved'.
+- The returned formula name, expression, domain, version and assumptions come from `listExecutableFormulas()` in SONARA, not a second formula catalog; local planning rules only add static unit-boundary notes.
+- Output always sets `evidenceIndependentlyVerified`, `inputsVerified`, `formulaEvaluated`, `canUseForCustomerDecisions`, `productionAuthorized` and `publicationAuthorized` to **false**.
+- No formula numbers or source text are written to a database. The tool is a planning blueprint and **not yet an authenticated Research Lab UI or tenant-isolated runtime**.
+- Reference standards: NIST *Guide to the Expression of Uncertainty in Measurement* (https://www.nist.gov/publications/guide-expression-uncertainty-measurement) emphasizes rigor when reporting quantities; W3C PROV-O (https://www.w3.org/TR/prov-o/) documents evidence lineage concepts; OWASP Input Validation (https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html) requires both syntactic and semantic checks. This implementation does not assert compliance with any of these standards.
+
+### Test evidence and release gates
+
+At the Phase 5 commit, **29/29 source-linked targeted JavaScript assertions** passed in a V8 harness with the actual committed formula-engine/industry-registry metadata, but a simulated URL constructor and stubbed cryptographic hash constructor. Thus this is *not* actual Node 24, mocha, pnpm, database, deployment, or independent security evidence.
+
+The next release requirement remains:
+1. Confirm why GitHub required jobs are queued before further reruns. Inspect runner scheduling, Actions permissions, billable minutes, queue policy and capacity as applicable using authorized repository administration, without bypassing branch protection.
+2. Obtain actual exact-head Node 24 test, lint, typecheck, build, migration replay, dependency scan and security results. Investigate any real failure and revalidate after every commit.
+3. Only then consider a separate authenticated read-only Research Lab integration with explicit tenant authorizations, reviewer identity, timestamped attestations and provider-rights records. A self-reported URL, shared-host count, or consent checkbox must not be treated as a verified fact or an authorization to calculate from customer data.
