@@ -170,6 +170,29 @@ Current Supabase API keys include low-privilege `sb_publishable_` keys and eleva
 
 Regression coverage now includes branded vs cloned capabilities, token-safe standard JSON serialization, authorization to the exact requested tenant/user/table, legacy and publishable API keys, blocking of secret-key aliases, and the earlier 35 learning/privacy/governance tests. The focused **43-case isolated JavaScript harness** is not a full Node 24, lint, Mocha, browser, database or CI run.
 
+## Stage 7: observed two-tenant RLS checks (read-only, not production-wired)
+
+The earlier `requireVerifiedUserScopedRead()` accepted caller-supplied `liveProof` Boolean fields. Even though it issued a module-private branded read capability, **any trusted-process caller could mint a valid capability with a fabricated proof object**. Brand checking alone does not establish evidence origin.
+
+The new `createUserScopedRlsReadinessVerifier({ inspectTableSecurity, readExactRow })` returns an asynchronous, strictly read-only verification process. A successful run now requires, in this exact sequence:
+
+1. Two distinct, server-selected organization IDs, user IDs, JWT access tokens and known, seeded, distinct row IDs. Scope and timestamp inputs are validated; no secrets are serialized into proof results.
+2. Trusted `inspectTableSecurity({table})` evidence indicating table grants, enabled RLS, and source verification.
+3. Positive probe: **user A's own JWT** reads the known row A, and its ID and `organization_id` match.
+4. Negative probe: user A's JWT receives **zero rows** querying known row B **by its ID alone**.
+5. Positive probe: user B's JWT reads known row B and its organization matches.
+6. Negative probe: user B's JWT receives **zero rows** querying known row A **by its ID alone**.
+
+**The `readExactRow` adapter MUST NOT add `organization_id` filtering, because a filter would make a cross-tenant test pass even if RLS were broken.** It must send the selected user's JWT with a low-privilege publishable/anon key (not service-role), use an exact-row read-only query, and return only the minimal checked result; do not record credentials, actual customer rows or private identifiers in published logs.
+
+Failure to find an own-tenant row, an erroneous negative/positive result, a mismatched row/tenant, missing privilege proof, provider exception, future timestamp, or non-distinct user/tenant fixtures causes a generic rejection. Successful verification creates a **module-private branded proof** (not caller-provided booleans), which `requireVerifiedUserScopedRead` requires before constructing a branded, user-scoped GET capability. Copies/JSON clones of either proof or read capability are rejected.
+
+**Important remaining limitation:** The verifier still uses **injected callbacks**. Its focused tests mock all responses; a malicious or wrongly implemented server callback can synthesize the expected four observations. There is no active REST route, real project probe, real JWT validation, real database, seeded tenant fixtures or production migration in this PR. A production proof requires independently authenticated, live two-tenant test accounts and controlled access to the verified target database, plus a source identity and migration/grant/RLS reconciliation. The proof is a point-in-time check, not a durable authorization guarantee; authenticated scope and consent must be checked on every request and again before consequential actions.
+
+The design follows Supabase's documented separation between table grants (object privileges) and RLS row filtering, and its documented service-role bypass. It is not evidence of live compliance: https://supabase.com/docs/guides/database/postgres/row-level-security
+
+**Current isolated verification:** 45 focused JavaScript tests passed against branch-fetched modules, including tested fixture-positive and fixture-denial paths; full pnpm/Node24 test, browser, migration, external API and staging RLS runs remain outstanding. All learning and self-coding results are still proposals only.
+
 ## User experience and product scope
 
 | Product | Initial safe learning output | Not automatically allowed |
