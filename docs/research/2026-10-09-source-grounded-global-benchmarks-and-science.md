@@ -246,3 +246,31 @@ The existing research test file now has **34 targeted Mocha test definitions** (
 1. Inspect GitHub **Actions** runner assignment, usage/limits/billing, workflow permissions and concurrency policy for the queued run. Do not assume a specific cause; record actual job-level error or runner start evidence.
 2. Inspect **Settings → Branches / Rulesets** with administrative authorization. Require protected main, approved reviews, and uniquely named exact-head checks from the expected GitHub App; block bypass, force-push and deletion where applicable. GitHub documentation: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches and https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks.
 3. Only when runners execute: verify full Node 24 suite, pnpm lockfile install, route and security scans, PostgreSQL/RLS replay, and consumer/payment isolation. Re-evaluate all required checks on the **exact new head SHA** after any change; perform owner-reviewed merge and separate staged deployment with post-deploy rollback evidence.
+
+## Phase 7: read-only GitHub Actions queue diagnostics (2026-10-09)
+
+**Why:** GitHub status history confirms October 5 and 7 Actions disruptions but no published October 9 incident (https://www.githubstatus.com/). SONARA's inspected check runs and `ubuntu-latest` workflow jobs are still queued. A global incident, runner quota, billing, permissions, repository backlog, or GitHub-internal provisioning issue cannot be inferred from that fact alone. Avoid repeat-triggering new workflow runs; do not disable blocking checks.
+
+**Implemented files:**
+
+- `lib/sonara-actions-queue-diagnostic.cjs` — pure, bounded, offline analyzer for an exact commit SHA, a caller-dated snapshot of GitHub check-runs, workflow runs, and jobs; returns sanitized counts, explicit issue codes, and no claimed root cause or release permission.
+- `tests/sonara-actions-queue-diagnostic.test.js` — deterministic adverse cases covering all queued, wrong commit, all-success-but-unverified, skipped-only, zero evidence, failures, invalid timestamps, future workflow dates, stale queued workflow age, and hidden private fields.
+- `scripts/report-actions-queue.cjs` — offline CLI consuming **one locally prepared JSON snapshot**, with a 2 MB size cap, simple exit codes and safe error messages. It makes no API calls, has no GitHub token access and does not rerun/cancel/approve/deploy.
+
+**Run manually in an authorized SONARA checkout:**
+
+```sh
+node scripts/report-actions-queue.cjs ./local-untracked/actions-snapshot.json
+# 0 = no observed blockers (NOT release-approved)
+# 1 = release evidence blocked
+# 2 = malformed/missing snapshot
+pnpm exec mocha --config .mocharc.targeted.json tests/sonara-actions-queue-diagnostic.test.js --reporter dot
+```
+
+**Snapshot shape:** `{"headSha":"<40 hex characters>","observedAt":"2026-10-10T02:50:00Z","checkRuns":[{"head_sha":"<matching SHA>","status":"queued","conclusion":null}],"workflowRuns":[{"head_sha":"<matching SHA>","status":"queued","created_at":"2026-10-10T02:20:00Z"}],"jobs":[{"status":"queued","runner_name":null,"started_at":null}]}`. The literal SHA placeholder is explanatory and must be replaced. Acquire check-runs at `GET /repos/{owner}/{repo}/commits/{sha}/check-runs`, workflow runs at `GET /repos/{owner}/{repo}/actions/runs/{run_id}`, and jobs at `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs`, from an authorized GitHub CLI or REST session. Create a **sanitized and untracked** JSON file with only these fields; never commit API responses, credentials, customer data, authorization headers or secrets.
+
+The job API can omit a job creation timestamp; age analysis uses a workflow's `created_at` only as **workflow-age evidence** and never pretends it is the individual job's runner wait. All timestamps remain caller supplied. A report with all check runs successful still cannot verify required-check coverage, branch protection, account authorization, migration safety, or production readiness.
+
+**Validation actually executed:** Nine targeted test cases passed in **native Node 22.16.0** in the current tool environment via a minimal synchronous `describe/it` driver (not installed Mocha or the full SONARA repository). Git blob hashes for the source and tests match the local Node-tested files exactly. The standalone CLI was also exercised against a locally constructed queued-job fixture and returned exit code 1 with no secrets or root-cause claim. Official Node 24/pnpm full-suite tests remain pending.
+
+**Operational next step:** An authorized repository administrator must inspect runner account/billing quota and Actions usage, allowed workflows and concurrency groups, branch protection (integration's protection read returned 403), and raise a GitHub Support case with the queued run IDs if local restrictions do not explain them. The changes in this PR do not attempt to change those permissions.
