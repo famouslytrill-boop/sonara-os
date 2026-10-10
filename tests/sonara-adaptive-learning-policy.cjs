@@ -246,7 +246,8 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
       { series: [] },
       { trustedToday: "2026-10-04" },
       { trustedToday: "2026-11-11" },
-      { trustedToday: "2026-02-30" }
+      { trustedToday: "2026-02-30" },
+      { trustedToday: "9999-12-31" }
     ]) {
       const result = forecastDailyAggregate({ ...forecastValid, ...invalid });
       assert.equal(result.state, "blocked", JSON.stringify(invalid).slice(0, 90));
