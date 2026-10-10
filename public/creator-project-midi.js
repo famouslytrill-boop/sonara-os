@@ -97,8 +97,60 @@
     return output;
   }
 
+  // SMF Format 1: conductor tempo track plus distinct channel/note tracks.
+  // Composes MIDI note-event streams using the already tested Format 0 encoder.
+  function writeMidiFormat1(input = {}) {
+    const bpm = integer(input.bpm, "Tempo BPM", 40, 240);
+    const tracks = input.tracks;
+    if (!Array.isArray(tracks) || !tracks.length || tracks.length > 4) {
+      throw new TypeError("Choose one to four named MIDI tracks.");
+    }
+    let totalNotes = 0;
+    const channels = new Set(), names = new Set();
+    const tempoSource = writeMidi({ bpm, channel: 1, notes: "C4,0,1,1" });
+    const endMarker = [0, 0xff, 0x2f, 0];
+    const conductor = [...tempoSource.slice(22, 29), ...endMarker];
+    const chunks = [conductor];
+    for (const track of tracks) {
+      if (!track || typeof track !== "object" || typeof track.name !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9 _-]{0,31}$/.test(track.name)) {
+        throw new TypeError("Track names must be 1–32 ASCII letters, digits, spaces, underscores or hyphens.");
+      }
+      if (names.has(track.name.toLowerCase())) throw new TypeError("Use unique MIDI track names.");
+      names.add(track.name.toLowerCase());
+      const channel = integer(track.channel, "MIDI channel", 1, 16);
+      if (channels.has(channel)) throw new TypeError("Use distinct MIDI channels for independent tracks.");
+      channels.add(channel);
+      const notes = typeof track.notes === "string" ? parseNotes(track.notes) : track.notes;
+      if (!Array.isArray(notes)) throw new TypeError("Each MIDI track needs explicit note rows.");
+      totalNotes += notes.length;
+      if (!notes.length || totalNotes > MAX_NOTES) throw new TypeError("Provide at most 128 total notes across all tracks.");
+      const framed = writeMidi({ bpm, channel, notes });
+      // The Format 0 stream starts with seven tempo bytes and ends with four
+      // End-of-Track bytes; omit only those framing events, never note deltas.
+      const nameBytes = [...track.name].map((c) => c.charCodeAt(0));
+      chunks.push([0, 0xff, 0x03, nameBytes.length, ...nameBytes,
+        ...framed.slice(29, framed.length - 4), ...endMarker]);
+    }
+    const size = 14 + chunks.reduce((n, chunk) => n + 8 + chunk.length, 0);
+    if (size > 65536) throw new TypeError("Multitrack MIDI file exceeds the output budget.");
+    const output = new Uint8Array(size), view = new DataView(output.buffer);
+    const tag = (offset, word) => {
+      for (let i = 0; i < word.length; i++) output[offset + i] = word.charCodeAt(i);
+    };
+    tag(0, "MThd"); view.setUint32(4, 6); view.setUint16(8, 1);
+    view.setUint16(10, chunks.length); view.setUint16(12, PPQ);
+    let at = 14;
+    for (const chunk of chunks) {
+      tag(at, "MTrk"); view.setUint32(at + 4, chunk.length);
+      output.set(chunk, at + 8);
+      at += 8 + chunk.length;
+    }
+    return output;
+  }
+
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { PPQ, MAX_NOTES, noteNumber, parseNotes, writeMidi, vlq };
+    module.exports = { PPQ, MAX_NOTES, noteNumber, parseNotes, writeMidi, writeMidiFormat1, vlq };
     return;
   }
   const form = typeof document !== "undefined" && document.querySelector("[data-midi-export]");
@@ -128,4 +180,44 @@
     }
   });
   window.addEventListener("pagehide", clear);
+  const multi = document.querySelector("[data-midi-multitrack]");
+  if (multi) {
+    const multiStatus = multi.querySelector("[role=status]");
+    const multiLink = multi.querySelector("[data-midi-multitrack-download]");
+    let multiUrl = null;
+    function clearMulti() {
+      if (multiUrl) URL.revokeObjectURL(multiUrl);
+      multiUrl = null;
+      multiLink.hidden = true;
+      multiLink.removeAttribute("href");
+    }
+    multi.addEventListener("input", () => {
+      clearMulti();
+      multiStatus.textContent = "Tracks changed. Create a new multitrack MIDI file.";
+    });
+    multi.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearMulti();
+      try {
+        const tracks = [];
+        for (const index of [1, 2]) {
+          const notes = multi.elements["notes" + index].value.trim();
+          if (notes) {
+            tracks.push({ name: multi.elements["trackName" + index].value,
+              channel: Number(multi.elements["channel" + index].value), notes });
+          }
+        }
+        const output = writeMidiFormat1({ bpm: Number(multi.elements.bpm.value), tracks });
+        multiUrl = URL.createObjectURL(new Blob([output], { type: "audio/midi" }));
+        multiLink.href = multiUrl;
+        multiLink.download = "sonara-multitrack.mid";
+        multiLink.hidden = false;
+        multiStatus.textContent = "Standard MIDI File Format 1 ready with " + tracks.length +
+          " named note tracks and a separate tempo track. Download to import into your DAW. No files uploaded.";
+      } catch (error) {
+        multiStatus.textContent = error instanceof Error ? error.message : "Multitrack MIDI export failed.";
+      }
+    });
+    window.addEventListener("pagehide", clearMulti);
+  }
 })();
