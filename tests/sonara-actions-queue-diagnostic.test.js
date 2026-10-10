@@ -125,6 +125,39 @@ describe("SONARA read-only Actions queue diagnostics", () => {
     assert.ok(result.issueCodes.includes("failed_workflows"));
     assert.ok(result.issueCodes.includes("failed_jobs"));
   });
+  it("reports repository-level queue counts separately from exact-head gates", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ status: "completed", conclusion: "success" }],
+      repositoryRunCounts: { queued: 706, inProgress: 4 }
+    }));
+    assert.deepEqual(result.issueCodes, []);
+    assert.equal(result.repositoryLoad.counts.queued, 706);
+    assert.equal(result.repositoryLoad.queuedToRunningRatio, 176.5);
+    assert.equal(result.repositoryLoad.repositoryQueueCauseDetermined, false);
+    assert.equal(result.exactHeadReleaseGreen, false);
+  });
+  it("summarizes workflow-trigger volume by exact commit from a bounded recent sample", () => {
+    const result = analyzeActionsQueueSnapshot(base({ recentRuns: [
+      { head_sha: headSha, status: "queued", conclusion: null, token: "private-1" },
+      { head_sha: headSha, status: "completed", conclusion: "cancelled", token: "private-2" },
+      { head_sha: "b".repeat(40), status: "queued", conclusion: null }
+    ] }));
+    assert.deepEqual(result.repositoryLoad.recentSample, {
+      size: 3, distinctCommitHeads: 2, cancelled: 1, queued: 2, mostRunsForSingleHead: 2
+    });
+    assert.equal(JSON.stringify(result).includes("private-"), false);
+    assert.equal(result.repositoryLoad.repositoryQueueCauseDetermined, false);
+  });
+  it("rejects malformed repository totals or unbounded/invalid recent samples", () => {
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ repositoryRunCounts: { queued: -1, inProgress: 0 } })), /repositoryRunCounts/);
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ repositoryRunCounts: { queued: 4, inProgress: 1, billed: "secret" } })), /repositoryRunCounts/);
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ recentRuns: Array(201).fill({ head_sha: headSha, status: "queued" }) })), /recentRuns/);
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ recentRuns: [{ head_sha: "short", status: "queued" }] })), /head_sha/);
+    const zero = analyzeActionsQueueSnapshot(base({ repositoryRunCounts: { queued: 200, inProgress: 0 } }));
+    assert.equal(zero.repositoryLoad.queuedToRunningRatio, null);
+  });
   it("does not disclose raw job fields or tokens in the generated summary", () => {
     const result = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", secret: "never_echo_me", created_at: "2026-10-09T22:00:00Z" }] }));
     assert.ok(!JSON.stringify(result).includes("never_echo_me"));
