@@ -31,6 +31,14 @@ create table sonara_social_private.viewer_feed_preferences (
   constraint viewer_feed_settings_shape check (
     jsonb_typeof(settings) = 'object'
     and settings ?& array['topics','mutedTopics','mutedKeywords','hiddenContentIds','discoveryOptIn','aiContent']
+    and settings = jsonb_build_object(
+      'topics', settings->'topics',
+      'mutedTopics', settings->'mutedTopics',
+      'mutedKeywords', settings->'mutedKeywords',
+      'hiddenContentIds', settings->'hiddenContentIds',
+      'discoveryOptIn', settings->'discoveryOptIn',
+      'aiContent', settings->'aiContent'
+    )
     and jsonb_typeof(settings->'topics') = 'array'
     and jsonb_typeof(settings->'mutedTopics') = 'array'
     and jsonb_typeof(settings->'mutedKeywords') = 'array'
@@ -126,7 +134,15 @@ begin
      or not (p_settings ?& array[
        'topics','mutedTopics','mutedKeywords','hiddenContentIds','discoveryOptIn','aiContent'
      ])
-     or jsonb_typeof(p_settings->'discoveryOptIn') <> 'boolean' then
+     or jsonb_typeof(p_settings->'discoveryOptIn') <> 'boolean'
+     or p_settings <> jsonb_build_object(
+       'topics', p_settings->'topics',
+       'mutedTopics', p_settings->'mutedTopics',
+       'mutedKeywords', p_settings->'mutedKeywords',
+       'hiddenContentIds', p_settings->'hiddenContentIds',
+       'discoveryOptIn', p_settings->'discoveryOptIn',
+       'aiContent', p_settings->'aiContent'
+     ) then
     return query select false, v_revision, 'invalid_settings'::text;
     return;
   end if;
