@@ -29,51 +29,53 @@ try {
 const receipt=(n,stance="supports",sourceUrl="https://example.org/source")=>({
   entityId:`org_${n}`,evidenceId:`evidence_${n}`,sourceUrl,stance,observedAt:"2026-10-01"});
 const make=(n=50)=>Array.from({length:n},(_,i)=>receipt(i));
-const test=require("node:test");
-test("no evidence never gets a reviewer or source approval",()=>{
+describe("SONARA sonara-research-evidence-reconciliation", () => {
+it("no evidence never gets a reviewer or source approval",()=>{
  const x=reconcileComparableEvidence({comparison:comparison(),receipts:[]});
  assert.equal(x.supportedMeasurements,0);assert.equal(x.unsupportedMeasurements,50);
  assert.equal(x.rankingVerified,false);assert.equal(x.productionAuthorized,false);
  assert.ok(x.blockers.includes("measurements_missing_supporting_receipts"));
 });
-test("all matched receipts remain unverified and not licensed",()=>{
+it("all matched receipts remain unverified and not licensed",()=>{
  const x=reconcileComparableEvidence({comparison:comparison(),receipts:make()});
  assert.equal(x.supportedMeasurements,50);assert.equal(x.acceptedSourceReceipts,50);
  assert.equal(x.evidenceIndependentlyVerified,false);assert.equal(x.publisherRightsVerified,false);
  assert.equal(x.publicationAuthorized,false);
 });
-test("unexpected personal fields are rejected and never echoed",()=>{
+it("unexpected personal fields are rejected and never echoed",()=>{
  const receipts=make();receipts[0]={...receipts[0],customerEmail:"secret@example.com"};
  const x=reconcileComparableEvidence({comparison:comparison(),receipts});
  assert.equal(x.malformedOrUnmatchedReceipts,1);
  assert.equal(x.supportedMeasurements,49);
  assert.equal(JSON.stringify(x).includes("secret@example.com"),false);
 });
-test("unmatched entity and fake evidence id fail closed",()=>{
+it("unmatched entity and fake evidence id fail closed",()=>{
  const x=reconcileComparableEvidence({comparison:comparison(),receipts:[{...receipt(0),evidenceId:"fabricated"},receipt(999)]});
  assert.equal(x.malformedOrUnmatchedReceipts,2);assert.equal(x.acceptedSourceReceipts,0);
 });
-test("two sources that contradict one entity are flagged",()=>{
+it("two sources that contradict one entity are flagged",()=>{
  const list=[...make(),receipt(0,"contradicts","https://different.example/other")];
  const x=reconcileComparableEvidence({comparison:comparison(),receipts:list});
  assert.equal(x.contradictedMeasurements,1);
  assert.ok(x.blockers.includes("contradictions_found"));
 });
-test("reusing source evidence identifier across entities is flagged",()=>{
+it("reusing source evidence identifier across entities is flagged",()=>{
  const c=comparison();c.observations[1].evidenceId=c.observations[0].evidenceId;
  const x=reconcileComparableEvidence({comparison:c,receipts:[]});
  assert.equal(x.reusedEvidenceIdentifierCount,1);
  assert.ok(x.blockers.includes("evidence_identifier_reused_across_entities"));
 });
-test("receipt array size and maxAgeDays are bounded",()=>{
+it("receipt array size and maxAgeDays are bounded",()=>{
  assert.throws(()=>reconcileComparableEvidence({comparison:comparison(),receipts:Array(501).fill(receipt(0))}),/at most 500/);
  assert.throws(()=>reconcileComparableEvidence({comparison:comparison(),receipts:[],maxAgeDays:1000}),/between 0 and 365/);
 });
-test("cutoff tie is an explicit blocker and reviewer authority stays false",()=>{
+it("cutoff tie is an explicit blocker and reviewer authority stays false",()=>{
  const c=comparison();c.observations.push(fakeObservation(50));
  const x=reconcileComparableEvidence({comparison:c,receipts:make()});
  assert.ok(x.blockers.includes("cutoff_tie_unresolved"));
  assert.equal(x.candidateCount,0);
  assert.equal(x.reviewerIdentityAuthenticated,false);
  assert.equal(x.customerDecisionAuthorized,false);
+});
+
 });

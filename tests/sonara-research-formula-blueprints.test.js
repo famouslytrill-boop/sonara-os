@@ -23,7 +23,7 @@ try {
     if (Object.prototype.hasOwnProperty.call(stub, request)) return stub[request];
     return originalLoad.call(this, request, parent, isMain);
   };
-  catalogue = require("./sonara-research-formula-blueprints.cjs");
+  catalogue = require("../lib/sonara-research-formula-blueprints.cjs");
 } finally {
   Module._load = originalLoad;
 }
