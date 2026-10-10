@@ -110,6 +110,14 @@
       // after the last chunk has arrived; abort() still stops immediately.
       stop.disabled = true;
       status.textContent = "Finishing your recording on this device…";
+      const finishing = recorder;
+      // If a faulty browser never dispatches onstop, fail closed and release
+      // the microphone. A successful onstop calls release() to clear this
+      // watchdog; abandoned chunks are never exposed as a download.
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (recorder === finishing) abort("Recording could not be finalized. Microphone disconnected; no download was created.");
+      }, 5000);
       try { recorder.stop(); }
       catch { abort("Recording could not be finalized. Nothing was uploaded."); }
     } else if (recorder) {
