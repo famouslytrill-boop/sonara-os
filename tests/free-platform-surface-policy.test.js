@@ -273,3 +273,198 @@ describe("free login-based SONARA platform surface policy", () => {
     });
   });
 });
+
+describe("SONARA authenticated read-only public feed boundary (not a route)", () => {
+  const { createCommunityFeedReader } = require("../lib/sonara-community-feed-reader.cjs");
+  const VIEWER = "33333333-3333-4333-8333-333333333333";
+  const OTHER = "22222222-2222-4222-8222-222222222222";
+  const POST = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const NOW = new Date("2026-10-08T12:00:00.000Z");
+  const settings = (override = {}) => ({
+    topics: [], mutedTopics: [], mutedKeywords: [], hiddenContentIds: [],
+    blockedPublishers: [], followedPublishers: [], discoveryOptIn: false,
+    ageVerifiedAdult: false, aiContent: "include", country: null, ...override
+  });
+  const projection = (override = {}) => ({
+    id: POST, publisherId: OTHER,
+    product: "creator_studio", publicProjection: true,
+    visibility: "public", status: "published", moderationStatus: "approved",
+    rightsStatus: "cleared", topic: "music", title: "Original music",
+    href: "/channels/artist", publishedAt: "2026-10-08T11:00:00.000Z",
+    territory: "global", ageRating: "general", aiGenerated: false,
+    sponsored: false, ...override
+  });
+
+  function setup({ viewers, preferences, projections, brokenPort } = {}) {
+    const counts = { auth: 0, preferences: 0, public: 0 };
+    const principal = { ok: true, userId: VIEWER,
+      accountState: "active", canReadPublicSocial: true };
+    const defaults = { ok: true, viewerId: VIEWER, revision: 1, settings: settings() };
+    const source = { ok: true, candidates: [projection()] };
+    const identityReads = viewers || [principal];
+    const preferenceReads = preferences || [defaults];
+    const read = createCommunityFeedReader({
+      resolveAuthenticatedViewer: async () => {
+        if (brokenPort === "auth") throw new Error("private auth credentials");
+        return identityReads[Math.min(counts.auth++, identityReads.length - 1)];
+      },
+      loadViewerPreferences: async () => {
+        if (brokenPort === "preferences") throw new Error("private database key");
+        return preferenceReads[Math.min(counts.preferences++, preferenceReads.length - 1)];
+      },
+      loadPublicProjections: async (options) => {
+        counts.public++;
+        assert.deepEqual(options, { cap: 250, scope: "moderated_public" });
+        if (brokenPort === "public") throw new Error("private DB connection");
+        return projections || source;
+      },
+      clock: () => new Date(NOW)
+    });
+    return { read, counts };
+  }
+
+  it("validates request shape before contacting any provider", async () => {
+    const { read, counts } = setup();
+    for (const input of [null, false, "latest", [], { mode: "unknown" },
+      { limit: 0 }, { limit: "20" }, { limit: 41 }]) {
+      assert.equal((await read(input)).code, "feed_request_invalid");
+    }
+    assert.deepEqual(counts, { auth: 0, preferences: 0, public: 0 });
+  });
+
+  it("reads viewer identity and preferences twice before releasing public items", async () => {
+    const { read, counts } = setup();
+    const result = await read({ request: {}, mode: "latest", limit: 1 });
+    assert.equal(result.ok, true);
+    assert.equal(result.items.length, 1);
+    assert.deepEqual(counts, { auth: 2, preferences: 2, public: 1 });
+    assert.equal(Object.hasOwn(result, "userId"), false);
+    assert.equal(Object.hasOwn(result.items[0], "organizationId"), false);
+    assert.equal(Object.hasOwn(result.items[0], "publisherId"), false);
+  });
+
+  it("does not read settings or projections for anonymous and suspended identities", async () => {
+    for (const identity of [null, { ok: false }, {
+      ok: true, userId: VIEWER, accountState: "suspended", canReadPublicSocial: true
+    }, { ok: true, userId: VIEWER, accountState: "active", canReadPublicSocial: "true" }]) {
+      const { read, counts } = setup({ viewers: [identity] });
+      assert.equal((await read({})).code, "viewer_access_denied");
+      assert.equal(counts.preferences, 0);
+      assert.equal(counts.public, 0);
+    }
+  });
+
+  it("requires owner-matching, versioned, fully legible preferences", async () => {
+    const invalid = [
+      { ok: true, viewerId: OTHER, revision: 1, settings: settings() },
+      { ok: true, viewerId: VIEWER, revision: 0, settings: settings() },
+      { ok: true, viewerId: VIEWER, revision: 1,
+        settings: settings({ blockedPublishers: undefined }) },
+      { ok: true, viewerId: VIEWER, revision: 1,
+        settings: settings({ hiddenContentIds: ["bad-id"] }) },
+      { ok: true, viewerId: VIEWER, revision: 1,
+        settings: settings({ mutedKeywords: ["###"] }) }
+    ];
+    for (const item of invalid) {
+      const { read, counts } = setup({ preferences: [item] });
+      assert.equal((await read({})).code, "preferences_unavailable");
+      assert.equal(counts.public, 0);
+    }
+  });
+
+  it("does not fetch public candidates without explicit Discover consent", async () => {
+    const { read, counts } = setup();
+    assert.equal((await read({ mode: "discover" })).code, "discovery_opt_in_required");
+    assert.equal(counts.public, 0);
+  });
+
+  it("supports explicit, current discover consent without expanding privacy fields", async () => {
+    const authorized = { ok: true, viewerId: VIEWER, revision: 3,
+      settings: settings({ discoveryOptIn: true, topics: ["music"] }) };
+    const { read } = setup({ preferences: [authorized] });
+    const result = await read({ mode: "discover" });
+    assert.equal(result.ok, true);
+    assert.equal(result.personalized, true);
+    assert.equal(result.items[0].explanation, "Selected topic");
+  });
+
+  it("prevents a browser-supplied viewer identity or block-list from taking authority", async () => {
+    const authorized = { ok: true, viewerId: VIEWER, revision: 2,
+      settings: settings({ blockedPublishers: [OTHER] }) };
+    const { read } = setup({ preferences: [authorized] });
+    const result = await read({ userId: OTHER, organizationId: OTHER,
+      preferences: settings({ blockedPublishers: [] }) });
+    assert.equal(result.ok, true);
+    assert.equal(result.items.length, 0);
+  });
+
+  it("denies mid-read account revocation or switching identity", async () => {
+    const active = { ok: true, userId: VIEWER,
+      accountState: "active", canReadPublicSocial: true };
+    for (const changed of [null, { ...active, accountState: "suspended" },
+      { ...active, userId: OTHER }]) {
+      const { read } = setup({ viewers: [active, changed] });
+      const result = await read({});
+      assert.equal(result.code, "viewer_access_changed");
+      assert.deepEqual(result.items, []);
+    }
+  });
+
+  it("denies preference changes even if the provider forgets to increment revision", async () => {
+    const first = { ok: true, viewerId: VIEWER, revision: 1, settings: settings() };
+    for (const second of [
+      { ...first, revision: 2 },
+      { ...first, settings: settings({ mutedKeywords: ["music"] }) },
+      { ...first, settings: settings({ blockedPublishers: [OTHER] }) }
+    ]) {
+      const { read } = setup({ preferences: [first, second] });
+      const result = await read({});
+      assert.equal(result.code, "viewer_preferences_changed");
+      assert.equal(result.items.length, 0);
+    }
+  });
+
+  it("does not confuse an unavailable database with an empty social feed", async () => {
+    for (const source of [{ ok: false, candidates: [] },
+      { ok: true, candidates: null }, { ok: true, candidates: Array(251).fill(projection()) }]) {
+      const { read } = setup({ projections: source });
+      assert.equal((await read({})).code, "public_feed_unavailable");
+    }
+  });
+
+  it("applies secondary public, rights, moderation, blocked, and hidden filters", async () => {
+    const restricted = { ok: true, viewerId: VIEWER, revision: 1,
+      settings: settings({ hiddenContentIds: [POST] }) };
+    const { read } = setup({ preferences: [restricted] });
+    assert.equal((await read({})).items.length, 0);
+    for (const restriction of [
+      { visibility: "private" }, { moderationStatus: "pending" },
+      { rightsStatus: "uncleared" }, { sponsored: undefined },
+      { aiGenerated: undefined }
+    ]) {
+      const { read: each } = setup({ projections: {
+        ok: true, candidates: [projection(restriction)]
+      } });
+      assert.equal((await each({})).items.length, 0);
+    }
+  });
+
+  it("redacts provider exceptions instead of exposing secrets to the client", async () => {
+    for (const brokenPort of ["auth", "preferences", "public"]) {
+      const { read } = setup({ brokenPort });
+      const result = await read({});
+      assert.equal(result.ok, false);
+      assert.equal(JSON.stringify(result).includes("private"), false);
+      assert.deepEqual(result.items, []);
+    }
+  });
+
+  it("rejects missing trusted adapters; no implicit production activation", () => {
+    let refused = false;
+    try { createCommunityFeedReader({}); } catch (error) {
+      refused = error instanceof TypeError;
+    }
+    assert.equal(refused, true);
+  });
+});
+
