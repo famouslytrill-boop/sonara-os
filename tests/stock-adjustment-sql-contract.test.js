@@ -166,6 +166,10 @@ describe("Staged inventory stock version and journal SQL contract", () => {
       assert.ok(sql.includes("b.status='active'") || sql.includes("b.status = 'active'"));
     }
     assert.ok(migration.includes("lower(b.role) in ('owner','admin','business_owner')"));
+    // An active viewer's organization membership alone does not authorize
+    // physical inventory work. Both count RPCs must check the worker role.
+    assert.equal((migration.match(/lower\(m\.role\) in \('owner','admin','business_owner','manager','employee','staff'\)/g)||[]).length,2);
+    assert.ok(behavior.includes("'viewer-count-002',0,7"));
     assert.ok(behavior.includes("business_memberships(organization_id,workspace_id,user_id,role,status)"));
     assert.ok(behavior.includes("'staff-count-002',0,7"));
     assert.ok(behavior.includes("'stock_review_owner_role_required'"));
