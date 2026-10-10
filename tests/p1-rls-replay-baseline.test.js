@@ -35,8 +35,10 @@ describe("native P1 RLS replay uses migration-defined policy baselines", () => {
     assert.match(replay, /canonical subscriptions_select_member definition drifted; abort/);
     assert.match(replay, /native replay unexpectedly contains preview-only subscriptions policies; abort/);
     assert.match(replay, /policyname IN \('Users can view own subscriptions',/);
-    assert.match(replay, /qual LIKE '%is_org_member\(organization_id\)%'/);
-    assert.match(replay, /qual LIKE '%is_admin_or_founder\(\)%'/);
+    assert.equal(replay.split("= 'is_org_memberorganization_idoris_admin_or_founder'").length - 1, 2,
+      "preflight and postflight must require the complete canonical member/admin predicate");
+    assert.match(replay, /replace\(regexp_replace\(lower\(qual\)/);
+    assert.doesNotMatch(sqlCode(replay), /qual LIKE /i);
   });
   it("performs no policy DDL or live cleanup in the rollback-only fixture", () => {
     assert.match(replay, /^BEGIN;/m);
