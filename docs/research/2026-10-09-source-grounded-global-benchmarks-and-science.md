@@ -1,5 +1,5 @@
 # Research-to-product: global benchmarks, scientific methods and ranked-list integrity
-**Research date: 2026-10-09 | Evidence: publisher pages + SONARA source inspection | Not a deployment or provider certification**
+**Research date: 2026-10-09 | Evidence: publisher pages + SONARA source inspection | Phase 2 hardening: 2026-10-09 | Not a deployment or provider certification**
 
 ## What this work actually does
 
@@ -13,7 +13,7 @@ This change adds a **read-only CommonJS research gate** at `lib/sonara-research-
 | Top 50 European companies | https://fortune.com/europe/ranking/fortune500-europe/ | 2026 European ranking, revenue | Europe geographic definition follows publisher |
 | Top 50 world companies | https://fortune.com/ranking/global500/ | 2026 Global 500, revenue | Fiscal years differ; not brand quality |
 | Top 50 richest people | https://www.forbes.com/real-time-billionaires/ | Forbes continuously estimated net worth | Intraday estimates change; two-day freshness gate |
-| US small business classification | https://www.sba.gov/counseling/get-started/ | SBA NAICS size/receipts standards | No universal objective “top 50 small businesses” |
+| US small business classification | https://data.sba.gov/dataset/small-business-size-standards | SBA NAICS size/receipts standards | No universal objective “top 50 small businesses” |
 | Technology readiness | https://www.nasa.gov/directorates/somd/space-communications-navigation-program/technology-readiness-levels/ | NASA TRL 1–9 | Technical maturity is not market adoption |
 | Model governance | https://airc.nist.gov/airmf-resources/airmf/5-sec-core/ | NIST Govern / Map / Measure / Manage | Voluntary risk guidance, not certification |
 
@@ -105,3 +105,24 @@ Cautions: break-even denominators must be positive; sigma and appropriate sample
 - A complete rank 1–50 transcription is still **not approved for publication** by the library.
 - Sensitivity and budget decisions remain human-owned; specialist regulated-domain advice is outside scope.
 - Run targeted mocha, full pnpm tests, lint, typecheck, build, CI and exact-head review before merging.
+
+## Phase 2: evidence hardening and independently checked source methodology
+
+Source review on 2026-10-09 confirmed the following direct publisher/authority positions:
+
+| Claim | Direct authority | Verified meaning | Contradiction / non-claim |
+| --- | --- | --- | --- |
+| Fortune U.S. list is 2026 revenue-ranked | https://fortune.com/ranking/fortune500/ | Publisher explicitly identifies 2026 Fortune 500 as U.S. revenue ranking | Not a technology/satisfaction ranking; page access does not license scraping or bulk republication |
+| Fortune Europe uses published financial statements | https://fortune.com/europe/ranking/fortune500-europe/ | Revenue definitions and reporting year vary by financial business type | Do not compare U.S./European ranking methodology as if identical without review |
+| Fortune Global list uses fiscal-year revenue | https://fortune.com/ranking/global500/ | 2026 list uses fiscal years ending on/before March 31, 2026 | Currency and fiscal window comparability require care |
+| Forbes real-time wealth estimates change frequently | https://www.forbes.com/real-time-billionaires/ | Public holdings are updated with markets; private assets may update daily | A weekly or even two-day-old copy is not 'live'; two-day module policy is only a maximum staleness warning |
+| U.S. small-business thresholds are industry-specific | https://data.sba.gov/dataset/small-business-size-standards | SBA NAICS-based standards use receipts or employee counts | No general objective top-50 small-business popularity ranking follows |
+| NIST AI RMF governs continuous risk reviews | https://airc.nist.gov/airmf-resources/airmf/5-sec-core/ | Govern, Map, Measure, Manage; independent evaluation matters | The voluntary framework is not a security certificate |
+| NIST SSDF final guidance is SP 800-218 v1.1 | https://csrc.nist.gov/pubs/sp/800/218/final | Secure development practices span lifecycle | The 2025 v1.2 revision URL is an initial public **draft**, not an adopted final replacement |
+| USPTO novelty and protection boundaries | https://www.uspto.gov/patents/basics/essentials | Patentability requires more than calling a combination 'invented' | Product concepts/names are not established patents or registered marks |
+
+**Implemented policy changes:** All ranking publishers default to `automatedIngestionAllowed: false` and `republicationRightsCleared: false`. Any rejected source row yields `invalid_transcription`, even if 50 valid rank numbers are present. Input evidence URLs and customer counts are explicitly unverified claims. Ideas with complete self-reported fields receive `independent_validation_required`, not 'ready' or production authority. Recognized high-impact classifications and *unknown* risk tags require specialist and owner review.
+
+**Test changes:** 14 targeted contract/negative test cases now cover malformed rankings, complete-but-unverified lists, publisher rights denial, forecast-risk taxonomy, unknown tags, missing evidence, spoofed links, and production-denial invariants. A check that runs these tests in isolated V8 is diagnostic only; official pnpm/Node test, CI, license scans and release proof remain required.
+
+**Implementation stages after this PR:** (1) wait for exact-head CI and merge governance; (2) human rights/terms check before any external intake; (3) reuse existing source evidence registration and tenant-safe research storage with no parallel duplicate database; (4) implement an opt-in read-only, properly labeled Research Lab surface; (5) controlled pilot with at least one customer, bounded budget and measured time-to-answer. Do not grant a research module any authority over Stripe, publishing, security, customer communication or repository deployments.
