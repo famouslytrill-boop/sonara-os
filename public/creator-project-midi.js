@@ -17,7 +17,9 @@
   function noteNumber(value) {
     if (typeof value === "number") return integer(value, "MIDI note", 0, 127);
     if (typeof value !== "string") throw new TypeError("Use MIDI note numbers (0–127) or note names such as C4.");
-    const match = /^([A-G])([#b]?)(-1|[0-9])$/i.exec(value.trim());
+    const name = value.trim();
+    if (/^(?:0|[1-9][0-9]{0,2})$/.test(name)) return integer(Number(name), "MIDI note", 0, 127);
+    const match = /^([A-G])([#b]?)(-1|[0-9])$/i.exec(name);
     if (!match) throw new TypeError("Use a note name such as C4, F#3, or Bb4.");
     const accidental = match[2] === "#" ? 1 : match[2] === "b" ? -1 : 0;
     return integer((Number(match[3]) + 1) * 12 + SEMITONES[match[1].toUpperCase()] + accidental, "MIDI note", 0, 127);
