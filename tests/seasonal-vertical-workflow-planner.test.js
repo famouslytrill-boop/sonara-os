@@ -133,6 +133,28 @@ describe("seasonal vertical planning boundary", () => {
     assert.ok(quote.excluded.includes("taxes"));
   });
 
+  it("never accepts customer details or payment data in quote lines", () => {
+    const valid = { quantity: 2, unitPriceCents: 12500, unitCostCents: 8500 };
+    for (const unexpected of [
+      { customerEmail: "secret@example.com" },
+      { customerAddress: "private address" },
+      { paymentToken: "tok_secret_test" },
+      { originLat: 40.1 }
+    ]) {
+      assert.throws(
+        () => calculateJobQuote({ lineItems: [{ ...valid, ...unexpected }] }),
+        /invalid_line_item_shape/
+      );
+    }
+    assert.throws(
+      () => calculateJobQuote({ lineItems: [{ quantity: 1, unitPriceCents: 100 }] }),
+      /invalid_line_item_shape/
+    );
+    const correct = calculateJobQuote({ lineItems: [valid] });
+    assert.equal(correct.revenueCents, 25000);
+    assert.equal(correct.variableCostCents, 17000);
+  });
+
   it("reports losses, zero revenue and overflows without losing cents", () => {
     const negative = calculateJobQuote({
       lineItems: [{ quantity: 1, unitPriceCents: 100, unitCostCents: 125 }]
