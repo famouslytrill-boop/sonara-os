@@ -621,6 +621,57 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
     })).state, "blocked");
   });
 
+  it("does not read aggregates when governance fails or throws", async () => {
+    for (const governance of [
+      { controlsVerified: false, rollbackPlanReviewed: true, explanation: "review" },
+      { controlsVerified: true, rollbackPlanReviewed: false, explanation: "review" },
+      { controlsVerified: true, rollbackPlanReviewed: true, explanation: "x".repeat(241) }
+    ]) {
+      let aggregateReads = 0;
+      const { reader } = mockAdaptiveReaders({
+        readGovernance: async () => governance,
+        readAggregateEvidence: async () => { aggregateReads++; return adapterEvidence; }
+      });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked");
+      assert.equal(aggregateReads, 0, "denied governance must not access aggregates");
+    }
+    let aggregateReads = 0;
+    const { reader } = mockAdaptiveReaders({
+      readGovernance: async () => { throw new Error("sensitive policy SQL error"); },
+      readAggregateEvidence: async () => { aggregateReads++; return adapterEvidence; }
+    });
+    const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+    assert.equal(result.state, "blocked");
+    assert.equal(aggregateReads, 0);
+    assert.doesNotMatch(JSON.stringify(result), /sensitive policy SQL error/);
+  });
+
+  it("rechecks active principal membership and scope before returning a proposal", async () => {
+    for (const replacement of [
+      null,
+      { authenticated: false, membershipVerified: true, canReadLearningEvidence: true, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: false, canReadLearningEvidence: true, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: true, canReadLearningEvidence: false, userId: USER, organizationId: ORG },
+      { authenticated: true, membershipVerified: true, canReadLearningEvidence: true, userId: ORG, organizationId: ORG },
+      { authenticated: true, membershipVerified: true, canReadLearningEvidence: true, userId: USER, organizationId: USER }
+    ]) {
+      let principalReads = 0;
+      const first = {
+        authenticated: true, membershipVerified: true,
+        canReadLearningEvidence: true, userId: USER, organizationId: ORG
+      };
+      const { reader } = mockAdaptiveReaders({
+        resolvePrincipal: async () => (++principalReads === 1 ? first : replacement)
+      });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(principalReads, 2);
+      assert.equal(result.state, "blocked");
+      assert.equal(result.blockers[0], "principal_permission_changed_during_read");
+      assert.equal(result.mayExecuteTools, false);
+    }
+  });
+
   it("redacts exceptions and requires all server-side functions", async () => {
     assert.throws(() => createAdaptiveProposalReader({}), /server-owned/);
     const { reader } = mockAdaptiveReaders({
