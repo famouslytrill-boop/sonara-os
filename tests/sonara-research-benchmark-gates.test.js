@@ -37,6 +37,10 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(SOURCES.europe_revenue_2026.region, "Europe");
     assert.equal(SOURCES.global_revenue_2026.region, "Global");
     assert.equal(SOURCES.billionaires_realtime.metric, "estimated_net_worth");
+    for (const source of Object.values(SOURCES)) {
+      assert.equal(source.automatedIngestionAllowed, false);
+      assert.equal(source.republicationRightsCleared, false);
+    }
   });
 
   it("reports missing ranks without manufacturing the other 48", () => {
@@ -46,6 +50,8 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(result.missingRanks.length, 48);
     assert.equal(result.missingRanks[0], 3);
     assert.equal(result.canPublishAsOfficialTop50, false);
+    assert.equal(result.republicationRightsCleared, false);
+    assert.equal(result.automatedIngestionAllowed, false);
   });
 
   it("never converts a complete transcription into independent verification", () => {
