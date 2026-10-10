@@ -4,6 +4,7 @@
   "use strict";
   const DEFAULT_RATE = 44100, SUPPORTED_RATES = Object.freeze([44100, 48000]);
   const MAX_SECONDS = 180, MAX_BYTES = 64 * 1024 * 1024;
+  const MAX_STEMS = 4, MAX_STEM_OUTPUT_BYTES = 96 * 1024 * 1024;
   function readWav(buffer) {
     if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 44 || buffer.byteLength > 20 * 1024 * 1024) throw new Error("Use a PCM 16-bit WAV up to 20 MB.");
     const view = new DataView(buffer);
@@ -68,7 +69,11 @@
       if (totalBytes > MAX_BYTES) throw new Error("Use up to 64 MB of source recordings per render.");
       decoded.set(clip.sourceId, readWav(bytes));
     }
-    const count = Math.ceil(end * rate / 1000), mix = new Float64Array(count * 2);
+    const durationMs = options && options.targetDurationMs !== undefined ? options.targetDurationMs : end;
+    if (!Number.isSafeInteger(durationMs) || durationMs < end || durationMs > MAX_SECONDS * 1000) {
+      throw new Error("Export duration must cover the timeline and stay within three minutes.");
+    }
+    const count = Math.ceil(durationMs * rate / 1000), mix = new Float64Array(count * 2);
     for (const clip of clips) {
       if (clip.muted) continue;
       const audio = decoded.get(clip.sourceId);
@@ -104,7 +109,7 @@
     }
     const decibels = (amplitude) => amplitude > 0 ? Math.round(200 * Math.log10(amplitude)) / 10 : null;
     return {
-      bytes: output, clippedSamples: clipped, durationMs: end, sampleRate: rate,
+      bytes: output, clippedSamples: clipped, durationMs, sampleRate: rate,
       analysis: {
         peakDbfs: decibels(maxAmplitude),
         rmsDbfs: decibels(mix.length ? Math.sqrt(sumSquares / mix.length) : 0),
@@ -112,21 +117,69 @@
       }
     };
   }
-  if (typeof module !== "undefined" && module.exports) { module.exports = { readWav, render }; return; }
+  function renderSourceStems(graph, files, options = {}) {
+    const rate = options && options.sampleRate !== undefined ? options.sampleRate : DEFAULT_RATE;
+    if (!SUPPORTED_RATES.includes(rate)) throw new Error("Export sample rate must be 44100 or 48000 Hz.");
+    if (!graph || graph.version !== 1 || !Array.isArray(graph.nodes) || graph.nodes.length > 500 ||
+      !files || typeof files !== "object") throw new Error("Reload the project before exporting source stems.");
+    const sources = new Map(graph.nodes.filter((node) => node.kind === "source").map((node) => [node.id, node]));
+    const clips = graph.nodes.filter((node) => node.kind === "clip");
+    if (!clips.length) throw new Error("Add an audio clip before exporting source stems.");
+    const active = new Set();
+    let durationMs = 0, workMs = 0;
+    for (const clip of clips) {
+      const source = sources.get(clip.sourceId);
+      if (!source || ![clip.inMs, clip.outMs, clip.startMs, source.durationMs].every(Number.isSafeInteger) ||
+        clip.inMs < 0 || clip.outMs <= clip.inMs || clip.outMs > source.durationMs || clip.startMs < 0 ||
+        clip.startMs + clip.outMs - clip.inMs > MAX_SECONDS * 1000 || typeof clip.muted !== "boolean") {
+        throw new Error("Use valid audio clips with a timeline up to three minutes.");
+      }
+      durationMs = Math.max(durationMs, clip.startMs + clip.outMs - clip.inMs);
+      if (!clip.muted) {
+        active.add(clip.sourceId);
+        workMs += clip.outMs - clip.inMs;
+      }
+      if (workMs > 600000) throw new Error("Use up to ten minutes of total unmuted clip time per export.");
+    }
+    if (!active.size) throw new Error("At least one unmuted audio clip is needed for source stems.");
+    if (active.size > MAX_STEMS) throw new Error("Export at most four active audio sources at once.");
+    const sourceIds = [...active].sort();
+    const outputBytes = (44 + Math.ceil(durationMs * rate / 1000) * 4) * sourceIds.length;
+    if (outputBytes > MAX_STEM_OUTPUT_BYTES) throw new Error("The aligned source stems exceed the 96 MB local export budget. Shorten the timeline or export fewer sources.");
+    const stems = sourceIds.map((sourceId, index) => {
+      const nodes = graph.nodes.filter((node) => node.kind === "source" ||
+        (node.kind === "clip" && node.sourceId === sourceId));
+      const result = render({ version: 1, nodes }, files, { sampleRate: rate, targetDurationMs: durationMs });
+      return { sourceId, filename: `source-stem-${String(index + 1).padStart(2, "0")}.wav`,
+        bytes: result.bytes, clippedSamples: result.clippedSamples, analysis: result.analysis };
+    });
+    return { stems, durationMs, sampleRate: rate, alignedAtMs: 0, grouping: "source" };
+  }
+  if (typeof module !== "undefined" && module.exports) { module.exports = { readWav, render, renderSourceStems }; return; }
   if (typeof document === "undefined") {
     self.onmessage = (event) => {
       // Dedicated-worker messages have an empty origin; reject window-style messages.
       if (event.origin !== "") return;
-      try { const result = render(event.data.graph, event.data.files, event.data.options); self.postMessage(result, [result.bytes]); }
+      try {
+        if (event.data.mode === "stems") {
+          const result = renderSourceStems(event.data.graph, event.data.files, event.data.options);
+          self.postMessage(result, result.stems.map((stem) => stem.bytes));
+        } else if (!event.data.mode || event.data.mode === "mix") {
+          const result = render(event.data.graph, event.data.files, event.data.options);
+          self.postMessage(result, [result.bytes]);
+        } else throw new Error("Unsupported audio export mode.");
+      }
       catch (error) { self.postMessage({ error: error.message }); }
     };
     return;
   }
   const form = document.querySelector("[data-project-audio]");
   if (!form) return;
-  const status = form.querySelector("[role=status]"), link = form.querySelector("a[data-audio-download]"), preview = form.querySelector("audio"), run = form.querySelector("button");
+  const status = form.querySelector("[role=status]"), link = form.querySelector("a[data-audio-download]"), preview = form.querySelector("audio");
   const meter = form.querySelector("[data-waveform]");
-  let worker = null, url = null, revision = 0;
+  const stemLinks = form.querySelector("[data-stem-downloads]");
+  const actions = form.querySelectorAll('button[type="submit"]');
+  let worker = null, url = null, stemUrls = [], revision = 0;
   function drawWaveform(peaks) {
     if (!meter) return;
     const ctx = meter.getContext("2d");
@@ -145,11 +198,15 @@
     if (worker) worker.terminate(); worker = null;
     preview.pause(); preview.removeAttribute("src"); preview.load(); preview.hidden = true;
     if (url) URL.revokeObjectURL(url); url = null;
-    link.hidden = true; link.removeAttribute("href"); run.disabled = false;
+    stemUrls.forEach((stemUrl) => URL.revokeObjectURL(stemUrl)); stemUrls = [];
+    if (stemLinks) stemLinks.replaceChildren();
+    link.hidden = true; link.removeAttribute("href"); actions.forEach((button) => { button.disabled = false; });
   }
   form.addEventListener("change", () => { clear(); status.textContent = "Recordings changed. Render again for a new download."; });
   form.addEventListener("submit", async (event) => {
-    event.preventDefault(); clear(); const current = revision; run.disabled = true;
+    event.preventDefault(); clear(); const current = revision;
+    const mode = event.submitter?.value === "stems" ? "stems" : "mix";
+    actions.forEach((button) => { button.disabled = true; });
     status.textContent = "Rendering on this device…";
     try {
       const files = {}; let totalBytes = 0;
@@ -165,8 +222,22 @@
       worker.onmessage = (message) => {
         if (message.origin !== "") return;
         if (current !== revision) return;
-        worker.terminate(); worker = null; run.disabled = false;
+        worker.terminate(); worker = null; actions.forEach((button) => { button.disabled = false; });
         if (message.data.error) { status.textContent = message.data.error; return; }
+        if (message.data.grouping === "source") {
+          if (!stemLinks) { status.textContent = "Source-stem download controls are unavailable."; return; }
+          for (const [index, stem] of message.data.stems.entries()) {
+            const stemUrl = URL.createObjectURL(new Blob([stem.bytes], { type: "audio/wav" }));
+            stemUrls.push(stemUrl);
+            const anchor = document.createElement("a");
+            anchor.href = stemUrl;
+            anchor.download = stem.filename;
+            anchor.textContent = `Download source ${index + 1} stem — ${stem.sourceId}`;
+            const item = document.createElement("p"); item.append(anchor); stemLinks.append(item);
+          }
+          status.textContent = `${message.data.stems.length} aligned source-group WAVs at ${message.data.sampleRate / 1000} kHz. Every file starts at 0 and lasts ${message.data.durationMs / 1000} seconds. Download each stem separately. Nothing uploaded.`;
+          return;
+        }
         url = URL.createObjectURL(new Blob([message.data.bytes], { type: "audio/wav" }));
         preview.src = url; preview.hidden = false;
         link.href = url; link.download = `project-${form.dataset.projectId}.wav`; link.hidden = false;
@@ -176,7 +247,7 @@
         status.textContent = `Rendered ${message.data.durationMs / 1000} seconds at ${message.data.sampleRate / 1000} kHz. Peak ${peak === null ? "silence" : peak + " dBFS"}, RMS ${rms === null ? "silence" : rms + " dBFS"}. ${message.data.clippedSamples} clipped samples. Your recordings stayed on this device.`;
       };
       worker.onerror = () => { clear(); status.textContent = "This browser could not render the recording. Try smaller WAV files."; };
-      worker.postMessage({ graph: JSON.parse(form.dataset.audioGraph), files, options: { sampleRate: Number(form.elements.sampleRate.value) } }, Object.values(files));
+      worker.postMessage({ graph: JSON.parse(form.dataset.audioGraph), files, mode, options: { sampleRate: Number(form.elements.sampleRate.value) } }, Object.values(files));
     } catch (error) { if (current === revision) { clear(); status.textContent = error.message; } }
   });
   window.addEventListener("pagehide", clear);
