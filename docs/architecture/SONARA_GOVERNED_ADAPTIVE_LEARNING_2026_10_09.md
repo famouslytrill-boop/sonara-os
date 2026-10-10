@@ -193,6 +193,22 @@ The design follows Supabase's documented separation between table grants (object
 
 **Current isolated verification:** 45 focused JavaScript tests passed against branch-fetched modules, including tested fixture-positive and fixture-denial paths; full pnpm/Node24 test, browser, migration, external API and staging RLS runs remain outstanding. All learning and self-coding results are still proposals only.
 
+## Stage 8: bind two-tenant proof to the tested session and fail on expiry
+
+A successful four-probe RLS proof is now bound to **the exact bearer token used in its positive/negative tests**, via a non-exported, in-process `WeakMap`. The strict selector rejects requests using a different token (even for the same nominal user and organization). It also enforces a **maximum proof age of fifteen minutes**, measured between the probe's canonical UTC timestamp and the subsequent server-provided canonical UTC request time. There is no fallback to service role, and an expired proof is not silently renewed.
+
+The proof object remains a point-in-time capability, not an externally verifiable authorization token. Server clock, access tokens, probe callbacks and table-grant checks must come from trusted code with independently authenticated sessions. The new check does not revoke a stolen JWT, does not prevent a later membership change, and does not replace true production RLS. As before, all consequential operations must independently authorize at execution.
+
+### Connected Supabase read-only discovery — observed October 9, 2026
+
+The connected account exposed **one active project**, showing **418 public-schema table summaries** and **163 migration-history entries** at the time of inspection. Its public schema did **not** include `sonara_learning_aggregates`. This identifies a candidate Supabase target but **does not independently prove** that the same project and migration state is the one currently selected by Vercel production environment variables; no deployment configuration or privileged credentials were read or changed. The project ID is intentionally excluded from this public architecture document.
+
+The read-only Supabase security advisor reported three **WARN** categories: an extension installed in `public` (one affected instance); callable `SECURITY DEFINER` functions for signed-in users (eight affected instances); and disabled leaked-password protection (one instance). It also reported an **INFO** category for RLS-enabled tables with no policies (66 affected instances); this may be intentional for private tables and needs scoped review. These are advisory findings, **not** resolved fixes or proof of vulnerability exploitation. Separately examine the actual function grants, purpose and safe remediation with a reviewed migration; don't automatically revoke an intentionally required production function without checking consumers. See Supabase's RLS guide: https://supabase.com/docs/guides/database/postgres/row-level-security and Product Security guidance: https://supabase.com/docs/guides/security/product-security.
+
+No SQL, migrations, schema modifications, authentication settings, users, or customer rows were changed or accessed in this review. Any change to project privileges, authentication settings or RLS must pass owner review, staging trials and release gates first.
+
+**Focused testing after this change:** 46/46 isolated JavaScript cases passed, including uncopyable two-tenant probe proof, invalid/empty seeded fixture denial, mismatched JWT refusal, 15-minute expiry boundary and no privileged fallback. Full CI/Mocha/Node24 database and browser tests remain unverified.
+
 ## User experience and product scope
 
 | Product | Initial safe learning output | Not automatically allowed |
