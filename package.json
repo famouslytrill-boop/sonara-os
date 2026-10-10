@@ -34,7 +34,7 @@
     "smoke:routes": "node scripts/smoke-routes.cjs",
     "verify:agent-sync": "node scripts/verify-agent-development-sync.mjs",
     "verify:customer-ready": "node scripts/verify-customer-ready-production-experience.mjs",
-    "verify:config": "node scripts/verify-launch-config.mjs && node scripts/verify-route-registry.cjs && pnpm run verify:agent-sync && pnpm run verify:customer-ready && pnpm run verify:android-twa",
+    "verify:config": "node scripts/verify-launch-config.mjs && node scripts/verify-route-registry.cjs && pnpm run verify:agent-sync && pnpm run verify:customer-ready && pnpm run verify:android-twa && pnpm run verify:device-qualification",
     "verify:api": "node scripts/verify-openapi-contract.mjs",
     "verify:supabase-contract": "node scripts/verify-supabase-contract.mjs",
     "verify:db": "node scripts/verify-production-schema.mjs && pnpm run verify:supabase-contract && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
@@ -137,7 +137,8 @@
     "open-source:up:reviewed": "node scripts/setup-open-source-local.mjs up --reviewed",
     "open-source:status": "node scripts/setup-open-source-local.mjs status",
     "open-source:down": "node scripts/setup-open-source-local.mjs down",
-    "verify:stripe-connect-canary": "node scripts/verify-stripe-env.mjs --require-live --require-connect-canary"
+    "verify:stripe-connect-canary": "node scripts/verify-stripe-env.mjs --require-live --require-connect-canary",
+    "verify:device-qualification": "node scripts/verify-device-qualification-evidence.cjs"
   },
   "license": "UNLICENSED",
   "devDependencies": {
