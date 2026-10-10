@@ -158,6 +158,18 @@ The `createAdaptiveProposalReader()` adapter now additionally requires `authoriz
 
 Supabase key and RLS references, current as of this engineering date: https://supabase.com/docs/guides/getting-started/api-keys and https://supabase.com/docs/guides/database/postgres/row-level-security. Supabase now favors publishable/secret keys rather than legacy anon/service_role; migrating key configuration requires a separately tested change, not a silent alias swap.
 
+## Stage 6: Opaque read capabilities and Supabase key compatibility
+
+The read-only `requireVerifiedUserScopedRead()` helper now issues a **process-local, branded capability**. `isVerifiedUserScopedRead(capability, {table, organizationId, userId})` checks both object identity against a non-exported `WeakSet` and the exact scope. The adaptive proposal reader requires this check before `readAggregateEvidence` can run. A forged JSON object, object spread, shallow copy or serialized/deserialized clone of a legitimate capability is rejected.
+
+The selected request's HTTP header object remains available to authorized internal code as `capability.headers`, but the property is intentionally non-enumerable and immutable, so ordinary `JSON.stringify(capability)` does not include the caller's bearer token. **Do not log capability objects or HTTP headers using custom inspectors, debug dumps, or explicit property enumeration; the token remains readable by code holding the object.** This is a narrow accidental-leak reduction, not a secrets vault.
+
+Current Supabase API keys include low-privilege `sb_publishable_` keys and elevated `sb_secret_` keys, in addition to legacy `anon` and `service_role` keys. The strict selector now optionally accepts a **publishable key** through `config.publishableKey` without changing the legacy user-client chooser; it rejects secret and service-role keys as API-key credentials or caller access-token substitutes. The caller's independently authenticated access token still belongs in `Authorization: Bearer ...`. The key itself never proves the customer is signed in. Relevant upstream documentation: https://supabase.com/docs/guides/getting-started/api-keys and https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys.
+
+**Threat model limitation:** A capability proves only that the object was created by the in-process selector. It does **not** prove that the user JWT was cryptographically verified, that a requested customer session remains active, that a `liveProof` record originated from a real target database, or that RLS policies allow/deny the expected rows. A malicious caller inside trusted server code could mint a capability using forged dependency inputs. Therefore no external client may call the selector or populate `liveProof`; those inputs must come from independently authenticated server checks, database access probes, and approved RLS tests. Never treat capability identity as execution authorization. No Supabase connection, schema migration, or provider key change was performed here.
+
+Regression coverage now includes branded vs cloned capabilities, token-safe standard JSON serialization, authorization to the exact requested tenant/user/table, legacy and publishable API keys, blocking of secret-key aliases, and the earlier 35 learning/privacy/governance tests. The focused **43-case isolated JavaScript harness** is not a full Node 24, lint, Mocha, browser, database or CI run.
+
 ## User experience and product scope
 
 | Product | Initial safe learning output | Not automatically allowed |
