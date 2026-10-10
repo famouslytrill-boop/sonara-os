@@ -112,8 +112,8 @@ describe("seasonal vertical planning boundary", () => {
     }), /scenario_overflow/);
   });
 
-  it("counts only exact repeated events and redacts customer payload fields", () => {
-    const input = event({ customerEmail: "private@example.com", deliveryAddress: "private street" });
+  it("counts duplicate envelopes without ever accepting raw customer payloads", () => {
+    const input = event();
     const summary = summarizeOperationalEvents({
       organizationId: ORG_A,
       events: [input, { ...input }, event({ eventId: "evt_2", status: "invoiced" })]
@@ -124,6 +124,16 @@ describe("seasonal vertical planning boundary", () => {
     assert.equal(summary.statusCounts.delivered, 1);
     assert.equal(summary.statusCounts.invoiced, 1);
     assert.equal(summary.containsRawCustomerData, false);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A,
+      events: [event({ customerEmail: "private@example.com" })]
+    }), /invalid_event_shape/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A,
+      events: [event({ deliveryAddress: "private street" })]
+    }), /invalid_event_shape/);
+    assert.ok(!JSON.stringify(summary).includes("evt_1"));
+    assert.ok(!JSON.stringify(summary).includes("work_1"));
     const packed = compressOperationalSummary(summary);
     assert.equal(packed.format, "gzip+base64");
     assert.equal(packed.encrypted, false);
