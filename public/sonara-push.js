@@ -25,6 +25,7 @@
 
   var status = form.querySelector("[data-sonara-push-status]");
   var button = form.querySelector("[data-sonara-push-subscribe]");
+  var optOutButton = form.querySelector("[data-sonara-push-unsubscribe]");
 
   function say(message) {
     if (status) status.textContent = message;
@@ -36,6 +37,63 @@
   } catch {
     say("This page could not read its own settings. Reload and try again.");
     return;
+  }
+
+  // Revocation needs no fresh permission prompt. It must remain possible even
+  // if the browser permission was subsequently blocked in system settings.
+  if (optOutButton) {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      optOutButton.disabled = true;
+    } else {
+      optOutButton.addEventListener("click", function () {
+        optOutButton.disabled = true;
+        say("Turning off notifications for this browser…");
+        navigator.serviceWorker.getRegistration("/")
+          .then(function (registration) {
+            return registration ? registration.pushManager.getSubscription() : null;
+          })
+          .then(function (subscription) {
+            if (!subscription) {
+              say("This browser has no active SONARA push subscription.");
+              return null;
+            }
+            // Withdraw browser permission regardless of temporary server
+            // availability: revocation must not depend on an online backend.
+            // Report server cleanup separately so a failed DELETE isn't hidden.
+            return fetch(config.unsubscribeEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "same-origin",
+              body: JSON.stringify({ endpoint: subscription.endpoint })
+            })
+              .then(function (response) {
+                return response.ok
+                  ? response.json().then(function (answer) { return Boolean(answer && answer.ok); }).catch(function () { return false; })
+                  : false;
+              })
+              .catch(function () { return false; })
+              .then(function (serverRemoved) {
+                return subscription.unsubscribe().then(function (unsubscribed) {
+                  if (!unsubscribed) {
+                    say(serverRemoved
+                      ? "SONARA stopped sending, but the browser could not finish removing the subscription. Review browser settings."
+                      : "The server could not confirm removal, and this browser could not unsubscribe. Check browser notification settings.");
+                    return;
+                  }
+                  say(serverRemoved
+                    ? "Notifications are off for this browser. You can turn them on again here."
+                    : "Browser notifications are off. Server cleanup is unconfirmed; you can contact support if needed.");
+                });
+              });
+          })
+          .catch(function () {
+            say("Could not turn notifications off. Check your connection and try again.");
+          })
+          .finally(function () {
+            optOutButton.disabled = false;
+          });
+      });
+    }
   }
 
   // Feature detection before anything else, and each capability named
@@ -91,7 +149,9 @@
           if (button) button.disabled = false;
           return null;
         }
-        return navigator.serviceWorker.ready;
+        // The account settings page can be the visitor's first PWA page.
+        // Register on the explicit click, otherwise ready can wait forever.
+        return navigator.serviceWorker.register("/sw.js", { scope: "/" });
       })
       .then(function (registration) {
         if (!registration) return null;
@@ -123,7 +183,9 @@
           // The browser now holds a subscription this application did not
           // record. Said plainly, because the recovery is to press the button
           // again rather than to wonder why nothing arrives.
-          say("Your browser agreed, but we could not save it. Press the button again.");
+          say(answer.code === "subscription_owned_elsewhere"
+            ? "This browser subscription belongs to another account or workspace. Turn off notifications here, then try again."
+            : "Your browser agreed, but we could not save it. Press the button again.");
           if (button) button.disabled = false;
           return;
         }

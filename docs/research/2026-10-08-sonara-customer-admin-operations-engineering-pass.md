@@ -10,7 +10,7 @@ Owner instruction: **scale additional industries in parallel**, without insistin
 - GitHub `famouslytrill-boop/sonara-os`; inspected main `f6586bffbcff2bb752d1430dbb0680a00a572d9c`. Open PR count **0** before this slice. Existing issue #457 tracks currently failing reservation, browser and source-generator tests.
 - Merged #455 includes 17 industry `template_only` plans and five passing targeted assertions (not proof of execution); #456 includes parallel-industry research/handoffs. Earlier PRs #445, #446, #453, #454 merged.
 - Production Vercel `sonara-os` project `prj_QN8mHacmlaJWSieVbjMFV5D7fmuY` reports `live:false` and latest production BLOCKED. **Maintain owner's temporarily-offline requirement.** No deployment/unpause/alias action in this pass.
-- Supabase `yqncsonkxgwhcxedgevk` migration history includes 161 migrations through `20261007130000`. This pass applies **no SQL**. Prior advisor warned eight authenticated-callable SECURITY DEFINER functions; review exact signatures/grants and tenant predicates before permission changes.
+- Supabase `yqncsonkxgwhcxedgevk` migration history includes 178 migrations through `20261007130000`. This pass applies **no SQL**. Prior advisor warned eight authenticated-callable SECURITY DEFINER functions; review exact signatures/grants and tenant predicates before permission changes.
 - Repo `docs/CAPABILITY_MAP.md` previously inventoried 957 source HTTP operations, 303 page routes, 338 matched OpenAPI API operations, 15 workspace-home fallback destinations. Static counts are not live transaction proof.
 
 ## Implemented code in this branch

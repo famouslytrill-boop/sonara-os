@@ -12,15 +12,17 @@ const original = fs.readFileSync(path.join(repository, profileFile), "utf8");
 
 // Run mutations in a disposable runtime-source copy. Never edit the working
 // route file, whose contents another test or agent may be using concurrently.
-function audit(mutator) {
+function audit(mutator, targetFile = profileFile) {
+  const input = targetFile === profileFile ? original :
+    fs.readFileSync(path.join(repository, targetFile), "utf8");
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-query-exemptions-"));
   try {
     for (const name of ["lib", "routes", "api"]) {
       fs.cpSync(path.join(repository, name), path.join(directory, name), { recursive: true });
     }
     fs.copyFileSync(path.join(repository, "server.js"), path.join(directory, "server.js"));
-    const changed = mutator(original);
-    fs.writeFileSync(path.join(directory, profileFile), changed);
+    const changed = mutator(input);
+    fs.writeFileSync(path.join(directory, targetFile), changed);
     // Evaluate the real scanner with its three imports supplied explicitly.
     // This keeps the regression independent of subprocess permissions and
     // intercepts exit without terminating the Mocha process.
@@ -91,5 +93,37 @@ describe("tenant query exemptions retain each independent justification", functi
       assert.ok(source.includes("&status=eq.active"));
       return source.replaceAll("&status=eq.active", "");
     }, /no call in this run matched it while carrying status=eq\.active/);
+  });
+});
+
+
+describe("proposed channel block reads cannot bypass actor-scoped static audit", function () {
+  this.timeout(30000);
+  const route = "routes/sonara-growth-channel-routes.cjs";
+
+  it("accepts both exact session-user scoped block-list reads", () => {
+    const result = audit((source) => source, route);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  });
+
+  it("rejects a deleted verified actor filter, even when the feature flag is off", () => {
+    const result = audit((source) => {
+      const target = "viewer_user_id=eq." + "$" + "{enc(viewer.id)}";
+      assert.ok(source.includes(target), "actor-scoped query is missing");
+      return source.replace(target, "viewer_user_id=not.is.null");
+    }, route);
+    assert.notEqual(result.status, 0, "removing the viewer identity must fail tenant audit");
+    assert.match(result.stderr, /Actor-scoped|growth_channel_blocks|unfiltered/i);
+  });
+
+  it("rejects a changed block-table projection or unbounded query", () => {
+    const result = audit((source) => {
+      const target = "select=channel_id&viewer_user_id=eq." + "$" +
+        "{enc(req.sonaraUser.id)}&limit=" + "$" + "{safety.MAX_BLOCKED + 1}";
+      assert.ok(source.includes(target), "personal block-list read changed");
+      return source.replace(target, "select=*&viewer_user_id=eq." + "$" + "{enc(req.sonaraUser.id)}");
+    }, route);
+    assert.notEqual(result.status, 0, "an unbounded personal-table read must fail tenant audit");
+    assert.match(result.stderr, /Actor-scoped|growth_channel_blocks|unfiltered/i);
   });
 });

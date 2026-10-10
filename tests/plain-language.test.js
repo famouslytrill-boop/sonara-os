@@ -384,7 +384,10 @@ describe("signed-in workspaces speak plainly", () => {
   // context. The anonymous crawl receives a guarded response, not the private
   // page. Focused reservation page tests exercise its customer-facing copy
   // under a verified manager; this audit still records every skipped page.
-  const SIGNED_IN_SKIPPED = 124;
+  // 124 -> 126 on 9 October: catering and financial scenario owner pages
+  // deliberately reject anonymous access. Their manager-visible forms are
+  // exercised by separate route tests; neither page is public copy.
+  const SIGNED_IN_SKIPPED = 126;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

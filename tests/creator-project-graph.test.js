@@ -238,6 +238,11 @@ describe("Creator Project Graph", () => {
     assert.equal(edit.status, 303);
     const detail = await request(app).get(`/creator-studio/projects/${id(10)}`); assert.match(detail.text, /Hello/);
     assert.match(detail.text, /name="subtitles"/);
+    assert.match(detail.text, /data-midi-export/);
+    assert.match(detail.text, /creator-project-midi\.js/);
+    assert.match(detail.text, /name="notes"/);
+    assert.match(detail.text, /Create MIDI file/);
+    assert.match(detail.text, /No data is uploaded/);
     const imported = await request(app).post(`/api/creator-studio/projects/${id(10)}/commands`).type("form").send({ action: "import_subtitles", revision: 2, subtitles: "1\n00:00:03,000 --> 00:00:04,000\nImported cue" });
     assert.equal(imported.status, 303);
     const json = await request(app).get(`/api/creator-studio/projects/${id(10)}`); assert.doesNotMatch(json.text, /NEVER_RENDER_THIS|serviceKey|"ctx"/);

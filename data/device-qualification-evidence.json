@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "status": "unqualified",
+  "note": "No physical-device record has been accepted yet. Empty evidence is truthful: browser automation and source tests do not qualify Android or iOS hardware.",
+  "records": []
+}

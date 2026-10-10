@@ -26,6 +26,7 @@ const WAITLIST_PAGE = "/business-builder/owner/waitlist";
 const OPERATIONS_PAGE = "/business-builder/owner/operations";
 const READ_LIMIT = 1000;
 const operationsPages = require("../lib/sonara-operations-pages.cjs");
+const trainingPages = require("../lib/sonara-training-lab-pages.cjs");
 
 function registerOperationsExpansionRoutes(app, deps = {}) {
   const {
@@ -277,12 +278,29 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
   });
 
   app.get(OPERATIONS_PAGE, requireBusinessManager, async (req, res) => {
+    // Reuse the authenticated owner/manager route. Training reads no database,
+    // provider, customer record or financial data. Do not let a query preview
+    // become a new authority or a write path.
+    if (req.query?.view === "training") {
+      res.set("Cache-Control", "private, no-store");
+      return res.status(200).type("html").send(layout({
+        title: "Practice a business decision",
+        eyebrow: "Business Builder",
+        heading: "Practice a business decision",
+        body: "An original, one-turn fictional training exercise. Nothing is saved or sent.",
+        sections: trainingPages.sections(req.query, escapeHtml),
+        actions: [
+          linkAction(OPERATIONS_PAGE, "Back to business operations"),
+          linkAction("/business-builder/dashboard", "Back to your workspace")
+        ]
+      }));
+    }
     const days = operationsPages.PERIODS.includes(Number(req.query.days)) ? Number(req.query.days) : 30;
     const page = (sections, status = 200) => res.status(status).type("html").send(layout({
       title: "How the business is doing", eyebrow: "Business Builder", heading: "How the business is doing",
       body: "Money received, bookings, hours worked and stock, from what you have recorded.",
       sections,
-      actions: [linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/owner/work-orders", "Work orders"), linkAction("/business-builder/dashboard", "Back to your workspace")]
+      actions: [linkAction(OPERATIONS_PAGE + "?view=training", "Practice fictional decisions"), linkAction("/business-builder/owner/catering", "Plan a catering event"), linkAction("/business-builder/owner/financial-scenarios", "Financial planning tools"), linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/owner/work-orders", "Work orders"), linkAction("/business-builder/dashboard", "Back to your workspace")]
     }));
     const scope = await context(req);
     if (!scope.ok) return page([operationsPages.unreadableCard(["workspace"], escapeHtml)], scope.status);

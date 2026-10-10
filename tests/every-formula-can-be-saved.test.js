@@ -146,6 +146,61 @@ describe("every formula can be worked out and saved", () => {
       assert.doesNotMatch(list.text, /Nothing has been saved/);
     });
 
+    it("fails closed when workspace authorization middleware was not supplied", async () => {
+      const app = express();
+      app.use(express.json());
+      registerFormulaRoutes(app);
+      const page = await request(app).get("/formulas/campaign_roi/results");
+      assert.equal(page.status,503);
+      assert.equal(page.body.code,"workspace_guard_not_configured");
+      const save = await request(app).post("/api/formulas/results").send({
+        formulaKey:"campaign_roi",inputValues:{campaign_revenue:300,campaign_cost:100}
+      });
+      assert.equal(save.status,503);
+      assert.equal(save.body.code,"workspace_guard_not_configured");
+      const publicFormula = await request(app).post("/api/formulas/evaluate").send({
+        formulaKey:"campaign_roi",inputValues:{campaign_revenue:300,campaign_cost:100}
+      });
+      assert.equal(publicFormula.status,200);
+      assert.equal(publicFormula.body.resultValue,200);
+      assert.equal(fake.rows("sonara_formula_results").length,0);
+    });
+
+    it("requires an authenticated user even if a workspace guard silently passes", async () => {
+      const app = express();
+      app.use(express.json());
+      registerFormulaRoutes(app,{
+        requireWorkspaceAccess:()=>(req,res,next)=>next(),
+        getSupabaseServerConfig:()=>({ok:true,url:fake.url,serviceRoleKey:"server-only"}),
+        getCustomerPrimaryOrganization:async()=>({ok:true,organizationId:ORG}),
+        supabaseHeaders:()=>({"Content-Type":"application/json"})
+      });
+      const read = await request(app).get("/formulas/campaign_roi/results");
+      assert.equal(read.status,403);
+      assert.equal(read.body.code,"workspace_identity_missing");
+      const write = await request(app).post("/api/formulas/results").send({
+        formulaKey:"campaign_roi",inputValues:{campaign_revenue:300,campaign_cost:100}
+      });
+      assert.equal(write.status,403);
+      assert.equal(write.body.code,"workspace_guard_not_configured");
+      assert.equal(fake.rows("sonara_formula_results").length,0);
+    });
+
+    it("safely ignores invalid provenance metadata when saving a calculated answer", async () => {
+      const app = buildApp(fake);
+      const saved = await request(app).post("/api/formulas/results").send({
+        formulaKey:"campaign_roi",
+        inputValues:{campaign_revenue:300,campaign_cost:100},
+        sourceTable:{toString:null},
+        sourceRecordId:{toString:null}
+      });
+      assert.equal(saved.status,200,JSON.stringify(saved.body));
+      const rows = fake.rows("sonara_formula_results");
+      assert.equal(rows.length,1);
+      assert.equal(rows[0].source_table,"manual_formula_input");
+      assert.equal(rows[0].source_record_id,null);
+    });
+
     it("reports a formula missing from the database as that, not as setup still to do", async () => {
       global.fetch = async () => ({ ok: false, status: 409, json: async () => ({ code: "23503", message: "violates foreign key constraint" }) });
       const json = await request(buildApp(fake)).post("/api/formulas/results").set("Accept", "application/json")

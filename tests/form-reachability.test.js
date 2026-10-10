@@ -32,19 +32,28 @@ const {
 
 // Reasons an endpoint has no form. Each key is an endpoint; each value says why.
 const NO_FORM_NEEDED = {
+  // This API is staged and feature-flagged OFF. It has no customer-facing
+  // create screen yet; staff count requests require a reviewed count form
+  // before activation. Do not turn on SONARA_ENABLE_STOCK_COUNT_REVIEW until
+  // there is an accessible request/review UI and real production proof.
+  "/api/business/inventory/stock-count-requests": "Disabled pending the employee count form and independent owner review UI; requests cannot be submitted by customers while the stock-review launch flag is off.",
+  // HTML users save through /creator-studio/editorial/save, an actual form.
+  // This JSON counterpart is for authenticated API clients; it requires a
+  // non-simple intent header, so a duplicate browser form would add no workflow.
+  "/api/creator-studio/editorial/save": "The visible Creator Studio editorial editor already renders an explicit save form to /creator-studio/editorial/save. This JSON endpoint exists for authorized API clients with a non-simple intent header and preserves the same stored draft contract.",
   // Called by a scheduler, not a person. There is nobody signed in behind a
   // cron, so it takes a shared secret rather than a session and has no page to
   // render a form on. The customer-facing surface is /owner/agent-schedule,
   // where they set when it runs for them.
   "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
 
-  // Its reason here was "Interface telemetry, posted by public/sonara-one.js."
-  // Checked on 7 October 2026: no file in public/ posts to it, and
-  // `git log -S"/api/motion/events" -- public/` finds no commit that ever made
-  // one do so. The reason described a client that never existed. What is true:
-  // it stores raw device motion readings and nothing sends any, so it records
-  // nothing today -- and a form is the wrong way to send sensor readings anyway.
-  "/api/motion/events": "No client posts to it: nothing in public/ ever has. It stores raw device motion readings, which a person does not type, so a form is not the missing piece; a consented sensor client is.",
+  // This used to be an honest gap: no client posted motion events at all.
+  // /settings/device-feedback now loads public/sonara-motion-capture.js, which
+  // starts only from an explicit button, stops when the page is hidden, samples
+  // for at most five seconds and posts one coarse aggregate. A markup form is
+  // still the wrong abstraction for a browser sensor event, so this remains an
+  // intentional no-form endpoint rather than a hidden customer workflow.
+  "/api/motion/events": "Posted by public/sonara-motion-capture.js from /settings/device-feedback after an explicit user action. Browser motion readings are not hand-entered form data; the client sends one bounded coarse summary and never background-streams them.",
   // /api/location/events used to be here, exempted as "posted by client script"
   // while no script posted to it. It has a real form now -- the check-in form on
   // /staff/location -- so the exemption is gone rather than reworded. The
@@ -112,14 +121,23 @@ const NO_FORM_NEEDED = {
   // routes/creator-generation-routes.cjs. It is the owner's to make, and a form
   // would make it for them.
   "/api/creator/reference-analyses": "Nothing reads creator_reference_analyses -- no list, no reviewer, no runner -- and offering the submission is an anti-clone safety decision that is the owner's to make. A form would collect requests nobody acts on.",
-  // Examined. integration_jobs is inserted here and read by nothing: no runner,
-  // no page, no status transition anywhere in the repository. A form would let
-  // somebody queue work that will never run, which is worse than no form. Its
-  // default status is manual_required rather than queued for the same reason --
-  // a row that says "queued" claims a worker this system does not have.
-  "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
+  // The generic endpoint remains deliberately manual. /account/integrations
+  // now lists readiness-probe jobs, and its dedicated
+  // /api/integrations/readiness-probes form can queue exactly one read-only
+  // job type for an explicitly enabled canary organization. Arbitrary job_type
+  // values posted here still have no provider executor and must not inherit
+  // that canary's authority.
+  "/api/integrations/jobs": "The generic integration-job API remains manual-only. The dedicated /api/integrations/readiness-probes form and worker consume only provider_readiness_probe; arbitrary provider jobs still require their own reviewed adapters.",
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
+  "/api/business/catering/estimate": "Read-only JSON equivalent of the owner catering calculator form at /business-builder/owner/catering; this API does not save quotes.",
+  "/api/business/events/resource-scenario": "Nested interval and resource snapshot preview; no persistent resource booking exists and a generic create form would misleadingly imply one.",
+  "/api/business/finance/microtransaction-scenario": "Owner enters assumptions at /business-builder/owner/financial-scenarios; the JSON twin previews fees and moves no funds.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
+  // The Worldbuilding planner already has a customer-facing form at
+  // /creator-studio/worldbuilding, posted to its HTML preview handler.
+  // This separate JSON endpoint accepts richer nested entities/dependencies
+  // for API clients; a second create form would imply a saved record or job.
+  "/api/creator/worldbuilding/plan": "JSON-only advanced worldbuilding preview. Customers use the existing /creator-studio/worldbuilding form for an HTML preview; neither creates a persistent record or render job.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
   // The five market-intelligence entries that stood here -- fetch-source and the
   // four research records -- are gone because the forms exist now, on

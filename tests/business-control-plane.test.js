@@ -6,6 +6,7 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-business-control-plane-routes.cjs");
+const { settledMapBounded } = require("../lib/sonara-bounded-source-reads.cjs");
 const { INDUSTRIES, industryKey, makeOverview } = require("../lib/sonara-customer-business-operations.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
@@ -69,6 +70,78 @@ describe("Business Builder control plane", () => {
 
     return app;
   }
+
+
+  it("bounds independent read fanout without changing input order or leaking rejected provider details", async () => {
+    let active = 0;
+    let highest = 0;
+    const result = await settledMapBounded(Array.from({ length: 11 }, (_, i) => i), async (item) => {
+      active += 1;
+      highest = Math.max(highest, active);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 2));
+        if (item === 7) throw new Error("provider response contains private details");
+        return item * 3;
+      } finally {
+        active -= 1;
+      }
+    }, { concurrency: 3 });
+    assert.equal(highest, 3, "the limiter should use its capacity, not serialize all reads");
+    assert.equal(active, 0);
+    assert.equal(result.length, 11);
+    assert.deepEqual(result.map((r) => r.ok), Array.from({ length: 11 }, (_, i) => i !== 7));
+    assert.equal(result[9].value, 27, "parallel completion did not reorder results");
+    assert.deepEqual(result[7], { ok: false, code: "source_unavailable" });
+    assert.doesNotMatch(JSON.stringify(result), /private details/);
+    assert.deepEqual(await settledMapBounded([], async () => null), []);
+    await assert.rejects(() => settledMapBounded([1], () => 1, { concurrency: 0 }), RangeError);
+    await assert.rejects(() => settledMapBounded([1], () => 1, { concurrency: 1.5 }), RangeError);
+    await assert.rejects(() => settledMapBounded([1], () => 1, { concurrency: 999 }), RangeError);
+  });
+
+  it("limits source requests to three in each business API/dashboard fanout and preserves unavailable sources", async () => {
+    let active = 0;
+    let maxActive = 0;
+    let queried = 0;
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("/business_workspaces")) return response(200, [businessRecord()]);
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      queried += 1;
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 2));
+        if (target.includes("/customer_records")) throw new Error("private database internal error");
+        if (target.includes("/business_service_catalog")) {
+          return response(200, [{ id: "fake-service" }]);
+        }
+        return response(200, []);
+      } finally {
+        active -= 1;
+      }
+    };
+    const app = buildApp();
+    const detail = await request(app)
+      .get(`/api/business-builder/businesses/${BUSINESS_ID}`).set("Accept", "application/json");
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.operations.ok, true);
+    assert.equal(detail.body.resources.customers, null);
+    assert.ok(detail.body.unavailable.includes("customers"));
+    assert.equal(detail.body.operations.metrics.find((r) => r.key === "customers").count, null);
+    assert.equal(detail.body.operations.metrics.find((r) => r.key === "services").count, 1);
+    assert.ok(maxActive <= 3, "per-request backend fanout exceeded the three-read budget");
+    assert.ok(maxActive > 1, "bounded requests should still make progress concurrently");
+    assert.ok(queried >= 7, "the API skipped required independent source reads");
+    maxActive = 0;
+    queried = 0;
+    const page = await request(app).get(`/business-builder/businesses/${BUSINESS_ID}`);
+    assert.equal(page.status, 200);
+    assert.match(page.text, /Business operating overview/);
+    assert.ok(maxActive <= 3, "the dashboard bypassed the three-read limit");
+    assert.ok(queried >= 7);
+    assert.match(page.text, /Unavailable/i);
+  });
+
 
   it("registers a paid, authenticated business list endpoint", async () => {
     global.fetch = async (url) => {

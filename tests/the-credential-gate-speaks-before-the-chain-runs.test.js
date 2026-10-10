@@ -111,7 +111,11 @@ before(() => {
 });
 
 after(() => {
-  fs.rmSync(workdir, { recursive: true, force: true });
+  // A failed global before-hook may leave the sandbox uncreated. Do not mask
+  // the original error with a second ENOENT/invalid path during teardown.
+  if (typeof workdir === "string" && workdir.length > 0) {
+    fs.rmSync(workdir, { recursive: true, force: true });
+  }
 });
 
 // Run the real step with a given environment. Returns its exit code, its

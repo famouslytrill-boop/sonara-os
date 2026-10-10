@@ -103,6 +103,8 @@ describe("canonical PWA contract", () => {
     assert.equal(executeExperience("/"), 1);
     assert.equal(executeExperience("/pricing"), 1);
     assert.equal(executeExperience("/legal/privacy"), 1);
+    assert.equal(executeExperience("/login"), 0);
+    assert.equal(executeExperience("/signup"), 0);
     assert.equal(executeExperience("/dashboard"), 0);
     assert.equal(executeExperience("/admin"), 0);
     assert.equal(executeExperience("/account"), 0);
@@ -113,13 +115,31 @@ describe("canonical PWA contract", () => {
     assert.equal(executeExperience("/", { secure: false, hostname: "localhost" }), 1);
   });
 
+  it("caches only the anonymous offline fallback, not regular HTML pages", async function() {
+    const fallback = await request(app).get("/offline");
+    assert.equal(fallback.status, 200);
+    assert.match(fallback.headers["cache-control"] || "", /^public, max-age=60$/);
+    assert.equal(fallback.headers["set-cookie"], undefined);
+    assert.match(fallback.text, /You are offline/);
+
+    const pricing = await request(app).get("/pricing");
+    assert.equal(pricing.status, 200);
+    assert.match(pricing.headers["cache-control"] || "", /no-store/);
+  });
+
   it("keeps authenticated navigation outside the service-worker response path", function() {
     const worker = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
     assert.match(worker, /sonara-public-/);
     assert.match(worker, /PUBLIC_NAVIGATION_PATHS/);
     assert.match(worker, /if \(!isPublicNavigation\(url\.pathname\)\) return;/);
     assert.match(worker, /cache: "no-store"/);
-    assert.match(worker, /private\|no-store/);
+    // The worker now requires explicit public permission; the previous
+    // private|no-store substring test went stale after the stricter policy.
+    assert.match(worker, /directives\.includes\("public"\)/);
+    assert.match(worker, /private\|no-store\|no-cache\|must-revalidate/);
+    assert.match(worker, /headers\.get\("vary"\)/);
+    assert.match(worker, /cookie\|authorization/);
+    assert.match(worker, /PUBLIC_ROOT_ASSETS\.has\(url\.pathname\)/);
     assert.match(worker, /set-cookie/);
     assert.match(worker, /url\.pathname === "\/sw\.js"/);
     assert.match(worker, /keys\.filter|\.filter\(\(key\) => key\.startsWith\(CACHE_PREFIX\)/);

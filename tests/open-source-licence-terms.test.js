@@ -18,6 +18,10 @@
 
 const assert = require("node:assert/strict");
 const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
+const fs = require("node:fs");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+
 
 // Reciprocal in the sense that matters for a hosted product: using the software
 // to serve users over a network triggers the obligation to release source.
@@ -205,5 +209,29 @@ describe("open-source register licence terms", () => {
       sourceAvailable.length >= 1,
       `expected the register to still contain a source-available record; found ${sourceAvailable.length}`
     );
+  });
+});
+
+
+describe("SONARA proprietary source versus independent open-source developer tools", () => {
+  it("labels XcodeGen as third-party without implying a SONARA code licence", () => {
+    const root = path.resolve(__dirname, "..");
+    const ios = fs.readFileSync(path.join(root, "ios", "README.md"), "utf8");
+    assert.match(ios, /third-party open-source XcodeGen tool/);
+    assert.match(ios, /XcodeGen's licence applies to that tool, not to SONARA's proprietary source/);
+    assert.match(fs.readFileSync(path.join(root, "LICENSE"), "utf8"), /all rights reserved|no licence is granted/i);
+    const rootPackage = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    assert.equal(rootPackage.license, "UNLICENSED");
+    assert.equal(rootPackage.private, true);
+  });
+
+  it("passes the full source-licence gate with truthful third-party attribution", () => {
+    const root = path.resolve(__dirname, "..");
+    const result = spawnSync(process.execPath, [path.join(root, "scripts", "verify-source-licence.mjs")], {
+      cwd: root, encoding: "utf8", timeout: 30000, maxBuffer: 2 * 1024 * 1024
+    });
+    assert.equal(result.error, undefined, result.error?.message);
+    assert.equal(result.status, 0, String(result.stderr || result.stdout).slice(0, 2000));
+    assert.match(result.stdout, /Source licence check passed:/);
   });
 });

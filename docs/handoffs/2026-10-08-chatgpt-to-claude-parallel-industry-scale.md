@@ -18,7 +18,7 @@ Repository `famouslytrill-boop/sonara-os`; parent SONARA Industries, shared SONA
 ## Supabase and security
 Supabase `yqncsonkxgwhcxedgevk` ACTIVE_HEALTHY, 161 applied migrations through `20261007130000` (from #446); no SQL write, migration or provider activation in this pass. Security advisors at inspection: 66 RLS-enabled/no-policy informational findings, 8 authenticated-executable SECURITY DEFINER function warnings, one leaked-password-protection warning, one extension in public. No mass grants/index changes. Analyze effective function permissions, `search_path`, tenant read/write and role before a reversible migration.
 
-Generated `docs/CAPABILITY_MAP.md` at inspected main: 957 registered HTTP operations, 303 pages, 338 matched OpenAPI API ops, 15 destination fallbacks, 59 formula evaluators, 161 migrations. These are source counts, not validation of the live experience.
+Generated `docs/CAPABILITY_MAP.md` at inspected main: 957 registered HTTP operations, 303 pages, 338 matched OpenAPI API ops, 15 destination fallbacks, 59 formula evaluators, 178 migrations. These are source counts, not validation of the live experience.
 
 ## Claude next engineering tasks
 1. Fetch current `main`, #455 merged head, any new PR/working branch and exact-head Actions. Check `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF_PROMPT.md`, `.ai/shared/HANDOFF_LOG.md`, `.ai/shared/TASK_BOARD.md`. Coordinate concurrent branch ownership.

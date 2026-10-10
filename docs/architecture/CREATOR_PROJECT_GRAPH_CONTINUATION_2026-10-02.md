@@ -39,7 +39,7 @@ Exactly four anonymous tools remain for each child company and three for SONARA 
 
 ## Repository findings and remaining execution work
 
-The generated capability map covers 875 registered route operations, 337 canonical table definitions, 161 migrations, 47 executable formulas and 512 repository records across catalogs. These are inventory counts, not evidence that every route or repository is live. The map still exposes 286 routes needing explicit data-contract review and 84 workspace-home fallbacks. Research records remain distinct from executed integrations.
+The generated capability map covers 875 registered route operations, 337 canonical table definitions, 178 migrations, 47 executable formulas and 512 repository records across catalogs. These are inventory counts, not evidence that every route or repository is live. The map still exposes 286 routes needing explicit data-contract review and 84 workspace-home fallbacks. Research records remain distinct from executed integrations.
 
 | Area | Next concrete execution requirement |
 | --- | --- |

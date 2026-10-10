@@ -76,6 +76,10 @@ function fail(message) {
 // `abuse_ceiling`      a signed-in subscriber can hit it, so it needs a floor. The
 //                      floor is in MINIMUM_SUBSCRIBER_RATE below.
 const LIMITERS = Object.freeze({
+  "support.contact": "anonymous_surface",
+  engineering_readonly_previews: "abuse_ceiling",
+  "device.motion_sample": "abuse_ceiling",
+  "integrations.readiness_probe": "abuse_ceiling",
   "auth.login": "credential_guard",
   "auth.two_factor": "credential_guard",
   "auth.signup": "anonymous_surface",
@@ -88,6 +92,9 @@ const LIMITERS = Object.freeze({
   "business.procurement_mutation": "abuse_ceiling",
   "business.work_order_mutation": "abuse_ceiling",
   "scroll_site_write": "abuse_ceiling",
+  // User-initiated drafts and previews; 1,200 per hour is above normal editing
+  // throughput and exists only to bound abusive automation or runaway clients.
+  "creator_editorial_workbench": "abuse_ceiling",
   // Added by #417. 120 a minute per subscriber, 7200 an hour -- a ceiling over a
   // runaway client, well clear of anybody pressing a button. Separate from the
   // generation allowance in lib/sonara-generation-allowance.cjs, which is a quota
@@ -99,6 +106,12 @@ const LIMITERS = Object.freeze({
   public_event_rsvp: "anonymous_surface",
   public_store_order: "anonymous_surface",
   public_channel_report: "anonymous_surface",
+  // Signed-in profile block/report flood safeguard. Per-actor database
+  // report and saved-block quotas remain independent of this HTTP ceiling.
+  social_account_safety: "abuse_ceiling",
+  // Authenticated block toggles cannot become a throttle on normal subscription
+  // activity; the database separately enforces the saved-block safety limit.
+  growth_channel_block_toggle: "abuse_ceiling",
   // Stripe's Connect webhook: nobody is signed in, and the signature is what
   // authenticates it.
   stripe_connect_webhook: "anonymous_surface",
@@ -130,6 +143,10 @@ const LIMITERS = Object.freeze({
 // floor quietly lowered to fit.
 const MINIMUM_SUBSCRIBER_RATE = 600;
 const RATE_EXCEPTIONS = Object.freeze({
+  engineering_readonly_previews: {
+    perHour: 30,
+    reason: "Default-off engineering previews parse bounded 512-KiB untrusted geometry or pose exports. Thirty previews an hour limits repeated parser work; this is separate from saving or reading ordinary customer records."
+  },
   scroll_site_write: {
     perHour: 240,
     reason:

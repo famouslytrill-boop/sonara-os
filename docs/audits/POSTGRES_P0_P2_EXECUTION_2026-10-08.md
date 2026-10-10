@@ -72,6 +72,30 @@ policies on 25 tables, divided into:
   A/B write/deny and role grants on populated test tables; then create
   a forward migration with the Supabase CLI. Do not edit historic migration.
 
+### Follow-on correction, October 10, 2026 — native replay expectations
+
+The full migration history now includes `20261008100000_tighten_service_role_rls_policies.sql`, which postdates this October 8 snapshot's older P1 proposal. GitHub's PostgreSQL 16 and 18 native-replay logs demonstrated that all 25 expected pre-hardening policies **no longer match** the replay catalog: 21 pure service-role predicates are now `TO service_role USING (true)` (with `WITH CHECK (true)` for ALL), and four ownership policies already use a `SELECT auth.uid()` initPlan. Re-running the old `ALTER POLICY` statements would regress the policy design.
+
+The remediation branch `fix/p1-rls-guarded-replay-current-baseline-20261010` updates the staging-only SQL probe to require **exactly those 25 hardened definitions** and verifies the canonical migration-defined `subscriptions_select_member` policy without modifying it. The two duplicate subscription policies are live-preview-only drift, not present in checked-in migration definitions. It does not create another production migration, drop or rewrite any of the 25 protected policies, change grants, or remove the abort-on-drift check. The entire probe ends with `ROLLBACK`; the separate P0 synthetic two-tenant role/write-deny matrix continues to run first. **This is an unverified draft until native replay succeeds at the exact PR SHA.** Security reviewers must still inspect production identity, migration history, and live Supabase advisors before any activation.
+
+
+### Native-replay subscription drift resolution, October 10, 2026
+
+The exact-head #617 native replay on PostgreSQL 16/17/18 now passed the 25-policy hardened baseline check, then failed with `subscriptions duplicate policy definitions drifted; abort`. Research of checked-in migration SQL identified `subscriptions_select_member` in `011_sonara_saas_launch_system.sql` but **neither** of the two extra `Users can view ... subscription` policies. The preview has the two extra policies, while the canonical member/admin policy is absent from the earlier preview read of `pg_policies`; that divergence is not resolved by a replay fixture.
+
+The updated replay fixture checks for `subscriptions_select_member` under the authenticated role, a member-or-admin predicate, a SELECT command and absent WITH CHECK, and fails if either unexpected preview-only duplicate exists. It does not write subscription policies and ends with `ROLLBACK`. **Exact-head CI verification remains pending.** Preview cleanup is a separate security/DB-ownership change requiring read/deny tests and migration reconciliation, not an implicit effect of testing Creator Studio.
+
+### Connected Supabase preview read-only verification, October 10, 2026
+
+Source: Supabase project `yqncsonkxgwhcxedgevk` (`preview` release channel, PostgreSQL 17.6). **Not verified production.** No DDL or customer-data queries were run.
+
+- Supabase's migration ledger returned **163 entries**, ending with `20261008100000_tighten_service_role_rls_policies`.
+- Executed a **read-only** query that joined the exact `expected_rls_p1` 25-row baseline from `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` against `pg_policies` and compared schema/table/policy name, permissiveness, role array, command, `qual`, and `with_check` using `IS DISTINCT FROM`. Result: **25 expected policy rows; 0 mismatches**.
+- Queried only `pg_policies` metadata for the two `subscriptions` SELECT policies. Result: **2 expected policy names; 1 distinct definition**. Both are scoped to `{authenticated}`, command `SELECT`, predicate `(( SELECT auth.uid() AS uid) = user_id)`, with no `WITH CHECK`. This supports, but does not execute, the existing transaction-rolled-back duplicate-policy proof.
+- Current preview Supabase security advisors reported **10 WARN** findings: one `extension_in_public`, eight `authenticated_security_definer_function_executable`, and one `auth_leaked_password_protection`. They also reported **66 INFO** `rls_enabled_no_policy` findings. These must be triaged against actual roles/grants, deliberate internal-only tables, and the Auth configuration; **do not bulk-add permissive policies or revoke helpers without role/tenant regression proof**. Official remediations: https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public , https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable , https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
+- A separate read-only `pg_proc` review of all **8 advisor-flagged SECURITY DEFINER function signatures** found `SECURITY DEFINER=true`, `search_path=""`, `anon EXECUTE=false`, and `authenticated EXECUTE=true` for each. This is consistent with intentionally callable membership helpers; it does **not** independently prove authorization logic inside their function bodies is correct. Their per-tenant allow/deny semantics remain part of the explicit role matrix; do not revoke `authenticated` merely to hide the advisory.
+- Acceptance is still conditional on **exact-head native PostgreSQL 16/17/18 replay, synthetic role-write/deny tests, full CI, protected-main governance, and separate production migration identity verification**. Read-only preview comparison alone is not a green release.
+
 ## 3. P1 — 1,292 overlapping permissive-policy warnings
 
 These are **lint findings**, not 1,292 independent privacy leaks.
@@ -106,9 +130,16 @@ merging/removing policies.
 One **verified exact** duplication is two permissive `subscriptions` SELECT
 policies for authenticated, both with
 `(( SELECT auth.uid() AS uid) = user_id)`.
-The staging-only P1 SQL proposal removes only one copy, after proving both
-policies' permissions, role, command, and predicate are identical.
-It does not drop any table, expand privileges, or alter customer rows.
+The earlier staging-only draft attempted to drop one duplicate policy, but
+the native PostgreSQL migration replay does not create either of these two
+preview-only policy names. The actual repo migration
+`011_sonara_saas_launch_system.sql` defines
+`subscriptions_select_member` for `public.subscriptions`.
+The corrected replay now asserts the canonical member/admin policy is present
+and refuses unexpected preview-only policy names. It performs **no subscription
+policy DDL**. The two identical live preview policies remain unchanged.
+A separate approved forward migration is required for live duplicate cleanup
+after production database identity and owner/member allow/deny proof.
 
 Any broad policy consolidation must preserve the original OR semantics.
 Do not assume similar function names prove equivalent for every user/role.

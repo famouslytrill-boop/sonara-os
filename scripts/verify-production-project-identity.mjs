@@ -89,6 +89,53 @@ if (!failures.length) {
   }
 }
 
+// Hosted Data API exposure.
+//
+// Local supabase/config.toml deliberately exposes only public and
+// graphql_public, but a hosted project's PostgREST configuration is independent
+// state. Private SECURITY DEFINER policy helpers are safe only while the private
+// schema is NOT an exposed Data API schema. Read the hosted configuration and
+// fail closed before any migration preview/apply when that boundary is unknown.
+if (!failures.length && accessToken && projectId) {
+  const postgrestResponse = await fetch(`${MANAGEMENT_API}/${projectId}/postgrest`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  }).catch(() => undefined);
+
+  if (!postgrestResponse || !postgrestResponse.ok) {
+    failures.push(
+      `could not read hosted PostgREST configuration (${postgrestResponse ? postgrestResponse.status : "request failed"}); ` +
+        "refusing to migrate while exposed schemas are unverified"
+    );
+  } else {
+    const postgrest = await postgrestResponse.json().catch(() => undefined);
+    const rawSchemas = postgrest?.db_schema;
+    const exposedSchemas = Array.isArray(rawSchemas)
+      ? rawSchemas.map((value) => String(value).trim()).filter(Boolean)
+      : typeof rawSchemas === "string"
+        ? rawSchemas.split(",").map((value) => value.trim()).filter(Boolean)
+        : [];
+
+    if (!exposedSchemas.length) {
+      failures.push(
+        "hosted PostgREST configuration did not include db_schema; refusing to assume which schemas are exposed"
+      );
+    } else {
+      if (!exposedSchemas.includes("public")) {
+        failures.push(
+          `hosted PostgREST exposed schemas are ${exposedSchemas.join(", ")}, but public is missing; release configuration does not match SONARA's API contract`
+        );
+      }
+      if (exposedSchemas.includes("private")) {
+        failures.push(
+          "hosted PostgREST exposes the private schema. Remove private from Project Settings -> Data API -> Exposed schemas before any private authorization-helper migration."
+        );
+      } else {
+        notes.push(`hosted Data API schemas verified: ${exposedSchemas.join(", ")}; private is not exposed`);
+      }
+    }
+  }
+}
+
 // Leaked-password protection.
 //
 // Supabase Auth can check submitted passwords against HaveIBeenPwned and refuse

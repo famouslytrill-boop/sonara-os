@@ -88,6 +88,27 @@ describe("marketplace sales are checked against payment and delivery evidence", 
     assert.ok(codes(twice).includes("duplicate_payment"));
     assert.equal(twice.totals.usd.stripePaid, 5000);
   });
+  it("refuses contradictory copies of the same Stripe checkout while allowing exact pagination repeats", () => {
+    const consistent = run({ sessions: [session(), session()] });
+    assert.equal(consistent.complete, true);
+    assert.equal(consistent.checked, 1);
+    const conflicting = run({ sessions: [session(), session({ amount_total: 2700 })] });
+    assert.ok(codes(conflicting).includes("checkout_evidence_conflict"));
+    assert.equal(conflicting.complete, false);
+    assert.equal(conflicting.attention, 1);
+    // Total is drawn from the first snapshot, never overwritten by the
+    // contradictory provider response. Either way the report is incomplete.
+    assert.equal(conflicting.totals.usd.stripePaid, 2500);
+  });
+  it("flags contradictory checkout snapshots even without a local order", () => {
+    const conflicting = run({
+      orderRows: [], grants: [],
+      sessions: [session(), session({ payment_status: "unpaid" })]
+    });
+    assert.ok(conflicting.rows[0].codes.includes("order_not_in_report"));
+    assert.ok(conflicting.rows[0].codes.includes("checkout_evidence_conflict"));
+    assert.equal(conflicting.complete, false);
+  });
   it("reports missing webhook settlement and missing licence delivery separately", () => {
     assert.ok(codes(run({ orderRows: [order({ state: "pending", payment_intent_id: null })], grants: [] })).includes("payment_not_recorded"));
     assert.ok(codes(run({ grants: [] })).includes("licence_missing"));
@@ -120,6 +141,45 @@ describe("marketplace sales are checked against payment and delivery evidence", 
     for (const changed of [{ buyer_user_id: OTHER }, { version_id: OTHER }, { licence: "exclusive_transfer" }]) {
       assert.ok(codes(run({ grants: [grant(changed)] })).includes("licence_mismatch"));
     }
+  });
+  it("flags duplicate licence grants rather than hiding one in a Map overwrite", () => {
+    const result = run({ grants: [grant(), grant()] });
+    assert.deepEqual(codes(result), ["licence_duplicate"]);
+    assert.equal(result.checked, 0);
+    assert.equal(result.attention, 1);
+  });
+  it("checks every duplicate grant's buyer, version, revocation and seller scope", () => {
+    const mismatch = run({ grants: [grant(), grant({ buyer_user_id: OTHER })] });
+    assert.ok(codes(mismatch).includes("licence_duplicate"));
+    assert.ok(codes(mismatch).includes("licence_mismatch"));
+    const revoked = run({ grants: [grant(), grant({
+      revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "disputed"
+    })] });
+    assert.ok(codes(revoked).includes("licence_duplicate"));
+    assert.ok(codes(revoked).includes("licence_revoked"));
+    assert.throws(() => run({ grants: [grant(), grant({ organization_id: OTHER })] }), /seller scope/);
+  });
+  it("does not let a refunded order look revoked when any duplicate remains active", () => {
+    const closed = run({
+      orderRows: [order({ state: "refunded" })],
+      sessions: [refunded(2500)],
+      grants: [
+        grant({ revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "refunded" }),
+        grant()
+      ]
+    });
+    assert.ok(codes(closed).includes("licence_duplicate"));
+    assert.ok(codes(closed).includes("revocation_pending"));
+    const allRevoked = run({
+      orderRows: [order({ state: "refunded" })],
+      sessions: [refunded(2500)],
+      grants: [
+        grant({ revoked_at: "2026-10-08T09:00:00Z", revoked_reason: "refunded" }),
+        grant({ revoked_at: "2026-10-08T10:00:00Z", revoked_reason: "refunded" })
+      ]
+    });
+    assert.ok(codes(allRevoked).includes("licence_duplicate"));
+    assert.ok(!codes(allRevoked).includes("revocation_pending"));
   });
   it("reports full refunds and disputes which have not been recorded", () => {
     assert.ok(codes(run({ sessions: [refunded(2500)] })).includes("refund_not_recorded"));

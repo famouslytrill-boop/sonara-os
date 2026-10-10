@@ -56,9 +56,17 @@ describe("the tables nothing queries", () => {
         sandbox.file(path.join("supabase", "migrations", "99999999999999_orphan_gate_selftest.sql")),
         "create table if not exists public.sonara_orphan_gate_selftest (\n  id uuid primary key default gen_random_uuid()\n);\n"
       );
+      // A private-schema table is still a table. Earlier the parser called
+      // sonara_private the table name and silently hid all private tables.
+      fs.writeFileSync(
+        sandbox.file(path.join("supabase", "migrations", "99999999999998_private_orphan_gate_selftest.sql")),
+        "create table if not exists sonara_private.sonara_private_gate_probe (id uuid primary key);\n"
+      );
       const { ok, output } = sandbox.run("scripts/report-orphan-tables.mjs", ["--check"]);
       assert.equal(ok, false, "the gate passed with an unread table in the migrations; it can no longer fail");
       assert.match(output, /sonara_orphan_gate_selftest/, "the gate failed without naming the table it objected to");
+      assert.match(output, /sonara_private_gate_probe/, "private schema tables were not detected");
+      assert.doesNotMatch(output, /\\n  sonara_private\\s*\\n/, "the schema name was incorrectly counted as a table");
     } finally {
       sandbox.cleanup();
     }
@@ -79,6 +87,17 @@ describe("the tables nothing queries", () => {
     // unclassified.
     const missing = ORPHAN_TABLES.filter((table) => !tableColumns(table));
     assert.deepEqual(missing, [], `these are classified but no migration creates them:\n  ${missing.join("\n  ")}`);
+    // Private recovery data is intentionally accessible only through
+    // SECURITY DEFINER RPCs. The migration parser must still see those
+    // tables as real columns, without creating direct browser access.
+    for (const table of [
+      "autonomic_repair_claims", "autonomic_repair_events",
+      "autonomic_retry_jobs", "autonomic_retry_events",
+      "autonomic_sensor_nonces"
+    ]) {
+      const columns = tableColumns(table);
+      assert.ok(columns && columns.size > 0, table + " was not parsed from its private-schema CREATE TABLE");
+    }
   });
 
   it("records a real decision for every one", () => {

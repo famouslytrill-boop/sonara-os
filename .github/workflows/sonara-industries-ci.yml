@@ -1,6 +1,9 @@
 name: SONARA Industries CI
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
   push:
     branches: [main]
@@ -19,6 +22,13 @@ on:
   # problem, which is this repository's recurring defect wearing a CI badge.
   workflow_dispatch:
 
+concurrency:
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   sonara-industries:
     runs-on: ubuntu-latest
@@ -27,6 +37,8 @@ jobs:
         working-directory: .
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
@@ -155,6 +167,26 @@ jobs:
           SONARA_PYTHON_COVERAGE_COMPLETE: "1"
         run: pnpm run verify:gates
 
+      # Diagnostic only. This never changes or suppresses a failing gate,
+      # and the generated files are not committed from a privileged PR token.
+      # Emit a bounded unified diff to make a stale 20+ MB JSON inventory
+      # actionable without weakening the checked-in artifact requirement.
+      - name: Diagnose stale capability inventory after a failed release gate
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-capability-inventory.cjs --write
+          git --no-pager diff --unified=0 -- data/capability-inventory.json docs/CAPABILITY_MAP.md > capability-inventory-drift.diff
+          if [[ -s capability-inventory-drift.diff ]]; then
+            echo "Generated capability files differ from the PR's exact checkout:"
+            head -c 24000 capability-inventory-drift.diff
+            echo
+            echo "End of bounded drift preview. The original release gate remains failed."
+          else
+            echo "Generated capability files match; inspect the original failing gate above."
+          fi
+
       - name: Verify documentation links
         run: pnpm run test:docs
 
@@ -184,44 +216,64 @@ jobs:
       # finding. See scripts/audit-dependencies.mjs and SECURITY_NOTES.md.
       - run: node scripts/audit-dependencies.mjs
 
+
+  capability-inventory-regeneration-evidence:
+    # Diagnostic only: PR source is untrusted and must never run with a
+    # contents:write token. A reviewer applies generated changes separately.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generate exact-head capability inventory
+        run: |
+          node scripts/generate-capability-inventory.cjs --write
+          node scripts/generate-capability-inventory.cjs --check
+          sha256sum data/capability-inventory.json docs/CAPABILITY_MAP.md
+          git hash-object data/capability-inventory.json docs/CAPABILITY_MAP.md
+      - name: Print zero-context generated-only patch for controlled review
+        run: |
+          echo 'SONARA_GENERATED_PATCH_BEGIN'
+          git diff --no-ext-diff --no-color --unified=0 -- data/capability-inventory.json docs/CAPABILITY_MAP.md
+          echo 'SONARA_GENERATED_PATCH_END'
+      - name: Upload generated files for human-reviewed commit
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: capability-inventory-exact-head
+          path: |
+            data/capability-inventory.json
+            docs/CAPABILITY_MAP.md
+          if-no-files-found: error
+          retention-days: 7
+
   supabase-preview:
+    # Keep this historical check context stable, but never hand production
+    # Supabase credentials to pull-request code. Native migration replay proves
+    # executable SQL behavior; this lane proves frozen migration integrity.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Check Supabase preview secrets
-        id: supabase-secrets
-        shell: bash
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_ID" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "Supabase preview skipped because required Supabase secrets are not configured."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "configured=true" >> "$GITHUB_OUTPUT"
-          echo "Supabase preview secrets are configured."
-
-      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
-        if: steps.supabase-secrets.outputs.configured == 'true'
         with:
-          version: 2.118.0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Validate linked Supabase migrations without applying them
-        if: steps.supabase-secrets.outputs.configured == 'true'
-        shell: bash
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Verify migration files are frozen and checksummed
+        run: node scripts/verify-applied-migrations.mjs
+
+      - name: Explain live preview boundary
         run: |
-          set -euo pipefail
-          supabase --version
-          test -d supabase/migrations
-          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
-          supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
-          supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+          echo "Production-linked Supabase preview does not run in pull-request CI."
+          echo "Use Controlled Production Deployment Dry Run via workflow_dispatch on refs/heads/main after merge."

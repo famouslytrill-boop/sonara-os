@@ -66,7 +66,8 @@ describe("a request that went nowhere says so", () => {
     const outcome = supportRequestOutcome({ stored: false, emailed: true, referenceId: REFERENCE });
     assert.equal(outcome.ok, true);
     assert.equal(outcome.referenceId, REFERENCE);
-    assert.match(outcome.message, /reached our support inbox by email/);
+    assert.match(outcome.message, /email provider accepted your support message/i);
+    assert.match(outcome.message, /inbox delivery has not been confirmed/i);
     assert.match(outcome.message, /not in your account records/);
   });
 

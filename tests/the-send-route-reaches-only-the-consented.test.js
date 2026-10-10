@@ -93,7 +93,15 @@ function harness({
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
-    if (target.startsWith("https://api.resend.com/emails")) {
+    if (target === "https://api.resend.com/emails/batch") {
+      const payload = JSON.parse(options.body);
+      assert.ok(Array.isArray(payload));
+      calls.sentTo.push(...payload.flatMap((message) => message.to));
+      const status = payload.some((message) => resendStatus(message.to[0]) !== 200) ? 503 : 200;
+      const receipt = { data: payload.map((message, index) => ({ id: `batch-${index}` })) };
+      return new Response(JSON.stringify(receipt), { status, headers: { "content-type": "application/json" } });
+    }
+    if (target === "https://api.resend.com/emails") {
       const payload = JSON.parse(options.body);
       calls.sentTo.push(...payload.to);
       const status = resendStatus(payload.to[0]);
@@ -385,57 +393,19 @@ describe("the send route reaches only the consented", () => {
       assert.deepEqual(calls.sentTo, [], "sending 400 of 401 and reporting success is worse than refusing");
     });
 
-    it("keeps the cap inside the function's own lifetime, with the arithmetic checkable", async () => {
+    it("bounds sends without unsafe per-recipient fallback amplification", async () => {
       const { MAX_RECIPIENTS_PER_SEND } = require("../routes/growth-studio-control-routes.cjs");
       const { MAX_PER_REQUEST, MAX_FALLBACK_BATCHES } = require("../lib/growth-studio-dispatch.cjs");
       const { MAX_PAGES } = require("../lib/growth-studio-suppression.cjs");
 
-      // REWRITTEN 10 September 2026. This used to be `cap * 0.5`, which was the
-      // right sum while every recipient was its own request and became wrong
-      // the moment batching landed -- so it failed on the raised cap, correctly,
-      // and is now the real worst case rather than a looser version of the old
-      // one. It counts three things the old sum did not.
-      //
-      // Vercel's documented default is 300s (read 10 September 2026) and
-      // vercel.json sets no maxDuration. Everything below is at a pessimistic
-      // 500ms per HTTP call.
+      // A lost response may follow a real send. Blind replaying the batch
+      // individually is unsafe regardless of timeout or throughput budget.
+      assert.equal(MAX_FALLBACK_BATCHES, 0);
+      assert.ok(MAX_PER_REQUEST > 1 && MAX_PER_REQUEST <= 100);
+      assert.ok(MAX_RECIPIENTS_PER_SEND <= 1000);
       const batchCalls = Math.ceil(MAX_RECIPIENTS_PER_SEND / MAX_PER_REQUEST);
-      // The expensive path: a batch that does not return one id per email is
-      // resent one recipient at a time, bounded by MAX_FALLBACK_BATCHES.
-      const fallbackCalls = MAX_FALLBACK_BATCHES * MAX_PER_REQUEST;
-      // And the screen that runs before any of it.
-      const suppressionCalls = MAX_PAGES;
-
-      const pessimisticSeconds = (batchCalls + fallbackCalls + suppressionCalls) * 0.5;
-      assert.ok(
-        pessimisticSeconds <= 200,
-        `worst case is ${pessimisticSeconds}s (${batchCalls} batches + ${fallbackCalls} fallback sends + ${suppressionCalls} suppression pages at 500ms each), leaving no headroom in 300s`
-      );
-
-      // And the guard that stops this passing by measuring nothing: if the
-      // fallback were unbounded the sum above would be meaningless.
-      assert.ok(MAX_FALLBACK_BATCHES >= 1, "a fallback nobody may use is a fallback that does not exist");
-      assert.ok(
-        fallbackCalls < MAX_RECIPIENTS_PER_SEND,
-        "the fallback must be bounded below the cap, or the worst case is every recipient sent individually"
-      );
-
-      // **The constraint the time sum misses, found by falsification.** Raising
-      // the cap to 5,000 left every assertion above green -- 50 batches plus a
-      // 200-call fallback plus the suppression read is 140s, comfortably inside
-      // 300. It was still wrong, because time is not the only budget: with 50
-      // batches and only 2 permitted fallbacks, a bad day reports 200 sent and
-      // 4,800 NOT ATTEMPTED. An owner who asked to mail 5,000 and reached 200
-      // has been failed by a cap that the arithmetic called safe.
-      //
-      // So the fallback has to be able to recover a meaningful share of the
-      // campaign, not merely fit in the time available.
-      const recoverableShare = (MAX_FALLBACK_BATCHES * MAX_PER_REQUEST) / MAX_RECIPIENTS_PER_SEND;
-      assert.ok(
-        recoverableShare >= 0.2,
-        `the fallback can recover only ${Math.round(recoverableShare * 100)}% of a full campaign; ` +
-        "raise MAX_FALLBACK_BATCHES or lower the cap, because the rest would be reported unattempted"
-      );
+      const pessimisticSeconds = (batchCalls + MAX_PAGES) * 0.5;
+      assert.ok(pessimisticSeconds <= 200, "provider/suppression request budget exceeded");
     });
 
     it("reaches further than it did before batching, which is the point of it", async () => {
@@ -499,28 +469,23 @@ describe("the send route reaches only the consented", () => {
       assert.notEqual(response.status, 402, "an owner must not be asked to pay to be refused again");
     });
 
-    it("charges for what was accepted, not for what was attempted", async () => {
-      // Twenty-four consented, four rejected by the provider. Both counts are
-      // clear of the ten-email minimum, so the charge distinguishes "billed for
-      // accepted" from "billed for attempted" rather than both collapsing onto
-      // the floor. We pay Resend for accepted messages, so billing the four
-      // would charge a customer for our own failed requests.
-      const ids = Array.from({ length: 24 }, (unused, index) => `4444444${index % 10}-4444-4444-8444-4444444444${String(index).padStart(2, "0")}`);
-      const rejected = ["bulk0@example.com", "bulk3@example.com", "bulk7@example.com", "bulk9@example.com"];
+    it("charges only for consented recipients with verified provider receipts", async () => {
+      // Four of twenty-four contacts have no consent record and must not be
+      // mailed or billed. Twenty receive distinct batch IDs.
+      const ids = Array.from({ length: 24 }, (_, i) => `4444444${i % 10}-4444-4444-8444-4444444444${String(i).padStart(2, "0")}`);
+      const missing = [0, 3, 7, 9];
       const { response, calls } = await send({
-        leads: ids.map((id, index) => lead(id, `bulk${index}@example.com`)),
-        consents: ids.map((id) => consent(id)),
-        resendStatus: (address) => (rejected.includes(address) ? 422 : 200)
+        leads: ids.map((id, i) => lead(id, `bulk${i}@example.com`)),
+        consents: ids.filter((_, i) => !missing.includes(i)).map((id) => consent(id))
       });
-
       assert.equal(response.status, 200);
       assert.equal(response.body.sent, 20);
-      assert.equal(response.body.failed.length, 4);
-      assert.equal(response.body.code, "partly_sent");
-      assert.equal(calls.ledgerRows[0].amount_minor, quote("campaign_email", 20).chargeMinor, "charging 24 would bill a customer for our own failures");
+      assert.equal(response.body.failed.length, 0);
+      assert.equal(response.body.skipped.length, 4);
+      assert.equal(response.body.code, "sent");
+      assert.equal(calls.ledgerRows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
       assert.notEqual(calls.ledgerRows[0].amount_minor, quote("campaign_email", 24).chargeMinor);
-      // The owner needs to know WHO did not receive it.
-      assert.deepEqual(response.body.failed.map((entry) => entry.email).sort(), rejected.slice().sort());
+      assert.equal(calls.sentTo.length, 20);
     });
 
     it("does not un-send the campaign when the ledger write fails", async () => {

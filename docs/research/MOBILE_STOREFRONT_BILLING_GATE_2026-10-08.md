@@ -7,6 +7,7 @@
 - Apple App Review 3.1.1, 3.1.1(a), 3.1.3, 1.2 and 4.2: https://developer.apple.com/app-store/review/guidelines/
 - Google Play Payments: https://support.google.com/googleplay/android-developer/answer/9858738
 - Google Play US alternative billing: https://support.google.com/googleplay/android-developer/answer/16497028
+- **Distinct Google Play US external content links program:** https://support.google.com/googleplay/android-developer/answer/16470497
 - Google Play UGC: https://support.google.com/googleplay/android-developer/answer/9876937
 - Google Play recent US policy updates: https://support.google.com/googleplay/android-developer/answer/15582165
 
@@ -27,6 +28,19 @@
 Apple's 3.1.1(a) permits calls to alternative purchase methods for US storefront apps, without the same entitlement requirement as other storefronts. That does NOT establish a universal right to embed an external digital Stripe checkout in the native app. The policy classifier restricts to a separately reviewed external **link candidate** for US accounts only, not a charge or right grant.
 
 Google's US alternative-billing program is opt-in. As of October 1, 2026 participating developers face reporting requirements for authorized transactions and successful downloads as well as applicable Play service fees. A configured processor alone does not establish enrollment or compliance. Other territories use their own rules and approved programs; this initial implementation rejects unreviewed regions.
+
+### Two separate Google Play US programs (reviewed October 8, 2026)
+
+These are **not interchangeable**. Enrolling in one cannot be treated as enrollment in the other.
+
+| Program | How it works | Distinct operational proof |
+| --- | --- | --- |
+| Alternative billing for users in the US | A non-Play digital billing choice **within the app** | Enrollment via Play Console Alternative billing, relevant alternative billing APIs, transaction and download reporting, customer support/refunds, applicable fees |
+| External content links program for users in the US | A reviewed outbound **link** to buy digital items or download an external app | Separate Play Console external-content-links enrollment, external links APIs and information screen, reviewed destination and disclosure, transaction reporting, applicable fees, and separate external-app approval for download links |
+
+Google's **external content links** guidance currently states October 1, 2026 for transaction reporting/service fees but **December 1, 2026** for reporting successful external-app downloads and related service fees. The separate alternative-billing page states October 1, 2026 for its reporting and fees. A downloader-specific extension of the deadline must never be applied to digital purchase transactions. This policy module authorizes neither an app-download link nor a transaction.
+
+The research classifier therefore adds a new test-only `google_us_external_link` method, distinct from `google_us_alternative`. It requires its own verified program enrollment, approved destination, API readiness, pre-link disclosure, financial reporting, support/refund and service-fee evidence. Even a fully attested record returns **external_link_only** and **checkoutAuthorized=false**; no website checkout, navigation link or app-install permission is created. Actual user-facing routes need signed provider/store evidence and an authorized release.
 
 Apple enterprise-only, free companion, reader-app and advertising manager categories have fact-specific boundaries. Because SONARA also sells direct-to-consumer creator content and subscriptions, none may be presumed universally available. Physical-goods checkout must not disguise in-app digital purchases.
 

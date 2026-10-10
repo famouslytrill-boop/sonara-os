@@ -77,7 +77,7 @@ describe("a shared baseline that is behind must say so", () => {
 // its working directory. The copy list was found by running the gate and
 // adding what it asked for, rather than guessed.
 const SANDBOX_COPY = [
-  ".ai", ".github", "scripts", "lib", "docs",
+  ".ai", ".agents", ".claude", "supabase", ".github", "scripts", "lib", "docs",
   "package.json", "pnpm-workspace.yaml", "AGENTS.md", "CLAUDE.md", "SECURITY_NOTES.md", "README.md"
 ];
 const STATE_IN_SANDBOX = path.join(".ai", "shared", "CURRENT_STATE.md");

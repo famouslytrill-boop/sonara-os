@@ -7,8 +7,7 @@ const {
   dispatchCampaign,
   RESEND_ENDPOINT,
   RESEND_BATCH_ENDPOINT,
-  MAX_PER_REQUEST,
-  MAX_FALLBACK_BATCHES
+  MAX_PER_REQUEST
 } = require("../lib/growth-studio-dispatch.cjs");
 const { authoriseCampaign, MINIMUM_BILLABLE_EMAILS } = require("../lib/growth-studio-sender.cjs");
 const { quote } = require("../lib/sonara-paid-capabilities.cjs");
@@ -53,7 +52,7 @@ function okFetch(calls) {
     for (const message of batch) calls.messages.push({ url: String(url), body: message });
     // A batch call must answer with one id per email or the dispatcher falls
     // back, so the stub answers the way a clean batch does.
-    return { ok: true, status: 200, json: async () => ({ data: batch.map((unused, index) => ({ id: `id-${index}` })) }) };
+    return { ok: true, status: 200, json: async () => batch.length === 1 ? { id: "id-single" } : { data: batch.map((unused, index) => ({ id: `id-${index}` })) } };
   };
 }
 
@@ -223,65 +222,38 @@ describe("a campaign sends only to who was authorised", () => {
   });
 
   describe("when some of the sends fail", () => {
-    it("counts and names the failures rather than reporting success", async () => {
-      // An owner told "sent" when 40 bounced has been told something false.
-      const decision = authorised([
-        { email: "good@example.com", consent: CONSENTED },
-        { email: "bad@example.com", consent: CONSENTED },
-      ]);
-
-      const fetchImpl = async (url, options) => {
-        const to = JSON.parse(options.body).to[0];
-        return to === "bad@example.com" ? { ok: false, status: 422 } : { ok: true, status: 200 };
-      };
-
-      const result = await dispatchCampaign({ ...SEND, decision, appendLedger: async () => ({ ok: true }), fetchImpl });
-      assert.equal(result.code, "partly_sent");
-      assert.equal(result.sent, 1);
+    it("reports a definite single-recipient rejection without labeling it accepted", async () => {
+      const decision = authorised([{ email: "bad@example.com", consent: CONSENTED }]);
+      const result = await dispatchCampaign({
+        ...SEND, decision, appendLedger: async () => ({ ok: true }),
+        fetchImpl: async () => ({ ok: false, status: 422 })
+      });
+      assert.equal(result.code, "all_failed");
+      assert.equal(result.sent, 0);
       assert.equal(result.failed.length, 1);
-      assert.equal(result.failed[0].email, "bad@example.com", "the owner needs to know WHO did not receive it");
-      assert.equal(result.failed[0].status, 422, "a 422 and a 429 need different actions");
+      assert.equal(result.failed[0].email, "bad@example.com");
+      assert.equal(result.failed[0].status, 422);
     });
 
-    it("charges for what was accepted, not for what was attempted", async () => {
-      // We pay Resend per accepted message. Billing for attempts would charge
-      // the customer for our own failed requests.
-      //
-      // CORRECTED 10 September 2026. This test used three recipients with one
-      // accepted and asserted `units === 1`, which encoded a real bug rather
-      // than catching it: the sender authorises credit against
-      // MINIMUM_BILLABLE_EMAILS and tells the customer "billed at the 10-email
-      // minimum", while the draw here used the raw accepted count. Both numbers
-      // sat below the minimum, so the test could not see the disagreement, and
-      // the charge went out at exactly the zero margin the minimum exists to
-      // prevent.
-      //
-      // Twenty-four recipients with four rejected puts BOTH counts clear of the
-      // minimum, so the assertion actually distinguishes accepted from
-      // attempted instead of collapsing them onto the floor.
-      const addresses = Array.from({ length: 24 }, (unused, index) => `bulk${index}@example.com`);
-      const rejected = new Set(["bulk0@example.com", "bulk3@example.com", "bulk7@example.com", "bulk9@example.com"]);
-      const decision = authorised(addresses.map((email) => ({ email, consent: CONSENTED })));
-
-      const rows = [];
-      const fetchImpl = async (url, options) =>
-        (rejected.has(JSON.parse(options.body).to[0]) ? { ok: false, status: 500 } : { ok: true, status: 200 });
-
+    it("charges only for recipients with complete provider receipts", async () => {
+      // Four eligible contacts have unusable unsubscribe identities, so they
+      // cannot be sent. The remaining 20 have distinct batch provider IDs.
+      const decision = authorised(Array.from({ length: 24 }, (_, i) => ({
+        email: `bulk${i}@example.com`, consent: CONSENTED,
+        ...(i < 4 ? { id: null } : {})
+      })));
+      const ledgerRows = [];
       const result = await dispatchCampaign({
-        ...SEND,
-        decision,
-        appendLedger: async (row) => {
-          rows.push(row);
-          return { ok: true };
-        },
-        fetchImpl
+        ...SEND, decision,
+        appendLedger: async (row) => { ledgerRows.push(row); return { ok: true }; },
+        fetchImpl: okFetch(recorder())
       });
-
       assert.equal(result.sent, 20);
-      assert.equal(rows.length, 1);
-      assert.equal(rows[0].units, 20, "twenty-four attempted, twenty accepted, twenty charged");
-      assert.equal(rows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
-      assert.notEqual(rows[0].amount_minor, quote("campaign_email", 24).chargeMinor, "billing the attempts would charge for our own failures");
+      assert.equal(result.failed.length, 4);
+      assert.equal(ledgerRows.length, 1);
+      assert.equal(ledgerRows[0].units, 20);
+      assert.equal(ledgerRows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
+      assert.notEqual(ledgerRows[0].amount_minor, quote("campaign_email", 24).chargeMinor);
     });
 
     it("bills a small campaign at the minimum the sender authorised, not at the raw count", async () => {
@@ -298,7 +270,7 @@ describe("a campaign sends only to who was authorised", () => {
           rows.push(row);
           return { ok: true };
         },
-        fetchImpl: async () => ({ ok: true, status: 200 })
+        fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ id: "id-single" }) })
       });
 
       assert.equal(result.sent, 1);
@@ -310,7 +282,7 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(quote("campaign_email", 1).marginMinor, 0, "and one email at the raw count is the zero-margin case it prevents");
     });
 
-    it("charges nothing when every send failed", async () => {
+    it("charges nothing when provider completion is unconfirmed", async () => {
       const decision = authorised([{ email: "a@example.com", consent: CONSENTED }]);
       const rows = [];
       const result = await dispatchCampaign({
@@ -324,11 +296,12 @@ describe("a campaign sends only to who was authorised", () => {
       });
 
       assert.equal(result.ok, false);
-      assert.equal(result.code, "all_failed");
-      assert.equal(rows.length, 0, "nothing was delivered, so nothing may be charged");
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 1);
+      assert.equal(rows.length, 0, "unknown delivery cannot be charged as confirmed");
     });
 
-    it("treats a thrown request as a failure, not as a success", async () => {
+    it("treats a thrown request as uncertain, not as verified acceptance", async () => {
       const decision = authorised([{ email: "a@example.com", consent: CONSENTED }]);
       const result = await dispatchCampaign({
         ...SEND,
@@ -339,7 +312,8 @@ describe("a campaign sends only to who was authorised", () => {
         }
       });
       assert.equal(result.sent, 0);
-      assert.equal(result.failed.length, 1);
+      assert.equal(result.failed.length, 0);
+      assert.equal(result.uncertain.length, 1);
     });
   });
 
@@ -489,12 +463,10 @@ describe("a campaign sends only to who was authorised", () => {
   });
 
 
-  // Batching raised the reach from 400 to 1,000, and the only reason it is safe
-  // is the fallback. Resend documents that a clean batch response is
-  // index-aligned -- "each entry in `data` corresponds to the email at the same
-  // index in the batch payload (0-based)" -- and documents **nothing** about
-  // partial failure. So a batch is trusted only when it returns one id per
-  // email, and anything else is resent one at a time rather than interpreted.
+  // Batching is bounded at 100; a partial or lost response might follow
+  // delivery. We must not replay the same messages as individual sends.
+  // Provider idempotency keys reduce duplicates within 24h, but uncertain
+  // outcomes still need a durable record and human/provider reconciliation.
   describe("many recipients in one request, and what happens when that goes wrong", () => {
     const many = (count) =>
       authorised(Array.from({ length: count }, (unused, index) => ({ email: `bulk${index}@example.com`, consent: CONSENTED })));
@@ -555,137 +527,205 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(calls.wire[0].url, RESEND_ENDPOINT, "one recipient needs no reconciliation, so it should not go through the code that reconciles");
     });
 
-    it("resends the batch one at a time when it does not return an id per email", async () => {
-      // The undocumented case. Rather than interpret a short `data`, the batch
-      // is resent individually so every outcome is attributed to an address.
-      const calls = recorder();
-      let batches = 0;
+    it("quarantines a short batch receipt instead of duplicating its recipients", async () => {
+      const wire = [];
+      const recorded = [];
       const result = await dispatchCampaign({
-        ...SEND,
-        decision: many(3),
+        ...SEND, decision: many(3),
         appendLedger: async () => ({ ok: true }),
+        recordSends: async (rows) => { recorded.push(...rows); return { ok: true }; },
         report: () => {},
         fetchImpl: async (url, options) => {
-          const body = JSON.parse(options.body);
-          if (String(url) === RESEND_BATCH_ENDPOINT) {
-            batches += 1;
-            calls.wire.push({ url: String(url), size: body.length });
-            // Two ids for three emails: the shape that cannot be reconciled.
-            return { ok: true, status: 200, json: async () => ({ data: [{ id: "a" }, { id: "b" }] }) };
+          wire.push({ url, key: options.headers["Idempotency-Key"], payload: JSON.parse(options.body) });
+          return { ok: true, status: 200, json: async () => ({ data: [{ id: "id-1" }, { id: "id-2" }] }) };
+        }
+      });
+      assert.equal(wire.length, 1, "a short receipt must never cause a second send");
+      assert.equal(wire[0].url, RESEND_BATCH_ENDPOINT);
+      assert.match(wire[0].key, /^sonara-growth-[a-f0-9]{64}$/);
+      assert.equal(result.sent, 0, "unknown is not a confirmed delivery");
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.failed.length, 0);
+      assert.equal(result.uncertain.length, 3);
+      assert.equal(result.recorded.ok, true);
+      assert.equal(recorded.length, 3);
+      for (const row of recorded) {
+        assert.equal(row.status, "failed", "persist unknown using existing DB status schema");
+        assert.equal(row.reason, "provider_outcome_unknown");
+      }
+    });
+
+    it("stops all later batches when the first provider response is ambiguous", async () => {
+      let requests = 0;
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(MAX_PER_REQUEST + 2),
+        appendLedger: async () => ({ ok: true }),
+        report: () => {},
+        fetchImpl: async () => { requests += 1; return { ok: false, status: 503 }; }
+      });
+      assert.equal(requests, 1, "do not send another batch after an uncertain provider outcome");
+      assert.equal(result.sent, 0);
+      assert.equal(result.uncertain.length, MAX_PER_REQUEST);
+      assert.equal(result.notAttempted.length, 2);
+      assert.equal(result.notAttempted[0].reason, "earlier_batch_unconfirmed");
+      assert.match(result.detail, /reconcile provider receipts/);
+    });
+
+    it("contains synchronous provider adapter exceptions without blindly replaying", async () => {
+      for (const count of [1, 3]) {
+        let attempts = 0;
+        const result = await dispatchCampaign({
+          ...SEND, decision: many(count), report: () => {},
+          fetchImpl: () => {
+            attempts += 1;
+            throw new Error("provider_url_with_secret_should_not_escape");
           }
-          calls.messages.push({ url: String(url), body });
-          return { ok: true, status: 200 };
-        }
-      });
-
-      assert.equal(batches, 1);
-      assert.equal(result.sent, 3, "all three still land, by the individual path");
-      assert.deepEqual(
-        calls.messages.map((call) => call.body.to[0]).sort(),
-        ["bulk0@example.com", "bulk1@example.com", "bulk2@example.com"],
-        "each recipient must be retried by name"
-      );
+        });
+        assert.equal(attempts, 1);
+        assert.equal(result.code, "delivery_unconfirmed");
+        assert.equal(result.uncertain.length, count);
+        assert.equal(result.sent, 0);
+        assert.equal(JSON.stringify(result).includes("provider_url_with_secret_should_not_escape"), false);
+      }
     });
 
-    it("attributes each failure by address after a fallback", async () => {
-      const calls = recorder();
+    it("refuses to count an empty HTTP 200 single response as a verified send", async () => {
+      const ledgerWrites = [];
+      const sendRows = [];
       const result = await dispatchCampaign({
-        ...SEND,
-        decision: many(3),
-        appendLedger: async () => ({ ok: true }),
-        report: () => {},
+        ...SEND, decision: many(1), report: () => {},
+        appendLedger: async (row) => { ledgerWrites.push(row); return { ok: true }; },
+        recordSends: async (rows) => { sendRows.push(...rows); return { ok: true }; },
+        fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) })
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.sent, 0);
+      assert.equal(result.uncertain.length, 1);
+      assert.equal(ledgerWrites.length, 0, "unknown sends are not billable as accepted");
+      assert.equal(sendRows.length, 1);
+      assert.equal(sendRows[0].reason, "provider_outcome_unknown");
+    });
+
+    it("halts before a final singleton when an earlier batch has no provider receipt", async () => {
+      // A short success-looking batch response may follow real acceptance.
+      // The remaining singleton must not be sent until the ambiguous batch
+      // is reconciled against provider-authoritative evidence.
+      const calls = [];
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(101), report: () => {},
         fetchImpl: async (url, options) => {
-          const body = JSON.parse(options.body);
-          if (String(url) === RESEND_BATCH_ENDPOINT) return { ok: false, status: 500 };
-          if (body.to[0] === "bulk1@example.com") return { ok: false, status: 422 };
-          calls.messages.push({ body });
-          return { ok: true, status: 200 };
+          calls.push({ url: String(url), body: JSON.parse(options.body) });
+          return { ok: true, status: 200, json: async () => ({ data: [] }) };
         }
       });
-
-      assert.equal(result.sent, 2);
-      assert.deepEqual(result.failed, [{ email: "bulk1@example.com", status: 422 }], "the whole point of falling back is that this names an address");
+      // With 101 recipients the first 100 form a batch and the 101st remains
+      // unattempted; a missing batch receipt must halt before the singleton.
+      assert.equal(calls.length, 1);
+      assert.equal(result.uncertain.length, 100);
+      assert.equal(result.notAttempted.length, 1);
+      assert.equal(result.sent, 0);
     });
 
-    it("reports what it did not attempt once the fallback budget is spent", async () => {
-      // The fallback is what could run the function out of time, so it is
-      // bounded -- and past the bound the remaining recipients are reported as
-      // NOT ATTEMPTED rather than attempted and untracked.
-      const total = MAX_PER_REQUEST * (MAX_FALLBACK_BATCHES + 1);
-      let individual = 0;
+    it("does not mistake an individual definitive 422 rejection for an unknown send", async () => {
       const result = await dispatchCampaign({
-        ...SEND,
-        decision: many(total),
+        ...SEND, decision: many(1),
         appendLedger: async () => ({ ok: true }),
         report: () => {},
-        fetchImpl: async (url) => {
-          if (String(url) === RESEND_BATCH_ENDPOINT) return { ok: false, status: 500 };
-          individual += 1;
-          return { ok: true, status: 200 };
-        }
+        fetchImpl: async () => ({ ok: false, status: 422 })
       });
-
-      assert.equal(individual, MAX_PER_REQUEST * MAX_FALLBACK_BATCHES, "exactly the permitted number of batches may fall back");
-      assert.equal(result.sent, MAX_PER_REQUEST * MAX_FALLBACK_BATCHES);
-      assert.equal(result.notAttempted.length, MAX_PER_REQUEST, "the rest must be reported, not silently dropped");
-      assert.equal(result.notAttempted[0].reason, "fallback_budget_spent");
-      assert.equal(result.code, "partly_sent", "a campaign with unattempted recipients is not 'sent'");
-      assert.match(result.detail, /not attempted/, "the owner has to be told to send again");
+      assert.equal(result.sent, 0);
+      assert.equal(result.failed.length, 1);
+      assert.equal(result.failed[0].status, 422);
+      assert.deepEqual(result.uncertain, []);
     });
 
-    it("tells 'not attempted' apart from 'failed'", async () => {
-      // One was tried and refused; the other was never tried. An owner does
-      // something different about each, so collapsing them loses the action.
-      const total = MAX_PER_REQUEST * (MAX_FALLBACK_BATCHES + 1);
+    it("records an individual network timeout as unknown rather than safe to resend", async () => {
+      let attempts = 0;
       const result = await dispatchCampaign({
-        ...SEND,
-        decision: many(total),
+        ...SEND, decision: many(1),
         appendLedger: async () => ({ ok: true }),
         report: () => {},
-        fetchImpl: async (url, options) => {
-          if (String(url) === RESEND_BATCH_ENDPOINT) return { ok: false, status: 500 };
-          return { ok: JSON.parse(options.body).to[0] !== "bulk0@example.com", status: 422 };
+        fetchImpl: async () => { attempts += 1; throw new Error("network timeout after send"); }
+      });
+      assert.equal(attempts, 1);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 1);
+      assert.equal(result.uncertain[0].reason, "provider_outcome_unknown");
+      assert.equal(result.failed.length, 0);
+    });
+
+    it("uses stable but tenant/attempt-scoped idempotency keys for provider sends", async () => {
+      const keys = [];
+      const capture = async (url, options) => {
+        keys.push(options.headers["Idempotency-Key"]);
+        const emails = JSON.parse(options.body);
+        return Array.isArray(emails)
+          ? { ok: true, status: 200, json: async () => ({ data: emails.map((_, i) => ({ id: `id-${i}` })) }) }
+          : { ok: true, status: 200, json: async () => ({ id: "id-single" }) };
+      };
+      const input = {
+        ...SEND, decision: many(2), fetchImpl: capture,
+        appendLedger: async () => ({ ok: true }),
+        report: () => {}
+      };
+      await dispatchCampaign(input);
+      await dispatchCampaign(input);
+      await dispatchCampaign({ ...input, sendAttempt: "next-send" });
+      await dispatchCampaign({ ...input, organizationId: "22222222-2222-4222-8222-222222222222" });
+      assert.equal(keys.length, 4);
+      assert.equal(keys[0], keys[1], "same approved request must be idempotent");
+      assert.notEqual(keys[1], keys[2], "different send attempts need different keys");
+      assert.notEqual(keys[1], keys[3], "different organizations must not share provider keys");
+    });
+
+    it("rejects complete-count receipts containing a missing provider ID", async () => {
+      let requests = 0;
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(2),
+        report: () => {},
+        fetchImpl: async () => {
+          requests += 1;
+          return { ok: true, status: 200, json: async () => ({ data: [{ id: "valid" }, {}] }) };
         }
       });
-
-      assert.equal(result.failed.length, 1, "one address was tried and refused");
-      assert.equal(result.failed[0].email, "bulk0@example.com");
-      assert.equal(result.notAttempted.length, MAX_PER_REQUEST, "and a hundred were never tried at all");
-      assert.ok(!result.failed.some((entry) => entry.reason === "fallback_budget_spent"), "an unattempted recipient must not be reported as a failure");
+      assert.equal(requests, 1);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 2);
     });
 
-    it("charges only for what a fallback actually got out", async () => {
-      const total = MAX_PER_REQUEST * (MAX_FALLBACK_BATCHES + 1);
-      const rows = [];
-      await dispatchCampaign({
-        ...SEND,
-        decision: many(total),
-        appendLedger: async (row) => {
-          rows.push(row);
-          return { ok: true };
-        },
-        report: () => {},
-        fetchImpl: async (url) => (String(url) === RESEND_BATCH_ENDPOINT ? { ok: false, status: 500 } : { ok: true, status: 200 })
+    it("rejects repeated provider IDs even when batch response cardinality matches", async () => {
+      let calls = 0;
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(2), report: () => {},
+        fetchImpl: async () => {
+          calls += 1;
+          return { ok: true, status: 200, json: async () => ({ data: [{ id: "same" }, { id: "same" }] }) };
+        }
       });
-
-      assert.equal(rows[0].units, MAX_PER_REQUEST * MAX_FALLBACK_BATCHES, "billing the unattempted ones would charge for sends that never happened");
-      assert.notEqual(rows[0].units, total);
+      assert.equal(calls, 1);
+      assert.equal(result.sent, 0);
+      assert.equal(result.code, "delivery_unconfirmed");
+      assert.equal(result.uncertain.length, 2);
     });
 
-    it("says a batch fell back, rather than falling back quietly", async () => {
+    it("reports unconfirmed delivery instead of quietly replaying 503 responses", async () => {
       const reported = [];
-      await dispatchCampaign({
-        ...SEND,
-        decision: many(3),
-        appendLedger: async () => ({ ok: true }),
+      let requests = 0;
+      const result = await dispatchCampaign({
+        ...SEND, decision: many(3),
         report: (entry) => reported.push(entry),
-        fetchImpl: async (url) => (String(url) === RESEND_BATCH_ENDPOINT ? { ok: false, status: 503 } : { ok: true, status: 200 })
+        fetchImpl: async () => { requests += 1; return { ok: false, status: 503 }; }
       });
-
-      const fellBack = reported.find((entry) => entry.code === "batch_fell_back");
-      assert.ok(fellBack, "a fallback nobody records is a duplicate-send risk nobody can explain later");
-      assert.match(fellBack.detail, /503/, "the status is what says whether to expect it again");
+      assert.equal(requests, 1);
+      assert.equal(result.uncertain.length, 3);
+      const warning = reported.find((entry) => entry.code === "batch_delivery_unconfirmed");
+      assert.ok(warning);
+      assert.match(warning.detail, /503/);
+      assert.match(warning.detail, /no automatic resend/);
     });
+
   });
 
   describe("when the ledger fails after the emails have gone", () => {
