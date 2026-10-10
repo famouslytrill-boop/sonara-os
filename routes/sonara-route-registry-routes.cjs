@@ -17,6 +17,11 @@ const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.
 // studio" and three per-studio cards each naming their two by hand, and every
 // one of those went stale the day the free set changed.
 const { FREE_TOOL_COUNT, freeToolSentence, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
+const { createPlatformJobWorkerRepository } = require("../lib/sonara-platform-job-worker.cjs");
+const {
+  createIntegrationReadinessService,
+  readIntegrationReadinessActivationConfig
+} = require("../lib/sonara-integration-readiness.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -63,7 +68,9 @@ function registerRouteRegistryRoutes(app, deps) {
     displayStatus,
     accountNoticeCard,
     logoutAction,
-    safeListTable
+    safeListTable,
+    createRateLimiter,
+    getEnv
   } = deps;
 
   // Fall back to a pass-through so partially-wired callers (tests) still boot.
@@ -77,6 +84,25 @@ function registerRouteRegistryRoutes(app, deps) {
   // have animated /account/security along with /products.
   const sendMarketingPage = (res, input) => sendPage(res, { ...input, surface: "marketing" });
   const setupMessage = "This feature works, but saving needs your records connected by an administrator first.";
+
+  const platformJobs = createPlatformJobWorkerRepository({ getSupabaseServerConfig });
+  const integrationReadiness = createIntegrationReadinessService({
+    getSupabaseServerConfig,
+    platformJobs
+  });
+  const integrationProbeLimiter = typeof createRateLimiter === "function"
+    ? createRateLimiter({
+        name: "integrations.readiness_probe",
+        windowSeconds: 60,
+        maxAttempts: 12,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig
+      })
+    : passThrough;
+  const activationConfig = () => readIntegrationReadinessActivationConfig((name) =>
+    typeof getEnv === "function" ? getEnv(name) : process.env[name]
+  );
 
   app.get("/api/routes/public", (req, res) => {
     return res.status(200).json({
@@ -383,14 +409,96 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/account/integrations", requireCustomer, async (req, res) => {
     const services = (await getLiveReadiness()).services || {};
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    const activation = activationConfig();
+    const scopedCanary = organization.ok
+      && activation.ok
+      && activation.allowed
+      && activation.organizationId === organization.organizationId;
+    const state = organization.ok
+      ? await integrationReadiness.list({ organizationId: organization.organizationId, limit: 20 })
+      : { ok: false, code: "organization_unavailable", providers: [], connections: [], jobs: [] };
+
+    const connectionByProvider = new Map((state.connections || []).map((row) => [row.provider_key, row]));
+    const providerSections = state.ok
+      ? state.providers.map((provider) => {
+          const connection = connectionByProvider.get(provider.provider_key);
+          const connectionStatus = connection?.connection_status || "not connected";
+          const button = scopedCanary
+            ? `<form method="post" action="/api/integrations/readiness-probes"><input type="hidden" name="provider_key" value="${escapeHtml(provider.provider_key)}"><input type="hidden" name="request_id" value="${escapeHtml(integrationReadiness.newRequestId())}"><button type="submit">Check readiness</button></form>`
+            : "";
+          return `<article class="card"><h2>${escapeHtml(provider.name)}</h2><p>${escapeHtml(provider.category)} · provider ${escapeHtml(provider.status)} · ${escapeHtml(connectionStatus)}</p>${button}</article>`;
+        })
+      : [brandCard("Provider state unavailable", "Your provider catalog or connection state could not be read. This does not mean your providers are disconnected.")];
+
+    const jobSections = state.ok && state.jobs.length
+      ? state.jobs.map((job) => brandCard(
+          `${job.provider_key}: ${job.status}`,
+          job.status === "completed"
+            ? `Readiness: ${job.readiness}.`
+            : job.error_code
+              ? `The check did not finish: ${job.error_code}.`
+              : "The readiness check has not reached a terminal result yet."
+        ))
+      : [brandCard("No readiness checks yet", scopedCanary
+          ? "Use Check readiness on a provider above. This reads SONARA's connection state only; it does not call or change the external provider."
+          : "Provider checks remain disabled unless an explicit one-organization canary is enabled.")];
+
+    const workerStatus = scopedCanary
+      ? "Read-only readiness canary enabled for this organization."
+      : activation.enabled
+        ? "The readiness worker is enabled for a different canary organization."
+        : "The readiness worker is off. No provider job will be queued.";
+
     return sendPage(res, {
       title: "Integrations",
       eyebrow: "Your account",
       heading: "Connected services",
-      body: "Customer-safe availability labels only. Provider credentials and internal diagnostics are visible only to administrators.",
-      sections: [brandCard("Account database", displayStatus(services.supabase || "missing")), brandCard("Payment connection", displayStatus(services.stripe || "missing")), brandCard("Email delivery", displayStatus(services.emailDelivery || "missing")), brandCard("Google sign-in", displayStatus(services.googleSignIn || "missing"))],
+      body: "Provider and connection status only. Credentials, tokens, connection settings, and internal diagnostics are never rendered here.",
+      sections: [
+        brandCard("Account database", displayStatus(services.supabase || "missing")),
+        brandCard("Payment connection", displayStatus(services.stripe || "missing")),
+        brandCard("Email delivery", displayStatus(services.emailDelivery || "missing")),
+        brandCard("Google sign-in", displayStatus(services.googleSignIn || "missing")),
+        brandCard("Readiness worker", workerStatus),
+        ...providerSections,
+        ...jobSections
+      ],
       actions: [linkAction("/account", "Account"), linkAction("/support", "Get help")]
     });
+  });
+
+  app.post("/api/integrations/readiness-probes", requireCustomer, integrationProbeLimiter, async (req, res) => {
+    const respond = (status, payload) => {
+      if (wantsJson(req)) return res.status(status).json(payload);
+      const query = payload.ok
+        ? "?probe=queued"
+        : `?problem=${encodeURIComponent(payload.code || "not_queued")}`;
+      return res.redirect(303, `/account/integrations${query}`);
+    };
+
+    const activation = activationConfig();
+    if (!activation.ok) return respond(503, { ok: false, code: activation.reason || "worker_configuration_invalid" });
+    if (!activation.allowed) return respond(403, { ok: false, code: "readiness_worker_disabled" });
+
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) return respond(403, { ok: false, code: "organization_unavailable" });
+    if (organization.organizationId !== activation.organizationId) {
+      return respond(403, { ok: false, code: "readiness_canary_scope_mismatch" });
+    }
+
+    let result;
+    try {
+      result = await integrationReadiness.enqueueProbe({
+        organizationId: organization.organizationId,
+        userId: req.sonaraUser?.id || null,
+        providerKey: req.body.provider_key,
+        requestId: req.body.request_id
+      });
+    } catch {
+      return respond(400, { ok: false, code: "validation_failed" });
+    }
+    return respond(result.ok ? 202 : result.code === "worker_queue_unavailable" ? 503 : 400, result);
   });
 
   app.get("/notifications", requireCustomer, async (req, res) => {
