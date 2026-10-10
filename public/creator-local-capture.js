@@ -103,8 +103,20 @@
   camera.addEventListener("click", () => start("camera"));
   voice.addEventListener("click", () => start("voice"));
   stop.addEventListener("click", () => {
-    if (recorder?.state === "recording") { recorder.stop(); release(); }
-    else abort("Camera stopped. Any photo you took is still available to download.", true);
+    if (recorder?.state === "recording") {
+      // MediaRecorder.stop() queues the final dataavailable event *before*
+      // onstop. Releasing the microphone tracks here can cause Firefox to
+      // produce an empty final blob. The onstop handler releases the stream
+      // after the last chunk has arrived; abort() still stops immediately.
+      stop.disabled = true;
+      status.textContent = "Finishing your recording on this device…";
+      try { recorder.stop(); }
+      catch { abort("Recording could not be finalized. Nothing was uploaded."); }
+    } else if (recorder) {
+      // While an asynchronous recorder stop is being finalized, do not
+      // invalidate its revision or discard its pending final audio chunk.
+      return;
+    } else abort("Camera stopped. Any photo you took is still available to download.", true);
   });
   photo.addEventListener("click", async () => {
     const revision = sequence;
