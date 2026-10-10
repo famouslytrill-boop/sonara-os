@@ -203,8 +203,9 @@ test.describe("public experience browser contract", () => {
     wav.write("data", 36); wav.writeUInt32LE(160, 40);
     for (let at = 44; at < wav.length; at += 2) wav.writeInt16LE(12000, at);
     await page.locator("input[type=file]").setInputFiles({ name: "owned-recording.wav", mimeType: "audio/wav", buffer: wav });
-    await page.getByRole("button", { name: "Render WAV", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Rendered 0.01 seconds on CPU");
+    await page.getByRole("button", { name: /Render (stereo )?WAV/, exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Rendered 0.01 seconds at 44.1 kHz.");
+    await expect(page.getByRole("status")).toContainText("0 clipped samples.");
     expect(await page.locator("audio").evaluate((audio) => audio.paused)).toBe(true);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByText("Download WAV", { exact: true }).click()]);
     expect(download.suggestedFilename()).toBe(`project-${project.id}.wav`);
