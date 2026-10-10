@@ -20,6 +20,7 @@ const {
   serviceRoleHeaders,
   userScopedHeaders,
   chooseClient,
+  requireVerifiedUserScopedRead,
   SupabaseClientError
 } = require("../lib/sonara-supabase-clients.cjs");
 
@@ -203,5 +204,82 @@ describe("the policies that make user-scoped reads possible", () => {
   it("skips a table that is not there rather than failing the whole migration", () => {
     assert.match(sql, /to_regclass\('public\.[a-z0-9_]+'\) is null/);
     assert.match(sql, /raise notice 'skipping/);
+  });
+});
+
+
+describe("fail-closed scoped evidence reads (new learning-adapter preflight)", () => {
+  const org = "11111111-1111-4111-8111-111111111111";
+  const user = "22222222-2222-4222-8222-222222222222";
+  const liveProof = Object.freeze({
+    status: "verified_live_user_rls",
+    table: "sonara_learning_aggregates",
+    organizationId: org,
+    userId: user,
+    grantVerified: true,
+    sameTenantReadVerified: true,
+    crossTenantDeniedVerified: true,
+    measuredAt: "2026-10-09T12:00:00.000Z"
+  });
+  const valid = Object.freeze({
+    config: CONFIG,
+    accessToken: "verified-user-access-token",
+    table: liveProof.table,
+    organizationId: org,
+    serverOrganizationId: org,
+    userId: user,
+    serverUserId: user,
+    liveProof,
+    trustedNow: "2026-10-09T13:00:00.000Z"
+  });
+
+  it("returns only a caller-scoped GET; never falls back to service role", () => {
+    const answer = requireVerifiedUserScopedRead(valid);
+    assert.equal(answer.client, "user");
+    assert.equal(answer.mode, "rls_scoped_read_only");
+    assert.equal(answer.serviceRoleFallbackAllowed, false);
+    assert.equal(answer.method, "GET");
+    assert.equal(answer.headers.apikey, CONFIG.anonKey);
+    assert.equal(answer.headers.Authorization, "Bearer verified-user-access-token");
+    assert.notEqual(answer.headers.apikey, CONFIG.serviceRoleKey);
+  });
+
+  it("rejects failed or forged scope, unauthorized credentials, and RLS proof failures", () => {
+    for (const bad of [
+      { accessToken: null }, { accessToken: CONFIG.serviceRoleKey },
+      { accessToken: CONFIG.anonKey }, { config: { ...CONFIG, anonKey: CONFIG.serviceRoleKey } },
+      { config: { ...CONFIG, anonKey: "" } },
+      { table: "other_table" }, { table: "bad.table" },
+      { organizationId: user }, { serverOrganizationId: user },
+      { userId: org }, { serverUserId: org },
+      { liveProof: null },
+      { liveProof: { ...liveProof, status: "pending" } },
+      { liveProof: { ...liveProof, grantVerified: false } },
+      { liveProof: { ...liveProof, sameTenantReadVerified: false } },
+      { liveProof: { ...liveProof, crossTenantDeniedVerified: false } },
+      { liveProof: { ...liveProof, organizationId: user } },
+      { liveProof: { ...liveProof, userId: org } },
+      { liveProof: { ...liveProof, table: "another_table" } },
+      { trustedNow: "bad" },
+      { liveProof: { ...liveProof, measuredAt: "yesterday" } },
+      { liveProof: { ...liveProof, measuredAt: "2026-10-09T13:30:00.000Z" } },
+      { trustedNow: "2026-10-11T14:00:00.000Z" }
+    ]) {
+      assert.throws(
+        () => requireVerifiedUserScopedRead({ ...valid, ...bad }),
+        error => error instanceof SupabaseClientError
+          && error.message === "verified user-scoped evidence read unavailable",
+        JSON.stringify(bad)
+      );
+    }
+  });
+
+  it("does not change legacy chooseClient fallback behavior for existing routes", () => {
+    assert.equal(chooseClient({
+      method: "GET", table: "sonara_learning_aggregates",
+      accessToken: "", readyTables: new Set([liveProof.table])
+    }).client, "service_role");
+    assert.throws(() => requireVerifiedUserScopedRead({ ...valid, accessToken: "" }),
+      SupabaseClientError);
   });
 });
