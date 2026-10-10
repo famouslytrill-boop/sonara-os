@@ -7,7 +7,7 @@ const path = require("node:path");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-last9-routes.cjs"), "utf8");
 const first = source.indexOf("  // Staged stock count review:");
-const last = source.indexOf("  // Purchase-order approval is separate from fulfillment status.",first);
+const last = source.indexOf("};\n\nfunction registerRestResource(",first);
 if (first < 0 || last <= first) throw new Error("staged_stock_review_routes_missing");
 const section=source.slice(first,last);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
