@@ -397,3 +397,86 @@ References:
   https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/
 - Google Play and Apple public UGC user reporting/block rules remain
   independent deployment requirements, not satisfied by this module.
+
+## October 10 Phase 5: signed two-authority moderation and rights review (draft only)
+
+New test-only `lib/sonara-review-attestation-verifier.cjs` requires **two
+different Ed25519 public keys** before a content clearance can enter the
+already-unmounted Growth discovery projection:
+- a platform-approved human moderation reviewer signing in the
+  `moderation` domain;
+- a separately authorized rights/licensing reviewer signing in the
+  `rights` domain.
+
+Each signature covers the same explicit 21-field allowlisted claim
+including post/channel/organization IDs, SHA-256 source content digest,
+publication versions, the attestation UUID, signed policy version,
+moderation and rights approval statuses, sponsor/AI labels, audience
+scope, timestamps and recommendation-scoring rubric values. The signed
+message also binds its role and key ID, preventing signature substitution.
+An unexpected/unsigned claim field denies approval. A matching hash
+alone does not grant distribution rights; this is a **SONARA internal
+attestation design, not a C2PA Content Credential**.
+
+The verifier fetches an approved **server-owned** public-key roster and a
+fresh complete post-scoped hold/revocation snapshot before reading the
+signed attestation envelopes. It denies any expired, malformed, stale,
+wrong-key, reused-key, revoked or non-Ed25519 signature. It re-reads the
+hold/revocation snapshot AND the reviewer key registry before returning,
+denying the entire batch when either changes. This still leaves a small
+post-check-to-delivery race: closing that requires a durable atomic
+revocation design and appropriate end-to-end delivery semantics.
+
+**Do not authorize publication through this module**: it has no signing,
+reviewer onboarding, moderator staffing, appeal, enforcement, key-custody,
+database update or report-processing capability. Callback names do not
+authenticate the service providing the roster and revocation state.
+Provider-held key material must stay out of the repository and browsers;
+the server needs durable verified reviewer roles, independent private
+key storage, rapid key revocation, signed policy change management,
+append-only issue/revoke evidence and incident response. A person
+controlling both private keys could still approve content: operational
+dual control, separation of duties and auditable human review must be
+enforced separately.
+
+**Integration:** wrap the `loadAttestations` port supplied to
+`createGrowthPublicProjectionSource` with the signed loader. The source
+continues to recheck public channel/post current states and recompute the
+SHA-256 source binding; the parent feed reader independently checks signed
+viewer session, owner-scoped preferences, consent and blocks. A pending
+user report by itself does not automatically prove guilt; the independently
+governed moderation team must decide when to put the post on an immediate
+distribution hold. Holds and rights disputes must take effect as soon as
+the durable source reflects them, fail closed if unreadable, and must
+also block direct interactions where required by policy.
+
+**Research:** C2PA 2.4 distinguishes content cryptographic binding
+from signer credential trust and other trust signals, and supports AI
+disclosure assertions. These principles inform the separation but this
+code does not parse or issue C2PA manifests:
+https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html
+
+Apple App Review Guideline 1.2 requires filtering, reporting and timely
+response, user blocking and published contact information. The Google
+Play UGC policy requires effective reporting/blocking for relevant UGC
+experiences. A cryptographic content clearance does not substitute for
+any of these live product/user-safety operations:
+https://developer.apple.com/app-store/review/guidelines/
+https://support.google.com/googleplay/android-developer/answer/9876937
+
+**Verification and activation hold:** real Node 22 Ed25519
+sign/verify cross-role/tamper API smoke tests passed in a separate
+standalone program. The expanded tracked source/test file was evaluated
+in an isolated JS harness using a **noncryptographic crypto mock**;
+the harness does not validate native module execution or Node 24.
+No PostgreSQL DDL, actual reviewer roster, production key material,
+CI green, browser tests, mobile store validation, real moderation
+actions, customer messages or website restoration occurred.
+
+**Pending release chain** remains #602 -> #603 -> #606 -> #607 ->
+this staged review, alongside separate existing safety #572/#573/#575.
+Before integration, verify canonical production Supabase project and
+migration history, implement durable key/revocation records in a
+separately authorized private schema, run two-user/tenant deny tests,
+verify key/consent/revocation race behavior, complete exact-head CI,
+protect main and obtain explicit controlled-release approval.
