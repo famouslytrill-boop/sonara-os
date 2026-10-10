@@ -12,7 +12,7 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Public message: **Build. Create. Grow.**
 - Repo: `famouslytrill-boop/sonara-os`, default branch `main`.
 - Production: `https://sonaraindustries.com` on Vercel.
-- Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
+- Package manager authority: `package.json` currently pins `pnpm@12.7.0` (Node `24.x`); use pnpm only, never add `package-lock.json`. Re-read package.json on each change rather than trusting a dated version.
 
 ## Batch convergence (research through Batch 24)
 
@@ -66,6 +66,15 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - `data/repository-intake-2026-09-18.json` adds exactly 30 research-only repositories and 30 exact-SHA pinned install targets across GitHub, GitLab, and Higgsfield sources; `pnpm run verify:repository-intake` enforces the split, uniqueness, pinning, licence-review and non-execution rules.
 - `lib/sonara-batch-convergence-engine.cjs` consumes this as Batch 13. Both lanes remain non-executing in convergence; an install target is not evidence of runtime installation or activation.
 - No third-party repository source was bulk-copied into SONARA. Package/tool adoption still requires a pnpm lockfile change, a real SONARA call site or explicitly developer/test-only classification, full CI/security/tenant checks, and the product-specific canary gate.
+
+## Creator Studio DAW/media interchange (October 10, 2026; draft-only)
+
+- Development PR chain: #611 (PCM16/24/32 and float WAV import, 44.1/48 kHz stereo mixdown and waveform meters) → #613 (four-source, zero-aligned stereo WAV source-group stems) → #614 (real SMF Format 0 note sketch export). These are **unmerged drafts**, never proof of production activation. Check exact-head status before quoting readiness.
+- Active code under review: `public/creator-project-audio.js`, `public/creator-project-midi.js`, `routes/sonara-creator-project-routes.cjs`, `tests/creator-audio-interchange.test.js`, `tests/creator-source-stems.test.js`, `tests/creator-midi-interchange.test.js`, `docs/creator/DAW_AUDIO_INTEROPERABILITY_2026-10-10.md`, and `.claude/skills/creator-daw-interoperability/SKILL.md`.
+- The MIDI writer accepts **explicit** note events only, using 480 PPQ, tempo meta events, channel-specific note-on/off and SMF0 track framing. Limits: BPM 40–240, up to 128 notes, 256 beats, one track, one channel; MIDI is not synthesized audio or inferred/transcribed from a recording. Receiving DAWs assign instruments and are responsible for playback.
+- Existing source-group stems are not multi-bus/native DAW projects. PCM resampling is linear-interpolation preview/handoff, not certified mastering, LUFS, dBTP or BWF. No ASIO/AAX/VST, Pro Tools .ptx, Ableton .als or FL Studio .flp interoperability is implemented. Hardware audio and recording require explicit device permissions.
+- Respect rights, file/resource caps, tenant boundaries and owner approval for publishing; never auto-enable media workers or connect external providers because an interface/skill exists.
+- Standard evidence: https://midi.org/standard-midi-files ; https://help.ableton.com/hc/en-us/articles/209068169-Understanding-MIDI-files ; https://tech.ebu.ch/publications/tech3285/ ; https://ffmpeg.org/ffmpeg-resampler.html . A local V8 test harness passing is **not** a pnpm, browser or CI pass.
 
 ## Learning and memory truth
 
