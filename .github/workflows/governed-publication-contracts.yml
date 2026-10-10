@@ -47,4 +47,4 @@ jobs:
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile --config.engine-strict=false
       - name: Execute offline real-dependency Mocha contracts
-        run: pnpm exec mocha tests/sonara-multi-channel-publication-preflight.test.js --reporter spec
+        run: pnpm exec mocha --no-config --require tests/setup-env.cjs --timeout 15000 --exit --reporter spec tests/sonara-multi-channel-publication-preflight.test.js
