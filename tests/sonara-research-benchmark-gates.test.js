@@ -301,6 +301,7 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
       "https://[::1]/internal",
       "https://internal.local/private",
       "https://user:secret@example.org/",
+      "https://example.org\\\\@evil.com/path",
       "https://example.org/" + "a".repeat(2100),
       "https://example.org/\nmalicious"
     ];
