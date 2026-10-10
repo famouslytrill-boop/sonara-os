@@ -7,7 +7,7 @@ import {fileURLToPath} from "node:url";
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const OUT=path.join(ROOT,"output","assistant-model-packs");
 const policy=["AGENTS.md",".ai/shared/PROJECT_MEMORY.md",".ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md"];
-const maths=["lib/sonara-formula-library.cjs","lib/sonara-industry-algorithm-expansion.cjs","lib/sonara-formula-engine.cjs","lib/sonara-financial-intelligence-formulas.cjs","docs/sonara-formula-table-library.md"];
+const EXTRA_FORMULA_EVIDENCE=["docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md","docs/sonara-formula-table-library.md","supabase/migrations/20260621020200_sonara_formula_table_library.sql","supabase/migrations/20261004130000_seed_bounded_planning_formulas.sql","supabase/migrations/20261007110000_every_formula_can_be_saved.sql"];
 const shared=[
  {name:"sonara-external-tool-intake",source:".ai/shared/EXTERNAL_TOOL_RESEARCH_SKILL.md",description:"Review and verify external tools, licenses, security, provenance and adoption decisions for SONARA."},
  {name:"sonara-source-grounding",source:".ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md",description:"Ground technical and market research in verified primary sources, contradiction checks and uncertainty."}
@@ -17,6 +17,18 @@ function read(p){
  const full=path.join(ROOT,p),stat=fs.lstatSync(full);
  if(!stat.isFile()||stat.isSymbolicLink())throw Error("non_file "+p);
  return fs.readFileSync(full,"utf8");
+}
+function formulaPaths(){
+ const index=read(".ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md");
+ const section=/## Other formula and quantitative source modules \((\d+)\)([\s\S]*?)## Formula planning and migration evidence/.exec(index);
+ if(!section)throw Error("missing_formula_catalog_section");
+ const modules=[...section[2].matchAll(/^- \x60(lib\/[a-z0-9-]+\.cjs)\x60$/gm)].map(m=>m[1]);
+ const expected=Number(section[1]);
+ if(expected<19||modules.length!==expected||new Set(modules).size!==expected)
+   throw Error("formula_inventory_incomplete_or_duplicated");
+ const all=[...modules,...EXTRA_FORMULA_EVIDENCE];
+ for(const source of all)read(source);
+ return all;
 }
 function metadata(p,s){
  const m=/^---\r?\n([\s\S]*?)\r?\n---/.exec(s);
@@ -51,7 +63,7 @@ function plan(){
    const dir=target+"/skills/"+skill.name+"/";
    files.set(dir+"SKILL.md",skill.body);
    for(const p of policy)files.set(dir+"references/repository/"+p,read(p));
-   if(skill.name==="sonara-formula-evidence")for(const p of maths)files.set(dir+"references/repository/"+p,read(p));
+   if(skill.name==="sonara-formula-evidence")for(const p of formulaPaths())files.set(dir+"references/repository/"+p,read(p));
   }
   targets[target]={skills:skills.length};
  }
@@ -75,4 +87,4 @@ function main(){
  console.log(JSON.stringify({action:write?"local_files_written":"dry_run_only",targets:result.manifest.targets,files:result.manifest.files.length,uploaded:false}));
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main();
-export {metadata,plan};
+export {metadata,formulaPaths,plan};
