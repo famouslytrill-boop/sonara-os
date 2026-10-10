@@ -11,7 +11,11 @@ async function mountLocalComponent(page, markup, scriptPath) {
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  await page.setContent(inertMarkup);
+  // Keep the server-origin document, stylesheet and security policy intact.
+  // setContent() calls document.write(), replacing the page head and causing
+  // WebKit to lose the loaded styles and fail same-origin script injection.
+  // The markup was already stripped of all script elements above.
+  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
   await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
