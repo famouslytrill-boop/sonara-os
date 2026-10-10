@@ -4,7 +4,9 @@
 -- Post-hardening, *read-only* policy attestation for native PG 16/17/18 replay.
 -- The historic RLS rewriting dry-run is intentionally NOT re-applied against
 -- already-restricted service_role policies. This checks the exact modern
--- command, role and policy expression. Failure must STOP release.
+-- command, role and policy expression. Subscription-policy de-duplication
+-- belongs to separate live RLS / tenant-auth coverage, because disposable
+-- replay does not seed either historical subscription policy name. Failure must STOP release.
 -- See tests/sql/p1-rls-initplan-policy-dedup-rollback.sql for the archived
 -- old-policy rewrite experiment, which requires an older schema baseline.
 
@@ -13,9 +15,6 @@ DECLARE
   bad_count integer;
   expected_count integer;
   bad_names text;
-  subscription_count integer;
-  subscription_invalid integer;
-  subscription_details text;
 BEGIN
   WITH expected(table_name,policy_name,kind) AS (
     VALUES
@@ -77,35 +76,7 @@ BEGIN
     RAISE EXCEPTION 'P1 current policy contract drift on % policies: %',
       bad_count,bad_names;
   END IF;
-  -- Synthetic replay may contain one of the two historical duplicate
-  -- subscriptions SELECT policies; the connected schema has both.
-  -- Requiring an obsolete duplicate blocked all nine native test lanes.
-  -- Preserve a *strict* entitlement condition: at least one, at most two,
-  -- authenticated SELECT with an exact user_id ownership predicate.
-  SELECT count(*), count(*) FILTER (WHERE (
-       permissive='PERMISSIVE'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND qual IN (
-         '(( SELECT auth.uid() AS uid) = user_id)',
-         '(auth.uid() = user_id)',
-         '(user_id = auth.uid())',
-         '(user_id = ( SELECT auth.uid() AS uid))'
-       )
-       AND with_check IS NULL
-     ) IS DISTINCT FROM TRUE),
-     string_agg(policyname || ':' || coalesce(qual,'<null>'), '; ' ORDER BY policyname)
-  INTO subscription_count,subscription_invalid,subscription_details
-  FROM pg_policies
-  WHERE schemaname='public'
-    AND tablename='subscriptions'
-    AND policyname IN ('Users can view own subscriptions',
-                       'Users can view their own subscription');
 
-  IF subscription_count NOT BETWEEN 1 AND 2 OR subscription_invalid <> 0 THEN
-    RAISE EXCEPTION 'P1 subscription policy baseline drift: % present, % invalid: %',
-      subscription_count,subscription_invalid,subscription_details;
-  END IF;
 END;
 $current_policy_contract$;
 
