@@ -10,7 +10,7 @@
 4. Distinguish a research design, a registered formula, a tested executable handler, and a production-activated capability. No listing below grants authorization.
 5. Prefer the source code and tests over prose summaries. Keep tenant isolation, human approval, provider credentials, licensing, provenance, pricing and release gates intact.
 
-## All repository agent skill manifests (14)
+## Canonical SONARA skill procedures (14)
 
 - `.ai/shared/EXTERNAL_TOOL_RESEARCH_SKILL.md`
 - `.ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md`
@@ -28,6 +28,26 @@
 - `.claude/skills/writing-sonara-marketing-copy/SKILL.md`
 
 Shared skills are reference procedures for both assistants; `.claude/skills/` manifests are Claude-discoverable workflows. An external skill still requires licence and security review before adaptation.
+
+## Generated Codex skill bridges (15)
+
+- `.agents/skills/adding-a-record-page/SKILL.md`
+- `.agents/skills/checks-that-cannot-lie/SKILL.md`
+- `.agents/skills/comparing-sonara-to-a-competitor/SKILL.md`
+- `.agents/skills/designing-governed-product-workflows/SKILL.md`
+- `.agents/skills/diagnosing-sonara-customer-flows/SKILL.md`
+- `.agents/skills/governed-batch-convergence/SKILL.md`
+- `.agents/skills/researching-screenshot-tools/SKILL.md`
+- `.agents/skills/reviewing-an-outside-repository/SKILL.md`
+- `.agents/skills/reviewing-premium-sonara-ui/SKILL.md`
+- `.agents/skills/sonara-external-tool-intake/SKILL.md`
+- `.agents/skills/sonara-formula-evidence/SKILL.md`
+- `.agents/skills/sonara-source-grounding/SKILL.md`
+- `.agents/skills/source-grounded-research/SKILL.md`
+- `.agents/skills/writing-a-social-post-for-sonara/SKILL.md`
+- `.agents/skills/writing-sonara-marketing-copy/SKILL.md`
+
+Codex bridge files load the canonical full skill from the current authorized repository. For standalone API skills, generate separate offline bundles using `scripts/export-assistant-model-skill-packs.mjs`.
 
 ## Catalogued formula and agent-strategy keys
 
