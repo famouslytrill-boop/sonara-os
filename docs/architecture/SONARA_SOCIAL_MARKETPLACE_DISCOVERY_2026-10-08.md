@@ -100,3 +100,92 @@ order; no such endpoint was wired in this change.
   gates, tenant/RLS adversarial tests, a browser/accessibility audit and
   explicit release approval. Do not unblock the presently offline production
   website or flip social feature flags without the independent release gate.
+
+## October 9: authenticated discovery reader boundary (stacked draft)
+
+**Source:** lib/sonara-community-feed-reader.cjs. This is a **read-only, unmounted
+JavaScript module**, built on lib/sonara-community-discovery.cjs. It does not
+create a database table, route, active authenticated feed or moderation service.
+It imports no credentials and sends no notification. Customer data is not
+accessed by this draft.
+
+### Trust and sequencing contract
+
+The reader accepts four server-owned callbacks; these must NEVER be injected
+from HTTP query/body fields or unverified JWT/profile metadata:
+
+| Port | Required authoritative implementation | Failure behavior |
+|---|---|---|
+| resolveAuthenticatedViewer | Verify signed session, current account state and can-read-social privilege. Derive user ID from session, never caller userId. | Deny before reading settings or public rows |
+| loadViewerPreferences | Authenticated user-owned preferences; complete block/follow/mute lists, explicit discovery opt-in, age verification, country, and positive monotonic revision. | Deny if missing, corrupt, foreign, or oversized |
+| loadPublicProjections | Reviewed read of public-only projections, moderated and rights cleared, no tenant-private joins or service-role wildcard selects. | Deny if failed, over cap or malformed |
+| clock | Trusted current time. | Deny if unavailable |
+
+**Sequence:** validate request mode/limit → authenticate → read owner-scoped
+preferences → enforce Discover consent → load bounded public projections →
+**reauthenticate** → **reload preferences** → compare revision and exact
+whitelisted policy snapshot → run existing public/rights/block/age/territory
+filters → emit public-safe records only.
+
+Any mid-read account change, session revocation, preference change or provider
+exception returns an error with **zero content items**. The module never
+serializes session IDs, organization IDs, raw preferences or provider errors.
+
+The callbacks' ok:true, canReadPublicSocial:true and fresh:true fields are
+test seams, **not production proof**. Real callbacks must verify actual
+server-side identity, permission and current database state. The existing
+Supabase service-role helper bypasses RLS; a server request is not automatically
+tenant-safe.
+
+The double-check detects changes at two request boundaries, but cannot stop a
+mutation between the final read and HTTP delivery or replace atomic database
+snapshot/transaction guarantees. Follow/comment/DM blocks need independent
+write-side authorization.
+
+**Caps:** 250 candidate rows, 40 returned rows, 200 entries per preference
+list. hasMoreCandidates describes the bounded batch only, not persistent
+pagination or underlying-source exhaustion.
+
+### Runtime prerequisites (not implemented here)
+
+1. Reconcile canonical user, creator, channel and report/block tables and the
+   correct production Supabase project; establish migration, grants, RLS and
+   two-user tenant isolation on an isolated database.
+2. Implement viewer-owned preferences with revision/CAS, explicit consent
+   receipts, export/delete and authenticated session verification.
+3. Implement a **server-owned** public projection source (no tenant-private
+   business, creator license or transaction rows), and prove source whitelists.
+4. Add a feature-flagged read-only route only after middleware, authorization
+   and source evidence; enforce authenticated rate limits and abuse monitoring.
+5. Independently reconcile moderation/report/block draft branches #572, #573,
+   #575 with review, PostgreSQL replay, operator staffing and appeal handling.
+6. Run exact-SHA CI, browser/keyboard/mobile checks and a one-tenant private
+   canary before any public activation. Keep the site offline unless separately
+   authorized for restoration.
+
+### Research verified October 9, 2026
+
+- Google Play UGC policy requires terms acceptance for UGC creation and
+  reporting and blocking appropriate for public social/DM experiences:
+  https://support.google.com/googleplay/android-developer/answer/9876937
+- Apple App Review §1.2 requires filtering, prompt reporting response, user
+  blocking and contact information; February 2026 guidance clarified
+  random/anonymous chat also falls under 1.2:
+  https://developer.apple.com/app-store/review/guidelines/
+  https://developer.apple.com/news/?id=d75yllv4
+- OWASP API Security Top 10 2023 highlights object authorization and bounded
+  resource consumption:
+  https://api-security.owasp.org/editions/2023/en/0x11-t10/
+
+These are engineering references, not platform approvals or legal findings.
+
+### Evidence and status
+
+13 additional focused asynchronous Mocha cases were appended to the existing
+test entrypoint, testing double-checks, foreign preferences, changed revisions,
+revocation, malformed inputs, hidden/blocked posts and exception redaction.
+An isolated, in-memory JS harness executed the **32/32** test cases in that
+file without failures. This is not the full Node 24 Mocha, pnpm, typecheck,
+lint, build, CI, native PostgreSQL, browser or production test suite.
+
+This branch stacks on PR #602. Neither branch is merged or deployed.
