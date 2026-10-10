@@ -109,7 +109,7 @@ function enumerate(directory, prefix = "") {
   }
   return paths;
 }
-const paths = ["lib",".claude/skills",".ai/shared","docs","supabase/migrations"].flatMap(p => enumerate(p));
+const paths = ["lib",".claude/skills",".agents/skills",".ai/shared","docs","supabase/migrations"].flatMap(p => enumerate(p));
 const sources = {};
 for (const p of ["lib/sonara-formula-library.cjs","lib/sonara-industry-algorithm-expansion.cjs","lib/sonara-financial-intelligence-formulas.cjs","lib/sonara-formula-engine.cjs","lib/sonara-agent-skill-strategies.cjs","docs/sonara-formula-table-library.md"]) {
   const full = path.join(root,p);
