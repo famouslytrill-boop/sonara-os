@@ -1,5 +1,13 @@
 # SONARA Project Memory
 
+## P0 PostgreSQL replay policy-source boundary (October 10, 2026, draft PR #617)
+
+- Native replay must validate **migration-defined** `subscriptions_select_member` on `public.subscriptions` (migration `011_sonara_saas_launch_system.sql`) and **not** expect or drop two extra preview-only `Users can view ... subscription` policies that are not in repository migrations.
+- The 25-policy P1 exact catalog baseline must reflect `20261008100000_tighten_service_role_rls_policies.sql`: 21 service_role-only `USING/WITH CHECK true` shapes plus four authenticated ownership checks using the cached auth.uid() InitPlan. Reapplying legacy policies regresses hardening.
+- `tests/sql/p1-rls-initplan-policy-dedup-rollback.sql` enforces exact predicates, aborts on drift, performs no subscription policy DDL and finishes with `ROLLBACK`. `tests/p1-rls-replay-baseline.test.js` locks the static constraints. `scripts/sql/postgres-subscriptions-policy-reconciliation.sql` is read-only live-preview metadata evidence.
+- Read-only connected Supabase **preview**, not production, had 25/25 hardened policy matches and two identical extra subscription SELECT policies. Remediation requires separate approved migration, true production-project identity and synthetic tenant/member allow-deny checks. Draft code and queued CI are not release proof.
+
+
 Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-derive. Update only with evidence. This file is development-project memory, not customer/runtime memory and not an authorization grant.
 
 ## Identity and current authority
