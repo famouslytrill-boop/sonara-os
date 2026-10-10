@@ -598,3 +598,35 @@ describe("personal social preferences: bounded CAS proposal, not persisted", () 
     assert.equal(Object.hasOwn(personal.settings, "ageVerifiedAdult"), false);
   });
 });
+
+
+describe("unapplied private SQL proposal contract (static checks only)", () => {
+  const sql = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "..", "docs", "sql-proposals",
+      "social-feed-viewer-preferences-cas.sql"), "utf8"
+  );
+
+  it("is explicitly marked unexecuted, private, and outside the exposed API", () => {
+    assert.match(sql, /NOT a numbered migration/);
+    assert.match(sql, /create schema if not exists sonara_social_private/);
+    assert.match(sql, /revoke all on schema sonara_social_private from public, anon, authenticated/);
+    assert.equal(/\bgrant\s+(?:all|select|insert|update|delete|execute)\b[\s\S]{0,150}?\bto\s+(?:anon|authenticated)\b/i.test(
+      sql.replace(/--[^\n]*/g, "")), false);
+  });
+
+  it("enforces owner-keyed CAS and never uses a privileged definer function", () => {
+    assert.match(sql, /viewer_id uuid primary key references auth\.users\(id\)/);
+    assert.match(sql, /for update;/);
+    assert.match(sql, /p\.viewer_id = p_viewer_id and p\.revision = v_revision/);
+    assert.match(sql, /security invoker/);
+    assert.equal(/\bsecurity definer\b/i.test(sql.replace(/--[^\n]*/g, "")), false);
+  });
+
+  it("requires owner consent evidence and makes the audit insert transactional", () => {
+    assert.match(sql, /viewer_feed_consent_required/);
+    assert.match(sql, /consent_required/);
+    assert.match(sql, /insert into sonara_social_private\.viewer_feed_consent_events/);
+    assert.match(sql, /unique \(viewer_id, revision\)/);
+    assert.match(sql, /revoke all on function sonara_social_private\.cas_viewer_feed_preferences/);
+  });
+});
