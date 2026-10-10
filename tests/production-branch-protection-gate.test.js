@@ -32,6 +32,30 @@ describe("production release rejects unprotected main", () => {
       "branch governance must fail closed before a passing workflow matrix can release");
   });
 
+  it("keeps production secrets out of job scope and exposes them only to named steps", () => {
+    const dryRun = fs.readFileSync(
+      path.join(__dirname, "..", ".github", "workflows", "controlled-production-deploy-dry-run.yml"),
+      "utf8"
+    );
+
+    for (const [label, source] of [["production", workflow], ["dry-run", dryRun]]) {
+      const jobs = source.indexOf("jobs:");
+      const steps = source.indexOf("\n    steps:", jobs);
+      assert.ok(jobs >= 0 && steps > jobs, `${label} workflow must have a job and steps`);
+      const jobHeader = source.slice(jobs, steps);
+      assert.doesNotMatch(
+        jobHeader,
+        /\$\{\{\s*secrets\./,
+        `${label} job-level env must not expose production secrets to every action`
+      );
+    }
+
+    assert.match(workflow, /- name: Verify production project identity[\s\S]*?SUPABASE_ACCESS_TOKEN: \$\{\{ secrets\.SUPABASE_ACCESS_TOKEN \}\}/);
+    assert.match(workflow, /- name: Deploy validated source to Vercel production[\s\S]*?VERCEL_TOKEN: \$\{\{ secrets\.VERCEL_TOKEN \}\}/);
+    assert.match(dryRun, /- name: Link and preview production database migrations[\s\S]*?SUPABASE_DB_PASSWORD: \$\{\{ secrets\.SUPABASE_DB_PASSWORD \}\}/);
+    assert.match(dryRun, /- name: Pull production environment for read-only configuration verification[\s\S]*?VERCEL_TOKEN: \$\{\{ secrets\.VERCEL_TOKEN \}\}/);
+  });
+
   it("keeps the production secrets and deploy steps after the branch gate", () => {
     assert.ok(workflow.indexOf("- name: Require exact-SHA post-merge green matrix")
       < workflow.indexOf("- name: Require protected production credentials"));
