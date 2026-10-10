@@ -468,3 +468,133 @@ describe("SONARA authenticated read-only public feed boundary (not a route)", ()
   });
 });
 
+
+describe("personal social preferences: bounded CAS proposal, not persisted", () => {
+  const { emptySettings, normalizeStoredSettings, planSocialPreferenceChange } =
+    require("../lib/sonara-social-preference-policy.cjs");
+  const VIEWER = "33333333-3333-4333-8333-333333333333";
+  const OTHER = "22222222-2222-4222-8222-222222222222";
+  const POST = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const current = (overrides = {}) => ({ viewerId: VIEWER, revision: 5,
+    settings: emptySettings(), ...overrides });
+  const request = (command, overrides = {}) => ({
+    verifiedActorId: VIEWER, current: current(), expectedRevision: 5, command, ...overrides
+  });
+  const cmd = (type, value) => ({ type, value });
+
+  it("requires server-derived viewer identity, ownership and exact revision", () => {
+    assert.equal(planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { verifiedActorId: "request.userId" })).code, "viewer_unverified");
+    assert.equal(planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { current: current({ viewerId: OTHER }) })).code, "owner_scope_denied");
+    assert.equal(planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { expectedRevision: 4 })).code, "revision_conflict");
+    assert.equal(planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { current: current({ revision: 6 }) })).code, "revision_conflict");
+  });
+
+  it("proposes hiding posts without executing database writes", () => {
+    const result = planSocialPreferenceChange(request(cmd("hide_post", POST.toUpperCase())));
+    assert.equal(result.ok, true);
+    assert.equal(result.code, "cas_candidate");
+    assert.equal(result.sideEffectExecuted, false);
+    assert.equal(result.expectedRevision, 5);
+    assert.equal(result.nextRevision, 6);
+    assert.deepEqual(result.settings.hiddenContentIds, [POST]);
+  });
+
+  it("does not allow privacy changes to be swallowed by stale updates", () => {
+    const blocked = current({ revision: 6, settings: {
+      ...emptySettings(), hiddenContentIds: [POST]
+    } });
+    const oldUnhide = planSocialPreferenceChange(request(cmd("unhide_post", POST),
+      { current: blocked, expectedRevision: 5 }));
+    assert.equal(oldUnhide.code, "revision_conflict");
+    assert.equal(oldUnhide.ok, false);
+  });
+
+  it("uses normalized whole-word phrases with no duplicate state", () => {
+    const first = planSocialPreferenceChange(request(cmd("mute_keyword", "  Jazz & SOUL!")));
+    assert.deepEqual(first.settings.mutedKeywords, ["jazz soul"]);
+    const same = planSocialPreferenceChange(request(cmd("mute_keyword", "JAZZ SOUL"),
+      { current: current({ settings: { ...emptySettings(),
+        mutedKeywords: ["jazz soul"] } }) }));
+    assert.equal(same.code, "no_change");
+    assert.equal(same.nextRevision, 5);
+    assert.equal(same.changed, false);
+    const sorted = normalizeStoredSettings({ ...emptySettings(),
+      mutedKeywords: ["zebra", "alpha"] });
+    assert.deepEqual(sorted.mutedKeywords, ["alpha", "zebra"]);
+  });
+
+  it("rejects corrupt or secret-smuggling stored values instead of dropping them", () => {
+    for (const settings of [
+      { ...emptySettings(), hiddenContentIds: undefined },
+      { ...emptySettings(), blockedPublishers: [OTHER] },
+      { ...emptySettings(), mutedKeywords: ["bad\u0000word"] },
+      { ...emptySettings(), mutedKeywords: ["zebra", "zebra"] },
+      { ...emptySettings(), discoveryOptIn: "true" },
+      { ...emptySettings(), aiContent: "train_on_me" }
+    ]) {
+      const result = planSocialPreferenceChange(request(cmd("hide_post", POST),
+        { current: current({ settings }) }));
+      assert.equal(result.code, "stored_preferences_invalid");
+    }
+  });
+
+  it("restricts preference changes to an explicit, personal allowlist", () => {
+    for (const command of [
+      cmd("block_user", OTHER), cmd("publish", POST),
+      { type: "hide_post", value: POST, viewerId: OTHER },
+      cmd("hide_post", "not-a-uuid"), cmd("mute_keyword", "???"),
+      cmd("set_ai_content", "unrestricted"), cmd("set_discovery_opt_in", 1)
+    ]) {
+      assert.equal(planSocialPreferenceChange(request(command)).ok, false);
+    }
+  });
+
+  it("requires a separate version-bound receipt to opt in", () => {
+    const without = planSocialPreferenceChange(request(cmd("set_discovery_opt_in", true)));
+    assert.equal(without.code, "verified_consent_required");
+    const foreign = planSocialPreferenceChange(request(cmd("set_discovery_opt_in", true),
+      { consentEvidence: { verified: true, viewerId: OTHER,
+        policyVersion: "ugc-2026.10", acceptedAt: "2026-10-09T10:00:00Z" } }));
+    assert.equal(foreign.code, "verified_consent_required");
+    const valid = planSocialPreferenceChange(request(cmd("set_discovery_opt_in", true),
+      { consentEvidence: { verified: true, viewerId: VIEWER,
+        policyVersion: "ugc-2026.10", acceptedAt: "2026-10-09T10:00:00Z" } }));
+    assert.equal(valid.code, "cas_candidate");
+    assert.equal(valid.settings.discoveryOptIn, true);
+    assert.equal(valid.consentEvent.policyVersion, "ugc-2026.10");
+    assert.equal(valid.sideEffectExecuted, false);
+  });
+
+  it("permits opt-out without a receipt and explicitly plans revocation", () => {
+    const result = planSocialPreferenceChange(request(cmd("set_discovery_opt_in", false),
+      { current: current({ settings: { ...emptySettings(), discoveryOptIn: true } }) }));
+    assert.equal(result.code, "cas_candidate");
+    assert.equal(result.settings.discoveryOptIn, false);
+    assert.equal(result.consentEvent.optedIn, false);
+    assert.equal(result.consentEvent.policyVersion, null);
+  });
+
+  it("enforces 200 values and rejects revision overflows or foreign objects", () => {
+    const full = Array.from({ length: 200 }, (_, i) =>
+      "aaaaaaaa-aaaa-4aaa-8aaa-" + i.toString(16).padStart(12, "0"));
+    const limit = planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { current: current({ settings: { ...emptySettings(), hiddenContentIds: full } }) }));
+    assert.equal(limit.code, "preference_limit_reached");
+    const overflow = planSocialPreferenceChange(request(cmd("hide_post", POST),
+      { current: current({ revision: Number.MAX_SAFE_INTEGER }), expectedRevision: Number.MAX_SAFE_INTEGER }));
+    assert.equal(overflow.code, "revision_invalid");
+    assert.equal(planSocialPreferenceChange(request(null)).ok, false);
+  });
+
+  it("does not confuse personal mutes with reciprocal account blocking", () => {
+    const personal = planSocialPreferenceChange(request(cmd("mute_topic", "local-music")));
+    assert.deepEqual(personal.settings.mutedTopics, ["local-music"]);
+    assert.equal(Object.hasOwn(personal.settings, "blockedPublishers"), false);
+    assert.equal(Object.hasOwn(personal.settings, "followedPublishers"), false);
+    assert.equal(Object.hasOwn(personal.settings, "ageVerifiedAdult"), false);
+  });
+});
