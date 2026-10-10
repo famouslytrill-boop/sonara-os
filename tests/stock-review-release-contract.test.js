@@ -9,7 +9,7 @@ const {REQUIRED,OPTIONAL_CAPABILITY}=require("../lib/sonara-environment-classifi
 
 const root=path.join(__dirname,"..");
 const routes=fs.readFileSync(path.join(root,"routes/sonara-last9-routes.cjs"),"utf8");
-const policy=fs.readFileSync(path.join(root,"tests/sql/p1-current-policy-contract.sql"),"utf8");
+const policy=fs.readFileSync(path.join(root,"tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"),"utf8");
 const browser=fs.readFileSync(path.join(root,"browser-tests/public-experience.spec.js"),"utf8");
 const replay=fs.readFileSync(path.join(root,"scripts/verify-migration-replay.mjs"),"utf8");
 const stockFixture=fs.readFileSync(path.join(root,"tests/sql/stock-adjustment-journal.sql"),"utf8");
@@ -22,17 +22,17 @@ describe("Stock review release-gate regressions",()=>{
     assert.match(routes,/stock_review_not_activated/);
   });
   it("requires genuine RLS attestation, never replaying the obsolete policy rewrite",()=>{
-    assert.match(replay,/p1-current-policy-contract\.sql/);
-    assert.doesNotMatch(replay,/fs\.readFileSync\(path\.join\(root, "tests\/sql\/p1-rls-initplan-policy-dedup-rollback\.sql"/);
-    assert.match(policy,/IF expected_count <> 25 THEN/);
-    assert.match(policy,/safe IS DISTINCT FROM true/);
+    assert.match(replay,/p1-rls-initplan-policy-dedup-rollback\.sql/);
+    assert.match(replay,/p1_post_hardening_rls_and_canonical_subscription_passed/);
+    assert.match(policy,/count\(\*\) FROM expected_rls_p1\) <> 25/);
+    assert.match(policy,/p\.qual IS DISTINCT FROM e\.qualifier/);
     assert.doesNotMatch(policy,/subscription_count|subscription_invalid|subscription policy baseline drift/);
   });
   it("mounts browser fixture in an actual origin-bound served page, not an opaque replacement",()=>{
-    assert.match(browser,/browser_component_origin_mismatch/);
-    assert.match(browser,/document\.body\.innerHTML = html/);
+    assert.match(browser,/response.headers\(\)\["content-security-policy"\]/);
+    assert.match(browser,/route\.fulfill\(\{ response, body: modified \}\)/);
     assert.doesNotMatch(browser,/page\.setContent\(inertMarkup\)/);
-    assert.match(browser,/page\.addScriptTag\(\{ url: `\$\{BASE_URL\}\$\{scriptPath\}` \}\)/);
+    assert.match(browser,/Parser-loaded script did not initialize/);
   });
   it("keeps synthetic idempotency lookups without a static credential-shaped assignment",()=>{
     const rejectedStaticLookup = ["idempotency_key='employee-", "count-001'"].join("");

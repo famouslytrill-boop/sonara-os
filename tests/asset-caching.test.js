@@ -95,6 +95,7 @@ describe("static asset caching", () => {
     // bucket. That is correct but slower, so the mismatch should be visible.
     const runtime = [
       fs.readFileSync(path.join(root, "server.js"), "utf8"),
+      fs.readFileSync(path.join(root, "lib/sonara-page-frame.cjs"), "utf8"),
       ...fs
         .readdirSync(path.join(root, "routes"))
         .filter((name) => name.endsWith(".cjs"))

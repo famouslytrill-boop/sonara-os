@@ -44,46 +44,76 @@ async function mountShippedScript(page, scriptPath) {
   expect(response.headers()["content-type"] || "", `${scriptPath} must be JavaScript`).toMatch(/(?:java|ecma)script/i);
   const source = await response.text();
   expect(source.trim().length, `${scriptPath} must not be empty`).toBeGreaterThan(0);
-  await page.addScriptTag({ content: source });
+  await mountLocalComponent(page, "<p>Shipped asset fixture</p>", scriptPath);
 }
 
 // Component fixtures only need a same-origin document for IndexedDB and
 // same-origin scripts, not the full marketing /tools page. Route fulfillment
 // removes a second-tab Firefox load race without replacing the shipped JS.
-async function primeComponentOrigin(page) {
-  const url = `${BASE_URL}/tools`;
-  const fixture = async (route) => {
-    // Keep the real route's security headers, notably script-src 'self'.
-    // Only the large page body is replaced; shipped JS still comes from HTTP.
-    const response = await route.fetch();
-    if (response.status() !== 200 || !response.headers()["content-security-policy"]) {
-      throw new Error("The browser fixture cannot bypass a failed route or missing CSP.");
-    }
-    await route.fulfill({
-      response, contentType: "text/html",
-      body: "<!doctype html><html><head><title>Browser component fixture</title></head><body></body></html>"
-    });
+async function mountLocalComponent(page, markup, scriptPath, dependentScripts = []) {
+  // Keep this whitelist narrow. This is a browser fixture, not an arbitrary
+  // external resource loader or a way to relax CSP for generated content.
+  const globals = {
+    "/creator-project-graph-core.js": "SonaraCreatorGraph",
+    "/creator-image-core.js": "SonaraImageCore",
+    "/creator-project-audio.js": null,
+    "/creator-project-midi.js": null,
+    "/creator-device-access.js": "SonaraDeviceAccess",
+    "/creator-local-image.js": null,
+    "/creator-local-capture.js": null,
+    "/creator-project-device-store.js": "SonaraCreatorDeviceStore",
+    "/creator-project-draft.js": null
   };
-  await page.route(url, fixture);
-  try { await page.goto(url, { waitUntil: "domcontentloaded" }); }
-  finally { await page.unroute(url, fixture); }
-}
-async function mountLocalComponent(page, markup, scriptPath) {
+  const scripts = [scriptPath, ...dependentScripts];
+  if (new Set(scripts).size !== scripts.length || scripts.some((path) => !Object.hasOwn(globals, path))) {
+    throw new Error("Unknown or duplicate local component asset");
+  }
+
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  // Keep the origin of the real /tools document. Replacing the entire
-  // document with setContent can move WebKit into an opaque document context,
-  // causing the actual served /creator-*.js script loads to fail.
-  // The markup is still stripped of embedded scripts, and the component code
-  // still loads over HTTP from the running SONARA application server.
-  if (new URL(page.url()).origin !== new URL(BASE_URL).origin) {
-    throw new Error("browser_component_origin_mismatch");
+
+  // Parse the real same-origin script during a genuine navigation rather than
+  // dynamically injecting it into WebKit. route.fetch + fulfill preserves the
+  // application's CSP and security headers; it does not enable unsafe-inline
+  // or bypass cross-origin checks.
+  const path = new URL("/tools", BASE_URL).href;
+  for (const assetPath of scripts) {
+    const asset = await page.request.get(new URL(assetPath, BASE_URL).href);
+    const contentType = asset.headers()["content-type"] || "missing";
+    if (!asset.ok() || !/(javascript|ecmascript)/i.test(contentType)) {
+      throw new Error(`Local component asset unavailable: ${assetPath}; HTTP ${asset.status()}; content-type ${contentType}`);
+    }
   }
-  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
-  await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
+  let fixtureAdded = false;
+  const fixtureRoute = async (route) => {
+    const response = await route.fetch();
+    if (response.status() !== 200 || !response.headers()["content-security-policy"]) throw new Error(`Fixture page or CSP failed: ${response.status()}`);
+    const originalHtml = await response.text();
+    if (!new RegExp("</body>", "i").test(originalHtml)) throw new Error("Missing body close tag");
+    const fixture = `<section data-sonara-playwright-fixture>${inertMarkup}</section>` +
+      scripts.map((path) => `<script src="${path}"></script>`).join("");
+    const modified = originalHtml.replace(/(<body[^>]*>)[\s\S]*?<\/body>/i, (_match, open) => `${open}${fixture}</body>`);
+    fixtureAdded = true;
+    await route.fulfill({ response, body: modified });
+  };
+  await page.route(path, fixtureRoute);
+  try {
+    await page.goto(path, { waitUntil: "load" });
+  } finally {
+    await page.unroute(path, fixtureRoute);
+  }
+  if (!fixtureAdded) throw new Error("Fixture route did not intercept the page");
+  for (const assetPath of scripts) {
+    if (await page.locator(`script[src="${assetPath}"]`).count() !== 1) {
+      throw new Error(`Expected one parser-loaded same-origin script: ${assetPath}`);
+    }
+    if (globals[assetPath] && !await page.evaluate((key) => Boolean(globalThis[key]), globals[assetPath])) {
+      throw new Error(`Parser-loaded script did not initialize: ${assetPath}`);
+    }
+  }
 }
 test("isolated fixture loader requires shipped JavaScript, not a missing-route fallback", async ({ page }) => {
   await page.goto(`${BASE_URL}/tools`);
@@ -101,10 +131,8 @@ const draftProject = () => ({ id: projectId(100), title: "My original film", med
 async function mountDraft(page, project = draftProject(), scope = `${projectId(101)}:${projectId(102)}`) {
   const { offlineDraftForm } = require("../routes/sonara-creator-project-routes.cjs");
   const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-  await primeComponentOrigin(page);
-  await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js");
-  await mountShippedScript(page, "/creator-project-device-store.js");
-  await mountShippedScript(page, "/creator-project-draft.js");
+  await page.goto(`${BASE_URL}/tools`);
+  await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js", ["/creator-project-device-store.js", "/creator-project-draft.js"]);
 }
 async function addDraftCaption(page, text) {
   const form = page.locator("[data-draft-caption]");
@@ -388,9 +416,7 @@ test.describe("public experience browser contract", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const userId = "33333333-3333-4333-8333-333333333333";
     await page.route("**/api/account/device-permissions", (route) => route.fulfill({ json: { ok: true, userId, permissions: [{ key: "local_compute", state: "granted", allowed: true }] } }));
-    await mountLocalComponent(page, LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${userId}"`), "/creator-image-core.js");
-    await mountShippedScript(page, "/creator-device-access.js");
-    await mountShippedScript(page, "/creator-local-image.js");
+    await mountLocalComponent(page, LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${userId}"`), "/creator-image-core.js", ["/creator-device-access.js", "/creator-local-image.js"]);
     const pixels = await page.evaluate(async () => {
       const canvas = document.createElement("canvas"); canvas.width = 2; canvas.height = 1;
       canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray([100, 50, 20, 255, 0, 255, 10, 255]), 2, 1), 0, 0);
@@ -609,7 +635,7 @@ test.describe("device media and bounded image processing", () => {
     await expect(page.locator("[data-local-capture] video")).toBeHidden();
   }
   async function mountMedia(page, permission = { allowed: true }) {
-    await primeComponentOrigin(page);
+    await page.goto(`${BASE_URL}/tools`);
     await page.route("**/api/account/device-permissions", async (route) => {
       if (permission.delay) await new Promise((resolve) => setTimeout(resolve, permission.delay));
       if (permission.offline) return route.fulfill({ status: 503, json: { ok: false } });
@@ -618,8 +644,7 @@ test.describe("device media and bounded image processing", () => {
     });
     const markup = media.LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${USER}"`)
       + media.LOCAL_CAPTURE_FORM.replace("data-local-capture", `data-local-capture data-user-id="${USER}"`);
-    await mountLocalComponent(page, markup, "/creator-image-core.js");
-    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await mountShippedScript(page, `/${file}`);
+    await mountLocalComponent(page, markup, "/creator-image-core.js", ["/creator-device-access.js", "/creator-local-image.js", "/creator-local-capture.js"]);
     await page.evaluate(() => {
       Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
       window.captureCalls = 0; window.stoppedTracks = 0;

@@ -118,7 +118,7 @@ describe("canonical PWA contract", () => {
   it("caches only the anonymous offline fallback, not regular HTML pages", async function() {
     const fallback = await request(app).get("/offline");
     assert.equal(fallback.status, 200);
-    assert.match(fallback.headers["cache-control"] || "", /^public, max-age=60$/);
+    assert.match(fallback.headers["cache-control"] || "", /^public, max-age=0$/);
     assert.equal(fallback.headers["set-cookie"], undefined);
     assert.match(fallback.text, /You are offline/);
 
@@ -135,7 +135,12 @@ describe("canonical PWA contract", () => {
     assert.match(worker, /cache: "no-store"/);
     // The worker now requires explicit public permission; the previous
     // private|no-store substring test went stale after the stricter policy.
-    assert.match(worker, /directives\.includes\("public"\)/);
+    const scope = {location:{origin:"https://sonaraindustries.com"},addEventListener(){}};
+    vm.runInNewContext(worker + "\nself.cachePolicy = isCacheableResponse;", {self:scope,URL});
+    const response = cacheControl => ({ok:true,status:200,type:"basic",redirected:false,headers:new Headers({"cache-control":cacheControl,"content-type":"text/javascript"})});
+    assert.equal(scope.cachePolicy(response("public, max-age=0")), true);
+    assert.equal(scope.cachePolicy(response("max-age=300")), false);
+    assert.equal(scope.cachePolicy(response("private, max-age=0")), false);
     assert.match(worker, /private\|no-store\|no-cache\|must-revalidate/);
     assert.match(worker, /headers\.get\("vary"\)/);
     assert.match(worker, /cookie\|authorization/);

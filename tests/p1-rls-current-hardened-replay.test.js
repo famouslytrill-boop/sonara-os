@@ -31,8 +31,8 @@ describe("P1 hardened RLS replay probe is consistent with later migration histor
     assert.match(probe, /LEFT JOIN pg_policies p/);
     assert.match(probe, /p\.qual IS DISTINCT FROM e\.qualifier/);
     assert.match(probe, /p\.roles::text IS DISTINCT FROM e\.roles/);
-    assert.match(probe, /DROP POLICY "Users can view their own subscription"/);
-    assert.match(probe, /subscriptions policy definitions drifted/);
+    assert.doesNotMatch(probe, /\b(?:CREATE|ALTER|DROP)\s+POLICY\b/i);
+    assert.match(probe, /P1 subscription role or predicate drift; abort/);
     assert.match(probe, /p1_rls_hygiene_staging_passed/);
     assert.match(probe, /\bROLLBACK;\s*$/i);
   });

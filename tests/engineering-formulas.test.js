@@ -10,7 +10,7 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     ["trade_bid_price",{productive_hours:8,utilization_rate:0.8,burdened_cost_per_paid_hour:30,materials_cost:100,other_direct_cost:0,markup_rate:0.2},480],
     ["economic_profit",{chosen_net_benefit:1500,best_foregone_net_benefit:1200},300],
     ["project_net_present_value",{upfront_cost:1000,annual_net_cash_flow:600,discount_rate:0,years:2},200],
-    ["material_quantity_with_waste",{net_quantity:100,waste_rate:0.1},110],
+    ["material_quantity_with_waste",{net_quantity:100,waste_percent:10},110],
     ["concrete_volume_m3",{length_meters:4,width_meters:3,depth_meters:0.2},2.4],
     ["roofing_squares",{roof_area_square_feet:1500,waste_rate:0.1},16.5],
     ["paint_gallons",{surface_square_feet:800,coats:2,waste_rate:0,coverage_square_feet_per_gallon:400},4],
@@ -26,7 +26,7 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     ["project_variable_cash_flow_npv",{cash_flows:[500,700],discount_rate:0.1,upfront_cost:1000},500/1.1+700/1.21-1000],
     ["roof_pitch_surface_sqft",{plan_area_square_feet:1200,rise_per_12:6},1200*Math.sqrt(1.25)],
     ["trade_bid_gross_margin_percent",{bid_price:1250,direct_job_cost:1000},20],
-    ["base64_encoded_bytes",{source_bytes:3},4],
+    ["base64_encoded_bytes",{payload_bytes:3},4],
     ["circular_orbit_speed_m_s",{gravitational_parameter_m3_s2:3.986004418e14,orbital_radius_meters:7000000},Math.sqrt(3.986004418e14/7000000)],
     ["nadir_ground_sample_distance_m",{sensor_pixel_pitch_micrometers:5,altitude_meters:500000,focal_length_meters:1},2.5],
     ["combined_standard_uncertainty",{uncertainty_a:0.3,uncertainty_b:0.4},0.5],
@@ -71,7 +71,7 @@ describe("engineering formula library (deterministic and unit-labelled)", () => 
     assert.equal(evaluateFormula("project_variable_cash_flow_npv",{cash_flows:[100,"NaN"],discount_rate:0.2,upfront_cost:0}).code,"invalid_input");
   });
   it("refuses invalid nonphysical and incompatible sampling domains",()=>{
-    assert.equal(evaluateFormula("base64_encoded_bytes",{source_bytes:1.5}).code,"invalid_input");
+    assert.equal(evaluateFormula("base64_encoded_bytes",{payload_bytes:1.5}).code,"invalid_input");
     assert.equal(evaluateFormula("nadir_ground_sample_distance_m",{sensor_pixel_pitch_micrometers:5,altitude_meters:500000,focal_length_meters:0}).code,"invalid_input");
     assert.equal(evaluateFormula("roof_pitch_surface_sqft",{plan_area_square_feet:100,rise_per_12:-1}).code,"invalid_input");
     assert.equal(evaluateFormula("trade_bid_gross_margin_percent",{bid_price:0,direct_job_cost:100}).code,"invalid_input");

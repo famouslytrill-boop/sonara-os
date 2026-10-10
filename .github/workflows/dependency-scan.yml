@@ -30,6 +30,7 @@ jobs:
   # no longer runs. Renaming it is a one-line change to make **after** somebody
   # has looked at the branch protection rules, not before.
   frontend-dependencies:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -160,6 +161,7 @@ jobs:
   # success without being true. The agentkit tests are only worth having if
   # something outside a developer's own machine runs them.
   agentkit:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -197,6 +199,7 @@ jobs:
   # declared requires-python >=3.13 while every job here pins 3.12 -- so it
   # could not have been installed by any of them.
   python-ops:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -246,6 +249,7 @@ jobs:
   # docs/SPRINT_LOG.md; it is not dead code and should not be deleted as though
   # it were.
   backend-dependencies:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -300,6 +304,7 @@ jobs:
   # sits below today's count so adding a test does not fail the job, and far
   # above zero so a moved directory does.
   tools-python-suites:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -341,6 +346,7 @@ jobs:
           echo "$ran tests passed in ${{ matrix.project }}."
 
   tools-node-suites:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

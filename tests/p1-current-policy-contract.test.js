@@ -37,9 +37,9 @@ describe("Current P1 policy replay contract",()=>{
   });
   it("does not rewrite or disable policies merely to make a replay green",()=>{
     assert.doesNotMatch(sql,/\bALTER POLICY\b|\bDROP POLICY\b|\bCREATE POLICY\b|\bDISABLE ROW LEVEL SECURITY\b/i);
-    assert.ok(replay.includes("tests/sql/p1-current-policy-contract.sql"));
-    assert.ok(replay.includes("p1_current_policy_contract_passed"));
-    assert.ok(!replay.includes('fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"'));
+    assert.ok(replay.includes("tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"));
+    assert.ok(replay.includes("p1_post_hardening_rls_and_canonical_subscription_passed"));
+    assert.ok(historical.includes("expected_subscription_rls"));
     assert.ok(historical.includes("ROLLBACK;"));
   });
 });

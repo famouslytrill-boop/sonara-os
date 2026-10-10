@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   blocking-compatibility:
+    timeout-minutes: 25
     name: Node ${{ matrix.node }} blocking compatibility
     runs-on: ubuntu-latest
     strategy:
@@ -65,12 +66,14 @@ jobs:
         run: pnpm run lint
 
       - name: Test
+        timeout-minutes: 15
         run: pnpm test
 
       - name: Build
         run: pnpm run build
 
   node-27-forward-compatibility:
+    timeout-minutes: 25
     name: Node 27 forward compatibility (manual, non-blocking)
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_node27 }}
     continue-on-error: true
@@ -105,6 +108,7 @@ jobs:
         run: pnpm run lint
 
       - name: Test
+        timeout-minutes: 15
         run: pnpm test
 
       - name: Build

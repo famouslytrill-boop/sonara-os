@@ -4,7 +4,7 @@
 -- already hardened 21 pure service-role policies and 4 ownership policies.
 -- Never revert those policies to pre-hardening auth.role() predicates.
 -- This probe requires exact hardened definitions and the canonical
--- migration-defined subscriptions_select_member policy, without modifying it.
+-- three migration-defined subscriptions policies, without modifying them.
 -- Two additional preview-only subscription policies are not created by
 -- migrations and must not be expected in a native replay. Any unexpected
 -- role, predicate, command, or extra policy still aborts.
@@ -44,6 +44,18 @@ INSERT INTO expected_rls_p1 VALUES
     ('sonara_platforms', 'sonara_platforms_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
     ('user_notifications', 'user_notifications_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL),
     ('user_preferences', 'user_preferences_select_own', 'PERMISSIVE', '{authenticated}', 'SELECT', '(( SELECT auth.uid() AS uid) = user_id)', NULL);
+
+CREATE TEMP TABLE expected_subscription_rls (
+  policy_name text NOT NULL, permissive text NOT NULL, roles text NOT NULL,
+  cmd text NOT NULL, qualifier text, check_expr text
+) ON COMMIT DROP;
+INSERT INTO expected_subscription_rls VALUES
+  ('org members can read subscriptions', 'PERMISSIVE', '{public}', 'SELECT',
+    '((organization_id IS NOT NULL) AND is_org_member(organization_id))', NULL),
+  ('service role can manage subscriptions', 'PERMISSIVE', '{service_role}', 'ALL',
+    'true', 'true'),
+  ('subscriptions_select_member', 'PERMISSIVE', '{authenticated}', 'SELECT',
+    '(is_org_member(organization_id) OR is_admin_or_founder())', NULL);
 
 DO $drift$
 DECLARE bad int;
@@ -98,6 +110,23 @@ BEGIN
    RAISE EXCEPTION 'P1 expected 25 policies; abort';
  END IF;
 
+
+ IF (SELECT count(*) FROM expected_subscription_rls) <> 3
+ OR (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions') <> 3
+ OR EXISTS (
+   SELECT 1 FROM expected_subscription_rls e
+   LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename='subscriptions'
+     AND p.policyname=e.policy_name
+   WHERE p.policyname IS NULL
+     OR p.permissive IS DISTINCT FROM e.permissive
+     OR p.roles::text IS DISTINCT FROM e.roles
+     OR p.cmd IS DISTINCT FROM e.cmd
+     OR p.qual IS DISTINCT FROM e.qualifier
+     OR p.with_check IS DISTINCT FROM e.check_expr
+ ) THEN
+   RAISE EXCEPTION 'P1 subscription role or predicate drift; abort';
+ END IF;
+
  -- The two duplicate SELECT policies found on the connected preview
  -- database are NOT produced by this migration history. They cannot be used
  -- as a baseline for native replay. Require their absence here, not their
@@ -111,6 +140,8 @@ BEGIN
  -- Migration 011 creates this genuine member/admin subscription policy.
  -- Require the role, command, nontrivial membership predicate, and lack of
  -- INSERT/UPDATE WITH CHECK; do not relax access to satisfy a lint result.
+
+
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='subscriptions_select_member'
@@ -149,6 +180,21 @@ BEGIN
  IF bad <> 0 THEN
    RAISE EXCEPTION 'P1 postflight failed % policies',bad;
  END IF;
+ IF (SELECT count(*) FROM expected_subscription_rls) <> 3
+ OR (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions') <> 3
+ OR EXISTS (
+   SELECT 1 FROM expected_subscription_rls e
+   LEFT JOIN pg_policies p ON p.schemaname='public' AND p.tablename='subscriptions'
+     AND p.policyname=e.policy_name
+   WHERE p.policyname IS NULL
+     OR p.permissive IS DISTINCT FROM e.permissive
+     OR p.roles::text IS DISTINCT FROM e.roles
+     OR p.cmd IS DISTINCT FROM e.cmd
+     OR p.qual IS DISTINCT FROM e.qualifier
+     OR p.with_check IS DISTINCT FROM e.check_expr
+ ) THEN
+   RAISE EXCEPTION 'P1 subscription role or predicate drift; abort';
+ END IF;
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname='subscriptions_select_member'
@@ -165,5 +211,6 @@ BEGIN
  THEN RAISE EXCEPTION 'P1 canonical subscription policy postflight drift; abort'; END IF;
 END
 $postflight$;
+SELECT 'p1_post_hardening_rls_and_canonical_subscription_passed';
 SELECT 'p1_rls_hygiene_staging_passed';
 ROLLBACK;

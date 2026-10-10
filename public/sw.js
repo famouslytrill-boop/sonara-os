@@ -153,6 +153,9 @@ async function precachePublicResource(cache, relativeUrl) {
     redirect: "error"
   });
   const response = await fetch(request);
+  if (relativeUrl === OFFLINE_URL && !isPublicOfflineResponse(response)) {
+    throw new Error("Public offline fallback unavailable");
+  }
   if (relativeUrl === OFFLINE_URL &&
       !/(?:^|,)\s*public(?:\s*,|\s*$)/i.test(response.headers.get("cache-control") || "")) {
     throw new Error("Offline fallback requires explicit public cache policy");

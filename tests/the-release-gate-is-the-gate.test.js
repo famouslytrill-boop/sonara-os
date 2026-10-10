@@ -107,6 +107,40 @@ describe("the release gate is actually the gate", () => {
     assert.match(step.slice(0, 400), /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/);
   });
 
+  it("releases runner capacity when a CI head is superseded or a full test hangs", () => {
+    const industries = fs.readFileSync(path.join(workflowDir, "sonara-industries-ci.yml"), "utf8");
+    const nodeCompatibility = fs.readFileSync(path.join(workflowDir, "node-runtime-compatibility.yml"), "utf8");
+    const dependencies = fs.readFileSync(path.join(workflowDir, "dependency-scan.yml"), "utf8");
+    const nativeReplay = fs.readFileSync(path.join(workflowDir, "native-migration-replay.yml"), "utf8");
+    const docker = fs.readFileSync(path.join(workflowDir, "docker-image.yml"), "utf8");
+    const diagnostics = fs.readFileSync(path.join(workflowDir, "diagnose-generation-release-gates.yml"), "utf8");
+    const externalHealth = fs.readFileSync(path.join(workflowDir, "external-repository-health.yml"), "utf8");
+
+    for (const [name, workflow] of [
+      ["SONARA Industries CI", industries],
+      ["Node Runtime Compatibility", nodeCompatibility],
+      ["dependency-scan", dependencies],
+      ["Native migration replay", nativeReplay],
+      ["Docker Image CI", docker],
+      ["Diagnose unresolved release gates", diagnostics],
+      ["External Repository Health", externalHealth]
+    ]) {
+      assert.match(workflow, /concurrency:\s*[\s\S]*?cancel-in-progress:\s*(?:true|\$\{\{ github\.event_name == 'pull_request' \}\})/, `${name} can leave a superseded head consuming a runner`);
+    }
+
+    for (const [name, workflow] of [["industries",industries],["node",nodeCompatibility],["dependencies",dependencies],["native",nativeReplay],["docker",docker],["diagnostics",diagnostics],["external",externalHealth]]) {
+      const jobs = [...workflow.split("jobs:")[1].matchAll(/^  ([a-zA-Z0-9_-]+):\s*\n([\s\S]*?)(?=^  [a-zA-Z0-9_-]+:|(?![\s\S]))/gm)];
+      assert.ok(jobs.length > 0, `${name}: no jobs measured`);
+      for (const job of jobs) {
+        const limit = /^    timeout-minutes: (\d+)/m.exec(job[2]);
+        assert.ok(limit && Number(limit[1]) > 0 && Number(limit[1]) <= 45, `${name}/${job[1]} has no bounded runner occupancy`);
+      }
+    }
+    assert.match(industries, /name: Run tests\s*\n\s*timeout-minutes: 15[\s\S]*?pnpm run test:coverage/);
+    assert.equal((nodeCompatibility.match(/name: Test\s*\n\s*timeout-minutes: 15/g) || []).length, 2);
+
+  });
+
   it("names the chain length correctly where it is quoted at the owner", () => {
     // docs/owner/WHAT-IS-LEFT.md states this figure to somebody deciding
     // whether to ship. verify-doc-counts checks the number; this checks that

@@ -1,8 +1,8 @@
 {
-  "run": "Final local consolidation run on 2026-10-10",
-  "passed": 8651,
+  "run": "Remaining-PR consolidation full local run on 2026-10-10",
+  "passed": 8676,
   "pending": 6,
-  "failed": 95,
+  "failed": 76,
   "failures": [
     {
       "number": 1,
@@ -14,39 +14,6 @@
     },
     {
       "number": 2,
-      "suite": "PWA cache contains public assets only",
-      "test": "retains same-origin public assets and their single revision token:",
-      "locations": [
-        "tests/a-public-service-worker-never-caches-private-assets.test.js:155"
-      ]
-    },
-    {
-      "number": 3,
-      "suite": "PWA cache contains public assets only",
-      "test": "precache never stores a login-page response as JavaScript:",
-      "locations": [
-        "tests/a-public-service-worker-never-caches-private-assets.test.js:133",
-        "tests/a-public-service-worker-never-caches-private-assets.test.js:248"
-      ]
-    },
-    {
-      "number": 4,
-      "suite": "PWA cache contains public assets only",
-      "test": "rejects unsafe offline fallbacks rather than installing personalized pages:",
-      "locations": [
-        "tests/a-public-service-worker-never-caches-private-assets.test.js:269"
-      ]
-    },
-    {
-      "number": 5,
-      "suite": "PWA updates respect unsaved customer work",
-      "test": "does not forcibly activate while a new worker installs:",
-      "locations": [
-        "tests/a-pwa-update-requires-user-approval.test.js:44"
-      ]
-    },
-    {
-      "number": 6,
       "suite": "a replayed Stripe event changes nothing twice",
       "test": "replaying an event re-applies state rather than adding it",
       "locations": [
@@ -54,7 +21,7 @@
       ]
     },
     {
-      "number": 7,
+      "number": 3,
       "suite": "an enquiry is credited to the campaign that brought it",
       "test": "the link",
       "locations": [
@@ -62,7 +29,7 @@
       ]
     },
     {
-      "number": 8,
+      "number": 4,
       "suite": "an owner told a hundred were missed can find out which",
       "test": "lists uncertain recipients separately from recipients never attempted:",
       "locations": [
@@ -70,7 +37,7 @@
       ]
     },
     {
-      "number": 9,
+      "number": 5,
       "suite": "an unrecorded send is not a send to nobody",
       "test": "the dispatcher's own report",
       "locations": [
@@ -78,15 +45,7 @@
       ]
     },
     {
-      "number": 10,
-      "suite": "static asset caching",
-      "test": "versions every asset the renderers ask to be cached forever:",
-      "locations": [
-        "tests/asset-caching.test.js:105"
-      ]
-    },
-    {
-      "number": 11,
+      "number": 6,
       "suite": "Batch 20 screenshot research and workflow integration",
       "test": "reaches Research Lab, founder readiness, and batch convergence without execution:",
       "locations": [
@@ -94,7 +53,7 @@
       ]
     },
     {
-      "number": 12,
+      "number": 7,
       "suite": "Batch 21 screenshot research and integration",
       "test": "publishes the batch to the Research Lab, founder readiness, and convergence:",
       "locations": [
@@ -102,7 +61,7 @@
       ]
     },
     {
-      "number": 13,
+      "number": 8,
       "suite": "Batch 22 screenshot research",
       "test": "publishes the batch in catalog, public research page and convergence:",
       "locations": [
@@ -110,7 +69,7 @@
       ]
     },
     {
-      "number": 14,
+      "number": 9,
       "suite": "Batch 23 screenshot research",
       "test": "publishes Batch 23 through the Research Lab and convergence without widening authority:",
       "locations": [
@@ -118,7 +77,7 @@
       ]
     },
     {
-      "number": 15,
+      "number": 10,
       "suite": "Batch 24 screenshot research",
       "test": "publishes Batch 24 through Research Lab and convergence without widening authority:",
       "locations": [
@@ -126,7 +85,7 @@
       ]
     },
     {
-      "number": 16,
+      "number": 11,
       "suite": "a rejected contact request",
       "test": "gives back every field the customer filled in:",
       "locations": [
@@ -134,7 +93,7 @@
       ]
     },
     {
-      "number": 17,
+      "number": 12,
       "suite": "a rejected contact request",
       "test": "gives back the field that was wrong, rather than blanking it:",
       "locations": [
@@ -142,7 +101,7 @@
       ]
     },
     {
-      "number": 18,
+      "number": 13,
       "suite": "a rejected contact request",
       "test": "does not treat an unknown category as a chosen one:",
       "locations": [
@@ -150,7 +109,7 @@
       ]
     },
     {
-      "number": 19,
+      "number": 14,
       "suite": "durable-only security budgets",
       "test": "allows a request when the distributed counter authoritatively grants it:",
       "locations": [
@@ -158,7 +117,7 @@
       ]
     },
     {
-      "number": 20,
+      "number": 15,
       "suite": "each product does what it says",
       "test": "opens for a paying customer rather than redirecting or failing:",
       "locations": [
@@ -166,7 +125,7 @@
       ]
     },
     {
-      "number": 21,
+      "number": 16,
       "suite": "each product does what it says",
       "test": "shows something of its own, not just the workspace furniture:",
       "locations": [
@@ -174,31 +133,7 @@
       ]
     },
     {
-      "number": 22,
-      "suite": "engineering formula library (deterministic and unit-labelled)",
-      "test": "material_quantity_with_waste returns a stable numerical answer:",
-      "locations": [
-        "tests/engineering-formulas.test.js:42"
-      ]
-    },
-    {
-      "number": 23,
-      "suite": "engineering formula library (deterministic and unit-labelled)",
-      "test": "base64_encoded_bytes returns a stable numerical answer:",
-      "locations": [
-        "tests/engineering-formulas.test.js:42"
-      ]
-    },
-    {
-      "number": 24,
-      "suite": "engineering formula library (deterministic and unit-labelled)",
-      "test": "refuses invalid nonphysical and incompatible sampling domains:",
-      "locations": [
-        "tests/engineering-formulas.test.js:74"
-      ]
-    },
-    {
-      "number": 25,
+      "number": 17,
       "suite": "provider delay integration with the existing event consumer",
       "test": "refuses a claimed row from an foreign tenant without dispatching side effects:",
       "locations": [
@@ -206,7 +141,7 @@
       ]
     },
     {
-      "number": 26,
+      "number": 18,
       "suite": "provider delay integration with the existing event consumer",
       "test": "refuses a claimed row from an unexpected event kind without dispatching side effects:",
       "locations": [
@@ -214,7 +149,7 @@
       ]
     },
     {
-      "number": 27,
+      "number": 19,
       "suite": "provider delay integration with the existing event consumer",
       "test": "refuses a claimed row from an unexpected producer without dispatching side effects:",
       "locations": [
@@ -222,7 +157,7 @@
       ]
     },
     {
-      "number": 28,
+      "number": 20,
       "suite": "event consumer activation readiness",
       "test": "claims through the filtered RPC with tenant, kind, producer, and a unique claim owner:",
       "locations": [
@@ -230,7 +165,7 @@
       ]
     },
     {
-      "number": 29,
+      "number": 21,
       "suite": "every table the code declares is one a migration creates",
       "test": "names no table that no migration creates:",
       "locations": [
@@ -238,7 +173,7 @@
       ]
     },
     {
-      "number": 30,
+      "number": 22,
       "suite": "every Growth Studio form can actually save",
       "test": "found the forms, rather than passing over a page that rendered none:",
       "locations": [
@@ -246,7 +181,7 @@
       ]
     },
     {
-      "number": 31,
+      "number": 23,
       "suite": "every registered page is reachable, or says why not",
       "test": "reaches every registered page, or has a stated reason:",
       "locations": [
@@ -254,7 +189,7 @@
       ]
     },
     {
-      "number": 32,
+      "number": 24,
       "suite": "every registered page is reachable, or says why not",
       "test": "has no stale reasons for pages that are reachable after all:",
       "locations": [
@@ -262,7 +197,7 @@
       ]
     },
     {
-      "number": 33,
+      "number": 25,
       "suite": "every path a button calls through JavaScript exists",
       "test": "accounts for every client bundle no page serves:",
       "locations": [
@@ -270,7 +205,7 @@
       ]
     },
     {
-      "number": 34,
+      "number": 26,
       "suite": "every path a button calls through JavaScript exists",
       "test": "still has exactly one place that would register the service worker:",
       "locations": [
@@ -278,7 +213,7 @@
       ]
     },
     {
-      "number": 35,
+      "number": 27,
       "suite": "every tool result page survives an outage",
       "test": "still shows the customer the answer the tool produced:",
       "locations": [
@@ -286,7 +221,7 @@
       ]
     },
     {
-      "number": 36,
+      "number": 28,
       "suite": "what a form says is missing",
       "test": "calls each field what its own form calls it:",
       "locations": [
@@ -294,7 +229,7 @@
       ]
     },
     {
-      "number": 37,
+      "number": 29,
       "suite": "form reachability",
       "test": "accounts for every create endpoint, either with a form or with a reason:",
       "locations": [
@@ -302,7 +237,7 @@
       ]
     },
     {
-      "number": 38,
+      "number": 30,
       "suite": "the Growth Studio workspaces that were placeholders",
       "test": "renders records instead of a card saying the workspace is locked:",
       "locations": [
@@ -310,7 +245,7 @@
       ]
     },
     {
-      "number": 39,
+      "number": 31,
       "suite": "the Growth Studio workspaces that were placeholders",
       "test": "puts a working create form on the three that should have one:",
       "locations": [
@@ -318,7 +253,7 @@
       ]
     },
     {
-      "number": 40,
+      "number": 32,
       "suite": "the Growth Studio workspaces that were placeholders",
       "test": "offers the attestation the content handler refuses to write without:",
       "locations": [
@@ -326,7 +261,7 @@
       ]
     },
     {
-      "number": 41,
+      "number": 33,
       "suite": "the Growth Studio workspaces that were placeholders",
       "test": "offers a hand-entry form for touchpoints only alongside the things that make it safe:",
       "locations": [
@@ -334,7 +269,7 @@
       ]
     },
     {
-      "number": 42,
+      "number": 34,
       "suite": "verified Stripe periods reach generation billing",
       "test": "persists modern item periods alongside the tenant and workspace:",
       "locations": [
@@ -342,7 +277,7 @@
       ]
     },
     {
-      "number": 43,
+      "number": 35,
       "suite": "integration readiness route and release contract",
       "test": "uses organization-scoped durable job types before claim and recovery:",
       "locations": [
@@ -350,7 +285,7 @@
       ]
     },
     {
-      "number": 44,
+      "number": 36,
       "suite": "no read helper hides from the policy check",
       "test": "recognises every function that is handed a table name:",
       "locations": [
@@ -358,7 +293,7 @@
       ]
     },
     {
-      "number": 45,
+      "number": 37,
       "suite": "no dead links",
       "test": "keeps the 2026 repository sweep bounded to 20 candidates and 20 research-only records:",
       "locations": [
@@ -366,7 +301,7 @@
       ]
     },
     {
-      "number": 46,
+      "number": 38,
       "suite": "HTTP observability middleware",
       "test": "never injects user-controlled Express router mount paths into metric route labels:",
       "locations": [
@@ -374,7 +309,7 @@
       ]
     },
     {
-      "number": 47,
+      "number": 39,
       "suite": "HTTP observability middleware",
       "test": "redacts mounted dynamic identifiers from both logged HTTP events and metrics labels:",
       "locations": [
@@ -382,7 +317,7 @@
       ]
     },
     {
-      "number": 48,
+      "number": 40,
       "suite": "SONARA proprietary source versus independent open-source developer tools",
       "test": "labels XcodeGen as third-party without implying a SONARA code licence:",
       "locations": [
@@ -390,7 +325,7 @@
       ]
     },
     {
-      "number": 49,
+      "number": 41,
       "suite": "the tables nothing queries",
       "test": "still fails when a table nothing reads appears:",
       "locations": [
@@ -398,7 +333,7 @@
       ]
     },
     {
-      "number": 50,
+      "number": 42,
       "suite": "the tables nothing queries",
       "test": "agrees with what the schema and the code actually say right now:",
       "locations": [
@@ -406,23 +341,7 @@
       ]
     },
     {
-      "number": 51,
-      "suite": "Current P1 policy replay contract",
-      "test": "does not rewrite or disable policies merely to make a replay green:",
-      "locations": [
-        "tests/p1-current-policy-contract.test.js:40"
-      ]
-    },
-    {
-      "number": 52,
-      "suite": "P1 hardened RLS replay probe is consistent with later migration history",
-      "test": "preserves guarded exact state checks and rollback-only staging:",
-      "locations": [
-        "tests/p1-rls-current-hardened-replay.test.js:34"
-      ]
-    },
-    {
-      "number": 53,
+      "number": 43,
       "suite": "public pages speak plainly",
       "test": "prints no engineering vocabulary:",
       "locations": [
@@ -430,7 +349,7 @@
       ]
     },
     {
-      "number": 54,
+      "number": 44,
       "suite": "pages behind a plan speak plainly",
       "test": "prints no engineering vocabulary on a page somebody paid for:",
       "locations": [
@@ -438,7 +357,7 @@
       ]
     },
     {
-      "number": 55,
+      "number": 45,
       "suite": "signed-in workspaces speak plainly",
       "test": "prints no engineering vocabulary:",
       "locations": [
@@ -446,15 +365,7 @@
       ]
     },
     {
-      "number": 56,
-      "suite": "post-hardening P1 replay proof remains fail-closed",
-      "test": "keeps the two-tenant write/deny test ahead of P1 and rolls its probe back:",
-      "locations": [
-        "tests/postgres-optimization-keeps-ownership.test.js:98"
-      ]
-    },
-    {
-      "number": 57,
+      "number": 46,
       "suite": "production release rejects unprotected main",
       "test": "reads main governance metadata and runs the fail-closed verifier before matrix evaluation:",
       "locations": [
@@ -462,7 +373,7 @@
       ]
     },
     {
-      "number": 58,
+      "number": 47,
       "suite": "production release rejects unprotected main",
       "test": "never exposes production secrets to the pull-request dry-run job:",
       "locations": [
@@ -470,23 +381,7 @@
       ]
     },
     {
-      "number": 59,
-      "suite": "canonical PWA contract",
-      "test": "caches only the anonymous offline fallback, not regular HTML pages:",
-      "locations": [
-        "tests/pwa-contract.test.js:121"
-      ]
-    },
-    {
-      "number": 60,
-      "suite": "canonical PWA contract",
-      "test": "keeps authenticated navigation outside the service-worker response path:",
-      "locations": [
-        "tests/pwa-contract.test.js:138"
-      ]
-    },
-    {
-      "number": 61,
+      "number": 48,
       "suite": "release workflows test the commit they approve",
       "test": "controlled-production-deploy-dry-run.yml checks out the pull request head, not GitHub's synthetic merge commit:",
       "locations": [
@@ -494,15 +389,7 @@
       ]
     },
     {
-      "number": 62,
-      "suite": "release workflows test the commit they approve",
-      "test": "sonara-industries-ci.yml checks out the pull request head, not GitHub's synthetic merge commit:",
-      "locations": [
-        "tests/release-workflows-checkout-exact-head.test.js:60"
-      ]
-    },
-    {
-      "number": 63,
+      "number": 49,
       "suite": "requested repository runtime surfaces",
       "test": "publishes the governed public repository catalog:",
       "locations": [
@@ -510,7 +397,7 @@
       ]
     },
     {
-      "number": 64,
+      "number": 50,
       "suite": "requested repository runtime surfaces",
       "test": "renders a public research page without executing external tools:",
       "locations": [
@@ -518,7 +405,7 @@
       ]
     },
     {
-      "number": 65,
+      "number": 51,
       "suite": "software-in-a-service platform upgrade",
       "test": "free tools",
       "locations": [
@@ -526,7 +413,7 @@
       ]
     },
     {
-      "number": 66,
+      "number": 52,
       "suite": "software-in-a-service platform upgrade",
       "test": "free tools",
       "locations": [
@@ -534,7 +421,7 @@
       ]
     },
     {
-      "number": 67,
+      "number": 53,
       "suite": "the billing module stands on its own",
       "test": "falls back to this deployment's own URLs when none are configured:",
       "locations": [
@@ -542,7 +429,7 @@
       ]
     },
     {
-      "number": 68,
+      "number": 54,
       "suite": "contact support",
       "test": "POST /contact validates required fields:",
       "locations": [
@@ -550,7 +437,7 @@
       ]
     },
     {
-      "number": 69,
+      "number": 55,
       "suite": "product module APIs",
       "test": "GET /api/business-builder/records unlocks only from active billing entitlement state:",
       "locations": [
@@ -558,7 +445,7 @@
       ]
     },
     {
-      "number": 70,
+      "number": 56,
       "suite": "product module APIs",
       "test": "active billing state unlocks paid workspace pages for customers:",
       "locations": [
@@ -566,23 +453,7 @@
       ]
     },
     {
-      "number": 71,
-      "suite": "cross-device service-worker cache boundary",
-      "test": "reads offline fallback only from this worker's versioned public cache:",
-      "locations": [
-        "tests/service-worker-public-boundary.test.js:313"
-      ]
-    },
-    {
-      "number": 72,
-      "suite": "cross-device service-worker cache boundary",
-      "test": "cleans retired SONARA caches without taking over existing pages:",
-      "locations": [
-        "tests/service-worker-public-boundary.test.js:338"
-      ]
-    },
-    {
-      "number": 73,
+      "number": 57,
       "suite": "a signed-in customer opening every workspace",
       "test": "opens those same pages once the customer has paid for them:",
       "locations": [
@@ -590,7 +461,7 @@
       ]
     },
     {
-      "number": 74,
+      "number": 58,
       "suite": "social interaction safety gates: not connected to a route",
       "test": "denies an unreadable block graph, a blocked relationship and hidden targets:",
       "locations": [
@@ -598,7 +469,7 @@
       ]
     },
     {
-      "number": 75,
+      "number": 59,
       "suite": "social interaction safety gates: not connected to a route",
       "test": "supports independent block and mute controls without requiring target visibility:",
       "locations": [
@@ -606,7 +477,7 @@
       ]
     },
     {
-      "number": 76,
+      "number": 60,
       "suite": "social interaction safety gates: not connected to a route",
       "test": "direct messages are opt-in, and never automatically sent:",
       "locations": [
@@ -614,7 +485,7 @@
       ]
     },
     {
-      "number": 77,
+      "number": 61,
       "suite": "social interaction safety gates: not connected to a route",
       "test": "requires rights, moderation, identifiable-person consent and accessible media:",
       "locations": [
@@ -622,7 +493,7 @@
       ]
     },
     {
-      "number": 78,
+      "number": 62,
       "suite": "social interaction safety gates: not connected to a route",
       "test": "live streaming needs captions, moderation, real transport and an emergency stop:",
       "locations": [
@@ -630,7 +501,7 @@
       ]
     },
     {
-      "number": 79,
+      "number": 63,
       "suite": "disabled-only social schema references cannot silently become live",
       "test": "recognizes review-only tables without claiming they are migrated:",
       "locations": [
@@ -639,7 +510,7 @@
       ]
     },
     {
-      "number": 80,
+      "number": 64,
       "suite": "disabled-only social schema references cannot silently become live",
       "test": "fails the contract if the configured off-by-default safety switch is removed:",
       "locations": [
@@ -648,7 +519,7 @@
       ]
     },
     {
-      "number": 81,
+      "number": 65,
       "suite": "disabled-only social schema references cannot silently become live",
       "test": "fails contract if review-only SQL loses RLS or its least-privilege revoke:",
       "locations": [
@@ -657,23 +528,7 @@
       ]
     },
     {
-      "number": 82,
-      "suite": "Post-hardening Creator release-gate contract",
-      "test": "pins exactly three distinct subscription policies without treating role scopes as duplicates:",
-      "locations": [
-        "tests/sonara-creator-p1-posthardening-contract.test.js:35"
-      ]
-    },
-    {
-      "number": 83,
-      "suite": "Post-hardening Creator release-gate contract",
-      "test": "keeps an exact security preflight, postflight, tenant proof and rollback:",
-      "locations": [
-        "tests/sonara-creator-p1-posthardening-contract.test.js:52"
-      ]
-    },
-    {
-      "number": 84,
+      "number": 66,
       "suite": "Search Console Vault broker source boundary",
       "test": "positively verifies Google revocation before deleting the Vault secret:",
       "locations": [
@@ -682,7 +537,7 @@
       ]
     },
     {
-      "number": 85,
+      "number": 67,
       "suite": "Google Search Console customer-owned OAuth lifecycle",
       "test": "builds read-only offline authorization with PKCE and no mutation scope:",
       "locations": [
@@ -690,7 +545,7 @@
       ]
     },
     {
-      "number": 86,
+      "number": 68,
       "suite": "Google Search Console customer-owned OAuth lifecycle",
       "test": "refuses a write or broader Google scope before property discovery or secret storage:",
       "locations": [
@@ -698,15 +553,7 @@
       ]
     },
     {
-      "number": 87,
-      "suite": "Stock review release-gate regressions",
-      "test": "requires genuine RLS attestation, never replaying the obsolete policy rewrite:",
-      "locations": [
-        "tests/stock-review-release-contract.test.js:25"
-      ]
-    },
-    {
-      "number": 88,
+      "number": 69,
       "suite": "Supabase deep database reconciliation",
       "test": "previews linked migrations in pull-request CI:",
       "locations": [
@@ -714,7 +561,7 @@
       ]
     },
     {
-      "number": 89,
+      "number": 70,
       "suite": "Supabase deep database reconciliation",
       "test": "allows only migrations added by the pull request to be pending during the read-only dry run:",
       "locations": [
@@ -722,7 +569,7 @@
       ]
     },
     {
-      "number": 90,
+      "number": 71,
       "suite": "closed RLS tables grant no browser SQL privileges",
       "test": "revokes the complete table privilege layer from browser roles without touching service_role:",
       "locations": [
@@ -730,7 +577,7 @@
       ]
     },
     {
-      "number": 91,
+      "number": 72,
       "suite": "the inventory traces what a route calls",
       "test": "places a route registered inside a callback on its own line:",
       "locations": [
@@ -738,7 +585,7 @@
       ]
     },
     {
-      "number": 92,
+      "number": 73,
       "suite": "the reasoning behind the revoke test is still true",
       "test": "has not wired the user-scoped client into the running product:",
       "locations": [
@@ -746,7 +593,7 @@
       ]
     },
     {
-      "number": 93,
+      "number": 74,
       "suite": "the reasoning behind the revoke test is still true",
       "test": "calls neither user-scoped helper from the running product:",
       "locations": [
@@ -754,7 +601,7 @@
       ]
     },
     {
-      "number": 94,
+      "number": 75,
       "suite": "the staff portal is what Team sells",
       "test": "opens every staff page for a business on Team:",
       "locations": [
@@ -762,7 +609,7 @@
       ]
     },
     {
-      "number": 95,
+      "number": 76,
       "suite": "workspace dashboard summary",
       "test": "keeps first-value evidence available if no organization-created event exists:",
       "locations": [
