@@ -57,6 +57,23 @@ describe("SONARA read-only Actions queue diagnostics", () => {
     const future = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", created_at: "2026-10-09T23:00:00Z" }] }));
     assert.ok(future.issueCodes.includes("future_created_at"));
   });
+  it("uses workflow creation time without inventing a per-job queue timestamp", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      jobs: [{ status: "queued", runner_name: null, started_at: null }],
+      workflowRuns: [{ head_sha: headSha, status: "queued", created_at: "2026-10-09T22:00:00Z" }]
+    }));
+    assert.equal(result.jobCounts.olderThanThresholdWithoutAssignment, 0);
+    assert.equal(result.workflowQueue.olderThanThreshold, 1);
+    assert.ok(result.issueCodes.includes("workflow_queue_age_threshold_exceeded"));
+    assert.equal(result.runnerCauseDetermined, false);
+  });
+  it("rejects future workflow timestamps instead of inferring aged queues", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      workflowRuns: [{ head_sha: headSha, status: "queued", created_at: "2026-10-09T23:00:00Z" }]
+    }));
+    assert.ok(result.issueCodes.includes("future_created_at"));
+    assert.equal(result.workflowQueue.olderThanThreshold, 0);
+  });
   it("does not disclose raw job fields or tokens in the generated summary", () => {
     const result = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", secret: "never_echo_me", created_at: "2026-10-09T22:00:00Z" }] }));
     assert.ok(!JSON.stringify(result).includes("never_echo_me"));
