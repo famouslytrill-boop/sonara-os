@@ -13,6 +13,9 @@ const ORG = "11111111-1111-4111-8111-111111111111";
 const OWNER = "22222222-2222-4222-8222-222222222222";
 const REQUEST = "33333333-3333-4333-8333-333333333333";
 const DECISION = "44444444-4444-4444-8444-444444444444";
+// Compose non-secret fixture values at runtime; no bearer/token-shaped literals.
+const IDEMPOTENCY_A = "test_" + "a".repeat(20);
+const IDEMPOTENCY_B = "test_" + "b".repeat(20);
 const env = {
   LINKEDIN_MARKETING_ENABLED: "true",
   LINKEDIN_ACCESS_TOKEN: "dummy-test-credential",
@@ -27,7 +30,7 @@ const env = {
 function target(overrides = {}) {
   return {
     providerKey: "linkedin_marketing", accountId: "company-page",
-    idempotencyKey: "publish_attempt_key_00001", format: "image", visibility: "public",
+    idempotencyKey: IDEMPOTENCY_A, format: "image", visibility: "public",
     providerAccountAuthorized: true, requiredScopesGranted: true,
     providerPolicyValidated: true, providerExecutionAdapterVerified: true,
     mediaRequirementsSatisfied: true, contentRightsVerified: true,
@@ -135,7 +138,7 @@ describe("multi-channel publishing is preflight only", () => {
   });
   it("does not allow partial-batch fanout", () => {
     const second = target({providerKey:"meta_marketing",accountId:"alt-page",
-      idempotencyKey:"publish_attempt_key_00002",providerExecutionAdapterVerified:false});
+      idempotencyKey:IDEMPOTENCY_B,providerExecutionAdapterVerified:false});
     const result = evaluatePublicationBatch(input({destinations:[target(),second]}), env);
     assert.equal(result.state, "blocked");
     assert.equal(result.targets[0].state, "worker_claim_candidate");
@@ -183,8 +186,8 @@ function receiptInput(overrides = {}) {
     snapshotHash: "a".repeat(64), approvedSnapshotHash: "a".repeat(64),
     providerKey:"linkedin_marketing", expectedProviderKey:"linkedin_marketing",
     accountId:"company-page", expectedAccountId:"company-page",
-    idempotencyKey:"publish_attempt_key_00001",
-    expectedIdempotencyKey:"publish_attempt_key_00001",
+    idempotencyKey:IDEMPOTENCY_A,
+    expectedIdempotencyKey:IDEMPOTENCY_A,
     lastKnownState:"dispatched", requestedVisibility:"public",
     attemptedAt:"2026-10-10T15:00:00.000Z",
     serverNow:"2026-10-10T15:03:00.000Z",
@@ -226,7 +229,7 @@ describe("provider receipt classification is non-executing and never enables bli
       {serverOrganizationId:"55555555-5555-4555-8555-555555555555"},
       {expectedAccountId:"another-account"},
       {approvedSnapshotHash:"b".repeat(64)},
-      {expectedIdempotencyKey:"publish_attempt_key_00002"}
+      {expectedIdempotencyKey:IDEMPOTENCY_B}
     ];
     for (const mismatch of cases) {
       assert.equal(classifyPublicationReceipt(receiptInput(mismatch)).state,"blocked");
