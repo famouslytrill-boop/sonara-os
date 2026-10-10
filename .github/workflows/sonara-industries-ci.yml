@@ -208,6 +208,12 @@ jobs:
           node scripts/generate-capability-inventory.cjs --write
           node scripts/generate-capability-inventory.cjs --check
           sha256sum data/capability-inventory.json docs/CAPABILITY_MAP.md
+          git hash-object data/capability-inventory.json docs/CAPABILITY_MAP.md
+      - name: Print zero-context generated-only patch for controlled review
+        run: |
+          echo 'SONARA_GENERATED_PATCH_BEGIN'
+          git diff --no-ext-diff --no-color --unified=0 -- data/capability-inventory.json docs/CAPABILITY_MAP.md
+          echo 'SONARA_GENERATED_PATCH_END'
       - name: Upload generated files for human-reviewed commit
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
