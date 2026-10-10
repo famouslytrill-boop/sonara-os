@@ -99,4 +99,12 @@ describe("physical-device qualification evidence", () => {
     assert.equal(ledger.status, "unqualified");
     assert.deepEqual(ledger.records, []);
   });
+
+  it("uses the pull-request source SHA instead of GitHub's synthetic merge SHA when available", () => {
+    const verifier = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-device-qualification-evidence.cjs"), "utf8");
+    const eventRead = verifier.indexOf("pull_request?.head?.sha");
+    const githubSha = verifier.indexOf("process.env.GITHUB_SHA");
+    assert.ok(eventRead >= 0 && githubSha > eventRead, "PR source SHA must take precedence over GITHUB_SHA");
+  });
+
 });
