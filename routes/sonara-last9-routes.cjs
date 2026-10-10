@@ -2265,7 +2265,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     }
     // Never use resolveOrganization here: its nonproduction manual-org escape
     // hatch is inappropriate for any privileged stock movement.
-    const org = await deps.getCustomerPrimaryOrganization(user);
+    const org = await deps.getCustomerPrimaryOrganization(user, { autoBootstrap: false });
     if (!org?.ok || !isUuid(org.organizationId) || !org.role) {
       return { ok: false, code: "verified_membership_required" };
     }
@@ -2286,7 +2286,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     catch { return false; }
   };
   app.post("/api/business/inventory/stock-count-requests",
-    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
+    requireCustomer, procurementMutationLimiter, async (req, res) => {
       if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
       if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
       const org = await stockReviewIdentity(req);
@@ -2315,7 +2315,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       return res.status(201).json(result);
     });
   app.get("/api/business/inventory/stock-count-requests",
-    requireBusinessManager, async (req, res) => {
+    requireCustomer, async (req, res) => {
       if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
       const org = await stockReviewIdentity(req);
       if (!org.ok) return res.status(403).json(org);
@@ -2327,7 +2327,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       return res.status(200).json({ok:true,requests:found.rows});
     });
   app.post("/api/business/inventory/stock-count-requests/:requestId/review",
-    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
+    requireCustomer, procurementMutationLimiter, async (req, res) => {
       if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
       if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
       const org = await stockReviewIdentity(req);
