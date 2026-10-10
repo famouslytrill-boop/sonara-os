@@ -11,12 +11,39 @@ async function mountLocalComponent(page, markup, scriptPath) {
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  // Keep the server-origin document, stylesheet and security policy intact.
-  // setContent() calls document.write(), replacing the page head and causing
-  // WebKit to lose the loaded styles and fail same-origin script injection.
-  // The markup was already stripped of all script elements above.
+  // Preserve the real same-origin page, CSS and Content-Security-Policy.
+  // The inert markup has already had its own script elements removed.
   await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
-  await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
+
+  // An asset that passes the HTTP smoke check may still be rejected by
+  // browser CSP, MIME handling or cross-engine script loading. Preserve that
+  // distinction instead of bypassing CSP or downgrading WebKit coverage.
+  const scriptUrl = new URL(scriptPath, BASE_URL).href;
+  const asset = await page.request.get(scriptUrl);
+  const contentType = asset.headers()["content-type"] || "missing";
+  if (!asset.ok() || !/(javascript|ecmascript)/i.test(contentType)) {
+    throw new Error(`Local component asset unavailable: ${scriptPath}; HTTP ${asset.status()}; content-type ${contentType}`);
+  }
+
+  await page.evaluate(() => {
+    globalThis.__sonaraCspFailures = [];
+    document.addEventListener("securitypolicyviolation", (event) => {
+      globalThis.__sonaraCspFailures.push({
+        directive: event.effectiveDirective,
+        blocked: event.blockedURI
+      });
+    }, { once: false });
+  });
+  try {
+    await page.addScriptTag({ url: scriptUrl });
+  } catch (error) {
+    const context = await page.evaluate(() => ({
+      origin: location.origin,
+      baseURI: document.baseURI,
+      violations: globalThis.__sonaraCspFailures || []
+    }));
+    throw new Error(`Same-origin script load failed: ${scriptPath}; HTTP ${asset.status()}; content-type ${contentType}; page ${JSON.stringify(context)}; ${error.message}`);
+  }
 }
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const draftProject = () => ({ id: projectId(100), title: "My original film", medium: "video", revision: 1, graph: { version: 1, nodes: [] }, archived_at: null });
