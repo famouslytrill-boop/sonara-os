@@ -49,6 +49,12 @@ When the owner supplies screenshots, GitHub links, social posts, packages, agent
 - External package managers, agent frameworks, and coding cockpits do not replace SONARA's pnpm, Provider Gateway, agent-authority, or controlled-deployment contracts without an explicit architecture decision.
 - Claude should also use `.claude/skills/researching-screenshot-tools/SKILL.md`.
 
+## Shared Agent Memory, Skills And Formulas
+
+- For every Claude Code, ChatGPT, or Codex repository task, use `.ai/shared/PROJECT_MEMORY.md` and the generated `.ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md` as discovery pointers. This index lists all repository skill manifests, authoritative formula catalog keys, and other quantitative source modules.
+- Read the task-specific `SKILL.md`, source module, and tests before acting; a catalogue entry is not executable code or a grant of permission. ChatGPT/Codex must have repository access; these checked-in files do not update global account memories.
+- The existing `verify:agent-sync` gate rejects a stale index. Regenerate it with `node scripts/generate-assistant-knowledge-index.mjs` whenever a skill or formula registry changes.
+
 ## Build And CI Guardrails
 
 - Use pnpm only.
