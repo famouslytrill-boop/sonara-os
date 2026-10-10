@@ -87,6 +87,17 @@ describe("the tables nothing queries", () => {
     // unclassified.
     const missing = ORPHAN_TABLES.filter((table) => !tableColumns(table));
     assert.deepEqual(missing, [], `these are classified but no migration creates them:\n  ${missing.join("\n  ")}`);
+    // Private recovery data is intentionally accessible only through
+    // SECURITY DEFINER RPCs. The migration parser must still see those
+    // tables as real columns, without creating direct browser access.
+    for (const table of [
+      "autonomic_repair_claims", "autonomic_repair_events",
+      "autonomic_retry_jobs", "autonomic_retry_events",
+      "autonomic_sensor_nonces"
+    ]) {
+      const columns = tableColumns(table);
+      assert.ok(columns && columns.size > 0, table + " was not parsed from its private-schema CREATE TABLE");
+    }
   });
 
   it("records a real decision for every one", () => {

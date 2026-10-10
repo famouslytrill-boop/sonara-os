@@ -103,36 +103,66 @@ BEGIN
    RAISE EXCEPTION 'P1 hardened policy contract drift on % definitions; abort', bad;
  END IF;
 
- -- Both subscriptions policies must be byte-for-byte security-equivalent
- -- before the sample cleanup can remove one inside this transaction.
+ -- Subscriptions can already be deduplicated by the applied migration
+ -- history. Verify that exactly one or two select policies remain, each
+ -- restricted to the authenticated user's own user_id, before any dry-run
+ -- cleanup. Never drop a non-equivalent or more restrictive policy.
  IF (SELECT count(*) FROM pg_policies
      WHERE schemaname='public' AND tablename='subscriptions'
        AND policyname IN ('Users can view own subscriptions',
+                          'Users can view their own subscription')) NOT BETWEEN 1 AND 2
+ THEN RAISE EXCEPTION 'subscriptions policy missing or unexpected count'; END IF;
+
+ IF EXISTS (
+   SELECT 1 FROM pg_policies
+     WHERE schemaname='public' AND tablename='subscriptions'
+       AND policyname IN ('Users can view own subscriptions',
                           'Users can view their own subscription')
-       AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
-       AND with_check IS NULL) <> 2
- THEN RAISE EXCEPTION 'subscriptions duplicate policy definitions drifted; abort'; END IF;
+       AND (permissive IS DISTINCT FROM 'PERMISSIVE'
+         OR roles IS DISTINCT FROM ARRAY['authenticated']::name[]
+         OR cmd IS DISTINCT FROM 'SELECT'
+         OR with_check IS NOT NULL
+         OR regexp_replace(lower(coalesce(qual,'')), '[[:space:]()]', '', 'g')
+           NOT IN ('selectauth.uidasuid=user_id','auth.uid=user_id'))
+ ) THEN RAISE EXCEPTION 'subscriptions owner-only policy semantics drifted; abort'; END IF;
+
+ -- If the previous migration already removed the duplicate, no destructive
+ -- step should be attempted. If both exist, each passed the strict predicate.
+
 END;
 $post_migration$;
 
-DROP POLICY "Users can view their own subscription" ON public.subscriptions;
+DO $dedup$
+BEGIN
+  IF (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+      AND tablename='subscriptions' AND policyname IN
+        ('Users can view own subscriptions', 'Users can view their own subscription')) = 2
+  THEN
+    EXECUTE 'DROP POLICY "Users can view their own subscription" ON public.subscriptions';
+  END IF;
+END;
+$dedup$;
 
 DO $postflight$
 BEGIN
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND roles=ARRAY['authenticated']::name[] AND cmd='SELECT'
-       AND qual='(( SELECT auth.uid() AS uid) = user_id)') <> 1
-    OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription') <> 0
- THEN RAISE EXCEPTION 'P1 subscription deduplication dry-run failed'; END IF;
+ IF (SELECT count(*) FROM pg_policies WHERE schemaname='public'
+       AND tablename='subscriptions' AND policyname IN
+       ('Users can view own subscriptions', 'Users can view their own subscription')) <> 1
+ THEN RAISE EXCEPTION 'subscriptions dry-run did not finish with exactly one policy'; END IF;
+ IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+       AND tablename='subscriptions'
+       AND policyname IN ('Users can view own subscriptions',
+                          'Users can view their own subscription')
+       AND (permissive IS DISTINCT FROM 'PERMISSIVE'
+            OR roles IS DISTINCT FROM ARRAY['authenticated']::name[]
+            OR cmd IS DISTINCT FROM 'SELECT'
+            OR with_check IS NOT NULL
+            OR regexp_replace(lower(coalesce(qual,'')), '[[:space:]()]', '', 'g')
+                NOT IN ('selectauth.uidasuid=user_id','auth.uid=user_id')))
+ THEN RAISE EXCEPTION 'subscriptions dry-run broadened authorization'; END IF;
  IF (SELECT count(*) FROM expected_rls_p1) <> 25
  THEN RAISE EXCEPTION 'P1 policy verification did not cover 25 policies'; END IF;
 END;
 $postflight$;
-
 SELECT 'p1_rls_hygiene_staging_passed';
 ROLLBACK;
