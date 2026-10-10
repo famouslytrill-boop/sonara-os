@@ -67,6 +67,27 @@ The second engineering pass adds `lib/sonara-adaptive-prediction-mapping.cjs` an
 
 A seven-point historical backtest is too small for reliable future uncertainty coverage or model selection. Later candidates should use rolling-origin evaluation, holdout separation, explicit horizon-specific scoring, holiday/closure covariates, calibrated intervals and drift alerts. Forecast outputs must be measured against reality, not against their own predictions.
 
+### 1A. Rolling-origin forecast reliability — implementation pass 3
+
+`evaluateRollingForecastEvidence` now reuses the **same allowlisted, privacy-reviewed, tenant-scoped and complete-date-series validation** as the forecast preview. With fewer than 42 daily observations it returns `insufficient_history_for_rolling_evaluation`, rather than inventing an accuracy rating.
+
+For sufficiently long histories, it evaluates **non-overlapping seven-day holdout blocks**, starting after at least 21 chronological training days. At each origin it compares:
+
+- *Seven-day seasonal naive:* forecast day `d` from the same weekday of the immediately preceding week.
+- *Last-value naive:* forecast each of the next seven days from the most recent observed value before the holdout.
+
+Every evaluated holdout has its own training/holdout boundary, MAE and actual total. Overall metrics are out-of-sample MAE and WAPE; WAPE is `null` when total actual activity is zero.
+
+It also compares the two most recent weekly activity totals as a **simple absolute volume-shift heuristic**. A change greater than 30%, or movement from zero to nonzero, emits `drift_requires_operator_review`. This is not a statistical concept-drift test. A lower seasonal MAE by at least 5% relative to the last-value reference may yield `seasonal_baseline_review_candidate`, but this is **not a statistical significance claim, model promotion, reliable calibrated prediction interval, or automation authorization**. Operators need additional seasonal/holiday/closure evaluation and high-impact business decisions remain manual.
+
+The roll-origin method and leakage precautions are grounded in Rob Hyndman and George Athanasopoulos, *Forecasting: Principles and Practice*, section 5.10: https://otexts.com/fpp3/tscv.html and the scikit-learn TimeSeriesSplit guidance: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html.
+
+### 1B. Operational metrics now require a bounded window
+
+`assessOperationalSignals` additionally demands canonical UTC time anchors, an observed 5-minute to 24-hour measurement window, an end date not in the future and no more than two hours stale, a complete metric sample, and a server-histogram-based p95 claim. Invalid, future-dated, improperly aggregated or stale data is blocked. This is **only a shape/quality preflight**: the next production stage must independently retrieve and authenticate the metrics and reviewed SLO thresholds, constrain cardinality and redact sensitive labels.
+
+OpenTelemetry guidance on HTTP metrics and `error.type` informs this planned adapter contract: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/
+
 ### 2. Sequencing and dependency mapping
 
 `mapLearningSequence` validates a deterministic graph of at most 32 numbered/typed steps and 1,000 estimated cost units, including dependencies and strict phase order:
