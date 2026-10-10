@@ -24,3 +24,7 @@ A research formula is an idea; a registered formula is data; an allowlisted form
 4. `--check` fails closed on missing/modified/outdated generated bridges; `verify:agent-sync` invokes the check.
 5. ChatGPT and Claude project instructions share safety and formulas policy but use their respective interfaces.
 6. No claim of global memory change, API upload, customer tenant access, deployment or live checkout proof without direct evidence.
+
+## Portable mathematics source coverage
+
+For offline provider skill packages, `scripts/export-assistant-model-skill-packs.mjs` parses the current generated formula index, includes each listed quantitative source module, and includes registered formula SQL migrations and planning references. It fails if the indexed count does not match the parsed source paths; formulas remain read-only reference material. The exporter does not upload model skills or access provider credentials.
