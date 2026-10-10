@@ -32,6 +32,11 @@ const {
 
 // Reasons an endpoint has no form. Each key is an endpoint; each value says why.
 const NO_FORM_NEEDED = {
+  // This API is staged and feature-flagged OFF. It has no customer-facing
+  // create screen yet; staff count requests require a reviewed count form
+  // before activation. Do not turn on SONARA_ENABLE_STOCK_COUNT_REVIEW until
+  // there is an accessible request/review UI and real production proof.
+  "/api/business/inventory/stock-count-requests": "Disabled pending the employee count form and independent owner review UI; requests cannot be submitted by customers while the stock-review launch flag is off.",
   // Called by a scheduler, not a person. There is nobody signed in behind a
   // cron, so it takes a shared secret rather than a session and has no page to
   // render a form on. The customer-facing surface is /owner/agent-schedule,
