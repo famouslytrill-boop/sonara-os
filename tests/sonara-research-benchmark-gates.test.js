@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { SOURCES, inspectRanking, scoreCapabilityIdeas } = require("../lib/sonara-research-benchmark-gates.cjs");
+const { SOURCES, inspectRanking, auditEvidencePacket, scoreCapabilityIdeas } = require("../lib/sonara-research-benchmark-gates.cjs");
 
 function row(rank, name = "Company " + rank, sourceId = "us_revenue_2026") {
   return { rank, name, sourceUrl: SOURCES[sourceId].url };
@@ -160,6 +160,88 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
       assert.ok(result.missing.includes("risk_classification"));
       assert.equal(result.ownerApprovalRequired, true);
     }
+  });
+
+
+  it("rejects formula-like, invisible and bidirectional spoofing in ranking identities", () => {
+    const result = inspect({ records: [
+      row(1, "=HYPERLINK(\"https://bad.test\")"),
+      row(2, " +CMD"),
+      row(3, "\\u200bAmazon".replace("\\u200b", "\u200b")),
+      row(4, "Acme\\u202e".replace("\\u202e", "\u202e")),
+      row(5, "3M")
+    ] });
+    assert.deepEqual(result.entries.map((item) => item.name), ["3M"]);
+    assert.equal(result.rejected.length, 4);
+    assert.equal(result.status, "invalid_transcription");
+  });
+
+  it("returns an auditable claim graph without treating hyperlinks as verified", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "restaurant_demand", stance: "supports", observedAt: "2026-10-08", sourceUrl: "https://official.example/evidence" },
+        { claimId: "restaurant_demand", stance: "supports", observedAt: "2026-10-09", sourceUrl: "https://standards.example/report" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "human_source_review_required");
+    assert.equal(packet.claimCount, 1);
+    assert.equal(packet.acceptedEvidenceCount, 2);
+    assert.equal(packet.claims[0].supports, 2);
+    assert.equal(packet.claims[0].independentlyVerified, false);
+    assert.equal(packet.authorizedForPublication, false);
+    assert.equal(packet.authorizedForProduction, false);
+  });
+
+  it("isolates contradictions without concealing disagreement", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "demand", stance: "supports", observedAt: "2026-10-08", sourceUrl: "https://example.org/a" },
+        { claimId: "demand", stance: "contradicts", observedAt: "2026-10-08", sourceUrl: "https://example.org/b" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "contradictions_found");
+    assert.equal(packet.claims[0].status, "contradiction_review");
+    assert.equal(packet.claims[0].contradicts, 1);
+  });
+
+  it("detects stale research and a claim with only contradictory evidence", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09", maxAgeDays: 7,
+      observations: [
+        { claimId: "a_stale", stance: "supports", observedAt: "2026-08-01", sourceUrl: "https://example.org/a" },
+        { claimId: "b_unsupported", stance: "contradicts", observedAt: "2026-10-09", sourceUrl: "https://example.org/b" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "unsupported_claims");
+    assert.deepEqual(packet.claims.map((item) => item.status), ["stale_evidence", "unsupported_claim"]);
+  });
+
+  it("rejects duplicated, future-dated and malformed provenance receipts", () => {
+    const valid = { claimId: "source_a", stance: "supports", observedAt: "2026-10-08", sourceUrl: "https://example.org/a" };
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: [
+        valid,
+        { ...valid, stance: "contradicts" },
+        { ...valid, claimId: "source_b", observedAt: "2026-10-10" },
+        { ...valid, claimId: "source_c", sourceUrl: "http://example.org/c" },
+        { ...valid, claimId: "__proto__", sourceUrl: "https://example.org/d" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "invalid_intake");
+    assert.equal(packet.acceptedEvidenceCount, 1);
+    assert.equal(packet.rejected.length, 4);
+    assert.equal(packet.claimCount, 1);
+  });
+
+  it("never treats an empty packet as independently verified", () => {
+    const packet = auditEvidencePacket({ reviewedAt: "2026-10-09", observations: [] });
+    assert.equal(packet.claimCount, 0);
+    assert.equal(packet.overallStatus, "no_evidence");
+    assert.equal(packet.independentlyVerified, false);
+    assert.throws(() => auditEvidencePacket({ reviewedAt: "2026-10-09", maxAgeDays: 500, observations: [] }), /maxAgeDays/);
   });
 
   it("prevents invalid numeric inputs and duplicated project ids", () => {
