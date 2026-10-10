@@ -42,7 +42,7 @@ function target(overrides = {}) {
 function input(overrides = {}) {
   const result = {
     organizationId: ORG, serverOrganizationId: ORG,
-    contentHash: "a".repeat(64), scheduledAt: null,
+    contentHash: "a".repeat(64), publishingManifestHash: "c".repeat(64), scheduledAt: null,
     serverNow: "2026-10-10T15:02:00.000Z",
     destinations: [target()]
   };
@@ -86,6 +86,12 @@ describe("multi-channel publishing is preflight only", () => {
     other.contentHash = "b".repeat(64);
     assert.equal(evaluatePublicationBatch(other, env).code, "approval_snapshot_mismatch");
   });
+  it("invalidates owner approval when text, caption, thumbnail or rights manifest changes", () => {
+    const candidate = input();
+    candidate.publishingManifestHash = "d".repeat(64);
+    assert.equal(evaluatePublicationBatch(candidate, env).code, "approval_snapshot_mismatch");
+    assert.equal(publicationSnapshotHash({...candidate, publishingManifestHash:null}), null);
+  });
   it("rejects expired and noncanonical trusted timestamps", () => {
     const candidate = input({serverNow: "2026-10-10T16:00:00.000Z"});
     assert.equal(evaluatePublicationBatch(candidate, env).code, "approval_freshness_unverified");
@@ -97,10 +103,10 @@ describe("multi-channel publishing is preflight only", () => {
     assert.equal(evaluatePublicationBatch(candidate, env).code, "schedule_outside_current_approval_window");
   });
   it("rejects duplicate accounts and idempotency keys", () => {
-    assert.equal(publicationSnapshotHash({organizationId: ORG, contentHash: "a".repeat(64),
+    assert.equal(publicationSnapshotHash({organizationId: ORG, contentHash: "a".repeat(64), publishingManifestHash: "c".repeat(64),
       destinations: [target(), target()]}), null);
     const duplicateKey = target({providerKey:"meta_marketing", accountId:"second-page"});
-    assert.equal(publicationSnapshotHash({organizationId: ORG, contentHash: "a".repeat(64),
+    assert.equal(publicationSnapshotHash({organizationId: ORG, contentHash: "a".repeat(64), publishingManifestHash: "c".repeat(64),
       destinations: [target(), duplicateKey]}), null);
   });
   it("blocks a reference-only YouTube connector", () => {
