@@ -281,4 +281,12 @@ assert.match(claudeSync, /375a2ef1b3809be76ccd4f3a00a107d8d9f788a9/);
 assert.match(claudeSync, /fa9402a8671bae7934925c5c64f147a221bf4e16/);
 assert.doesNotMatch(claudeSync, /service[_ -]?role[_ -]?key\s*[:=]\s*[A-Za-z0-9._-]{20,}/i);
 
+// The shared assistant index must enumerate current skills and formula catalogues,
+// not merely point to files that existed when the documentation was written.
+const knowledgeIndex = spawnSync(process.execPath, ["scripts/generate-assistant-knowledge-index.mjs", "--check"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(knowledgeIndex.status, 0,
+  "Shared assistant knowledge is stale or undiscoverable:\\n" + (knowledgeIndex.stderr || knowledgeIndex.stdout || ""));
+
 console.log("Agent development sync verified: scoped Supabase secrets, deep database gate, catalog idempotency, dependency override, and shared state are aligned.");
