@@ -1053,6 +1053,17 @@ describe("two-authority Ed25519 discovery review verification (not runtime-wired
     }
   });
 
+  it("rejects two role identities backed by the same Ed25519 public key", async () => {
+    const registry = trust({ keys: [
+      key("mod-01", "moderation", reviewer.publicKey),
+      key("rights-01", "rights", reviewer.publicKey)
+    ] });
+    const { load, counts } = make({ trustReads: [registry] });
+    const result = await read(load);
+    assert.equal(result.code, "attestation_authority_unavailable");
+    assert.equal(counts.attestations, 0);
+  });
+
   it("rejects non-Ed25519 and foreign policy keys before reading evidence", async () => {
     const rsa = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
     for (const registry of [
