@@ -173,7 +173,7 @@ describe("governed adaptive learning (policy-only)", () => {
 });
 
 const {
-  DAILY_METRICS, PHASES, forecastDailyAggregate, mapLearningSequence,
+  DAILY_METRICS, PHASES, forecastDailyAggregate, evaluateRollingForecastEvidence, mapLearningSequence,
   assessOperationalSignals, getPredictiveMappingReadiness
 } = require("../lib/sonara-adaptive-prediction-mapping.cjs");
 
@@ -321,6 +321,11 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
   it("triages operational telemetry without autorepair or self-coding", () => {
     const baseline = { organizationId: ORG, serverOrganizationId: ORG,
       telemetryVerified: true, provenance: "trusted request metric",
+      trustedNow: "2026-10-09T20:00:00.000Z",
+      windowStartsAt: "2026-10-09T19:00:00.000Z",
+      windowEndsAt: "2026-10-09T19:30:00.000Z",
+      telemetryAggregationMethod: "server_histogram_p95",
+      telemetrySampleComplete: true,
       requests: 1000, failedRequests: 1, p95LatencyMs: 120,
       reviewedErrorRateThreshold: 0.01, reviewedLatencyThresholdMs: 500 };
     const healthy = assessOperationalSignals(baseline);
@@ -335,15 +340,72 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
       { telemetryVerified: false }, { serverOrganizationId: USER },
       { failedRequests: 1001 }, { requests: 20 },
       { reviewedErrorRateThreshold: 0 }, { p95LatencyMs: NaN },
-      { reviewedLatencyThresholdMs: 0 }, { provenance: "" }
+      { reviewedLatencyThresholdMs: 0 }, { provenance: "" },
+      { windowStartsAt: "2026-10-09T19:28:00.000Z" },
+      { windowStartsAt: "2026-10-09T20:30:00.000Z" },
+      { windowEndsAt: "2026-10-09T20:30:00.000Z" },
+      { windowEndsAt: "2026-10-09T17:00:00.000Z" },
+      { windowEndsAt: "2026-10-09T19:30:00Z" },
+      { telemetryAggregationMethod: "browser_p95" },
+      { telemetrySampleComplete: false },
+      { trustedNow: "2026-10-10T21:00:00.000Z" }
     ]) {
       assert.equal(assessOperationalSignals({ ...baseline, ...override }).state, "blocked");
     }
   });
 
+  it("cross-validates seven-day seasonal predictions on non-overlapping rolling origins", () => {
+    const result = evaluateRollingForecastEvidence(forecastValid);
+    assert.equal(result.state, "seasonal_baseline_review_candidate");
+    assert.equal(result.foldCount, 3);
+    assert.equal(result.evaluatedDays, 21);
+    assert.equal(result.seasonalMae, 0);
+    assert.ok(result.lastValueMae > 0);
+    assert.equal(result.statisticalSignificanceEstablished, false);
+    assert.equal(result.intervalCalibrated, false);
+    assert.equal(result.executionAuthorized, false);
+    assert.equal(result.automaticInventoryOrMarketingChanges, false);
+    assert.equal(result.folds[0].trainingDays, 21);
+    assert.equal(result.folds[0].testDays, 7);
+    assert.equal(result.folds[0].holdoutStartsAt, forecastHistory[21].date);
+    assert.equal(result.folds[2].holdoutEndsAt, forecastHistory[41].date);
+  });
+
+  it("exposes drift and refuses to confuse historical error bands with confidence", () => {
+    const drift = forecastHistory.map((point, i) =>
+      i >= 35 ? { ...point, value: point.value + 100 } : point);
+    const result = evaluateRollingForecastEvidence({ ...forecastValid, series: drift });
+    assert.equal(result.state, "drift_requires_operator_review");
+    assert.equal(result.driftFlag, true);
+    assert.equal(result.intervalCalibrated, false);
+    assert.equal(result.statisticalSignificanceEstablished, false);
+    const zero = forecastHistory.map(point => ({ ...point, value: 0 }));
+    const zeroResult = evaluateRollingForecastEvidence({ ...forecastValid, series: zero });
+    assert.equal(zeroResult.seasonalWapePercent, null);
+    assert.equal(zeroResult.lastValueWapePercent, null);
+    assert.equal(zeroResult.state, "rolling_evidence_inconclusive");
+  });
+
+  it("keeps short but valid history non-executable and requires truthful proof", () => {
+    const short = evaluateRollingForecastEvidence({
+      ...forecastValid, series: forecastHistory.slice(7)
+    });
+    assert.equal(short.state, "insufficient_history_for_rolling_evaluation");
+    assert.equal(short.customerOperationAuthorized, false);
+    assert.equal(short.executionAuthorized, false);
+    assert.equal(evaluateRollingForecastEvidence({
+      ...forecastValid, serverOrganizationId: USER
+    }).state, "blocked");
+    assert.equal(evaluateRollingForecastEvidence({
+      ...forecastValid, aggregateEvidenceVerified: false
+    }).state, "blocked");
+  });
+
   it("labels prediction, operational awareness, and planning as non-executing", () => {
     const metadata = getPredictiveMappingReadiness();
     assert.equal(metadata.modelWeightsUpdated, false);
+    assert.match(metadata.rollingOriginEvaluation, /nonoverlapping_seven_day_folds/);
+    assert.match(metadata.telemetryWindow, /canonical_utc/);
     assert.equal(metadata.personalHabitsCollected, false);
     assert.equal(metadata.automatedActionsAdded, 0);
     assert.equal(metadata.providerActivated, false);
