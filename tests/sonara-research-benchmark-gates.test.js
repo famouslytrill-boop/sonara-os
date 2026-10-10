@@ -238,6 +238,30 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(packet.claimCount, 1);
   });
 
+  it("rejects local, credentialed, oversized and malformed evidence URLs", () => {
+    const unsafeUrls = [
+      "https://localhost/private",
+      "https://127.0.0.1/internal",
+      "https://10.2.3.4/internal",
+      "https://[::1]/internal",
+      "https://internal.local/private",
+      "https://user:secret@example.org/",
+      "https://example.org/" + "a".repeat(2100),
+      "https://example.org/\nmalicious"
+    ];
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: unsafeUrls.map((sourceUrl, index) => ({
+        claimId: "unsafe_" + index, stance: "supports",
+        observedAt: "2026-10-09", sourceUrl
+      }))
+    });
+    assert.equal(packet.acceptedEvidenceCount, 0);
+    assert.equal(packet.rejected.length, unsafeUrls.length);
+    assert.equal(packet.overallStatus, "invalid_intake");
+    assert.equal(packet.authorizedForProduction, false);
+  });
+
   it("never treats an empty packet as independently verified", () => {
     const packet = auditEvidencePacket({ reviewedAt: "2026-10-09", observations: [] });
     assert.equal(packet.claimCount, 0);
