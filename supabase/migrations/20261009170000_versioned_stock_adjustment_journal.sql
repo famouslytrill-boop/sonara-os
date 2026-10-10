@@ -389,6 +389,7 @@ begin
       select 1 from public.organization_memberships m
       where m.organization_id = p_organization_id
         and m.user_id = p_actor_user_id and m.status = 'active'
+        and lower(m.role) in ('owner','admin','business_owner','manager','employee','staff')
     )
     or exists (
       select 1 from public.business_memberships b
@@ -559,6 +560,7 @@ begin
       select 1 from public.organization_memberships m
       where m.organization_id=p_organization_id
         and m.user_id=p_actor_user_id and m.status='active'
+        and lower(m.role) in ('owner','admin','business_owner','manager','employee','staff')
     )
     or exists (
       select 1 from public.business_memberships b
