@@ -5,6 +5,7 @@ const {
   ADAPTATION_TYPES,
   NEVER_LEARN_AS_AUTONOMOUS_ACTION,
   wilson95,
+  evaluateLearningConsent,
   evaluateAdaptiveProposal,
   getAdaptiveLearningReadiness
 } = require("../lib/sonara-adaptive-learning-policy.cjs");
@@ -16,8 +17,23 @@ const valid = Object.freeze({
   serverOrganizationId: ORG,
   requestedByUserId: USER,
   changeType: "workspace_layout",
-  verifiedConsent: true,
+  latestConsentReadVerified: true,
+  evidenceWindowStartsAt: "2026-10-02T19:00:00.000Z",
   consentRevoked: false,
+  consentReceipt: Object.freeze({
+    receiptId: "33333333-3333-4333-8333-333333333333",
+    organizationId: ORG,
+    userId: USER,
+    changeType: "workspace_layout",
+    status: "opted_in",
+    method: "explicit_user_action",
+    noticeVersion: "v1",
+    revision: 1,
+    retentionDays: 30,
+    revokedAt: null,
+    consentAt: "2026-10-01T19:00:00.000Z",
+    expiresAt: "2026-10-31T19:00:00.000Z"
+  }),
   userCanInspectCorrectDelete: true,
   aggregateEvidenceVerified: true,
   provenance: "verified tenant aggregate success records",
@@ -41,11 +57,12 @@ describe("governed adaptive learning (policy-only)", () => {
 
   it("requires independent opt-in, controls, verified aggregates and rollback", () => {
     for (const changed of [
-      { verifiedConsent: false },
+      { latestConsentReadVerified: false },
       { consentRevoked: true },
       { userCanInspectCorrectDelete: false },
       { aggregateEvidenceVerified: false },
       { rollbackPlanReviewed: false },
+      { consentReceipt: null },
       { provenance: "" },
       { explanation: "" }
     ]) {
@@ -89,7 +106,7 @@ describe("governed adaptive learning (policy-only)", () => {
 
   it("recommends a measured candidate but never authorizes self-modification", () => {
     for (const changeType of ADAPTATION_TYPES) {
-      const result = evaluateAdaptiveProposal({ ...valid, changeType });
+      const result = evaluateAdaptiveProposal({ ...valid, changeType, consentReceipt: { ...valid.consentReceipt, changeType } });
       assert.equal(result.state, "review_ready", changeType);
       assert.equal(result.proposalOnly, true);
       assert.equal(result.requiresHumanAcceptance, true);
@@ -102,11 +119,53 @@ describe("governed adaptive learning (policy-only)", () => {
     }
   });
 
+  it("requires a fresh, explicit, same-person same-tenant consent snapshot", () => {
+    const variants = [
+      { latestConsentReadVerified: false },
+      { consentReceipt: { ...valid.consentReceipt, organizationId: USER } },
+      { consentReceipt: { ...valid.consentReceipt, userId: ORG } },
+      { consentReceipt: { ...valid.consentReceipt, changeType: "template_suggestion" } },
+      { consentReceipt: { ...valid.consentReceipt, status: "revoked" } },
+      { consentReceipt: { ...valid.consentReceipt, revokedAt: "2026-10-02T19:00:00.000Z" } },
+      { consentReceipt: { ...valid.consentReceipt, revokedAt: undefined } },
+      { consentReceipt: { ...valid.consentReceipt, method: "implied_by_usage" } },
+      { consentReceipt: { ...valid.consentReceipt, noticeVersion: "" } },
+      { consentReceipt: { ...valid.consentReceipt, revision: 0 } },
+      { consentReceipt: { ...valid.consentReceipt, retentionDays: 365 } },
+      { consentReceipt: { ...valid.consentReceipt, consentAt: "2026-10-10T19:00:00.000Z" } },
+      { consentReceipt: { ...valid.consentReceipt, expiresAt: "2026-10-05T19:00:00.000Z" } },
+      { consentReceipt: { ...valid.consentReceipt, expiresAt: "2027-01-09T19:00:00.000Z" } },
+      { evidenceWindowStartsAt: "2026-09-30T19:00:00.000Z" },
+      { evidenceWindowStartsAt: "yesterday" }
+    ];
+    for (const variant of variants) {
+      const result = evaluateAdaptiveProposal({ ...valid, ...variant });
+      assert.equal(result.state, "blocked", JSON.stringify(variant));
+      assert.equal(result.mayExecuteTools, false);
+    }
+  });
+
+  it("allows only a proposal when the consent snapshot is complete", () => {
+    const consent = evaluateLearningConsent({
+      receipt: valid.consentReceipt,
+      organizationId: valid.organizationId,
+      requestedByUserId: valid.requestedByUserId,
+      changeType: valid.changeType,
+      trustedNow: valid.trustedNow,
+      evidenceWindowStartsAt: valid.evidenceWindowStartsAt,
+      latestConsentReadVerified: true
+    });
+    assert.equal(consent.allowed, true);
+    assert.deepEqual(consent.blockers, []);
+    assert.equal(evaluateAdaptiveProposal(valid).state, "review_ready");
+  });
+
   it("makes readiness truthful without enabling a new runtime", () => {
     const readiness = getAdaptiveLearningReadiness();
     assert.equal(readiness.mode, "non_executing_policy_only");
     assert.equal(readiness.automaticExecutionAdded, 0);
     assert.equal(readiness.learningWritesAdded, 0);
+    assert.equal(readiness.consentState, "trusted_server_snapshot_contract_only_no_store_no_persistence");
     assert.equal(readiness.types.length, ADAPTATION_TYPES.length);
   });
 });
