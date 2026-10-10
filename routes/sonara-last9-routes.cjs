@@ -1029,103 +1029,6 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // without a person; a person pressing a button they can see is the person.
   });
 
-  // Staged stock count review: feature-flagged OFF by default until native
-  // PostgreSQL replay, tenant adversarial tests and a reviewed DB deployment.
-  // The actor and reviewer are ALWAYS the logged-in person; never use a user
-  // ID, role, organization ID or approval decision from request body fields.
-  const stockReviewEnabled = () => process.env.SONARA_ENABLE_STOCK_COUNT_REVIEW === "true";
-  const stockReviewIdentity = async (req) => {
-    const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user;
-    if (!user || !isUuid(user.id) || typeof deps.getCustomerPrimaryOrganization !== "function") {
-      return { ok: false, code: "verified_session_required" };
-    }
-    // Never use resolveOrganization here: its nonproduction manual-org escape
-    // hatch is inappropriate for any privileged stock movement.
-    const org = await deps.getCustomerPrimaryOrganization(user);
-    if (!org?.ok || !isUuid(org.organizationId) || !org.role) {
-      return { ok: false, code: "verified_membership_required" };
-    }
-    return {
-      ok: true, organizationId: org.organizationId, userId: user.id,
-      role: String(org.role).toLowerCase()
-    };
-  };
-  const stockReviewOriginValid = (req) => {
-    const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
-    if (!contentType.startsWith("application/json")) return false;
-    const origin = String(req.headers?.origin || "");
-    const host = String(req.headers?.host || "");
-    // Browser forms cannot bypass consent with a cross-site POST. Nonbrowser
-    // integrations must send a proper origin and go through the same session.
-    if (!origin || !host) return false;
-    try { return new URL(origin).host.toLowerCase() === host.toLowerCase(); }
-    catch { return false; }
-  };
-  app.post("/api/business/inventory/stock-count-requests",
-    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
-      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
-      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
-      const org = await stockReviewIdentity(req);
-      if (!org.ok) return res.status(403).json(org);
-      const itemId = String(req.body?.inventory_item_id || "");
-      const requestKey = String(req.body?.idempotency_key || "");
-      const version = String(req.body?.expected_stock_version ?? "");
-      const count = String(req.body?.counted_quantity ?? "");
-      if (!isUuid(itemId) || !/^[A-Za-z0-9._:-]{8,128}$/.test(requestKey)
-        || !/^(0|[1-9][0-9]{0,17})$/.test(version)
-        || !/^(0|[1-9][0-9]{0,8})(?:\.[0-9]{1,3})?$/.test(count)
-        || Number(count) > 999999999.999) {
-        return res.status(400).json({ok:false,code:"stock_count_input_invalid"});
-      }
-      const config = getConfig(deps);
-      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
-      const posted = await supabaseInsert(config,"rpc/sonara_submit_stock_count_request",{
-        p_organization_id:org.organizationId,p_inventory_item_id:itemId,
-        p_actor_user_id:org.userId,p_idempotency_key:requestKey,
-        p_expected_version:version,p_counted_quantity:Number(count)
-      });
-      if (!posted.ok) return res.status(409).json({ok:false,code:"stock_review_request_refused"});
-      const result = Array.isArray(posted.rows) ? posted.rows[0] : posted.rows;
-      if (!result?.ok || !isUuid(result.request_id))
-        return res.status(502).json({ok:false,code:"stock_review_receipt_missing"});
-      return res.status(201).json(result);
-    });
-  app.get("/api/business/inventory/stock-count-requests",
-    requireBusinessManager, async (req, res) => {
-      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
-      const org = await stockReviewIdentity(req);
-      if (!org.ok) return res.status(403).json(org);
-      const config = getConfig(deps);
-      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
-      const found = await supabaseList(config,"inventory_stock_count_requests",
-        `?select=id,inventory_item_id,actor_user_id,expected_stock_version,expected_unit,expected_location_id,counted_quantity,created_at&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=50`);
-      if (!found.ok) return res.status(503).json({ok:false,code:"stock_review_queue_unavailable"});
-      return res.status(200).json({ok:true,requests:found.rows});
-    });
-  app.post("/api/business/inventory/stock-count-requests/:requestId/review",
-    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
-      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
-      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
-      const org = await stockReviewIdentity(req);
-      if (!org.ok) return res.status(403).json(org);
-      if (!["owner","admin","business_owner"].includes(org.role))
-        return res.status(403).json({ok:false,code:"independent_owner_review_required"});
-      const requestId = String(req.params.requestId || "");
-      if (!isUuid(requestId) || req.body?.action !== "approve")
-        return res.status(400).json({ok:false,code:"explicit_review_action_required"});
-      const config = getConfig(deps);
-      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
-      const approved = await supabaseInsert(config,"rpc/sonara_review_stock_count_request",{
-        p_organization_id:org.organizationId,p_request_id:requestId,
-        p_reviewer_user_id:org.userId
-      });
-      if (!approved.ok) return res.status(409).json({ok:false,code:"stock_review_posting_refused"});
-      const result = Array.isArray(approved.rows) ? approved.rows[0] : approved.rows;
-      if (!result?.ok || !isUuid(result.request_id) || !isUuid(result.review_id))
-        return res.status(502).json({ok:false,code:"stock_review_proof_missing"});
-      return res.status(200).json(result);
-    });
-
   // Purchase-order approval is separate from fulfillment status. Managers may
   // prepare and submit an order; only an owner may approve or reject it. The
   // database RPC changes state and writes business_control_audit_events in the
@@ -2350,6 +2253,103 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const results = await Promise.all(tables.map((table) => supabaseCount(config, table).then((result) => ({ table, ...result }))));
     return res.status(200).json({ ok: true, tables: results });
   });
+  // Staged stock count review: feature-flagged OFF by default until native
+  // PostgreSQL replay, tenant adversarial tests and a reviewed DB deployment.
+  // The actor and reviewer are ALWAYS the logged-in person; never use a user
+  // ID, role, organization ID or approval decision from request body fields.
+  const stockReviewEnabled = () => process.env.SONARA_ENABLE_STOCK_COUNT_REVIEW === "true";
+  const stockReviewIdentity = async (req) => {
+    const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user;
+    if (!user || !isUuid(user.id) || typeof deps.getCustomerPrimaryOrganization !== "function") {
+      return { ok: false, code: "verified_session_required" };
+    }
+    // Never use resolveOrganization here: its nonproduction manual-org escape
+    // hatch is inappropriate for any privileged stock movement.
+    const org = await deps.getCustomerPrimaryOrganization(user);
+    if (!org?.ok || !isUuid(org.organizationId) || !org.role) {
+      return { ok: false, code: "verified_membership_required" };
+    }
+    return {
+      ok: true, organizationId: org.organizationId, userId: user.id,
+      role: String(org.role).toLowerCase()
+    };
+  };
+  const stockReviewOriginValid = (req) => {
+    const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
+    if (!contentType.startsWith("application/json")) return false;
+    const origin = String(req.headers?.origin || "");
+    const host = String(req.headers?.host || "");
+    // Browser forms cannot bypass consent with a cross-site POST. Nonbrowser
+    // integrations must send a proper origin and go through the same session.
+    if (!origin || !host) return false;
+    try { return new URL(origin).host.toLowerCase() === host.toLowerCase(); }
+    catch { return false; }
+  };
+  app.post("/api/business/inventory/stock-count-requests",
+    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      const itemId = String(req.body?.inventory_item_id || "");
+      const requestKey = String(req.body?.idempotency_key || "");
+      const version = String(req.body?.expected_stock_version ?? "");
+      const count = String(req.body?.counted_quantity ?? "");
+      if (!isUuid(itemId) || !/^[A-Za-z0-9._:-]{8,128}$/.test(requestKey)
+        || !/^(0|[1-9][0-9]{0,17})$/.test(version)
+        || !/^(0|[1-9][0-9]{0,8})(?:\.[0-9]{1,3})?$/.test(count)
+        || Number(count) > 999999999.999) {
+        return res.status(400).json({ok:false,code:"stock_count_input_invalid"});
+      }
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      const posted = await supabaseInsert(config,"rpc/sonara_submit_stock_count_request",{
+        p_organization_id:org.organizationId,p_inventory_item_id:itemId,
+        p_actor_user_id:org.userId,p_idempotency_key:requestKey,
+        p_expected_version:version,p_counted_quantity:Number(count)
+      });
+      if (!posted.ok) return res.status(409).json({ok:false,code:"stock_review_request_refused"});
+      const result = Array.isArray(posted.rows) ? posted.rows[0] : posted.rows;
+      if (!result?.ok || !isUuid(result.request_id))
+        return res.status(502).json({ok:false,code:"stock_review_receipt_missing"});
+      return res.status(201).json(result);
+    });
+  app.get("/api/business/inventory/stock-count-requests",
+    requireBusinessManager, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      const found = await supabaseList(config,"inventory_stock_count_requests",
+        `?select=id,inventory_item_id,actor_user_id,expected_stock_version,expected_unit,expected_location_id,counted_quantity,created_at&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=50`);
+      if (!found.ok) return res.status(503).json({ok:false,code:"stock_review_queue_unavailable"});
+      return res.status(200).json({ok:true,requests:found.rows});
+    });
+  app.post("/api/business/inventory/stock-count-requests/:requestId/review",
+    requireBusinessManager, procurementMutationLimiter, async (req, res) => {
+      if (!stockReviewEnabled()) return res.status(503).json({ok:false,code:"stock_review_not_activated"});
+      if (!stockReviewOriginValid(req)) return res.status(403).json({ok:false,code:"stock_review_origin_required"});
+      const org = await stockReviewIdentity(req);
+      if (!org.ok) return res.status(403).json(org);
+      if (!["owner","admin","business_owner"].includes(org.role))
+        return res.status(403).json({ok:false,code:"independent_owner_review_required"});
+      const requestId = String(req.params.requestId || "");
+      if (!isUuid(requestId) || req.body?.action !== "approve")
+        return res.status(400).json({ok:false,code:"explicit_review_action_required"});
+      const config = getConfig(deps);
+      if (!config.ok) return res.status(503).json({ok:false,code:"stock_database_unavailable"});
+      const approved = await supabaseInsert(config,"rpc/sonara_review_stock_count_request",{
+        p_organization_id:org.organizationId,p_request_id:requestId,
+        p_reviewer_user_id:org.userId
+      });
+      if (!approved.ok) return res.status(409).json({ok:false,code:"stock_review_posting_refused"});
+      const result = Array.isArray(approved.rows) ? approved.rows[0] : approved.rows;
+      if (!result?.ok || !isUuid(result.request_id) || !isUuid(result.review_id))
+        return res.status(502).json({ok:false,code:"stock_review_proof_missing"});
+      return res.status(200).json(result);
+    });
+
 };
 
 function registerRestResource(app, path, resource, deps, middleware) {
