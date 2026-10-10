@@ -876,3 +876,270 @@ describe("attested Growth public discovery projection (unmounted, no real source
   });
 });
 
+
+describe("two-authority Ed25519 discovery review verification (not runtime-wired)", () => {
+  const crypto = require("node:crypto");
+  const { signingMessage, createVerifiedAttestationLoader } =
+    require("../lib/sonara-review-attestation-verifier.cjs");
+  const { growthContentDigest, createGrowthPublicProjectionSource } =
+    require("../lib/sonara-growth-public-projections.cjs");
+  const POST = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const CHANNEL = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const ORG = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const NOW = new Date("2026-10-10T12:03:00.000Z");
+  const STAMP = "2026-10-10T12:00:00.000Z";
+  const reviewer = crypto.generateKeyPairSync("ed25519");
+  const licensor = crypto.generateKeyPairSync("ed25519");
+  const post = (extra = {}) => ({ id: POST, channel_id: CHANNEL, organization_id: ORG,
+    state: "published", kind: "post", body: "Approved creative work",
+    created_at: STAMP, updated_at: STAMP, ...extra });
+  const channel = (extra = {}) => ({ id: CHANNEL, organization_id: ORG,
+    state: "public", handle: "creator", updated_at: STAMP, ...extra });
+  const claim = (extra = {}) => ({
+    attestationId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    policyVersion: "ugc-2026.10", postId: POST, channelId: CHANNEL,
+    organizationId: ORG, postVersion: STAMP, channelVersion: STAMP,
+    contentDigest: growthContentDigest(post(), channel()),
+    moderationStatus: "approved", rightsStatus: "cleared",
+    sponsored: false, aiGenerated: false, originalityVerified: false,
+    quality: 0.5, diversity: 0.5,
+    verifiedAt: "2026-10-10T12:02:00.000Z",
+    expiresAt: "2026-10-10T12:10:00.000Z",
+    topic: "music", ageRating: "general", territory: "global",
+    allowedCountries: [], ...extra
+  });
+  const key = (keyId, role, publicKey) => ({
+    keyId, role, publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+    enabled: true
+  });
+  const trust = (extra = {}) => ({
+    ok: true, revision: 1, policyVersion: "ugc-2026.10",
+    keys: [key("mod-01", "moderation", reviewer.publicKey),
+      key("rights-01", "rights", licensor.publicKey)], ...extra
+  });
+  const safety = (extra = {}) => ({
+    ok: true, revision: 1, checkedAt: "2026-10-10T12:02:30.000Z",
+    heldPostIds: [], revokedAttestationIds: [], revokedKeyIds: [],
+    ...extra
+  });
+  const envelope = (data = claim(), signatureOverrides = {}) => ({
+    claim: data,
+    signatures: {
+      moderation: {
+        keyId: "mod-01",
+        signature: crypto.sign(null, signingMessage("moderation", "mod-01", data),
+          reviewer.privateKey).toString("base64url")
+      },
+      rights: {
+        keyId: "rights-01",
+        signature: crypto.sign(null, signingMessage("rights", "rights-01", data),
+          licensor.privateKey).toString("base64url")
+      },
+      ...signatureOverrides
+    }
+  });
+  const make = ({ proofEntries, trustReads, safetyReads, fault } = {}) => {
+    const counts = { trust: 0, safety: 0, attestations: 0 };
+    const trusts = trustReads || [trust()];
+    const snapshots = safetyReads || [safety()];
+    const load = createVerifiedAttestationLoader({
+      clock: () => new Date(NOW),
+      loadTrustRegistry: async () => {
+        counts.trust++;
+        if (fault === "trust") throw new Error("private roster");
+        return trusts[Math.min(counts.trust - 1, trusts.length - 1)];
+      },
+      loadSafetyState: async ({ postIds, fresh }) => {
+        assert.deepEqual(postIds, [POST]);
+        assert.equal(fresh, true);
+        counts.safety++;
+        if (fault === "safety") throw new Error("private moderation queue");
+        return snapshots[Math.min(counts.safety - 1, snapshots.length - 1)];
+      },
+      loadSignedAttestations: async ({ scope, postIds }) => {
+        assert.equal(scope, "signed_discovery_reviews");
+        assert.deepEqual(postIds, [POST]);
+        counts.attestations++;
+        if (fault === "attestations") throw new Error("private evidence");
+        return { ok: true, entries: proofEntries === undefined ? [envelope()] : proofEntries };
+      }
+    });
+    return { load, counts };
+  };
+  const read = (loader) => loader({ postIds: [POST], scope: "discovery_proof" });
+
+  it("validates two real Ed25519 signatures and rereads trust and revocations", async () => {
+    const { load, counts } = make();
+    const result = await read(load);
+    assert.equal(result.ok, true);
+    assert.equal(result.entries.length, 1);
+    assert.equal(result.entries[0].contentDigest, claim().contentDigest);
+    assert.deepEqual(counts, { trust: 2, safety: 2, attestations: 1 });
+    assert.equal("signatures" in result.entries[0], false);
+  });
+
+  it("denies unapproved sources, invalid request scope and missing adapters", async () => {
+    const { load, counts } = make();
+    for (const options of [undefined, {}, { postIds: [POST], scope: "public" },
+      { postIds: ["not-a-uuid"], scope: "discovery_proof" },
+      { postIds: [POST, POST], scope: "discovery_proof" }]) {
+      assert.equal((await load(options)).code, "attestation_request_invalid");
+    }
+    assert.deepEqual(counts, { trust: 0, safety: 0, attestations: 0 });
+    assert.throws(() => createVerifiedAttestationLoader({}), TypeError);
+  });
+
+  it("rejects edits or false disclosure labels after signing", async () => {
+    const original = envelope();
+    for (const corrupt of [
+      { ...original, claim: { ...original.claim, sponsored: true } },
+      { ...original, claim: { ...original.claim, contentDigest: "f".repeat(64) } },
+      { ...original, claim: { ...original.claim, rightsStatus: "unknown" } },
+      { ...original, claim: { ...original.claim, aiGenerated: "false" } }
+    ]) {
+      const res = await read(make({ proofEntries: [corrupt] }).load);
+      assert.equal(res.ok, true);
+      assert.equal(res.entries.length, 0);
+    }
+  });
+
+  it("rejects one signature, substituted keys, and wrong role signing", async () => {
+    const signed = envelope();
+    const altered = [
+      { ...signed, signatures: { moderation: signed.signatures.moderation } },
+      { ...signed, signatures: { ...signed.signatures,
+        rights: { ...signed.signatures.rights, keyId: "mod-01" } } },
+      { ...signed, signatures: { ...signed.signatures,
+        moderation: { ...signed.signatures.moderation,
+          signature: signed.signatures.rights.signature } } },
+      { ...signed, signatures: { ...signed.signatures,
+        rights: { ...signed.signatures.rights, signature: "not-valid" } } }
+    ];
+    for (const entry of altered) {
+      assert.deepEqual((await read(make({ proofEntries: [entry] }).load)).entries, []);
+    }
+  });
+
+  it("refuses content holds, reviewer key revocations and approval revocations", async () => {
+    for (const revoked of [
+      safety({ heldPostIds: [POST] }),
+      safety({ revokedAttestationIds: [claim().attestationId] }),
+      safety({ revokedKeyIds: ["rights-01"] }),
+      safety({ revokedKeyIds: ["mod-01"] })
+    ]) {
+      const result = await read(make({ safetyReads: [revoked] }).load);
+      assert.equal(result.ok, true);
+      assert.deepEqual(result.entries, []);
+    }
+  });
+
+  it("refuses a safety hold appearing during signature verification", async () => {
+    const { load } = make({ safetyReads: [safety(),
+      safety({ revision: 2, heldPostIds: [POST] })] });
+    const result = await read(load);
+    assert.equal(result.code, "attestation_safety_changed");
+    assert.deepEqual(result.entries, []);
+  });
+
+  it("refuses reviewer roster changes during verification", async () => {
+    for (const later of [
+      trust({ revision: 2 }),
+      trust({ policyVersion: "ugc-2027.01" }),
+      trust({ keys: [key("mod-01", "moderation", reviewer.publicKey),
+        key("rights-01", "rights", reviewer.publicKey)] })
+    ]) {
+      const result = await read(make({ trustReads: [trust(), later] }).load);
+      assert.equal(result.code, "attestation_safety_changed");
+    }
+  });
+
+  it("rejects non-Ed25519 and foreign policy keys before reading evidence", async () => {
+    const rsa = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    for (const registry of [
+      trust({ keys: [key("mod-01", "moderation", reviewer.publicKey),
+        key("rights-01", "rights", rsa.publicKey)] }),
+      trust({ revision: 0 }),
+      trust({ keys: [] }),
+      trust({ keys: [key("mod-01", "moderation", reviewer.publicKey),
+        key("mod-01", "rights", licensor.publicKey)] })
+    ]) {
+      const { load, counts } = make({ trustReads: [registry] });
+      assert.equal((await read(load)).code, "attestation_authority_unavailable");
+      assert.equal(counts.attestations, 0);
+    }
+  });
+
+  it("refuses stale, incomplete or inaccessible safety snapshots", async () => {
+    for (const snapshot of [
+      safety({ checkedAt: "2026-10-10T11:50:00Z" }),
+      safety({ heldPostIds: null }),
+      safety({ heldPostIds: [ORG] }),
+      safety({ revision: 0 })
+    ]) {
+      const { load, counts } = make({ safetyReads: [snapshot] });
+      assert.equal((await read(load)).code, "attestation_authority_unavailable");
+      assert.equal(counts.attestations, 0);
+    }
+    for (const fault of ["safety", "trust", "attestations"]) {
+      const result = await read(make({ fault }).load);
+      assert.equal(result.ok, false);
+      assert.equal(JSON.stringify(result).includes("private"), false);
+    }
+  });
+
+  it("rejects stale, expired, wrong-policy or unexpected claim fields", async () => {
+    const altered = [
+      claim({ expiresAt: "2026-10-10T12:02:00Z" }),
+      claim({ verifiedAt: "2026-10-10T11:40:00Z" }),
+      claim({ policyVersion: "ugc-2027.01" }),
+      claim({ authorEmail: "should-not-exist" })
+    ];
+    for (const c of altered) {
+      const signed = (() => {
+        try { return envelope(c); } catch { return { claim: c, signatures: {} }; }
+      })();
+      const result = await read(make({ proofEntries: [signed] }).load);
+      assert.deepEqual(result.entries, []);
+    }
+  });
+
+  it("denies duplicates or injected post identifiers across a bounded batch", async () => {
+    const repeated = await read(make({ proofEntries: [envelope(), envelope()] }).load);
+    assert.equal(repeated.code, "attestation_source_unavailable"); // over 1 requested post
+    const other = envelope(claim({ postId: ORG }));
+    const result = await read(make({ proofEntries: [other] }).load);
+    assert.equal(result.code, "attestation_ambiguous");
+  });
+
+  it("feeds independently signed evidence into the existing Growth projection", async () => {
+    const reviewed = make().load;
+    const source = createGrowthPublicProjectionSource({
+      clock: () => new Date(NOW),
+      loadGrowthRows: async () => ({
+        ok: true, rows: [{ post: post(), channel: channel() }]
+      }),
+      loadAttestations: reviewed
+    });
+    const result = await source({ cap: 250, scope: "moderated_public" });
+    assert.equal(result.ok, true);
+    assert.equal(result.candidates.length, 1);
+    assert.equal(result.candidates[0].href, "/channels/creator");
+    assert.equal(result.candidates[0].contentDigest, undefined);
+    assert.equal(result.candidates[0].moderationStatus, "approved");
+  });
+
+  it("stops platform-wide recommendations when an active moderation hold exists", async () => {
+    const reviewed = make({ safetyReads: [safety({ heldPostIds: [POST] })] }).load;
+    const source = createGrowthPublicProjectionSource({
+      clock: () => new Date(NOW),
+      loadGrowthRows: async () => ({
+        ok: true, rows: [{ post: post(), channel: channel() }]
+      }),
+      loadAttestations: reviewed
+    });
+    const result = await source({ cap: 250, scope: "moderated_public" });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.candidates, []);
+  });
+});
+
