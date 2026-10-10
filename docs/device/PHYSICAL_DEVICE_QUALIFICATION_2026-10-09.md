@@ -17,6 +17,25 @@ The ledger deliberately begins with an empty `records` array. Empty means **unqu
 
 If `android_native_client.productionEnabled` or `ios_native_client.productionEnabled` is ever set to `true`, the verifier requires a complete physical-device record for the repository's exact 40-character HEAD SHA. Evidence for an older SHA cannot qualify a newer release.
 
+## On-device diagnostic receipt
+
+The signed-in `/settings/device-feedback` page can download a `sonara_motion_device_diagnostic` JSON receipt after explicit testing. It is designed to make physical-device evidence easier to review without turning the sensor test into telemetry collection.
+
+The receipt may contain:
+
+- exact deployment SHA when the runtime exposes a valid `VERCEL_GIT_COMMIT_SHA`;
+- secure-context and page-visibility state;
+- SONARA account permission state;
+- whether Device Motion is supported;
+- browser permission outcome;
+- bounded capture outcome and sample **count**;
+- whether a hidden-page interruption occurred;
+- reduced-motion preference.
+
+It deliberately does **not** contain raw acceleration/rotation values, coordinates, organization/user identifiers, cookies, user-agent strings, device serial numbers or account data.
+
+A diagnostic receipt is supporting evidence only. It does not identify the physical device model/OS/browser build, does not prove Play/App Store signing, and does not satisfy the complete qualification profile by itself. The reviewed external evidence bundle and machine-readable qualification record remain required.
+
 ## Required record identity
 
 A record must contain:
