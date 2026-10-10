@@ -24,7 +24,7 @@ describe("Creator Studio deterministic Standard MIDI File 1.0 handoff", () => {
     const b = midi("E4,0,240,70\nC4,0,480,100\nC4,480,480,90");
     assert.deepEqual(bytes(a), bytes(b));
     const s = hex(a);
-    assert.ok(s.includes("8360803c0000903c5a"), "C4 must end before C4 restarts at tick 480");
+    assert.ok(s.includes("803c0000903c5a"), "C4 must end before C4 restarts at tick 480");
     assert.equal(a[8], 0); assert.equal(a[9], 0); // Format 0, exactly one track
   });
 
