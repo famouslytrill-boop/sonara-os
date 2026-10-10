@@ -1,14 +1,15 @@
 # SONARA external publishing, mobile, scale, automation and claim safety — 2026-10-10
 
-**Status: draft engineering proposal plus executable offline publication preflight. Not deployed, not connected to HTTP routes or a publisher worker.** No production change, public campaign, app submission, financial transaction, autonomous recovery or load test is implied.
+**Status: draft engineering proposal plus two executable offline decision layers (publication preflight and receipt classification). Not deployed, not connected to HTTP routes or a publisher worker.** No production change, public campaign, app submission, financial transaction, autonomous recovery or load test is implied.
 
 ## Current repo and primary blocker
 
 Base commit inspected: `6044be8e994f28c81001895f749b776055dc3b23`. At inspection the only open PR was draft #620 (post-consolidation repair), which reported 8,691 passing, six pending and **63 failing** tests; native PostgreSQL replay and browser acceptance remained unverified. Protect main, close CI failures, verify exact head, reconcile the authoritative production Supabase project and respect the website's offline state before any controlled production release.
 
 This change adds:
-- `lib/sonara-multi-channel-publication-preflight.cjs`: computes a stable SHA-256 over an immutable content digest, tenant, ordered account destinations, visibility, format, idempotency keys and schedule; uses the established `evaluateApprovalBoard` and `growth-studio-provider-registry`; denies duplicate targets, stale approvals, missing owner step-up, provider scope/account/readiness, missing rights/moderation/releases, capacity and unsupported provider maturity. TikTok public direct posts additionally require platform audit and current creator information. All results explicitly report `executionAuthorized:false`.
-- `tests/sonara-multi-channel-publication-preflight.test.js`: deterministic happy-path and fail-closed regression scenarios. Tests use dummy values and make **no provider calls**.
+- `lib/sonara-multi-channel-publication-preflight.cjs`: computes a stable SHA-256 over an immutable content digest, tenant, ordered account destinations, visibility, format, idempotency keys and schedule; uses the established `evaluateApprovalBoard` and `growth-studio-provider-registry`; denies duplicate targets, stale approvals, missing owner step-up, provider scope/account/readiness, missing rights/moderation/releases, capacity and unsupported provider maturity. TikTok public direct posts additionally require platform audit, current creator information and selected privacy level; unaudited private posting requires an eligible private account with SELF_ONLY visibility. All results explicitly report `executionAuthorized:false`.
+- `lib/sonara-publication-receipt-reconciliation.cjs`: interprets authenticated provider receipt status, rejects cross-tenant/account/idempotency/snapshot mismatches, requires matching public/private visibility and stable remote post ID, and prevents blind replay after timeout or unknown 429 acceptance. It has **no provider or database execution**.
+- `tests/sonara-multi-channel-publication-preflight.test.js`: deterministic happy-path and fail-closed regressions for both layers, including future-dated approvals and ambiguous receipts. Tests use dummy values and make **no provider calls**.
 
 A `worker_claim_candidate` is not a ready-to-publish status. Neither a valid SHA-256 nor a caller-provided boolean authenticates a person, customer consent, OAuth scope, customer organization or physical provider account. Only an authenticated server resolver with transactionally checked, provider-specific authority may supply this context. The preflight is intentionally not route-wired.
 
@@ -29,6 +30,12 @@ A `worker_claim_candidate` is not a ready-to-publish status. Neither a valid SHA
 - https://learn.microsoft.com/linkedin/marketing/community-management/shares/posts-api
 
 **Acceptance:** two tenants cannot see/use one another's tokens, accounts, approvals or publishing receipts; edited contents fail old hashes; repeated jobs create at most one provider-visible effect where provider idempotency supports it; partial destination failure is visible and retryable only after operator review; unsupported provider never masquerades as success. Test with each **real approved sandbox/provider account** before staged rollout.
+
+### Offline receipt acceptance and uncertainty
+
+`classifyPublicationReceipt` is a deterministic state interpreter. It accepts only independently authenticated provider evidence from a server-controlled integration path, not provider claims submitted by browser JSON. A recognized remote post ID and matching requested visibility can produce `provider_published_receipt`, which is **provider-reported** state, not a separate public reachability audit or guarantee of retention. An accepted upload and an in-progress processing result are **not** published posts. Unknown network outcomes and incomplete 429 responses require provider status reconciliation; a verified not-accepted 429 yields only a `retry_review_candidate`, never automatic execution. Terminal published/cancelled/rejected jobs are not silently replayed.
+
+The current layer does not create a PostgreSQL outbox, consume idempotency claims, or send work to a provider. Before shipping, design the durable execution state machine and test crash-after-publish/before-ack, simultaneous worker claims, OAuth revocation during retry, 429/5xx handling, duplicate webhooks, provider status drift, and long-running uploads under isolated real provider accounts.
 
 ## 2. Android and iOS distribution
 
