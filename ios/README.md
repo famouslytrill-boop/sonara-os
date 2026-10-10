@@ -4,7 +4,7 @@
 
 ## Build
 
-Install Xcode and the open-source XcodeGen tool on a macOS development machine. From `ios/` run:
+Install Xcode and the separate XcodeGen project-file generator on a macOS development machine. From `ios/` run:
 
 ```bash
 xcodegen generate
