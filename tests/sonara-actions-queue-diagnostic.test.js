@@ -27,8 +27,8 @@ describe("SONARA read-only Actions queue diagnostics", () => {
   it("does not interpret all-success snapshots as authorized production", () => {
     const result = analyzeActionsQueueSnapshot(base({
       checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
-      jobs: [{ status: "completed", runner_name: "Hosted Agent", started_at: "2026-10-09T22:01:00Z" }],
-      workflowRuns: [{ head_sha: headSha, status: "completed" }]
+      jobs: [{ status: "completed", conclusion: "success", runner_name: "Hosted Agent", started_at: "2026-10-09T22:01:00Z" }],
+      workflowRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }]
     }));
     assert.equal(result.diagnosis, "required_gate_scope_unverified");
     assert.equal(result.requiredChecksPolicyVerified, false);
@@ -73,6 +73,57 @@ describe("SONARA read-only Actions queue diagnostics", () => {
     }));
     assert.ok(result.issueCodes.includes("future_created_at"));
     assert.equal(result.workflowQueue.olderThanThreshold, 0);
+  });
+  it("recognizes failed workflow even if an unrelated check succeeded", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ head_sha: headSha, status: "completed", conclusion: "failure" }],
+      jobs: [{ status: "completed", conclusion: "success", runner_name: "Hosted Runner" }]
+    }));
+    assert.ok(result.issueCodes.includes("failed_workflows"));
+    assert.equal(result.workflowQueue.failed, 1);
+    assert.equal(result.productionAuthorized, false);
+  });
+  it("recognizes failed job even if workflow and check results look green", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ status: "completed", conclusion: "timed_out", runner_name: "Runner" }]
+    }));
+    assert.ok(result.issueCodes.includes("failed_jobs"));
+    assert.equal(result.jobCounts.failed, 1);
+  });
+  it("detects waiting and requested states as unfinished release evidence", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "waiting", conclusion: null }],
+      workflowRuns: [{ head_sha: headSha, status: "requested" }],
+      jobs: [{ status: "waiting" }]
+    }));
+    assert.ok(result.issueCodes.includes("unfinished_execution"));
+    assert.equal(result.checkCounts.queued, 1);
+    assert.equal(result.jobCounts.unfinished, 1);
+    assert.equal(result.workflowQueue.unfinished, 1);
+    assert.ok(!result.issueCodes.includes("unknown_check_status"));
+  });
+  it("identifies absent workflow evidence and unknown completed results", () => {
+    const empty = analyzeActionsQueueSnapshot(base({ workflowRuns: [] }));
+    assert.ok(empty.issueCodes.includes("missing_workflow_evidence"));
+    const incomplete = analyzeActionsQueueSnapshot(base({
+      workflowRuns: [{ head_sha: headSha, status: "completed" }],
+      jobs: [{ status: "completed" }]
+    }));
+    assert.ok(incomplete.issueCodes.includes("unknown_workflow_conclusion"));
+    assert.ok(incomplete.issueCodes.includes("unknown_job_conclusion"));
+  });
+  it("marks GitHub stale or startup-failure conclusions as failed", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ head_sha: headSha, status: "completed", conclusion: "stale" }],
+      workflowRuns: [{ head_sha: headSha, status: "completed", conclusion: "startup_failure" }],
+      jobs: [{ status: "completed", conclusion: "cancelled" }]
+    }));
+    assert.ok(result.issueCodes.includes("failed_checks"));
+    assert.ok(result.issueCodes.includes("failed_workflows"));
+    assert.ok(result.issueCodes.includes("failed_jobs"));
   });
   it("does not disclose raw job fields or tokens in the generated summary", () => {
     const result = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", secret: "never_echo_me", created_at: "2026-10-09T22:00:00Z" }] }));
