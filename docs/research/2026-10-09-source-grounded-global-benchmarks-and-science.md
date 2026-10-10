@@ -220,3 +220,29 @@ The next release requirement remains:
 Evidence receipts accept **only** `claimId`, `sourceUrl`, `stance`, and `observedAt`. An extra field, including customer identity, unapproved commentary or a purported approval, is rejected without echoing its content. Plans accept only `formulaKey`, `claimId`, `observations`, `reviewedAt`, and `maxAgeDays`. In particular, input values and customer details do not travel through the planning interface.
 
 A targeted mutation study confirmed tests fail when the formula-evaluated guard is flipped, when unknown request fields are allowed, or when unapproved receipt fields are admitted. The targeted suite is now **30/30 passing in the isolated V8 harness**; full repository CI has not executed and no production outcome follows from this result.
+
+## Phase 6: composite issue reporting, parser safety and blocked CI execution
+
+### Changes implemented in the non-networked research module
+
+- `inspectRanking` rejects extra input fields rather than silently admitting customer identifiers or invented external validation metadata into a clean-looking source row. It now exposes an ordered `issueCodes` array combining `invalid_transcription`, `stale_source`, and `incomplete_transcription`. The single `status` is retained for compatibility, but consumers should inspect the entire array to avoid masked errors. A complete ranking still has no independently verified publisher provenance or republication grant.
+- `auditEvidencePacket` exposes all simultaneous `invalid_intake`, `no_evidence`, `contradictions_found`, `unsupported_claims`, and `stale_evidence` findings in `issueCodes`, without hiding stale sources when another claim is contradicted. Where there are no issues, `overallStatus` remains `human_source_review_required`, **not** a verified state.
+- The formula research planner propagates all packet issues into `blockingReasons`, plus the mandatory unverified source identity, publisher rights, formula units/inputs and missing reviewer authorization. Calculations remain unexecuted; customer decision and production flags remain false. Date fields explicitly return `timestampProvenance: caller_supplied_unverified`; caller-selected 'reviewedAt' is **not** server-clock attestation.
+- `isHttpsUrl` now rejects raw backslashes before parsing. Node's WHATWG URL parser normalizes backslashes under an HTTPS scheme; another parser may interpret the identical bytes differently. These controls are for non-networked source intake only; **they are not an SSRF defense for a future fetcher**. Any real fetch must enforce an approved destination allowlist, safe resolved IPs, redirects, connection pinning and egress isolation at the time of the request.
+
+### Testing evidence
+
+The existing research test file now has **34 targeted Mocha test definitions** (30 prior + four multi-defect/extra-field/date assertions), plus a backslash URL adversarial case inside the existing invalid-URL test. All 34 passed in a constrained V8 source-execution harness against the committed library and canonical formula registry. Deliberately removing composite ranking issues or contradiction issue flags, accepting unapproved row fields, and enabling customer decisions triggered test failures. This is diagnostic **only**; full Node 24/pnpm/mocha/CI have not completed. A separate Node 22 WHATWG URL parser experiment reproduced HTTPS backslash normalization, but did **not** run this repository's full suite.
+
+### Actual GitHub release-gate investigation
+
+- The SONARA Industries workflow definition at `.github/workflows/sonara-industries-ci.yml` specifies `runs-on: ubuntu-latest` for both `sonara-industries` and `supabase-preview`, with setup of Node 24 and a pinned pnpm install followed by typecheck, lint, tests and build.
+- The exact-commit workflow run `38017092188` and both jobs were still `queued` with **no recorded runner or started time** when inspected. There are numerous additional queued workflow runs in the repository, but the reason for the queue is **not established**.
+- The connected GitHub integration received a 403 `Resource not accessible by integration` reading `branches/main/protection`; a public ruleset listing returned `[]`. **These results do not confirm that branch protection is enabled or disabled.** Admin-level protection/Actions and billing settings need review by an authorized repository administrator.
+- Do not trigger new redundant workflows, bypass required checks, mark queued tasks as passed, deploy the website, merge PRs, or activate customer payments, live data collection, autonomous actions, social, or mobile based on research test results.
+
+### Owner/administrator's next gate
+
+1. Inspect GitHub **Actions** runner assignment, usage/limits/billing, workflow permissions and concurrency policy for the queued run. Do not assume a specific cause; record actual job-level error or runner start evidence.
+2. Inspect **Settings → Branches / Rulesets** with administrative authorization. Require protected main, approved reviews, and uniquely named exact-head checks from the expected GitHub App; block bypass, force-push and deletion where applicable. GitHub documentation: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches and https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks.
+3. Only when runners execute: verify full Node 24 suite, pnpm lockfile install, route and security scans, PostgreSQL/RLS replay, and consumer/payment isolation. Re-evaluate all required checks on the **exact new head SHA** after any change; perform owner-reviewed merge and separate staged deployment with post-deploy rollback evidence.
