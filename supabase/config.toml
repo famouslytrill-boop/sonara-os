@@ -456,6 +456,12 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.google-search-console-broker]
+# Server-to-server only. Current Supabase secret API keys are not JWTs, so this
+# function authenticates its server API key inside the handler and additionally
+# requires SONARA's body-bound HMAC signature. Browser Origin requests are refused.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

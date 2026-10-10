@@ -326,12 +326,117 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: rewrite the remaining 25 scalar auth policies and
-    // remove one rigorously identical subscriptions policy in a single
-    // rolled-back transaction. No production DDL is performed by replay.
-    behaves(psql, "P1 RLS initplan and policy-overlap guarded rollback proof",
+    // Real PostgreSQL P0 cohort reporting evidence: native, disposable
+    // two-tenant fixture with dedicated non-BYPASSRLS login, RLS allow/deny,
+    // and a REPEATABLE READ READ ONLY transaction. Never run against a
+    // customer project; this check reuses the ephemeral migration replay.
+    behaves(psql, "P0 cohort reporter readonly snapshot and RLS tenant isolation",
+      fs.readFileSync(path.join(root, "tests/sql/p0-cohort-reader-rls-snapshot.sql"), "utf8"),
+      ["p0_cohort_reader_rls_snapshot_passed"]);
+
+    // The private autonomic claim ledger must prevent unsafe replay, enforce
+    // service-role-only access, and reject stale fencing tokens on real Postgres.
+    behaves(psql, "bounded SONARA autonomic claim, fencing and role proof",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-repair-role-matrix.sql"), "utf8"),
+      ["sonara_recovery_staging_passed"]);
+
+    // Native PostgreSQL behavior, not a source-text contract: no early retry,
+    // cross-tenant admission, duplicate claim, or stale-token terminal rewrite.
+    behaves(psql, "private delayed retry due-time and tenant/role matrix",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-delayed-retry-role-matrix.sql"), "utf8"),
+      ["sonara_delayed_retry_native_passed"]);
+
+    // The HMAC sensor anti-replay table must reject expired, duplicate and
+    // forged nonces under real service-role-only PostgreSQL execution.
+    behaves(psql, "signed recovery sensor nonce role and replay matrix",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-sensor-nonce-role-matrix.sql"), "utf8"),
+      ["sonara_signed_sensor_nonce_native_passed"]);
+
+    // Two signed deliveries can hit different servers simultaneously.
+    // The private nonce unique index must make exactly one claim succeed.
+    const nonceRaceScript = path.join(socketDir, "autonomic-nonce-race.sql");
+    fs.writeFileSync(nonceRaceScript, `begin; set local role service_role;
+      select 'sensor_claim|' || case when public.sonara_claim_autonomic_sensor_nonce(
+        'race-sensor', 'cccccccccccccccccccccccccccccccc',
+        floor(extract(epoch from clock_timestamp()) * 1000)::bigint, 250000
+      ) then 'true' else 'false' end;
+      select pg_sleep(0.25); commit;`);
+    if (owner) execFileSync("chown", [owner, nonceRaceScript]);
+    const nonceRaceOutputs = [0, 1].map((index) => path.join(socketDir, `autonomic-nonce-${index}.out`));
+    const nonceRaceErrors = [0, 1].map((index) => path.join(socketDir, `autonomic-nonce-${index}.err`));
+    const nonceRaceCommand = `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -t -A -q -f ${sh(nonceRaceScript)}`;
+    const nonceRaced = shell(`${nonceRaceCommand} > ${sh(nonceRaceOutputs[0])} 2> ${sh(nonceRaceErrors[0])} & first=$!; ` +
+      `${nonceRaceCommand} > ${sh(nonceRaceOutputs[1])} 2> ${sh(nonceRaceErrors[1])} & second=$!; ` +
+      `wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+    if (nonceRaced.status !== 0) stop(`Independent PostgreSQL nonce claim sessions failed: ${nonceRaced.stderr || nonceRaced.stdout}`);
+    const nonceClaims = nonceRaceOutputs.map((file) => {
+      const raw = fs.readFileSync(file, "utf8");
+      return [...raw.matchAll(/^sensor_claim\\|(true|false)$/gm)].map((match) => match[1]);
+    });
+    if (nonceClaims.some((values) => values.length !== 1) ||
+        nonceClaims.flat().sort().join(",") !== "false,true") {
+      stop(`Simultaneous signed sensor delivery was not claimed exactly once: ${JSON.stringify(nonceClaims)}`);
+    }
+    behaves(psql, "verify one durable winning sensor nonce", `
+      select 'sensor_nonce_race_rows_' || count(*)
+      from sonara_private.autonomic_sensor_nonces
+      where sensor_id = 'race-sensor' and nonce = 'cccccccccccccccccccccccccccccccc';
+    `, ["sensor_nonce_race_rows_1"]);
+
+    // Two independent PostgreSQL sessions must not claim the same ready retry.
+    // This is a behavioral race test, not a grep or single-transaction mock.
+    const retryRaceOrg = "55555555-5555-4555-8555-555555555555";
+    const retryRaceResource = JSON.stringify(["organization", retryRaceOrg, "retry_idempotent", "race-provider"]);
+    const retryRaceDedupe = JSON.stringify([retryRaceResource, "race-operation", 0]);
+    const retryRaceQuote = (value) => `\u0027${String(value).replaceAll("\u0027", "\u0027\u0027")}\u0027`;
+    behaves(psql, "prepare one durable ready recovery job", `
+      set role service_role;
+      select case when persisted then \u0027race_retry_queued\u0027 else \u0027race_retry_not_queued\u0027 end
+      from public.sonara_schedule_autonomic_retry(
+        ${retryRaceQuote(retryRaceResource)}, ${retryRaceQuote(retryRaceOrg)}::uuid,
+        \u0027race-operation\u0027, \u0027race-incident\u0027, 0, ${retryRaceQuote(retryRaceDedupe)},
+        clock_timestamp() - interval \u00271 second\u0027, clock_timestamp() + interval \u00271 hour\u0027
+      );
+      reset role;
+    `, ["race_retry_queued"]);
+    const retryRaceScript = path.join(socketDir, "autonomic-retry-race.sql");
+    fs.writeFileSync(retryRaceScript, `begin; set local role service_role;
+      select \u0027race_claim|\u0027 || coalesce(
+        (select job_id::text from public.sonara_claim_due_autonomic_retry()), \u0027none\u0027);
+      select pg_sleep(0.25); commit;`);
+    if (owner) execFileSync("chown", [owner, retryRaceScript]);
+    const retryRaceOutputs = [0, 1].map((index) => path.join(socketDir, `autonomic-race-${index}.out`));
+    const retryRaceErrors = [0, 1].map((index) => path.join(socketDir, `autonomic-race-${index}.err`));
+    const retryRaceCommand = `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -t -A -q -f ${sh(retryRaceScript)}`;
+    const retryRaced = shell(`${retryRaceCommand} > ${sh(retryRaceOutputs[0])} 2> ${sh(retryRaceErrors[0])} & first=$!; ` +
+      `${retryRaceCommand} > ${sh(retryRaceOutputs[1])} 2> ${sh(retryRaceErrors[1])} & second=$!; ` +
+      `wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+    if (retryRaced.status !== 0) stop(`Independent PostgreSQL recovery workers failed: ${retryRaced.stderr || retryRaced.stdout}`);
+    const retryRaceResults = retryRaceOutputs.map((file) => {
+      const content = fs.readFileSync(file, "utf8");
+      return [...content.matchAll(/^race_claim\|([^\s]+)$/gm)].map((match) => match[1]);
+    });
+    if (retryRaceResults.some((claims) => claims.length !== 1) ||
+        retryRaceResults.flat().filter((value) => value !== "none").length !== 1) {
+      stop(`Two competing retry consumers did not produce exactly one winning claim: ${JSON.stringify(retryRaceResults)}`);
+    }
+    behaves(psql, "verify exactly one committed recovery claim", `
+      select \u0027race_retry_started_\u0027 || count(*)
+      from sonara_private.autonomic_retry_jobs
+      where organization_id = ${retryRaceQuote(retryRaceOrg)}::uuid and state = \u0027started\u0027;
+    `, ["race_retry_started_1"]);
+    // Operator gates are off by default. Native PostgreSQL must prove that
+    // role denial, global pause, fencing, dual approval and expiry work.
+    behaves(psql, "autonomic operator gate default-deny and fenced tenant proof",
+      fs.readFileSync(path.join(root, "tests/sql/autonomic-operator-gate-role-matrix.sql"), "utf8"),
+      ["sonara_autonomic_operator_gate_native_passed"]);
+
+    // P1 rollback-only verification after the service-role hardening migration:
+    // assert 21 true/service-role and four optimized owner policies, plus the
+    // canonical subscription member/admin scope. No production DDL is applied.
+    behaves(psql, "P1 post-hardening RLS and canonical subscription proof",
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
-      ["p1_rls_hygiene_staging_passed"]);
+      ["p1_post_hardening_rls_and_canonical_subscription_passed"]);
 
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
@@ -403,6 +508,124 @@ function main() {
     behaves(psql, "stock holds, ships, releases and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/inventory-stock.sql"), "utf8"),
       ["stock_holds_ships_releases_and_isolates"]);
+
+    // Procurement is a distinct, append-only stock-in path: only accepted
+    // goods increase inventory. Prove actual Postgres constraints and RPC
+    // behaviour; a string test cannot find invalid PL/pgSQL dollar quoting.
+    behaves(psql, "approved procurement receipts are atomic, private and duplicate-safe",
+      fs.readFileSync(path.join(root, "tests/sql/procurement-receipt.sql"), "utf8"),
+      ["procurement_receipt_atomic_retries_tenant_isolation"]);
+
+    // One-connection tests cannot establish that concurrent receiving is safe.
+    // Persist a disposable fixture and race two independent database sessions
+    // against the same PO, then with independent keys against a limited PO.
+    behaves(psql, "procurement receipt concurrent fixture",
+      fs.readFileSync(path.join(root, "tests/sql/procurement-receipt-concurrency.sql"), "utf8"),
+      ["procurement_receipt_concurrency_ready"]);
+
+    for (const [scenario, line, keyA, keyB] of [
+      ["duplicate", "030", "race-dup-001", "race-dup-001"],
+      ["overorder", "031", "race-ord-001", "race-ord-002"]
+    ]) {
+      const commands = [keyA, keyB].map((key, index) => {
+        const file = path.join(socketDir, `procurement-${scenario}-${index}.sql`);
+        fs.writeFileSync(file, `begin;
+          set local role service_role;
+          do $race$ begin
+            begin
+              perform public.sonara_receive_purchase_order_line(
+                '24000000-0000-4000-8000-000000000002',
+                '24000000-0000-4000-8000-0000000000${line === "030" ? "20" : "21"}',
+                '24000000-0000-4000-8000-000000000${line}',
+                '24000000-0000-4000-8000-000000000001',
+                '${key}', 'LOT-RACE', 'each', 2, 0);
+            exception when others then
+              if '${scenario}' <> 'overorder' or sqlerrm <> 'receipt_exceeds_ordered_quantity' then raise; end if;
+            end;
+            perform pg_sleep(0.2);
+          end $race$;
+          commit;`);
+        if (owner) execFileSync("chown", [owner, file]);
+        return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+      });
+      const raced = shell(`${commands[0]} & first=$!; ${commands[1]} & second=$!; wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+      if (raced.status !== 0) stop(`Procurement ${scenario} concurrent receipt race failed: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "procurement concurrency posts each accepted quantity exactly once", `
+      select 'procure_race_stock_' || quantity::text
+        from public.inventory_items where id = '24000000-0000-4000-8000-000000000010';
+      select 'procure_race_receipts_' || count(*)
+        from public.procurement_receipt_entries where organization_id = '24000000-0000-4000-8000-000000000002';
+      select 'procure_race_ledger_' || count(*)
+        from public.inventory_procurement_receipt_ledger where organization_id = '24000000-0000-4000-8000-000000000002';
+      select 'procure_race_duplicate_fulfilled_' || count(*)
+        from public.purchase_orders where id='24000000-0000-4000-8000-000000000020' and status='received';
+      select 'procure_race_overorder_partial_' || count(*)
+        from public.purchase_orders where id='24000000-0000-4000-8000-000000000021' and status='partially_received';
+    `, ["procure_race_stock_4", "procure_race_receipts_2", "procure_race_ledger_2",
+        "procure_race_duplicate_fulfilled_1", "procure_race_overorder_partial_1"]);
+
+    // Universal stock-version journaling and reviewed corrections must survive
+    // a real database execution, including two independent connection races.
+    behaves(psql, "stock change journaling and reviewed correction safety",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-journal.sql"), "utf8"),
+      ["stock_version_journal_approvals_and_holds_passed"]);
+    behaves(psql, "stock adjustment race fixture",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-concurrency.sql"), "utf8"),
+      ["stock_adjustment_concurrency_ready"]);
+
+    for (const scenario of ["duplicate", "stale_version"]) {
+      const approvals = scenario === "duplicate" ? ["031", "031"] : ["032", "033"];
+      const keys = scenario === "duplicate"
+        ? ["concurrent-dup-001", "concurrent-dup-001"]
+        : ["concurrent-race-002", "concurrent-race-003"];
+      const commands = approvals.map((approval, index) => {
+        const version = scenario === "duplicate" ? 0 : 1;
+        const counted = scenario === "duplicate" ? 8 : index === 0 ? 7 : 6;
+        const file = path.join(socketDir, `stock-adjustment-${scenario}-${index}.sql`);
+        fs.writeFileSync(file, `begin;
+          set local role service_role;
+          do $race$ begin
+            begin
+              perform public.sonara_apply_stock_count_adjustment(
+                '26000000-0000-4000-8000-000000000003',
+                '26000000-0000-4000-8000-000000000010',
+                '26000000-0000-4000-8000-000000000001',
+                '26000000-0000-4000-8000-000000000002',
+                '${keys[index]}', 'cycle_count', ${version}, ${counted},
+                '26000000-0000-4000-8000-000000000${approval}');
+            exception when others then
+              if '${scenario}' <> 'stale_version' or sqlerrm <> 'stock_version_conflict' then raise; end if;
+            end;
+            perform pg_sleep(0.2);
+          end $race$;
+          commit;`);
+        if (owner) execFileSync("chown", [owner, file]);
+        return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+      });
+      const raced = shell(`${commands[0]} & first=$!; ${commands[1]} & second=$!; wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+      if (raced.status !== 0) stop(`Stock adjustment ${scenario} concurrency failed: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "duplicate adjustments and stale snapshot races change stock exactly once", `
+      select 'stock_race_version_' || stock_version from public.inventory_items
+        where id='26000000-0000-4000-8000-000000000010';
+      select 'stock_race_adjustments_' || count(*) from public.inventory_stock_adjustments
+        where organization_id='26000000-0000-4000-8000-000000000003';
+      select 'stock_race_events_' || count(*) from public.inventory_stock_events
+        where inventory_item_id='26000000-0000-4000-8000-000000000010';
+      select 'stock_race_counted_valid_' || (quantity in (6,7)) from public.inventory_items
+        where id='26000000-0000-4000-8000-000000000010';
+    `, ["stock_race_version_2", "stock_race_adjustments_2",
+        "stock_race_events_3", "stock_race_counted_valid_t"]);
+    // Two separate psql connections and committed transactions are required
+    // to catch evidence forgery: a prior UNATTRIBUTED event must not be
+    // relabelled as a fresh owner-approved adjustment after the fact.
+    behaves(psql, "persist historical stock movement for cross-transaction forgery probe",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-cross-tx-prep.sql"), "utf8"),
+      ["cross_tx_seeded_1"]);
+    behaves(psql, "reject cross-transaction adjustment provenance forgery",
+      fs.readFileSync(path.join(root, "tests/sql/stock-adjustment-cross-tx-check.sql"), "utf8"),
+      ["cross_tx_spoof_blocked_2"]);
 
     // The case the stock functions exist for: two buyers, one mug left, two real
     // sessions at the same moment. Exactly one may hold it.
@@ -479,6 +702,26 @@ function main() {
         where provider_subscription_ref = 'sub_replay_probe';
       select 'unstamped_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
     `, ["stale_kept_active", "fresh_gave_canceled", "unstamped_gave_past_due"]);
+
+    // Probe real SQL execution on the disposable replay cluster, not just
+    // SQL text. Stripe Event.created has whole-second resolution: cancellation
+    // and access restrictions must beat ambiguous same-second grants.
+    behaves(psql, "same-second Stripe subscription and entitlement conflicts are fail-closed",
+      fs.readFileSync(path.join(root, "tests/sql/stripe-equal-second-conflicts.sql"), "utf8"),
+      [
+        "same_second_terminal_canceled",
+        "newer_stamped_terminal_canceled",
+        "same_second_failure_past_due",
+        "next_second_recovery_active",
+        "same_second_duplicate_active",
+        "workspace_collision_reconciliation_required_true",
+        "workspace_recovery_active",
+        "plan_collision_reconciliation_required",
+        "entitlement_same_second_disabled",
+        "entitlement_new_second_active",
+        "entitlement_collision_disabled_true",
+        "older_event_kept_active"
+      ]);
 
     // The shape repair, proved against the case it exists for.
     //
@@ -717,6 +960,89 @@ function main() {
         from pg_policies
         where schemaname = 'public' and tablename = 'customers' and policyname = 'customers_select_member';
     `, ["customers_policy_1"]);
+
+    // Phase 9: SQL proposals are NOT in the migration ledger. Test their
+    // behavior only in a distinct throwaway DATABASE CLONED from the freshly
+    // replayed canonical schema. This avoids mutating the canonical fixture,
+    // the counted migration tables, and all production resources.
+    // Never call this against a hosted or non-disposable PostgreSQL cluster.
+    const creatorDb = "replay_creator_proposals";
+    const cloned = psql(`CREATE DATABASE ${creatorDb} TEMPLATE replay;`, { db: "postgres" });
+    if (cloned.status !== 0) stop(
+      `Cannot create isolated Creator SQL-proposal fixture: ${cloned.stderr || cloned.stdout}`);
+    for (const filename of [
+      "creator-world-bibles-2026-10-09.sql",
+      "creator-story-draft-revisions-2026-10-09.sql"
+    ]) {
+      const proposed = psql(null, {
+        file: path.join(root, "docs/sql-proposals", filename), db: creatorDb
+      });
+      if (proposed.status !== 0) stop(
+        `Creator SQL proposal ${filename} cannot apply to an isolated replay clone:\n${proposed.stderr || proposed.stdout}`);
+    }
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator SQL proposals enforce RLS, grants, revision history and archive refusal",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-proposal-proof.sql"), "utf8"),
+      ["creator_story_proposal_privileges_rls_cas_archive_passed"]);
+    // Phase 10: hold two real PostgreSQL connections open against the cloned
+    // Creator fixture. The first writer delays COMMIT while the second tries
+    // the identical revision 0; exactly one is allowed to commit.
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator concurrent writer fixture",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-concurrency-fixture.sql"), "utf8"),
+      ["creator_race_fixture_ready"]);
+    const raceSql = (digest, hold) => [
+      "begin;",
+      "set local role service_role;",
+      "select revision from public.sonara_save_story_draft(" +
+        "'c3333333-3333-4333-8333-333333333333'," +
+        "'c2222222-2222-4222-8222-222222222222'," +
+        "'c1111111-1111-4111-8111-111111111111'," +
+        "0,repeat('a',64),repeat('" + digest + "',64)," +
+        "jsonb_build_object('schema','sonara.interactive-story.v1','version',1," +
+          "'worldFingerprint',repeat('a',64),'startSceneId','intro'," +
+          "'state',jsonb_build_array(),'scenes',jsonb_build_array(" +
+            "jsonb_build_object('sceneId','intro','prose','Racing authored text'," +
+            "'dialogue',jsonb_build_array(),'choices',jsonb_build_array()))));",
+      ...(hold ? ["select pg_sleep(0.65);"] : []),
+      "commit;"
+    ].join("\n");
+    const raceFiles = [0, 1].map((i) => {
+      const input = path.join(socketDir, "creator-race-" + i + ".sql");
+      const error = path.join(socketDir, "creator-race-" + i + ".err");
+      const output = path.join(socketDir, "creator-race-" + i + ".out");
+      fs.writeFileSync(input, raceSql(i === 0 ? "b" : "c", i === 0));
+      if (owner) execFileSync("chown", [owner, input]);
+      return { input, error, output };
+    });
+    const raceCommand = (i) =>
+      "psql -h " + sh(socketDir) + " -p " + port + " -U postgres -d " +
+      sh(creatorDb) + " -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -q -f " +
+      sh(raceFiles[i].input) + " >" + sh(raceFiles[i].output) +
+      " 2>" + sh(raceFiles[i].error);
+    const race = shell(raceCommand(0) +
+      " & first=$!; sleep 0.10; " + raceCommand(1) +
+      " & second=$!; wait \"$first\"; left=$?; wait \"$second\"; right=$?; " +
+      "echo \"$left,$right\"");
+    const statuses = String(race.stdout || "").trim().split("\n").at(-1);
+    if (race.status !== 0 || (statuses !== "0,3" && statuses !== "3,0"))
+      stop("Creator two-session CAS race did not produce one success and one " +
+        "rejection: " + statuses + "; " + (race.stderr || ""));
+    const loser = statuses === "0,3" ? 1 : 0;
+    const rejected = fs.readFileSync(raceFiles[loser].error, "utf8");
+    if (!rejected.includes("PT409"))
+      stop("Creator CAS losing writer did not fail with PostgreSQL PT409: " + rejected);
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator two-connection CAS leaves one latest and one history row",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-concurrency-verify.sql"), "utf8"),
+      ["creator_two_connections_one_history_revision"]);
+    behaves((query) => psql(query, { db: creatorDb }),
+      "Creator history append failure must roll back latest revision",
+      fs.readFileSync(path.join(root, "tests/sql/creator-story-history-rollback.sql"), "utf8"),
+      ["creator_story_history_failure_rolls_back_latest"]);
+
+    console.log("Creator draft SQL proposals validated in a separate disposable clone; " +
+      "they are still NOT canonical migrations or deployed production tables.");
 
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
     // What this sentence must not be read as, and the reason is not hypothetical.

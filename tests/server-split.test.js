@@ -947,13 +947,13 @@ describe("the billing module stands on its own", () => {
 
   const STRIPE_PLANS = {
     free: { name: "Free", price: "$0", description: "Free.", mode: undefined },
-    workspace_monthly: { name: "One workspace", price: "$29/mo", description: "One workspace.", mode: "subscription" }
+    workspace_monthly: { name: "One workspace", price: "$29/mo", description: "One workspace.", env: "STRIPE_PRICE_WORKSPACE_MONTHLY", mode: "subscription" }
   };
 
   function deps(overrides = {}) {
     return {
       STRIPE_PLANS,
-      getEnv: () => "",
+      getEnv: (key) => key === "STRIPE_PRICE_WORKSPACE_MONTHLY" ? "price_FixtureWorkspace" : "",
       getPublicAppUrl: () => "https://app.example.com",
       getSafeAbsoluteUrl: (value, fallback) => value || fallback,
       getSupabaseServerConfig: () => ({ ok: false }),
@@ -1100,6 +1100,9 @@ describe("the billing module stands on its own", () => {
     }));
     const originalFetch = global.fetch;
     global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/stripe_customers?")) return Response.json([
+        { stripe_customer_id: "cus_workspace", organization_id: "org-1", user_id: "user_test" }
+      ]);
       writes.push({ url: String(url), body: options.body ? JSON.parse(String(options.body)) : undefined });
       return new Response("[]", { status: 200 });
     };
@@ -1112,6 +1115,7 @@ describe("the billing module stands on its own", () => {
             id: "sub_workspace",
             customer: "cus_workspace",
             status: "active",
+            items: { data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false },
             metadata: {
               organization_id: "org-1",
               plan: "workspace_monthly",
@@ -1165,7 +1169,7 @@ describe("the billing module stands on its own", () => {
       getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co" })
     }));
     const result = await billing.synchronizeBillingFromStripeEvent({
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       data: { object: { id: "sub_1", customer: "cus_1", status: "active", metadata: { organization_id: "org-1" } } }
     });
     assert.deepEqual(result, { ok: false, code: "invalid_plan_metadata" });

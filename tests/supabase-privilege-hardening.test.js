@@ -105,3 +105,74 @@ describe("current service-role RLS policy hardening", () => {
   });
 });
 
+describe("closed RLS tables grant no browser SQL privileges", () => {
+  const migrationPath = join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20261008110000_revoke_browser_privileges_from_closed_rls_tables.sql"
+  );
+  const migration = readFileSync(migrationPath, "utf8");
+
+  it("targets only public tables that have RLS enabled and zero policies", () => {
+    assert.match(migration, /n\.nspname = 'public'/i);
+    assert.match(migration, /c\.relrowsecurity/i);
+    assert.match(migration, /not exists \([\s\S]*from pg_policy p[\s\S]*p\.polrelid = c\.oid/i);
+  });
+
+  it("revokes the complete table privilege layer from browser roles without touching service_role", () => {
+    assert.match(
+      migration,
+      /revoke all privileges on table %I\.%I from anon, authenticated/i
+    );
+    assert.doesNotMatch(migration, /from anon, authenticated, service_role/i);
+    assert.doesNotMatch(migration, /revoke[\s\S]*service_role/i);
+  });
+
+  it("covers privilege classes that RLS does not protect", () => {
+    assert.match(migration, /has_table_privilege\('anon', c\.oid, 'TRUNCATE'\)/i);
+    assert.match(migration, /has_table_privilege\('anon', c\.oid, 'REFERENCES'\)/i);
+    assert.match(migration, /has_table_privilege\('anon', c\.oid, 'TRIGGER'\)/i);
+    assert.match(migration, /has_table_privilege\('authenticated', c\.oid, 'TRUNCATE'\)/i);
+    assert.match(migration, /has_table_privilege\('authenticated', c\.oid, 'REFERENCES'\)/i);
+    assert.match(migration, /has_table_privilege\('authenticated', c\.oid, 'TRIGGER'\)/i);
+  });
+
+  it("fails closed on vacuous execution, surviving grants, or explicit column ACLs", () => {
+    assert.match(migration, /hardened_tables = 0/i);
+    assert.match(migration, /refusing vacuous success/i);
+    assert.match(migration, /remaining_table_grants <> 0/i);
+    assert.match(migration, /explicit_column_acls <> 0/i);
+  });
+});
+
+describe("pgvector extension schema hardening", () => {
+  const migrationPath = join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20261008120000_move_vector_extension_to_extensions_schema.sql"
+  );
+  const migration = readFileSync(migrationPath, "utf8");
+
+  it("preserves the optional pgvector fallback instead of creating a new launch dependency", () => {
+    assert.match(migration, /if not found then[\s\S]*pgvector is not installed/i);
+    assert.match(migration, /return;/i);
+    assert.doesNotMatch(migration, /create extension(?: if not exists)? vector/i);
+  });
+
+  it("moves only a relocatable public vector extension into extensions", () => {
+    assert.match(migration, /if not relocatable then/i);
+    assert.match(migration, /if current_schema = 'public' then[\s\S]*alter extension vector set schema extensions/i);
+    assert.match(migration, /current_schema <> 'extensions'/i);
+  });
+
+  it("verifies both the extension namespace and an existing vector column namespace", () => {
+    assert.match(migration, /pgvector remains in schema %, expected extensions/i);
+    assert.match(migration, /c\.relname = 'sonara_memory_records'/i);
+    assert.match(migration, /a\.attname = 'embedding'/i);
+    assert.match(migration, /embedding_type_name = 'vector'/i);
+    assert.match(migration, /embedding_type_schema <> 'extensions'/i);
+  });
+});
+

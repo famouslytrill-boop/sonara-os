@@ -2,8 +2,31 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
+const { createWorldBibleStore, normalizedDraft } = require("../lib/sonara-world-bible-store.cjs");
+const { validateInteractiveStory, simulateInteractiveStory, MAX_BYTES } = require("../lib/sonara-interactive-story-draft.cjs");
+const { createInteractiveStoryDraftStore } = require("../lib/sonara-interactive-story-store.cjs");
+const { renderWorldBibleMarkdown } = require("../lib/sonara-world-bible-export.cjs");
+const { renderWorldBibleCueCsv, renderWorldBibleOtio, renderWorldBibleMidi } = require("../lib/sonara-world-bible-interchange.cjs");
+const { renderNarrativeDot, renderFountainBeatOutline, renderQuestPrerequisiteJson,
+  renderNarrativeAuditJson } = require("../lib/sonara-world-bible-narrative.cjs");
 const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+const { planBeatGrid, beatGridCsv, beatGridChaptersVtt, beatGridManifest, FRAME_RATES } = require("../lib/sonara-creator-beat-grid.cjs");
+// Defense in depth for new World Bible writes. Ordinary cross-origin forms can
+// submit simple POST requests, so membership alone does not stop CSRF.
+// A separate, fully tested session-bound CSRF strategy remains a release gate.
+function worldBibleWriteIsCrossOrigin(req) {
+  const site = req.get("sec-fetch-site");
+  if (site && site !== "same-origin" && site !== "none") return true;
+  const origin = req.get("origin");
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
+    const host = req.get("host");
+    return !host || !["https:", "http:"].includes(parsed.protocol)
+      || parsed.host.toLowerCase() !== host.toLowerCase();
+  } catch { return true; }
+}
 function offlineDraftForm(project, scope, esc) {
   if (project.archived_at) return "";
   const snapshot = { version: 1, projectId: project.id, title: project.title, medium: project.medium, revision: project.revision, graph: project.graph };
@@ -14,14 +37,34 @@ function audioRenderForm(project, esc) {
   if (!clips.length || project.archived_at) return "";
   const active = new Set(clips.filter((clip) => !clip.muted).map((clip) => clip.sourceId));
   const sources = project.graph.nodes.filter((node) => node.kind === "source" && active.has(node.id));
-  return `<section class="card"><h2>Render project audio on your device</h2><p>Choose your local audio copies for the sources below. Clip trims, timing and mute settings produce a 44.1 kHz stereo WAV. These selected files are not automatically matched to stored assets. Use PCM 16-bit WAV sources up to three minutes and 20 MB each, 64 MB total, a timeline up to three minutes, and ten minutes total unmuted clip time. Processing stays on this device; playback starts only when you press play.</p><form data-project-audio data-project-id="${esc(project.id)}" data-audio-graph="${esc(JSON.stringify(project.graph))}">${sources.map((source, i) => `<label>Source ${i + 1} · ${esc(source.assetId)}<input type="file" accept="audio/wav,.wav" data-source-id="${esc(source.id)}" required></label>`).join("")}<button type="submit">Render WAV</button><p role="status" aria-live="polite">Choose your recordings, then render. Muted clips become silence.</p><audio controls hidden></audio><a data-audio-download hidden>Download WAV</a></form></section><script src="/creator-project-audio.js" defer></script>`;
+  return `<section class="card"><h2>Render project audio on your device</h2><p>Choose local copies of your recordings. Trimmed and muted clips render to stereo PCM 16-bit WAV at 44.1 kHz (music) or 48 kHz (video handoff). Sources may be PCM 16/24/32-bit or 32-bit float WAV, mono or stereo, 8–96 kHz. Maximum 3 minutes and 20 MB per source, 64 MB combined, and ten minutes total unmuted clip time. Files stay on this device and are not automatically matched to online assets. Playback requires pressing play. Choose a stereo mixdown or separately downloadable, timeline-zero-aligned source-group stems (maximum four active sources and 96 MB total output). Source stems group every clip using the same source asset; they are not independently mixed DAW track/bus stems or native Pro Tools/FL Studio/Ableton sessions.</p><form data-project-audio data-project-id="${esc(project.id)}" data-audio-graph="${esc(JSON.stringify(project.graph))}">${sources.map((source, i) => `<label>Source ${i + 1} · ${esc(source.assetId)}<input type="file" accept="audio/wav,.wav" data-source-id="${esc(source.id)}" required></label>`).join("")}<label>Export sample rate<select name="sampleRate"><option value="44100">44.1 kHz — music</option><option value="48000">48 kHz — video</option></select></label><button type="submit" name="mode" value="mix">Render stereo WAV</button><button type="submit" name="mode" value="stems">Render source stems</button><p role="status" aria-live="polite">Choose your recordings, then render. Muted clips become silence.</p><canvas data-waveform width="640" height="96" role="img" aria-label="Rendered audio waveform visualizer" style="display:block;max-width:100%;height:auto;color:currentColor"></canvas><audio controls hidden></audio><a data-audio-download hidden>Download WAV</a><div data-stem-downloads aria-live="polite"></div></form></section><script src="/creator-project-audio.js" defer></script>`;
+}
+function midiSketchForm() {
+  // Local-only MIDI handoff: note events are explicitly entered here,
+  // never extracted or inferred from a customer's recordings.
+  return `<section class="card"><h2>Create a MIDI note sketch on your device</h2><p>Export a real Standard MIDI File (Format 0, 480 ticks per beat) to arrange in another DAW. This does not infer notes or tempo from recordings, store the sketch in this project, or create a native DAW session. Enter one note per line: note,startTicks,durationTicks,velocity. Middle C is C4 (MIDI 60). One beat is 480 ticks and a half-beat is 240 ticks. Up to 128 notes; notes of the same pitch cannot overlap on the one selected channel.</p><form data-midi-export><label>Tempo in beats per minute<input name="bpm" type="number" min="40" max="240" step="1" value="120" required></label><label>MIDI channel<select name="channel"><option value="1">Channel 1</option><option value="2">Channel 2</option><option value="10">Channel 10 (percussion)</option><option value="16">Channel 16</option></select></label><label>Note rows<textarea name="notes" maxlength="8192" rows="5" spellcheck="false" placeholder="C4,0,480,100&#10;E4,480,480,100&#10;G4,960,480,100" required></textarea></label><button type="submit">Create MIDI file</button><p role="status" aria-live="polite">Enter notes and choose Create MIDI file. No data is uploaded.</p><a data-midi-download hidden>Download MIDI</a></form><h3>Multitrack MIDI (Format 1)</h3><p>Export two independently named note tracks on distinct MIDI channels, plus a separate tempo track. Leave Track 2 notes blank to export one instrument track. This is not a native DAW project or a sound recording. Notes stay on this device.</p><form data-midi-multitrack><label>Tempo (BPM)<input type="number" name="bpm" value="120" min="40" max="240" step="1" required></label><label>Track 1 name<input name="trackName1" maxlength="32" value="Piano" required></label><label>Track 1 channel<input type="number" name="channel1" min="1" max="16" value="1" required></label><label>Track 1 notes<textarea name="notes1" rows="3" maxlength="8192" spellcheck="false" placeholder="C4,0,480,100&#10;E4,480,480,100" required></textarea></label><label>Track 2 name<input name="trackName2" maxlength="32" value="Bass"></label><label>Track 2 channel<input type="number" name="channel2" min="1" max="16" value="2"></label><label>Track 2 notes (optional)<textarea name="notes2" rows="3" maxlength="8192" spellcheck="false" placeholder="C2,0,960,90"></textarea></label><button type="submit">Create multitrack MIDI</button><p role="status" aria-live="polite">Enter notes, then create a MIDI file. No uploads.</p><a data-midi-multitrack-download hidden>Download multitrack MIDI</a></form></section><script src="/creator-project-midi.js" defer></script>`;
 }
 module.exports = function registerCreatorProjectRoutes(app, deps) {
   const { layout, brandCard, linkAction, escapeHtml: esc, requirePaidOrOwnerAccess, wantsJson } = deps;
   const store = deps.projectStore || createCreatorProjectStore(deps);
+  // A separate SQL proposal must be independently applied and verified first.
+  // Disabled by default even when the route exists. No implicit migration.
+  const worldEnabled = deps.worldBiblePersistenceEnabled === true
+    || process.env.SONARA_CREATOR_WORLD_BIBLE_PERSISTENCE_ENABLED === "true";
+  const worldStore = worldEnabled ? createWorldBibleStore({ ...deps, projectStore: store }) : null;
+  const interactivePreviewEnabled = deps.interactiveDraftPreviewEnabled === true
+    || process.env.SONARA_INTERACTIVE_DRAFT_PREVIEW_ENABLED === "true";
+  const storyRevisionEnabled = deps.storyRevisionPersistenceEnabled === true
+    || process.env.SONARA_STORY_REVISION_PERSISTENCE_ENABLED === "true";
+  const storyStore = worldStore && storyRevisionEnabled
+    ? createInteractiveStoryDraftStore({ ...deps, projectStore: store, worldStore }) : null;
   const guard = requirePaidOrOwnerAccess("creator_studio");
   const base = "/creator-studio/projects";
   const api = "/api/creator-studio/projects";
+  // No dead navigation: keep editorial entry hidden until the operator enables
+  // its workspace, save/read and export routes for this deployment.
+  const editorialAvailable = () => typeof deps.editorialWorkbenchEnabled === "function"
+    && deps.editorialWorkbenchEnabled() === true;
   const field = (name, label, type = "text", attrs = "") => `<label>${esc(label)}<input name="${name}" type="${type}" ${attrs} required></label>`;
   const hidden = (name, value) => `<input type="hidden" name="${name}" value="${esc(value)}">`;
   const number = (name, label, min = 0) => field(name, label, "number", `min="${min}" max="86400000" step="1"`);
@@ -29,7 +72,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   function page(res, heading, sections, status = 200) {
     return res.status(status).type("html").send(layout({ title: heading, eyebrow: "Creator Studio", heading,
       body: "Connect your assets, arrange clips, and write timed captions. Download your work without a connected provider.",
-      sections, actions: [linkAction(base, "Projects"), linkAction("/creator-studio/assets", "Asset library"), linkAction("/creator-studio/dashboard", "Creator workspace")] }));
+      sections, actions: [linkAction(base, "Projects"), ...(editorialAvailable() ? [linkAction("/creator-studio/editorial", "Write, storyboard and plan")] : []), linkAction("/creator-studio/assets", "Asset library"), linkAction("/creator-studio/dashboard", "Creator workspace")] }));
   }
   function answer(req, res, result, fallback) {
     // context contains server-only credentials; it never crosses this seam.
@@ -43,10 +86,125 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     if (!result.ok) return page(res, "Projects are unavailable", [brandCard("Project storage", result.message)], result.status);
     const cards = result.projects.map((project) => `<article class="card"><h2><a href="${base}/${esc(project.id)}">${esc(project.title)}</a></h2><p>${esc(project.medium)} · Revision ${project.revision}${project.archived_at ? " · Archived" : ""}</p></article>`);
     return page(res, "Your creative projects", [
+      `<p><a class="action" href="${base}/beat-grid">Plan film cuts to music beats</a></p>`,
       `<section class="card"><h2>Start a project</h2><form method="post" action="/api/creator-studio/projects">${field("title", "Project title", "text", 'maxlength="180"')}<label>Project kind<select name="medium"><option value="mixed">Mixed media</option><option value="audio">Audio</option><option value="video">Video</option><option value="image">Images</option></select></label><button type="submit">Create project</button></form></section>`,
       ...cards, ...(cards.length ? [] : [brandCard("Your first project", "Create a project above, then add assets from your library.")]),
       ...(result.truncated ? [brandCard("Latest 100 projects", "This list shows your 100 most recently updated projects.")] : [])
     ]);
+  });
+  // A usable, offline-friendly planning surface. No media or tenant records are read.
+  app.get(`${base}/beat-grid`, guard, (req, res) => {
+    let grid;
+    try { grid = planBeatGrid(req.query); }
+    catch (error) { return page(res, "Beat grid settings need correction", [brandCard("Invalid settings", error.message), `<p><a href="${base}/beat-grid">Return to the beat planner</a></p>`], 400); }
+    if (req.query.format && !["csv", "vtt", "json"].includes(req.query.format)) return page(res, "Unsupported export format", [brandCard("Export", "Choose CSV markers, WebVTT chapters, or JSON interchange.")], 400);
+    if (req.query.format === "csv") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.csv"');
+      return res.type("text/csv").send(beatGridCsv(grid));
+    }
+    if (req.query.format === "vtt") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-chapters.vtt"');
+      return res.type("text/vtt").send(beatGridChaptersVtt(grid));
+    }
+    if (req.query.format === "json") {
+      res.set("Content-Disposition", 'attachment; filename="sonara-beat-markers.json"');
+      return res.type("application/json").send(beatGridManifest(grid));
+    }
+    const fields = [
+      ["bpm", "Tempo (beats per minute)", grid.bpm, 20, 320],
+      ["beatsPerBar", "Tempo pulses per bar (for 6/8 with dotted-quarter BPM use 2)", grid.beatsPerBar, 2, 12],
+      ["bars", "Number of bars", grid.bars, 1, 128],
+      ["offsetFrames", "Start frame offset", grid.offsetFrames, 0, 2000000]
+    ].map(([key, label, value, min, max]) => `<label>${esc(label)}<input name="${key}" type="number" min="${min}" max="${max}" step="1" value="${value}" required></label>`).join("");
+    const changes = grid.tempoChanges.map(({ bar, bpm }) => `${bar}:${bpm}`).join(",");
+    const options = Object.keys(FRAME_RATES).map((rate) => `<option value="${esc(rate)}"${grid.frameRate === rate ? " selected" : ""}>${esc(rate)} fps</option>`).join("");
+    const params = new URLSearchParams({ bpm: String(grid.bpm), beatsPerBar: String(grid.beatsPerBar), bars: String(grid.bars), offsetFrames: String(grid.offsetFrames), frameRate: grid.frameRate, tempoChanges: changes });
+    const rows = grid.markers.map((row) => `<tr><th scope="row">${row.bar}</th><td>${row.beat}</td><td>${row.frame}</td><td>${row.seconds.toFixed(3)}</td></tr>`).join("");
+    return page(res, "Film and music beat grid", [
+      `<section class="card"><h2>Plan your music cues and film cuts</h2><p>Enter tempo pulses per minute, how many of those pulses are in each bar, and a film frame rate. A 6/8 measure often uses two dotted-quarter pulses. Tempo changes take effect at the beginning of the specified bar. All positions are deterministic and computed on this server without uploading audio or video. Numbers are frame positions, not SMPTE timecodes.</p><form method="get" action="${base}/beat-grid">${fields}<label>Tempo changes by bar (optional; e.g. 5:90,9:140)<input type="text" name="tempoChanges" maxlength="160" value="${esc(changes)}" placeholder="5:90,9:140"></label><label>Picture frame rate<select name="frameRate">${options}</select></label><button type="submit">Calculate beat markers</button></form></section>`,
+      `<section class="card"><h2>Marker results</h2><p>${grid.bars} bars · ${grid.approximateDurationSeconds} seconds of music · ${grid.durationFrames} frames of picture after the offset · ${grid.tempoChanges.length} planned tempo changes.</p><p>${esc(grid.note)}</p><p><a class="action" href="${base}/beat-grid?${params.toString()}&format=csv">Download beat-marker CSV</a> · <a href="${base}/beat-grid?${params.toString()}&format=vtt">Download WebVTT chapters</a> · <a href="${base}/beat-grid?${params.toString()}&format=json">Download timing JSON</a></p><div class="table-scroll"><table><thead><tr><th scope="col">Bar</th><th scope="col">Beat index</th><th scope="col">Absolute frame</th><th scope="col">Timeline seconds</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
+      `<p><a href="${base}">Return to your projects</a> · <a href="/creator-studio/tools/storyboard">Storyboard builder</a> · <a href="/business-builder/tools/reorder-point">Reorder-point calculator</a></p>`
+    ]);
+  });
+
+  const worldUnavailable = () => ({ ok: false, status: 503, code: "world_bible_migration_not_verified" });
+  // Accessible JSON-text editor and sibling API, scoped by the same paid/owner
+  // Creator project guard used by all existing project mutation endpoints.
+  app.get(`${base}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return page(res, "World Bible storage unavailable",
+      [brandCard("Not enabled", "This project attachment is disabled until database security and release gates pass.")], 503);
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return page(res, "World Bible unavailable", [brandCard("Storage", result.code)], result.status);
+    const current = result.worldBible;
+    const timelinePlan = current ? normalizedDraft(current.draft) : null;
+    const timelineReady = timelinePlan?.ok && timelinePlan.blueprint.medium !== "book"
+      && timelinePlan.blueprint.estimates.timingCoverage === "complete_plan";
+    const initial = current?.draft || { title: "Original world", medium: "film",
+      entities: [], scenes: [{ id: "opening", title: "Opening" }], resources: {} };
+    return page(res, "World Bible", [
+      brandCard("Versioned private project data", `Revision ${current?.revision || 0}. Every save checks the expected revision. This is source material, not a rendered production or automatically published work.`),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/markdown">Download World Bible Markdown</a></p>`] : []),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/csv">Download cue sheet (CSV)</a></p>`] : []),
+      ...(current ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/audit">Download narrative consistency report (JSON)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/dot">Download scene dependency graph (DOT)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/fountain">Download screenplay beat outline (Fountain)</a></p>`] : []),
+      ...(current && ["game", "interactive"].includes(current.draft.medium) ?
+        [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/quest">Download game design prerequisites (JSON)</a></p>`] : []),
+      ...(storyStore && current && ["game", "interactive"].includes(current.draft.medium) ? [
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/interactive/draft">Read saved interactive story JSON (private)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/interactive/revisions">Review stored revision history (private)</a></p>`
+      ] : []),
+      ...(timelineReady ? [`<p><a href="${api}/${esc(req.params.id)}/world-bible/export/otio?fps=24">Download editorial placeholders (OTIO, 24 fps)</a></p>`,
+        `<p><a href="${api}/${esc(req.params.id)}/world-bible/export/midi">Download scene markers (MIDI, 120 BPM)</a></p>`] : []),
+      ...(current && !timelineReady ? [brandCard("Timed exports not available",
+        "OTIO and MIDI require complete durations for a media or interactive project. Add scene timing before exporting.") ] : []),
+      ...(interactivePreviewEnabled && current && ["game", "interactive"].includes(current.draft.medium) ? [
+        `<section class="card">
+<h2>Preview interactive story choices (unsaved)</h2>
+<p>Author prose, dialogue, and choices as a separate JSON draft. This preview simulates only your explicit decisions; nothing is uploaded to third parties, permanently stored, compiled, generated, or published. Copy the JSON somewhere safe before leaving this page.</p>
+<form data-sonara-interactive-preview data-project-id="${esc(req.params.id)}" data-world-revision="${current.revision}" data-story-persistence="${storyStore ? "on" : "off"}">
+<label>Interactive story JSON
+<textarea name="story" rows="18" maxlength="65536" spellcheck="false" required>${esc(JSON.stringify({
+  version: 1, startSceneId: current.draft.scenes[0].id, state: [],
+  scenes: current.draft.scenes.map((s) => ({ sceneId: s.id, prose: "", dialogue: [], choices: [] }))
+}, null, 2))}</textarea></label>
+<label>Choice IDs to simulate, separated by commas (optional)
+<input name="decisions" type="text" maxlength="1000" placeholder="enter-door, talk-friend"></label>
+<button type="submit">Preview my choices</button>
+${storyStore ? `<button type="button" data-story-load>Load last saved draft</button>
+<button type="button" data-story-save>Save my authored draft</button>
+<p>Saving creates a new private revision; it never publishes or generates media. Loading replaces text currently in this editor after confirmation.</p>` : ""}
+<p role="status" data-preview-status aria-live="polite">Not saved. Add your prose and choices, then preview.</p>
+<pre data-preview-output></pre>
+</form></section><script src="/sonara-interactive-story-preview.js" defer></script>`
+      ] : []),
+      `<section class="card"><h2>Edit structured World Bible JSON</h2>
+<form method="post" action="${base}/${esc(req.params.id)}/world-bible">
+<input type="hidden" name="expectedRevision" value="${current?.revision || 0}">
+<label>World Bible JSON<textarea name="draft" rows="20" maxlength="65536" required>${esc(JSON.stringify(initial, null, 2))}</textarea></label>
+<button type="submit">Save this revision</button></form></section>`
+    ]);
+  });
+  app.post(`${base}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (worldBibleWriteIsCrossOrigin(req)) return page(res, "World Bible not saved",
+      [brandCard("Security", "This editing request did not come from the project website.")], 403);
+    if (!worldStore) return page(res, "World Bible storage unavailable",
+      [brandCard("Not enabled", "Migration and release approval are required.")], 503);
+    const raw = req.body?.draft;
+    const revision = req.body?.expectedRevision;
+    let draft;
+    if (typeof raw !== "string" || Buffer.byteLength(raw, "utf8") > 65536 ||
+        typeof revision !== "string" || !/^(0|[1-9][0-9]{0,8})$/.test(revision)) {
+      return page(res, "World Bible not saved", [brandCard("Validation", "Provide a bounded JSON document and the current revision.")], 400);
+    }
+    try { draft = JSON.parse(raw); } catch {
+      return page(res, "World Bible not saved", [brandCard("Validation", "The document is not valid JSON.")], 400);
+    }
+    const result = await worldStore.save(req, req.params.id, { expectedRevision: Number(revision), draft });
+    if (!result.ok) return page(res, "World Bible not saved", [brandCard("Validation", result.code)], result.status);
+    return res.redirect(303, `${base}/${req.params.id}/world-bible`);
   });
   app.get(`${base}/:id`, guard, async (req, res) => {
     const result = await store.get(req, req.params.id);
@@ -58,9 +216,12 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const timeline = summarizeTimeline(project.graph);
     const sections = [brandCard("Your project", `Revision ${project.revision}. ${nodes.length} entries. Source durations are supplied by you; exports describe edits and do not render a film or verify rights.`),
       `<p><a href="/creator-studio/generation?project=${project.id}">Generate media for this project</a></p>`,
+      `<p><a href="${base}/beat-grid">Calculate music-to-picture beat markers</a></p>`,
+      ...(worldEnabled ? [`<p><a href="${base}/${esc(project.id)}/world-bible">Edit project World Bible</a></p>`] : []),
       `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/srt">Download SRT captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
     sections.push(brandCard("Timeline summary", `${timeline.durationMs} ms total · ${timeline.clipCount} clips · ${timeline.captionCount} captions · ${timeline.unusedSourceCount} unused sources · ${timeline.mutedClipCount} muted clips. ${timeline.gapMs} ms without clips; ${timeline.overlapMs} ms with overlapping clips. Gaps and overlaps describe placement, not audio silence or errors.`));
     if (!project.archived_at) {
+      sections.push(midiSketchForm());
       sections.push(`<section class="card"><h2>Import subtitles</h2><p>Paste plain-text SRT subtitles, up to 64 KB. All cues are added together; existing captions are kept. Formatting tags are treated as text. No connected provider is needed.</p>${form("import_subtitles", '<label>SRT subtitles<textarea name="subtitles" maxlength="65536" required></textarea></label>', "Import subtitles")}</section>`);
       if (timeline.captionCount) sections.push(`<section class="card"><h2>Shift all captions</h2><p>Move captions together. Negative values move earlier. If any caption would leave the 24-hour timeline, nothing is changed.</p>${form("shift_captions", field("offsetMs", "Shift (ms)", "number", 'min="-86400000" max="86400000" step="1"'), "Shift captions")}</section>`);
       const assets = await store.assets(req);
@@ -86,6 +247,147 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     if (result.ctx?.user?.id && result.ctx.organizationId) sections.push(offlineDraftForm(project, `${result.ctx.user.id}:${result.ctx.organizationId}`, esc));
     return page(res, project.title, sections);
   });
+
+  app.get(`${api}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const result = worldStore ? await worldStore.get(req, req.params.id) : worldUnavailable();
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+
+  app.get(`${api}/:id/world-bible/export/markdown`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return res.status(503).json(worldUnavailable());
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    try {
+      const output = renderWorldBibleMarkdown(result.worldBible);
+      return res.set("Content-Disposition", `attachment; filename="world-bible-${req.params.id}.md"`)
+        .type(output.type).send(output.data);
+    } catch {
+      return res.status(503).json({ ok: false, code: "world_bible_export_invalid" });
+    }
+  });
+  // Interchange outputs are derived from a private, tenant-scoped saved draft.
+  // The OTIO file is placeholder gaps, MIDI is markers only, and CSV is a
+  // spreadsheet-friendly cue sheet; none is a rendered media asset.
+  app.get(`${api}/:id/world-bible/export/:format`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore) return res.status(503).json(worldUnavailable());
+    if (!["csv", "otio", "midi", "audit", "dot", "fountain", "quest"].includes(req.params.format)) {
+      return res.status(400).json({ ok: false, code: "unsupported_world_bible_export" });
+    }
+    const result = await worldStore.get(req, req.params.id);
+    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    try {
+      const format = req.params.format;
+      let output;
+      if (format === "csv") output = renderWorldBibleCueCsv(result.worldBible);
+      if (format === "otio") {
+        const value = req.query.fps;
+        if (value !== undefined && !["24", "25", "30", "60"].includes(value)) {
+          return res.status(400).json({ ok: false, code: "invalid_export_frame_rate" });
+        }
+        output = renderWorldBibleOtio(result.worldBible, Number(value ?? 24));
+      }
+      if (format === "midi") output = renderWorldBibleMidi(result.worldBible);
+      if (format === "audit") output = renderNarrativeAuditJson(result.worldBible);
+      if (format === "dot") output = renderNarrativeDot(result.worldBible);
+      if (format === "fountain") output = renderFountainBeatOutline(result.worldBible);
+      if (format === "quest") {
+        if (!["game", "interactive"].includes(result.worldBible.draft.medium)) {
+          return res.status(422).json({ ok: false, code: "world_bible_export_requires_interactive_medium" });
+        }
+        output = renderQuestPrerequisiteJson(result.worldBible);
+      }
+      return res.set("Content-Disposition", `attachment; filename="world-bible-${req.params.id}.${output.extension}"`)
+        .type(output.type).send(output.data);
+    } catch (error) {
+      if (error instanceof TypeError || error instanceof RangeError) {
+        return res.status(422).json({ ok: false, code: "world_bible_export_needs_valid_timing", message: error.message });
+      }
+      return res.status(503).json({ ok: false, code: "world_bible_export_unavailable" });
+    }
+  });
+  // Persistent story sidecar remains separately default-off. Writes go only
+  // through the proposed atomic RPC; the browser receives no DB credentials.
+  app.get(`${api}/:id/world-bible/interactive/draft`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const result = await storyStore.get(req, req.params.id);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.get(`${api}/:id/world-bible/interactive/revisions`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const limit = req.query.limit === undefined ? 25 : Number(req.query.limit);
+    const result = await storyStore.revisions(req, req.params.id, limit);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.get(`${api}/:id/world-bible/interactive/revisions/:revision`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    const revision = /^(?:[1-9][0-9]{0,2})$/.test(req.params.revision)
+      ? Number(req.params.revision) : NaN;
+    const result = await storyStore.getRevision(req, req.params.id, revision);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.post(`${api}/:id/world-bible/interactive/draft`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!storyStore) return res.status(503).json({ ok: false, code: "story_revision_storage_not_enabled" });
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403).json({ ok: false, code: "cross_origin_story_write_denied" });
+    if (!req.is("application/json") || req.get("x-sonara-intent") !== "story-save")
+      return res.status(415).json({ ok: false, code: "json_story_save_intent_required" });
+    const data = req.body;
+    if (!data || typeof data !== "object" || Array.isArray(data)
+      || !Number.isSafeInteger(data.expectedWorldRevision)
+      || !Number.isSafeInteger(data.expectedRevision))
+      return res.status(400).json({ ok: false, code: "story_expected_revisions_required" });
+    let bytes;
+    try { bytes = Buffer.byteLength(JSON.stringify(data), "utf8"); } catch { bytes = Infinity; }
+    if (bytes > MAX_BYTES + 4096) return res.status(413).json({ ok: false, code: "story_save_too_large" });
+    const result = await storyStore.save(req, req.params.id, data);
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
+  app.post(`${api}/:id/world-bible/interactive/preview`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (!worldStore || !interactivePreviewEnabled) return res.status(503)
+      .json({ ok: false, code: "interactive_preview_not_enabled" });
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403)
+      .json({ ok: false, code: "cross_origin_interactive_preview_denied" });
+    if (!req.is("application/json") || req.get("x-sonara-intent") !== "interactive-preview")
+      return res.status(415).json({ ok: false, code: "json_preview_intent_required" });
+    const data = req.body;
+    if (!data || typeof data !== "object" || Array.isArray(data) ||
+      !Number.isSafeInteger(data.expectedWorldRevision) || data.expectedWorldRevision < 1 ||
+      !Array.isArray(data.decisions) || data.decisions.length > 32)
+      return res.status(400).json({ ok: false, code: "invalid_interactive_preview_request" });
+    let bytes;
+    try { bytes = Buffer.byteLength(JSON.stringify(data), "utf8"); } catch { bytes = Infinity; }
+    if (bytes > MAX_BYTES + 4096) return res.status(413)
+      .json({ ok: false, code: "interactive_preview_too_large" });
+    const stored = await worldStore.get(req, req.params.id);
+    if (!stored.ok) return res.status(stored.status).json({ ok: false, code: stored.code });
+    if (!stored.worldBible) return res.status(404).json({ ok: false, code: "world_bible_not_found" });
+    if (stored.worldBible.revision !== data.expectedWorldRevision)
+      return res.status(409).json({ ok: false, code: "world_bible_revision_conflict" });
+    const valid = validateInteractiveStory(stored.worldBible, data.story);
+    if (!valid.ok) return res.status(400).json(valid);
+    const preview = simulateInteractiveStory(valid, data.decisions);
+    if (!preview.ok) return res.status(400).json(preview);
+    return res.status(200).json({
+      ok: true, sourceSaved: false, storyFingerprint: valid.fingerprint,
+      worldBibleRevision: stored.worldBible.revision, stats: valid.stats,
+      warnings: valid.warnings, preview
+    });
+  });
+  app.post(`${api}/:id/world-bible`, guard, async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (worldBibleWriteIsCrossOrigin(req)) return res.status(403).json({ ok: false, code: "cross_origin_world_write_denied" });
+    const result = worldStore ? await worldStore.save(req, req.params.id, req.body) : worldUnavailable();
+    return res.status(result.ok ? 200 : result.status).json(result);
+  });
   app.get(api, guard, async (req, res) => {
     const result = await store.list(req);
     res.status(result.ok ? 200 : result.status).json(result);
@@ -107,4 +409,5 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   });
 };
 module.exports.audioRenderForm = audioRenderForm;
+module.exports.midiSketchForm = midiSketchForm;
 module.exports.offlineDraftForm = offlineDraftForm;

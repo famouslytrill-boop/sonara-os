@@ -69,6 +69,31 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(lane, /postgres-\$\{\{ matrix\.postgres \}\}/);
     });
 
+    it("executes the disposable-only cohort RLS probe and demands a real proof marker", () => {
+      const relative = "tests/sql/p0-cohort-reader-rls-snapshot.sql";
+      const fixture = fs.readFileSync(path.join(root, relative), "utf8");
+      const has = (haystack, needle) =>
+        assert.ok(haystack.includes(needle), `Missing native replay proof contract: ${needle}`);
+
+      has(source, "p0-cohort-reader-rls-snapshot.sql");
+      has(source, "p0_cohort_reader_rls_snapshot_passed");
+      has(fixture, "current_database() <> 'replay'");
+      has(fixture, "inet_server_addr() IS NOT NULL");
+      has(fixture, "CREATE ROLE sonara_cohort_reader LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT");
+      has(fixture, "SET SESSION AUTHORIZATION sonara_cohort_reader");
+      has(fixture, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      has(fixture, "row_security_active('public.activity_events'::regclass)");
+      has(fixture, "row_security_active('public.organizations'::regclass)");
+      has(fixture, "RAISE EXCEPTION 'cohort roster predicate exposed or lost tenant rows'");
+      // Mutation probe MUST demonstrate that a permissive PUBLIC policy would
+      // expose tenant B, then roll it back instead of weakening the real gate.
+      has(fixture, "CREATE POLICY sonara_cohort_fixture_mutant_public");
+      has(fixture, "CREATE POLICY sonara_cohort_fixture_mutant_events");
+      has(fixture, "cohort negative RLS guard not sensitive to a permissive policy leak");
+      has(fixture, "RESET SESSION AUTHORIZATION");
+      has(fixture, "DROP ROLE sonara_cohort_reader");
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);

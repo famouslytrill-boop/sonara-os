@@ -17,8 +17,7 @@
     "/contact",
     "/security",
     "/accessibility",
-    "/login",
-    "/signup",
+    // Login/signup remain outside service-worker registration and navigation.
     "/offline",
     "/business-builder",
     "/creator-studio",
@@ -49,6 +48,52 @@
     return Boolean("serviceWorker" in navigator && (window.isSecureContext || localDevelopment));
   }
 
+  // A prepared update does not mean an active form can safely be reloaded.
+  // The update stays ready until the customer applies it or closes old tabs.
+  let updateNoticeVisible = false;
+  function showUpdateReady(registration) {
+    if (updateNoticeVisible || !registration.waiting || !navigator.serviceWorker.controller) return;
+    updateNoticeVisible = true;
+
+    const notice = document.createElement("div");
+    notice.className = "sonara-toast";
+    notice.setAttribute("role", "status");
+    notice.setAttribute("aria-live", "polite");
+    const message = document.createElement("span");
+    message.textContent = "A SONARA update is ready. Save your work before applying it.";
+    const button = document.createElement("button");
+    button.className = "action";
+    button.type = "button";
+    button.textContent = "Apply update";
+    notice.appendChild(message);
+    notice.appendChild(button);
+    document.body.appendChild(notice);
+
+    button.addEventListener("click", () => {
+      // A conservative guard: forms and editors may hold unsaved content,
+      // including values filled by password managers without input events.
+      const editable = document.querySelector("form input:not([type=hidden]), form textarea, form select, [contenteditable=true]");
+      if (editable && !window.confirm("Applying this update reloads the page. Save or copy any unfinished work first. Apply now?")) return;
+      const waiting = registration.waiting;
+      if (!waiting) {
+        message.textContent = "The update has changed. Reload the page when convenient.";
+        button.disabled = true;
+        return;
+      }
+      button.disabled = true;
+      message.textContent = "Applying your update…";
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      }, { once: true });
+      try {
+        waiting.postMessage({ type: "SKIP_WAITING" });
+      } catch {
+        message.textContent = "Could not apply the update. Reload or try again later.";
+        button.disabled = false;
+      }
+    });
+  }
+
   function scheduleServiceWorkerRegistration() {
     if (!canRegisterServiceWorker() || !isPublicPwaPage(window.location.pathname)) return;
 
@@ -56,13 +101,22 @@
       navigator.serviceWorker
         .register("/sw.js", { scope: "/", updateViaCache: "none" })
         .then((registration) => {
+          showUpdateReady(registration);
           registration.update().catch(() => undefined);
+          // Long-lived tabs check only on foreground return; no polling timer,
+          // network loop, or background battery drain.
+          let lastCheckedAt = Date.now();
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "visible" || Date.now() - lastCheckedAt < 60 * 60 * 1000) return;
+            lastCheckedAt = Date.now();
+            registration.update().catch(() => undefined);
+          });
           registration.addEventListener("updatefound", () => {
             const worker = registration.installing;
             if (!worker) return;
             worker.addEventListener("statechange", () => {
               if (worker.state === "installed" && navigator.serviceWorker.controller) {
-                notify("Update ready", "Refresh when convenient to use the latest SONARA interface.");
+                window.setTimeout(() => showUpdateReady(registration), 0);
               }
             });
           });

@@ -1,0 +1,479 @@
+-- Copyright (c) 2026 SONARA Industries. All rights reserved.
+-- Proprietary source. No licence is granted; see LICENSE.
+-- Runs ONLY in disposable native PostgreSQL migration replay; all changes rolled back.
+begin;
+create function pg_temp.require_true(v boolean, label text) returns void language plpgsql
+  as $test$ begin if v is not true then raise exception 'stock journal: %', label; end if; end $test$;
+create function pg_temp.expect_error(command text, expected text) returns void language plpgsql
+  as $test$ begin
+    begin execute command; raise exception 'did_not_fail';
+    exception when others then
+      if sqlerrm<>expected then raise exception 'expected %, received %',expected,sqlerrm; end if;
+    end;
+  end $test$;
+
+insert into auth.users(id,email) values
+  ('25000000-0000-4000-8000-000000000001','counted@example.invalid'),
+  ('25000000-0000-4000-8000-000000000002','reviewer@example.invalid'),
+  ('25000000-0000-4000-8000-000000000015','business-staff@example.invalid'),
+  ('25000000-0000-4000-8000-000000000016','business-owner@example.invalid'),
+  ('25000000-0000-4000-8000-000000000017','suspended-staff@example.invalid'),
+  ('25000000-0000-4000-8000-000000000018','viewer-only@example.invalid');
+insert into public.organizations(id,name) values
+  ('25000000-0000-4000-8000-000000000003','Stock adjustment tenant'),
+  ('25000000-0000-4000-8000-000000000004','Unrelated tenant');
+insert into public.organization_memberships(organization_id,user_id,role,status) values
+  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000001','manager','active'),
+  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000002','owner','active'),
+  ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000018','viewer','active');
+
+-- Application session resolver also accepts active business_memberships.
+-- Those employees must be admitted by the service-only SQL contract, but
+-- role='employee' and status='disabled' must never gain reviewer powers.
+insert into public.business_workspaces(id,organization_id,name) values
+  ('25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000003','Staff inventory workspace');
+insert into public.business_memberships(organization_id,workspace_id,user_id,role,status)
+values
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000015','employee','active'),
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000016','owner','active'),
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000017','employee','disabled');
+
+insert into public.inventory_items(id,organization_id,name,quantity,unit,status) values
+  ('25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000003','Tracked stock',10,'each','active'),
+  ('25000000-0000-4000-8000-000000000011','25000000-0000-4000-8000-000000000004','Foreign stock',5,'each','active');
+
+select pg_temp.require_true(
+  (select stock_version=0 from public.inventory_items where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_events
+      where inventory_item_id='25000000-0000-4000-8000-000000000010'
+        and source='opening_snapshot' and balance_before=10 and balance_after=10 and delta_quantity=0),
+  'opening quantity is explicitly a snapshot, not a historical receipt');
+
+select pg_temp.require_true(
+  not has_function_privilege('anon','public.sonara_apply_stock_count_adjustment(uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid)','execute')
+  and not has_function_privilege('authenticated','public.sonara_apply_stock_count_adjustment(uuid,uuid,uuid,uuid,text,text,bigint,numeric,uuid)','execute')
+  and not has_table_privilege('authenticated','public.inventory_stock_events','select')
+  and not has_table_privilege('authenticated','public.inventory_stock_adjustment_approvals','insert')
+  and not has_table_privilege('authenticated','public.inventory_stock_adjustments','select')
+  and not has_table_privilege('service_role','public.inventory_stock_adjustments','delete')
+  and not has_table_privilege('service_role','public.inventory_stock_events','insert'),
+  'closed to browser and append-only even to service role');
+
+set local role service_role;
+insert into public.inventory_reservations(organization_id,inventory_item_id,source,source_id,quantity,state)
+  values ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+          'merchant_order_line','25000000-0000-4000-8000-000000000020',3,'held');
+
+-- Missing reviewer approval must be rejected before touching stock.
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')$q$,
+  'stock_adjustment_approval_evidence_missing');
+
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000131','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-001','cycle_count',0,'each',null,8);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000031','25000000-0000-4000-8000-000000000131','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-001','cycle_count',0,'each',null,8,'approved');
+
+-- Even a unit-only change invalidates the approved snapshot, increments
+-- the inventory revision and writes a zero-delta catalog-identity event.
+-- Roll back this adversarial probe so the approved count can be posted next.
+savepoint identity_probe;
+update public.inventory_items set unit='kg'
+  where id='25000000-0000-4000-8000-000000000010';
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')$q$,
+  'stock_adjustment_item_identity_changed');
+select pg_temp.require_true(
+  (select quantity=10 and stock_version=1 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_events
+   where inventory_item_id='25000000-0000-4000-8000-000000000010'
+     and source='catalog_identity_change' and delta_quantity=0 and version_after=1),
+  'unit-only change increments version and records no fictitious stock delta');
+rollback to savepoint identity_probe;
+release savepoint identity_probe;
+select pg_temp.require_true(
+  (select unit='each' and quantity=10 and stock_version=0 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010'),
+  'reverting the adversarial catalog edit restores the original snapshot');
+
+select pg_temp.require_true(
+  (public.sonara_apply_stock_count_adjustment(
+    '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+    '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+    'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')->>'code')='adjustment_recorded',
+  'approved adjustment posts once');
+select pg_temp.require_true(
+  (select quantity=8 and stock_version=1 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=2 from public.inventory_stock_events
+   where inventory_item_id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+   where organization_id='25000000-0000-4000-8000-000000000003'
+     and balance_before=10 and balance_after=8 and delta_quantity=-2 and held_quantity_at_post=3),
+  'stock, version and both ledgers atomic');
+
+select pg_temp.require_true(
+  (public.sonara_apply_stock_count_adjustment(
+    '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+    '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+    'stock-req-001','cycle_count',0,8,'25000000-0000-4000-8000-000000000031')->>'code')='already_recorded',
+  'identical retry does not repost');
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-001','cycle_count',0,9,'25000000-0000-4000-8000-000000000031')$q$,
+  'stock_adjustment_approval_evidence_missing');
+
+-- A second reviewer and a valid quantity do not constitute product quarantine,
+-- recall, supplier correction, or return evidence. Those workflows are blocked.
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000136','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-loss-006','damaged',1,'each',null,7);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000036','25000000-0000-4000-8000-000000000136',
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-loss-006','damaged',1,'each',null,7,'approved');
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-loss-006','damaged',1,7,'25000000-0000-4000-8000-000000000036'
+)$q$, 'stock_custody_evidence_required');
+select pg_temp.require_true(
+  (select quantity=8 and stock_version=1 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010'),
+  'unaudited damage must not move sellable stock');
+
+-- Real queue and owner approval must not allow an older stock snapshot.
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000132','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-002','cycle_count',0,'each',null,7);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000032','25000000-0000-4000-8000-000000000132','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-002','cycle_count',0,'each',null,7,'approved');
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-002','cycle_count',0,7,'25000000-0000-4000-8000-000000000032')$q$,
+  'stock_version_conflict');
+
+-- Existing work-order/checkout writers still update quantity; all changes
+-- receive a version and unattributed journal record until cutover is complete.
+update public.inventory_items set quantity=7
+  where id='25000000-0000-4000-8000-000000000010';
+select pg_temp.require_true(
+  (select stock_version=2 from public.inventory_items
+     where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=3 from public.inventory_stock_events
+     where inventory_item_id='25000000-0000-4000-8000-000000000010'),
+  'unattributed direct quantity write is still visible and versioned');
+select pg_temp.expect_error($q$update public.inventory_items set stock_version=99
+  where id='25000000-0000-4000-8000-000000000010'$q$,
+  'inventory_stock_version_managed_by_database');
+select pg_temp.expect_error($q$update public.inventory_items
+  set organization_id='25000000-0000-4000-8000-000000000004'
+  where id='25000000-0000-4000-8000-000000000010'$q$,
+  'inventory_tenant_reassignment_forbidden');
+
+-- Even an unchanged physical count must check corrupted prior reservations.
+update public.inventory_reservations set quantity=8
+  where organization_id='25000000-0000-4000-8000-000000000003'
+    and inventory_item_id='25000000-0000-4000-8000-000000000010';
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000133','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-req-003','cycle_count',2,'each',null,7);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000033','25000000-0000-4000-8000-000000000133','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-003','cycle_count',2,'each',null,7,'approved');
+select pg_temp.expect_error($q$select public.sonara_apply_stock_count_adjustment(
+  '25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-req-003','cycle_count',2,7,'25000000-0000-4000-8000-000000000033')$q$,
+  'stock_adjustment_violates_holds');
+
+
+-- A previously recorded unattributed edit must NOT be relabelled as a
+-- reviewer-authorized correction via a new privileged INSERT.
+update public.inventory_reservations set quantity=3
+  where organization_id='25000000-0000-4000-8000-000000000003'
+    and inventory_item_id='25000000-0000-4000-8000-000000000010';
+update public.inventory_items set quantity=6
+  where id='25000000-0000-4000-8000-000000000010';
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000134','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-fake-004','cycle_count',1,'each',null,7);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision) values(
+  '25000000-0000-4000-8000-000000000034','25000000-0000-4000-8000-000000000134','25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000002',
+  'stock-fake-004','cycle_count',1,'each',null,7,'approved');
+select pg_temp.expect_error($q$
+  insert into public.inventory_stock_adjustments(
+    organization_id,inventory_item_id,stock_event_id,approval_id,
+    actor_user_id,reviewer_user_id,idempotency_key,reason,
+    stock_version_before,stock_version_after,balance_before,balance_after,
+    delta_quantity,held_quantity_at_post)
+  select '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000010',e.id,
+    '25000000-0000-4000-8000-000000000034',
+    '25000000-0000-4000-8000-000000000001',
+    '25000000-0000-4000-8000-000000000002',
+    'stock-fake-004','cycle_count',1,2,8,7,-1,3
+  from public.inventory_stock_events e
+    where e.inventory_item_id='25000000-0000-4000-8000-000000000010'
+      and e.version_after=2
+$q$, 'stock_adjustment_current_item_mismatch');
+select pg_temp.require_true(
+  (select quantity=6 and stock_version=3 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where organization_id='25000000-0000-4000-8000-000000000003'),
+  'privileged forged historical adjustment did not post');
+
+
+
+-- Attack 2: even in the SAME transaction as a change, an approval created
+-- after that movement must not retroactively label the movement as approved.
+-- Also show callers cannot forge approved_at='2001...' to backdate consent.
+update public.inventory_items set quantity=5
+  where id='25000000-0000-4000-8000-000000000010';
+select pg_sleep(0.005);
+insert into public.inventory_stock_count_requests(
+    id,organization_id,inventory_item_id,actor_user_id,idempotency_key,
+    reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity
+  ) values
+  ('25000000-0000-4000-8000-000000000135','25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000001','stock-fake-005','cycle_count',3,'each',null,5);
+insert into public.inventory_stock_adjustment_approvals(
+  id,stock_count_request_id,organization_id,inventory_item_id,actor_user_id,reviewer_user_id,
+  idempotency_key,reason,expected_stock_version,expected_unit,expected_location_id,counted_quantity,decision,
+  approved_at
+) values(
+  '25000000-0000-4000-8000-000000000035','25000000-0000-4000-8000-000000000135',
+  '25000000-0000-4000-8000-000000000003',
+  '25000000-0000-4000-8000-000000000010',
+  '25000000-0000-4000-8000-000000000001',
+  '25000000-0000-4000-8000-000000000002',
+  'stock-fake-005','cycle_count',3,'each',null,5,'approved','2001-01-01T00:00:00Z');
+select pg_temp.require_true(
+  (select approved_at > '2026-01-01T00:00:00Z'::timestamptz
+   from public.inventory_stock_adjustment_approvals
+   where id='25000000-0000-4000-8000-000000000035'),
+  'approval timestamp cannot be backdated by the supplied payload');
+select pg_temp.expect_error($q$
+  insert into public.inventory_stock_adjustments(
+    organization_id,inventory_item_id,stock_event_id,approval_id,
+    actor_user_id,reviewer_user_id,idempotency_key,reason,
+    stock_version_before,stock_version_after,balance_before,balance_after,
+    delta_quantity,held_quantity_at_post)
+  select '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000010',e.id,
+    '25000000-0000-4000-8000-000000000035',
+    '25000000-0000-4000-8000-000000000001',
+    '25000000-0000-4000-8000-000000000002',
+    'stock-fake-005','cycle_count',3,4,6,5,-1,3
+  from public.inventory_stock_events e
+    where e.inventory_item_id='25000000-0000-4000-8000-000000000010'
+      and e.version_after=4
+$q$, 'stock_adjustment_approval_lineage_invalid');
+select pg_temp.require_true(
+  (select quantity=5 and stock_version=4 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000010')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where organization_id='25000000-0000-4000-8000-000000000003'),
+  'post-factum approval did not rewrite the ledger');
+
+
+
+-- An authorized employee queues an immutable physical count. Only a separate
+-- active owner can approve and post it in the same transactional RPC call.
+insert into public.inventory_items(id,organization_id,name,quantity,unit,status)
+values ('25000000-0000-4000-8000-000000000013',
+  '25000000-0000-4000-8000-000000000003','Reviewed stock',10,'each','active');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,9)->>'code')='review_requested',
+  'employee request is durable but does not adjust stock');
+select pg_temp.require_true(
+  (select stock_version=0 and quantity=10 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013')
+  and (select count(*)=1 from public.inventory_stock_count_requests
+    where organization_id='25000000-0000-4000-8000-000000000003'
+      and inventory_item_id='25000000-0000-4000-8000-000000000013'),
+  'submission did not authorize a stock mutation');
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,9)->>'code')='already_requested',
+  'identical worker retry does not create a second review');
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000001',
+    'employee-count-001',0,8)$q$,
+  'stock_count_request_key_conflict');
+
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key=('employee-' || 'count-001')),
+    '25000000-0000-4000-8000-000000000002')->>'code')='adjustment_recorded',
+  'independent owner review posts an atomic correction');
+select pg_temp.require_true(
+  (select quantity=9 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013')
+  and (select count(*)=1 from public.inventory_stock_adjustments a
+    join public.inventory_stock_adjustment_approvals r on r.id=a.approval_id
+    join public.inventory_stock_count_requests q on q.id=r.stock_count_request_id
+    where a.inventory_item_id='25000000-0000-4000-8000-000000000013'
+      and q.actor_user_id='25000000-0000-4000-8000-000000000001'
+      and r.reviewer_user_id='25000000-0000-4000-8000-000000000002'),
+  'full actor request, reviewer decision and stock posting lineage');
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key=('employee-' || 'count-001')),
+    '25000000-0000-4000-8000-000000000002')->>'code')='already_recorded',
+  'reviewer retry posts no duplicate movement');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000013',
+    '25000000-0000-4000-8000-000000000002',
+    'owner-self-001',1,8)->>'code')='review_requested',
+  'owner may submit count but cannot approve the same count');
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where organization_id='25000000-0000-4000-8000-000000000003'
+        and idempotency_key='owner-self-001'),
+    '25000000-0000-4000-8000-000000000002')$q$,
+  'stock_review_self_approval_forbidden');
+select pg_temp.require_true(
+  (select quantity=9 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000013'),
+  'self-review did not mutate stock');
+
+
+
+-- Business Builder supports a second membership authority for staff. A
+-- worker in business_memberships ONLY (no organization_memberships row)
+-- must be allowed to count stock, while an inactive worker fails closed.
+insert into public.inventory_items(id,organization_id,name,quantity,unit,status) values
+  ('25000000-0000-4000-8000-000000000014',
+   '25000000-0000-4000-8000-000000000003','Business-only employee count',10,'each','active');
+
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000017',
+    'inactive-count-002',0,7)$q$,
+  'stock_count_actor_unauthorized');
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000018',
+    'viewer-count-002',0,7)$q$,
+  'stock_count_actor_unauthorized');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000015',
+    'staff-count-002',0,7)->>'code')='review_requested',
+  'active business-only employee can submit a stock count');
+select pg_temp.require_true(
+  (select quantity=10 and stock_version=0 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000014'),
+  'staff submission does not mutate stock');
+
+-- The actual service-only reviewer role must be ACTIVE and privileged.
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000017')$q$,
+  'stock_review_owner_role_required');
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000015')$q$,
+  'stock_review_owner_role_required');
+
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000016')->>'code')='adjustment_recorded',
+  'active business-only owner can review another staff member count');
+select pg_temp.require_true(
+  (select quantity=7 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000014')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+  'business-only employee and owner produce a single atomic stock adjustment');
+
+reset role;
+select pg_temp.require_true(
+  (select quantity=5 from public.inventory_items
+   where id='25000000-0000-4000-8000-000000000011'),
+  'foreign tenant untouched');
+select 'stock_version_journal_approvals_and_holds_passed';
+rollback;

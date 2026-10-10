@@ -276,7 +276,7 @@ number in a document — regenerate it:
     pnpm run fix:doc-counts            # rewrites derived figures in docs/
     pnpm run fix:proprietary-notice    # recomputes the notice population
 
-Current: **74 chain commands**, 296 shipped source files carrying the notice,
+Current: **77 chain commands**, 296 shipped source files carrying the notice,
 363 test files, 269 unique GitHub targets on the register, 36 of them carrying a
 reciprocal licence and every one at a status that keeps its source out of what
 customers are served.
@@ -386,7 +386,7 @@ One command, and it is the only signal worth reporting:
 
     pnpm run verify:launch
 
-74 commands, ~4,911 tests. Also required before any push:
+77 commands, ~4,911 tests. Also required before any push:
 `pnpm install --frozen-lockfile`, `pnpm audit --audit-level moderate`,
 `pnpm run lint`, `pnpm test`, `pnpm run build`.
 

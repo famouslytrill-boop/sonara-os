@@ -25,14 +25,36 @@ const FORMULA_GROUP_LABELS = {
   growth_marketing: "Growth and marketing",
   creator_music: "Creator music and release",
   ui_device_experience: "Device and interface experience",
-  operating_twin: "Operating twin and decision support"
+  operating_twin: "Operating twin and decision support",
+  stem_mathematics: "Mathematics and probability",
+  stem_physical_science: "Physics and applied science",
+  social_studies: "Geography, populations and civics",
+  language_arts: "Language and reading analysis",
+  creative_arts: "Visual arts, music and animation",
+  physical_education: "Physical activity and pacing",
+  cad_geometry: "CAD drawing and geometry",
+  motion_capture: "Motion capture analysis",
+  labor_economics: "Labor and opportunity costs",
+  building_economics: "Construction investment economics",
+  construction_trades: "Construction and trade estimates",
+  trade_electrical: "Electrical estimates",
+  trade_plumbing: "Plumbing and pipe flow",
+  measurement_science: "Measurement and unit conversions",
+  computing_engineering: "Computing and processing costs",
+  space_science: "Satellites and telescopes",
+  quantum_research: "Quantum learning and simulations"
 };
 
 module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
+  const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function"
+    ? deps.requireWorkspaceAccess
+    : () => (_req, res) => res.status(503).json({
+        ok: false, code: "workspace_guard_not_configured",
+        message: "Private formula records are not available."
+      });
   const getSupabaseServerConfig = typeof deps.getSupabaseServerConfig === "function" ? deps.getSupabaseServerConfig : undefined;
   const getCustomerPrimaryOrganization = typeof deps.getCustomerPrimaryOrganization === "function" ? deps.getCustomerPrimaryOrganization : undefined;
   const supabaseHeaders = typeof deps.supabaseHeaders === "function" ? deps.supabaseHeaders : undefined;
@@ -46,7 +68,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
       title: "Formula Library",
       eyebrow: "SONARA formulas",
       heading: "Formula Library",
-      body: "Business, creator, growth, device, and operating-twin formulas that produce real saved results when database setup is complete.",
+      body: "Business, creator, growth, education, STEM, CAD, motion capture, device and operating-twin calculations. You can evaluate locally supplied measurements, and save results only after signing in and database setup." ,
       sections: [
         brandCard("Financial intelligence", `${financialIntelligence.count} deterministic decision-support formulas are available as a supplemental catalog; they cannot move money, post accounting entries, trade, or approve credit.`),
         ...Object.entries(groups).map(([group, definitions]) => `<article class="card"><h2>${escapeHtml(formatLabel(group))}</h2><ul>${definitions.map((definition) => `<li><a href="/formulas/${escapeHtml(definition.formulaKey)}">${escapeHtml(definition.publicLabel)}</a></li>`).join("")}</ul></article>`)
@@ -90,6 +112,10 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
     if (!definition) return res.status(404).type("html").send(unknownFormulaPage());
     return requireWorkspaceAccess(productAreaToWorkspace(definition.productArea))(req, res, next);
   }, async (req, res) => {
+    if (!req.sonaraUser?.id) return res.status(403).json({
+      ok: false, code: "workspace_identity_missing",
+      message: "Sign in to view private formula results."
+    });
     const definition = pages.definitionFor(req.params.formulaKey);
     const outcome = await readSavedResults(definition, req);
     const saved = req.query?.saved === "1" ? brandCard("Saved", "The answer and the figures it came from are kept with your business.") : "";
@@ -174,6 +200,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   }
 
   async function readSavedResults(definition, req) {
+    if (!req.sonaraUser?.id) return { ok: false, rows: [] };
     if (!getSupabaseServerConfig || !supabaseHeaders || !getCustomerPrimaryOrganization) return { ok: false, rows: [] };
     const config = getSupabaseServerConfig();
     if (!config.ok) return { ok: false, rows: [] };
@@ -190,6 +217,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
 
 const SAVE_REFUSALS = {
   setup_required: "Saving is not set up for this site yet, so nothing was kept.",
+  workspace_guard_not_configured: "Saving is unavailable because a signed-in workspace was not verified. Nothing was kept.",
   formula_not_in_database: "This formula is not yet recorded in the database, so a result for it cannot be kept. Nothing was saved.",
   database_unavailable: "The records could not be reached, so nothing was kept. Try again shortly."
 };
@@ -217,6 +245,7 @@ function getStaticFormulaReadiness() {
 }
 
 async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders, insertActivityEvent }) {
+  if (!req.sonaraUser?.id) return { ok: false, code: "workspace_guard_not_configured", status: 403 };
   if (!getSupabaseServerConfig || !supabaseHeaders) return { ok: false, code: "setup_required", service: "supabase" };
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false, code: "setup_required", service: "supabase" };
@@ -227,7 +256,7 @@ async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getC
     formula_key: evaluated.formulaKey,
     organization_id: organization.organizationId,
     user_id: req.sonaraUser?.id || null,
-    source_table: String(req.body?.sourceTable || req.body?.source_table || "manual_formula_input").slice(0, 120),
+    source_table: normalizeSourceTable(req.body?.sourceTable || req.body?.source_table),
     source_record_id: normalizeUuid(req.body?.sourceRecordId || req.body?.source_record_id),
     input_values: evaluated.inputValues,
     result_value: evaluated.resultValue,
@@ -260,8 +289,14 @@ function saveFailure(response, body) {
   return { code: "database_unavailable", service: "sonara_formula_results", status: 503 };
 }
 
+function normalizeSourceTable(value) {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, 120) : "manual_formula_input";
+}
+
 function normalizeUuid(value) {
-  const cleaned = String(value || "").trim();
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim();
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned) ? cleaned : null;
 }
 
@@ -277,7 +312,6 @@ function formatLabel(value) {
   return FORMULA_GROUP_LABELS[value] || String(value || "").replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }

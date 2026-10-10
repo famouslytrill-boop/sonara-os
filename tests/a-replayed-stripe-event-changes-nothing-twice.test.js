@@ -192,7 +192,7 @@ describe("a replayed Stripe event changes nothing twice", () => {
       // like a guarantee.
       assert.match(
         region,
-        /const providerEventAt = Number\.isFinite\(event\.created\)/,
+        /const providerEventAt = new Date\(event\.created \* 1000\)\.toISOString\(\)/,
         "the subscription sync no longer derives its stamp from event.created"
       );
       assert.doesNotMatch(
@@ -207,6 +207,42 @@ describe("a replayed Stripe event changes nothing twice", () => {
           write.slice(0, 900).includes("provider_event_at: providerEventAt"),
           `the ${table} write no longer carries provider_event_at, so a late event overwrites newer state again`
         );
+      }
+    });
+  });
+
+  describe("the latest database replay blocks equal-second privilege collisions", () => {
+    it("installs the equal-second guard without rewriting the pinned older migration", () => {
+      const sql = fs.readFileSync(path.join(MIGRATIONS, "20261009090000_stripe_equal_second_conflicts_fail_closed.sql"), "utf8");
+      assert.match(sql, /create or replace function public\.sonara_reject_stale_provider_event\(\)/);
+      assert.match(sql, /new\.provider_event_at = old\.provider_event_at/);
+      assert.match(sql, /old\.status = 'canceled' and new\.status <> 'canceled'/);
+      assert.match(sql, /new\.status := 'reconciliation_required'/);
+      assert.match(sql, /new\.status := 'disabled'/);
+      assert.match(sql, /same_second_conflict/);
+      assert.match(sql, /return old/);
+    });
+
+    it("has a PostgreSQL behavior probe wired into the real migration replay", () => {
+      const replay = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-migration-replay.mjs"), "utf8");
+      const sqlPath = path.join(__dirname, "sql", "stripe-equal-second-conflicts.sql");
+      const probe = fs.readFileSync(sqlPath, "utf8");
+      assert.match(replay, /tests\/sql\/stripe-equal-second-conflicts\.sql/);
+      for (const marker of [
+        "same_second_terminal_canceled",
+        "newer_stamped_terminal_canceled",
+        "same_second_failure_past_due",
+        "next_second_recovery_active",
+        "workspace_collision_reconciliation_required_true",
+        "plan_collision_reconciliation_required",
+        "entitlement_same_second_disabled",
+        "entitlement_collision_disabled_true",
+        "older_event_kept_active"
+      ]) {
+        assert.ok(replay.includes(marker), `missing SQL replay assertion ${marker}`);
+        assert.ok(probe.includes(marker.split("_").slice(0, 2).join("_")) ||
+          probe.includes(marker.slice(0, marker.lastIndexOf("_"))),
+          `SQL probe may no longer produce ${marker}`);
       }
     });
   });

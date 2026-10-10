@@ -10,6 +10,7 @@ const {
 } = require("../lib/sonara-integration-activation-policy.cjs");
 const { knownProviderDirectAccess } = require("../lib/sonara-customer-provider-pathways.cjs");
 const { makeOverview } = require("../lib/sonara-customer-business-operations.cjs");
+const { settledMapBounded } = require("../lib/sonara-bounded-source-reads.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -305,19 +306,21 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
   // How many rows the dashboard reads before it starts saying "or more".
   const DASHBOARD_PAGE = 200;
 
+  // Three in-flight reads per dashboard request, not a seven-table burst.
+  // Failing one table must not abort the rest or be presented as zero records.
+  async function readResourcesBounded(ctx, businessId, definitions, limit) {
+    const settled = await settledMapBounded(definitions, async ([key, definition]) => {
+      const result = await listResource(ctx, businessId, definition, limit);
+      return [key, result.ok && Array.isArray(result.rows) ? result.rows : null];
+    }, { concurrency: 3 });
+    return settled.map((entry, index) =>
+      entry.ok ? entry.value : [definitions[index][0], null]);
+  }
+
   async function dashboardSnapshot(ctx, businessId) {
-    const entries = await Promise.all(CORE_DASHBOARD_RESOURCES.map(async (key) => {
-      // One row past the page, so a list that fills it can say so rather than
-      // reporting the cap as the total.
-      const result = await listResource(ctx, businessId, RESOURCES[key], DASHBOARD_PAGE + 1);
-      // **A read that failed is not an empty table.** This used to be
-      // `result.ok ? result.rows : []`, which turned every failure into "you
-      // have none of these" -- and the next-step advice below is driven by these
-      // counts, so an unreadable services table told a business that already
-      // sells things to "Create the first offer". Wrong numbers are bad; wrong
-      // instructions are worse.
-      return [key, result.ok ? result.rows : null];
-    }));
+    // One row past the page, so a full page can say "or more".
+    const definitions = CORE_DASHBOARD_RESOURCES.map((key) => [key, RESOURCES[key]]);
+    const entries = await readResourcesBounded(ctx, businessId, definitions, DASHBOARD_PAGE + 1);
 
     const records = Object.fromEntries(entries.map(([key, rows]) => [key, rows || []]));
     const readable = Object.fromEntries(entries.map(([key, rows]) => [key, Array.isArray(rows)]));
@@ -481,17 +484,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!business.ok) return res.status(business.status).json(business);
     const allowed = await permission(req, ctx, business.business.id, "business.read");
     if (!allowed.ok) return res.status(allowed.status).json(allowed);
-    // Eleven reads, in parallel, and an unreadable one is not an empty one.
-    //
-    // This looped with `await` inside, so eleven round trips happened in series
-    // for a response that needs none of them ordered. And every failure became
-    // `[]`, which over JSON is indistinguishable from a table with nothing in
-    // it -- the same substitution the dashboard was making, on the surface where
-    // a consumer has the least chance of noticing.
-    const entries = await Promise.all(Object.entries(RESOURCES).map(async ([key, definition]) => {
-      const result = await listResource(ctx, business.business.id, definition, 25);
-      return [key, result.ok ? result.rows : null];
-    }));
+    // All source reads are scoped to the verified organization and business.
+    // Bound concurrency to three to reduce transient PostgREST/provider bursts;
+    // source failures stay null, never silently become empty records.
+    const entries = await readResourcesBounded(ctx, business.business.id, Object.entries(RESOURCES), 25);
     const resources = Object.fromEntries(entries);
     const unavailable = entries.filter(([, rows]) => rows === null).map(([key]) => key);
     // Listed as well as nulled, so a caller can act on it without inspecting

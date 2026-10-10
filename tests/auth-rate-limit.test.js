@@ -6,6 +6,7 @@ const request = require("supertest");
 
 const {
   createRateLimiter,
+  consumeRateLimit,
   getClientIdentifier,
   hashIdentifier,
   __resetInMemoryBucketsForTests
@@ -90,6 +91,28 @@ describe("authentication rate limiting", () => {
     assert.equal(denied.status, 429, "casing must not create a fresh budget");
   });
 
+  it("still limits missing subjects on subject-only routes instead of bypassing every bucket", async () => {
+    const app = buildApp({ scopes: ["subject"], subjectFrom: (req) => req.body?.email });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await request(app).post("/try").set("x-forwarded-for", "203.0.113.150").send({});
+      assert.equal(response.status, 200);
+    }
+    const denied = await request(app).post("/try")
+      .set("x-forwarded-for", "203.0.113.150").send({});
+    assert.equal(denied.status, 429, "empty subject must still consume a limited IP budget");
+    const anotherIp = await request(app).post("/try")
+      .set("x-forwarded-for", "203.0.113.151").send({});
+    assert.equal(anotherIp.status, 200, "unrelated IP should not inherit a missing-subject bucket");
+  });
+
+  it("rejects a limiter configured without unique recognized scopes", () => {
+    for (const scopes of [[], ["not_a_scope"], ["ip", "ip"], ["subject", "subject"], "ip"]) {
+      assert.throws(() => createRateLimiter({
+        name: "invalid-scope-test", windowSeconds: 60, maxAttempts: 2, scopes
+      }), /unique ip\/subject scopes/);
+    }
+  });
+
   it("answers HTML form posts with a page when renderDenied is supplied", async () => {
     const app = buildApp({
       renderDenied: ({ req, res, retryAfterSeconds }) => {
@@ -151,6 +174,81 @@ describe("authentication rate limiting", () => {
     assert.equal(first.status, 200);
     assert.equal(second.status, 200, "an unreachable store must not lock users out");
     assert.ok(degraded.length >= 2, "the degraded condition must be reported, not silent");
+  });
+});
+
+describe("durable rate-limit RPC must provide one coherent decision", () => {
+  const config = () => ({ ok: true, url: "https://rate-limit-fixture.invalid", serviceRoleKey: "fixture-key" });
+  const options = { windowSeconds: 60, maxAttempts: 2, degradedMaxAttempts: 2, getSupabaseServerConfig: config };
+  let previousFetch;
+
+  beforeEach(() => {
+    __resetInMemoryBucketsForTests();
+    previousFetch = global.fetch;
+  });
+  afterEach(() => { global.fetch = previousFetch; });
+
+  it("accepts one valid durable allow or deny with exact integer counters", async () => {
+    const cases = [
+      { allowed: true, remaining: 1, retry_after_seconds: 0 },
+      { allowed: false, remaining: 0, retry_after_seconds: 42 }
+    ];
+    let index = 0;
+    global.fetch = async () => ({ ok: true, json: async () => [cases[index++]] });
+    const first = await consumeRateLimit("valid-a", options);
+    const second = await consumeRateLimit("valid-b", options);
+    assert.deepEqual(first, { allowed: true, remaining: 1, retryAfterSeconds: 0, durable: true });
+    assert.deepEqual(second, { allowed: false, remaining: 0, retryAfterSeconds: 42, durable: true });
+  });
+
+  it("rejects malformed, duplicate and contradictory decisions instead of trusting allowed:true", async () => {
+    const invalid = [
+      [],
+      [{ allowed: true, remaining: 1, retry_after_seconds: 0 },
+        { allowed: false, remaining: 0, retry_after_seconds: 10 }],
+      { allowed: true, remaining: 1, retry_after_seconds: 0 },
+      [{ allowed: true, remaining: "1", retry_after_seconds: 0 }],
+      [{ allowed: true, remaining: -1, retry_after_seconds: 0 }],
+      [{ allowed: true, remaining: 9000, retry_after_seconds: 0 }],
+      [{ allowed: true, remaining: 1, retry_after_seconds: 5 }],
+      [{ allowed: false, remaining: 0, retry_after_seconds: 0 }],
+      [{ allowed: false, remaining: 1, retry_after_seconds: 5 }],
+      [{ allowed: "true", remaining: 1, retry_after_seconds: 0 }]
+    ];
+    for (let index = 0; index < invalid.length; index += 1) {
+      global.fetch = async () => ({ ok: true, json: async () => invalid[index] });
+      const result = await consumeRateLimit("invalid-" + index, options);
+      assert.equal(result.durable, false, "malformed decision must not claim durable proof");
+      assert.equal(result.degraded, true, "malformed decision must trigger bounded degradation");
+      assert.match(result.error, /rate limit rpc returned/, "invalid evidence was silently accepted");
+    }
+  });
+
+  it("enforces the degraded finite budget even if PostgREST repeatedly returns duplicate allow rows", async () => {
+    global.fetch = async () => ({ ok: true, json: async () => [
+      { allowed: true, remaining: 1, retry_after_seconds: 0 },
+      { allowed: true, remaining: 1, retry_after_seconds: 0 }
+    ] });
+    const decisions = [];
+    for (let index = 0; index < 3; index += 1) {
+      decisions.push(await consumeRateLimit("repeated-malformed", options));
+    }
+    assert.deepEqual(decisions.map((r) => r.allowed), [true, true, false]);
+    assert.equal(decisions[2].degraded, true);
+    assert.ok(decisions[2].retryAfterSeconds > 0, "degraded denial must carry Retry-After");
+  });
+
+  it("sets a finite request deadline for the durable counter", async () => {
+    let observedSignal;
+    global.fetch = async (_url, init) => {
+      observedSignal = init.signal;
+      throw new Error("fixture network unavailable");
+    };
+    const result = await consumeRateLimit("bounded-network", options);
+    assert.equal(result.degraded, true);
+    assert.equal(result.durable, false);
+    assert.equal(typeof observedSignal?.addEventListener, "function");
+    assert.equal(observedSignal.aborted, false, "deadline must not start already expired");
   });
 });
 

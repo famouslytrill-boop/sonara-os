@@ -1300,6 +1300,80 @@ describe("product module APIs", () => {
     assert.match(res.text, /Manage billing portal/);
     assert.match(res.text, /Upgrade: One workspace/);
   });
+  it("GET /billing serves shared SONARA subscriptions without a Business Builder workspace gate", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    const requests = [];
+    global.fetch = async (url) => {
+      requests.push(String(url));
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000110", email: "creator@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_entitlements")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    let result;
+    try {
+      result = await request(app)
+        .get("/billing")
+        .set("Authorization", "Bearer customer-session")
+        .set("Accept", "text/html");
+    } finally {
+      global.fetch = originalFetch;
+    }
+
+    assert.equal(result.status, 200);
+    assert.match(result.text, /SONARA Billing/);
+    assert.match(result.text, /Business Builder, Creator Studio and Growth Studio/);
+    assert.match(result.text, /Billing actions/);
+    assert.match(result.text, /Manage billing portal/);
+    assert.doesNotMatch(result.headers.location || "", /business-builder\/billing/);
+    assert.ok(requests.some((value) => value.includes("/billing_subscriptions")), "shared billing did not attempt an organization-scoped plan read");
+  });
+
+  it("Creator Studio and Growth Studio billing entry routes lead to the shared account page", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000111", email: "suite@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_entitlements")) {
+        return { ok: true, json: async () => [{ entitlement_key: "all_three_monthly", status: "active" }] };
+      }
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    try {
+      for (const source of ["/creator-studio/billing", "/growth-studio/billing"]) {
+        const response = await request(app)
+          .get(source)
+          .set("Authorization", "Bearer customer-session")
+          .set("Accept", "text/html");
+        assert.equal(response.status, 303, source);
+        assert.equal(response.headers.location, "/billing", source);
+      }
+      const shared = await request(app)
+        .get("/billing")
+        .set("Authorization", "Bearer customer-session")
+        .set("Accept", "text/html");
+      assert.equal(shared.status, 200);
+      assert.match(shared.text, /Subscription and billing/);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
 
 describe("business builder employee portal", () => {
@@ -1699,6 +1773,7 @@ describe("pricing and checkout", () => {
     configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
     const originalFetch = global.fetch;
+    const portalReturns = [];
     global.fetch = async (url, options = {}) => {
       if (String(url).includes("/auth/v1/user")) {
         return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000104", email: "customer@example.com" }) };
@@ -1710,6 +1785,7 @@ describe("pricing and checkout", () => {
         return { ok: true, json: async () => [{ stripe_customer_id: "cus_TestCustomer" }] };
       }
       if (String(url).includes("api.stripe.com/v1/billing_portal/sessions")) {
+        portalReturns.push(new URLSearchParams(options.body).get("return_url"));
         return { ok: true, json: async () => ({ url: "https://billing.stripe.com/session/test" }) };
       }
       return { ok: true, json: async () => [] };
@@ -1725,6 +1801,8 @@ describe("pricing and checkout", () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.portal_url, "https://billing.stripe.com/session/test");
+    assert.equal(portalReturns.length, 1, "expected exactly one Stripe portal request");
+    assert.equal(new URL(portalReturns[0]).pathname, "/billing", "all products must return to SONARA account billing");
   });
 
   it("POST /api/checkout/session returns JSON for API callers", async function() {
@@ -1833,6 +1911,8 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe records active subscription state from valid subscription events", async function() {
+    const originalWorkspacePrice = process.env.STRIPE_PRICE_WORKSPACE_MONTHLY;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_FixtureWorkspace";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_webhook_status_key_1234567890";
@@ -1840,7 +1920,7 @@ describe("pricing and checkout", () => {
     const organizationId = "00000000-0000-0000-0000-000000000051";
     const payload = JSON.stringify({
       id: "evt_subscription_updated",
-      type: "customer.subscription.updated",
+      type: "customer.subscription.updated", created: 1780000000,
       livemode: false,
       data: {
         object: {
@@ -1849,6 +1929,7 @@ describe("pricing and checkout", () => {
           status: "active",
           current_period_end: 1893456000,
           cancel_at_period_end: false,
+          items: { data: [{ price: { id: "price_FixtureWorkspace" }, quantity: 1 }], has_more: false },
           metadata: { organization_id: organizationId, plan: "workspace_monthly" }
         }
       }
@@ -1859,6 +1940,9 @@ describe("pricing and checkout", () => {
     const originalFetch = global.fetch;
     global.fetch = async (url, options = {}) => {
       calls.push({ url: String(url), body: options.body });
+      if (String(url).includes("/stripe_customers?")) return { ok: true, json: async () => [{
+        stripe_customer_id: "cus_test", organization_id: organizationId, user_id: "user_fixture"
+      }] };
       return { ok: true, json: async () => [] };
     };
 
@@ -1869,6 +1953,8 @@ describe("pricing and checkout", () => {
       .send(payload);
 
     global.fetch = originalFetch;
+    if (originalWorkspacePrice === undefined) delete process.env.STRIPE_PRICE_WORKSPACE_MONTHLY;
+    else process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = originalWorkspacePrice;
 
     assert.equal(res.status, 200);
     assert.equal(res.body.received, true);

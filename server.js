@@ -17,6 +17,8 @@ const registerPayPeriodRoutes = require("./routes/sonara-pay-period-routes.cjs")
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
 const registerSonaraPromptLibraryRoutes = require("./routes/sonara-prompt-library-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
+const { registerEngineeringPreviewRoutes } = require("./routes/sonara-engineering-preview-routes.cjs");
+const { registerEditorialWorkbenchRoutes } = require("./routes/sonara-editorial-workbench-routes.cjs");
 const { createReceiptWebhookHandler } = require("./routes/sonara-email-receipt-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerCreatorGenerationRoutes = require("./routes/creator-generation-routes.cjs");
@@ -54,6 +56,7 @@ const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerCreatorProfileRoutes = require("./routes/sonara-creator-profile-routes.cjs");
+const registerSocialAccountSafetyRoutes = require("./routes/sonara-social-account-safety-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
 // DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
@@ -61,6 +64,9 @@ const registerCustomerReadyExperience = require("./routes/customer-ready-experie
 // them. That generator is retired along with the other fifty-five, so nothing
 // writes here any more and the two bindings went with it.
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const { renderPublicFaq } = require("./lib/sonara-public-faq.cjs");
+const { emitEvent } = require("./lib/sonara-structured-log.cjs");
+const { permissionsPolicyFor } = require("./lib/sonara-permissions-policy.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
@@ -313,7 +319,7 @@ const { createOrAttachOrganization } = createWorkspaceBootstrap({
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20261007-v23-native-navigation`, and the token changes when
+// `/sonara-one.js` with a versioned `v` query parameter; its token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //
@@ -387,10 +393,22 @@ app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self)"); // microphone and geolocation are asked for on a click; see SECURITY_NOTES.md
+  res.setHeader("Permissions-Policy", permissionsPolicyFor("default")); // route-specific widening must use the complete shared preset; see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  // Safari/WebKit upgrades loopback HTTP subresources to HTTPS under this
+  // directive, even when the browser is testing the isolated HTTP runtime.
+  // Keep the strict production policy. Exempt only an actual loopback socket,
+  // request host and the explicit test environment; never trust Host alone.
+  const loopbackTest = process.env.NODE_ENV === "test" &&
+    req.protocol === "http" &&
+    (req.hostname === "127.0.0.1" || req.hostname === "localhost") &&
+    ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket?.localAddress);
+  if (loopbackTest) {
+    res.setHeader("Content-Security-Policy",
+      String(res.getHeader("Content-Security-Policy")).replace("; upgrade-insecure-requests", ""));
+  }
   next();
 });
 
@@ -648,6 +666,17 @@ registerSonaraFormulaRoutes(app, {
   insertActivityEvent
 });
 
+registerEngineeringPreviewRoutes(app, {
+  requireWorkspaceAccess, createRateLimiter, getSupabaseServerConfig,
+  isEnabled: () => getEnv("SONARA_ENGINEERING_PREVIEWS_ENABLED") === "true"
+});
+
+registerEditorialWorkbenchRoutes(app, {
+  layout, linkAction, requireWorkspaceAccess, getSupabaseServerConfig,
+  getCustomerPrimaryOrganization, supabaseHeaders, createRateLimiter,
+  isEnabled: () => getEnv("SONARA_EDITORIAL_WORKBENCH_ENABLED") === "true"
+});
+
 registerCreatorMusicSystemReadOnlyRoutes(app, {
   layout,
   brandCard,
@@ -744,7 +773,8 @@ registerLastNineHoursRoutes(app, {
   getSupabaseServerConfig, getEnv, createRateLimiter // getEnv: the VAPID keys, for the invoice-paid notification
 });
 
-registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
+registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization, getEnv });
+registerSocialAccountSafetyRoutes(app, { requireCustomer, getEnv, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, layout, brandCard, linkAction, escapeHtml });
 
 registerBusinessAssistantRoutes(app, {
   layout,
@@ -785,7 +815,7 @@ registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responseP
 registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, createRateLimiter });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
-registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, requireCustomer, resolveCustomerSession, getEnv });
 
 registerMerchantStoreRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, getEnv });
 // A storefront order's receipt, paying it on the shop's own Stripe account, and the
@@ -800,6 +830,49 @@ registerLeadCaptureRoutes(app, { layout, brandCard, linkAction, escapeHtml, requ
 registerScrollRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerVoiceStudioRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer });
+
+// Public contact can send a provider email and write a database row. Charge
+// both hashed origin and hashed email buckets before either costly side effect.
+// The database RPC is distributed; a bounded in-memory fallback is explicitly
+// reported as degraded by the shared rate-limit module.
+const contactSubmitLimiter = createRateLimiter({
+  name: "support.contact",
+  windowSeconds: 60 * 60,
+  maxAttempts: 60,
+  degradedMaxAttempts: 60,
+  scopes: ["ip", "subject"],
+  subjectFrom: (req) => req.body?.email,
+  getSupabaseServerConfig,
+  // In production a process-local fallback can reset on every new instance.
+  // Never send externally-triggered support mail without a durable global cap.
+  // Development and isolated tests retain the bounded in-memory counter.
+  requireDurable: () => isProductionEnvironment(),
+  renderUnavailable({ req, res }) {
+    if (!acceptsHtml(req)) return false;
+    return res.status(503).type("html").send(responsePage(
+      "Support temporarily unavailable",
+      "We cannot safely accept a support message right now. No request was stored or sent. Please try again shortly.",
+      [linkAction("/help", "Help center"), linkAction("/support", "Support")]
+    ));
+  },
+  renderDenied({ req, res, retryAfterSeconds }) {
+    if (!acceptsHtml(req)) return false;
+    return res.status(429).type("html").send(responsePage(
+      "Too many support messages",
+      `This connection has submitted too many support messages. Try again in about ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s). No new request was stored or sent.`,
+      [linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
+    ));
+  }
+});
+
+// The /support/request route is registered by the service lifecycle module
+// earlier than the /contact handler. Put the shared middleware BEFORE both,
+// so neither public entry point can bypass the exact same server-side budget.
+// A middleware mount, not a second POST route, keeps route inventory unique.
+app.use(["/contact", "/support/request"], (req, res, next) => {
+  if (req.method !== "POST") return next();
+  return contactSubmitLimiter(req, res, next);
+});
 
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that
@@ -816,6 +889,7 @@ registerServiceLifecycleRoutes(app, {
   responsePage,
   checklistCard,
   escapeHtml,
+  contactForm,
   requireCustomer,
   requireWorkspaceAccess,
   wantsJson,
@@ -870,7 +944,9 @@ registerRouteRegistryRoutes(app, {
   adminRowsPage,
   recordAdminAuditEvent,
   getDeploymentInfo,
-  safeListTable
+  safeListTable,
+  createRateLimiter,
+  getEnv
 });
 
 app.get("/", (req, res) => {
@@ -974,7 +1050,7 @@ app.post("/contact", async (req, res) => {
     );
   }
 
-  const result = await saveSupportRequest(request.value);
+  const result = await saveSupportRequest(request.value, { sourcePath: "/contact" });
   // 503 when nothing was stored and nothing was sent, so a caller reading only the status code cannot take a vanished request for a filed one.
   if (wantsJson) return res.status(result.ok ? 200 : 503).json(result);
   return res.status(result.ok ? 200 : 503).type("html").send(
@@ -1044,7 +1120,7 @@ app.get("/about", (req, res) => {
         brandCard("How we are different", "Three focused workspaces, one identity and one bill. No invented activity or placeholder numbers. Anti-clone and consent safety for creative work. Free to start, with paid depth only when the work earns it."),
         brandCard("Built for real operations", "Restaurants, studios, service businesses, venues, and independent teams use focused tools that match how they actually work — without pretending to be an enterprise.")
       ],
-      actions: [linkAction("/signup", "Start free"), linkAction("/how-it-works", "How it works"), linkAction("/pricing", "See pricing")]
+      actions: [linkAction("/signup", "Start free"), linkAction("/how-it-works", "How it works"), linkAction("/pricing", "See pricing"), linkAction("/help", "Help center"), linkAction("/contact", "Contact")]
     })
   );
 });
@@ -1078,9 +1154,18 @@ app.get("/help", (req, res) => {
       sections: [
         brandCard("Contact support", "Send a message for account, billing, or service questions. Every request returns a reference ID you can follow."),
         brandCard("Getting started", "Use the free planning tools and short tutorials to get a real result before choosing a plan."),
-        brandCard("Account & billing", "Manage your plan and billing from your account, and cancel anytime.")
+        brandCard("Account & billing", "Review current subscription and cancellation options in your account. Refunds follow the published policy."),
+        renderPublicFaq(escapeHtml)
       ],
-      actions: [linkAction("/contact", "Contact"), linkAction("/tutorials", "Tutorials"), linkAction("/free-tools", "Free tools"), linkAction("/free-launch-stack", "Free Launch Stack")]
+      actions: [
+        linkAction("/contact", "Contact"),
+        linkAction("/tutorials", "Tutorials"),
+        linkAction("/free-tools", "Free tools"),
+        linkAction("/account/security", "Account security"),
+        linkAction("/terms", "Terms"),
+        linkAction("/privacy", "Privacy"),
+        linkAction("/refund-policy", "Refund policy")
+      ]
     })
   );
 });
@@ -1337,6 +1422,9 @@ app.post("/api/billing/create-portal-session", async (req, res) => {
   const secretStatus = getStripeSecretStatus();
   if (secretStatus.status !== "configured") return sendSetupRequired(req, res, 503, "stripe_secret_key", secretStatus.status);
 
+  const publicOrigin = getPublicAppUrl(req);
+  if (!publicOrigin) return sendSetupRequired(req, res, 503, "site_origin", "site_origin_not_configured");
+
   const stripeCustomer = await getOrCreateStripeCustomer(customer.user, organization.organizationId);
   if (!stripeCustomer.ok) return sendSetupRequired(req, res, 503, "stripe_customer", stripeCustomer.code || "not_available");
 
@@ -1345,13 +1433,13 @@ app.post("/api/billing/create-portal-session", async (req, res) => {
     headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       customer: stripeCustomer.stripeCustomerId,
-      return_url: `${getPublicAppUrl(req)}/business-builder/billing`
+      return_url: `${publicOrigin}/billing`
     }).toString()
   }).catch(() => undefined);
   if (!response?.ok) return sendSetupRequired(req, res, 502, "stripe_customer_portal", "portal_unavailable");
   const portal = await response.json().catch(() => ({}));
   if (wantsJson(req)) return res.status(200).json({ ok: true, portal_url: portal.url });
-  return res.redirect(303, portal.url || "/business-builder/billing");
+  return res.redirect(303, portal.url || "/billing");
 });
 
 app.get("/api/billing/status", (req, res) => {
@@ -1384,7 +1472,38 @@ app.get("/settings", requireCustomer, (req, res) => {
   );
 });
 
-app.get("/billing", requireCustomer, (req, res) => res.redirect(303, "/business-builder/billing"));
+// SONARA billing belongs to the customer account, not to any one workspace.
+// Creator-only and Growth-only customers must be able to see and manage their
+// subscription without passing Business Builder's access gate.
+app.get("/billing", requireCustomer, async (req, res) => {
+  const readiness = getReadiness();
+  const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+  const billing = organization.ok
+    ? await getBillingPanelSummary(organization.organizationId)
+    : { ok: false, status: organization.code, rows: [] };
+  return res.status(200).type("html").send(
+    layout({
+      title: "SONARA Billing",
+      eyebrow: "Your SONARA account",
+      heading: "Subscription and billing",
+      body: "Manage your SONARA subscription across Business Builder, Creator Studio and Growth Studio. Billing belongs to your account, not to a particular workspace.",
+      sections: [
+        accountNoticeCard(req),
+        billingPanel(readiness, billing),
+        brandCard("Current plan", billing.status || "We could not check your plan just now. Try again shortly."),
+        brandCard("Customer portal", readiness.services.stripe === "configured"
+          ? "Stripe's billing portal opens after your customer account is connected."
+          : "Setup required: payment connection is missing.")
+      ],
+      actions: [
+        linkAction("/pricing", "View pricing"),
+        linkAction("/account", "Account"),
+        linkAction("/dashboard", "All workspaces"),
+        logoutAction()
+      ]
+    })
+  );
+});
 
 app.get("/business-builder/billing", requireWorkspaceAccess("business_builder"), async (req, res) => {
   const readiness = getReadiness();
@@ -1564,7 +1683,7 @@ app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(produ
 
 // Listing, correcting and retiring the records a customer creates. These six
 // tools were create-only until now -- see routes/sonara-module-crud-routes.cjs.
-registerCreatorProjectRoutes(app, { layout, brandCard, linkAction, escapeHtml, requirePaidOrOwnerAccess, wantsJson, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+registerCreatorProjectRoutes(app, { layout, brandCard, linkAction, escapeHtml, requirePaidOrOwnerAccess, wantsJson, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, editorialWorkbenchEnabled: () => getEnv("SONARA_EDITORIAL_WORKBENCH_ENABLED") === "true" });
 registerParentToolRoutes(app, { layout, brandCard, linkAction, escapeHtml });
 registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction });
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
@@ -1622,6 +1741,10 @@ registerWellKnownRoutes(app, { getEnv });
 // public/sw.js precaches, so they are the ones that genuinely still open with
 // no connection. Anything else would be a link to another copy of this page.
 app.get("/offline", (req, res) => {
+  // This page contains no customer/session data and is the sole HTML
+  // navigation intentionally admitted to the public service-worker cache.
+  // Override the generic HTML no-store middleware for this fixed fallback.
+  res.set("Cache-Control", "public, max-age=0");
   return res.status(200).type("html").send(
     layout({
       surface: "marketing",
@@ -1720,7 +1843,7 @@ app.use((error, req, res, next) => {
 
 // Last, so every route and the 413 handler above get their turn first.
 app.use(createAsyncErrorHandler({
-  renderHtml: () => responsePage("Something went wrong", "This page could not be built just now. Try again, and tell us if it keeps happening.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
+  renderHtml: () => responsePage("Something went wrong", "This request could not be confirmed. Check its status before retrying, especially if it might have saved or sent something.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
 }));
 
 module.exports = Object.assign(app, { legalAliasHrefs: legalAliasPages().map((page) => page.href) });
@@ -2253,23 +2376,33 @@ function legalAliasPages() {
   ].map((alias) => ({ ...byHref[alias.source], href: alias.href, source: alias.source }));
 }
 
-function normalizeSupportRequest(body) {
-  const category = String(body.category || "contact").trim();
-  const name = String(body.name || "").trim();
-  const email = String(body.email || "").trim();
-  const subject = String(body.subject || "").trim();
-  const message = String(body.message || "").trim();
+function normalizeSupportRequest(body = {}) {
+  // A public route must accept only a plain field object, not arrays, JSON
+  // primitives or nested records. HTML and JSON requests use this same gate.
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, message: "Enter a valid support request." };
+  }
+  const field = (key) => typeof body[key] === "string" ? body[key].trim() : "";
+  // A hidden browser honeypot is supplementary to distributed rate limiting.
+  if (field("website")) return { ok: false, message: "Unable to accept this request." };
+  const category = field("category") || "contact";
+  const name = field("name");
+  const email = field("email");
+  const subject = field("subject");
+  const message = field("message");
   const consent = body.consent === "yes" || body.consent === "on" || body.consent === true;
   if (!["contact", "support", "billing", "feedback"].includes(category)) return { ok: false, message: "Choose a valid request type." };
-  if (name.length < 2) return { ok: false, message: "Enter your name." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
-  if (subject.length < 3) return { ok: false, message: "Enter a subject." };
+  if (name.length < 2 || name.length > 120) return { ok: false, message: "Enter a name between 2 and 120 characters." };
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
+  if (subject.length < 3 || subject.length > 160 || /[\x00-\x1f\x7f]/.test(subject)) {
+    return { ok: false, message: "Enter a subject between 3 and 160 characters without control characters." };
+  }
   if (message.length < 10 || message.length > 4000) return { ok: false, message: "Enter a message between 10 and 4000 characters." };
   if (!consent) return { ok: false, message: "Consent is required before submitting a request." };
   return { ok: true, value: { category, name, email, subject, message } };
 }
 
-async function saveSupportRequest(request) {
+async function saveSupportRequest(request, { sourcePath = "/support/request" } = {}) {
   const referenceId = randomUUID();
   let stored = false;
   let supportRequestId;
@@ -2289,9 +2422,9 @@ async function saveSupportRequest(request) {
     message: redactSensitiveText(request.message).slice(0, 4000),
     urgency: "normal",
     status: "new",
-    source_path: "/support",
+    source_path: sourcePath,
     consent_accepted: true,
-    metadata: { source: "express_contact", submitted_category: request.category }
+    metadata: { source: "public_support", submitted_category: request.category }
   });
 
   if (insert.ok) {
@@ -2302,7 +2435,18 @@ async function saveSupportRequest(request) {
   const email = await sendSupportNotification({ ...request, referenceId });
   if (supportRequestId) await updateSupportEmailStatus(supportRequestId, email);
 
-  return supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
+  const outcome = supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
+  // Both public contact routes share this writer. Never log the message,
+  // email address, submitted name or subject.
+  emitEvent({
+    event: "support.request_submission",
+    scope: "process",
+    capability: "support",
+    outcome: !outcome.ok ? "failed" : outcome.status === "received" ? "ok" : "partial",
+    reason: outcome.status,
+    detail: { route: sourcePath }
+  });
+  return outcome;
 }
 
 async function sendSupportNotification(request) {
@@ -2914,11 +3058,9 @@ function sendSetupRequired(req, res, status, service, reason) {
 
 function getPublicAppUrl(req) {
   const configured = getEnv(["APP_URL", "PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SITE_URL"]);
-  if (isSafePublicUrl(configured)) return String(configured).replace(/\/$/, "");
-
-  const host = req.get("x-forwarded-host") || req.get("host") || "sonaraindustries.com";
-  const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
-  return `${protocol}://${host}`.replace(/\/$/, "");
+  // Payment return and employee invitation URLs use the same fail-closed,
+  // canonical origin policy as OAuth and the shared-result pages.
+  return siteOrigin(req, () => configured);
 }
 
 function getSafeAbsoluteUrl(value, fallback) {

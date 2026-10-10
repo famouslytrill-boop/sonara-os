@@ -12,6 +12,7 @@ const {
 const { workflowTemplates, planMediaWorkflow, buildGenerationJobs } = require("../lib/sonara-creator-media-workflows.cjs");
 const { templates: automationTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
 const { makeMelodyScore, renderScoreWav, renderTranscriptVtt } = require("../lib/sonara-deterministic-media.cjs");
+const { planWorldbuilding } = require("../lib/sonara-worldbuilding-planner.cjs");
 
 module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
@@ -31,6 +32,7 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
         linkAction(CREATOR_MUSIC_ROUTES.createSystem, "Create system"),
         linkAction(CREATOR_MUSIC_ROUTES.songBlueprint, "Song blueprint"),
         linkAction(CREATOR_MUSIC_ROUTES.promptPacks, "Instruction packs"),
+        linkAction("/creator-studio/worldbuilding", "Worldbuilding planner"),
         linkAction("/creator-studio/generation/music", "Music generation"),
         linkAction("/creator-studio/generation/video", "Video generation")
       ],
@@ -62,6 +64,67 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
         )
       ]
     }));
+  });
+
+
+  // Owner workspace only. The preview does not persist content, invoke a model,
+  // publish, render media or produce a real DAW/game-engine project file.
+  app.get("/creator-studio/worldbuilding", access, (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    res.type("html").send(layout({
+      title: "Worldbuilding and Production Planner", eyebrow: "Creator Studio",
+      heading: "Worldbuilding and Production Planner",
+      body: "Build an original story world and plan scenes for a game, book, film, music project, vlog, podcast or stream. This preview is not saved.",
+      actions: [linkAction(CREATOR_MUSIC_ROUTES.home, "Music System"),
+        linkAction("/creator-studio/projects", "Creator projects")],
+      sections: [
+        brandCard("Reality check", "This tool validates continuity and computes bounded estimates. It does not create a finished game, audio recording, book, rendered video, live stream, or cleared license."),
+        `<article class="card"><h2>Create a world bible</h2>
+<form method="post" action="/creator-studio/worldbuilding">
+<label for="world-title">Title</label><input id="world-title" name="title" maxlength="160" required>
+<label for="world-medium">Format</label><select id="world-medium" name="medium">
+<option value="film">Film / storyboard</option><option value="game">Video game</option>
+<option value="interactive">Interactive story</option><option value="book">Book</option>
+<option value="podcast">Podcast</option><option value="vlog">Vlog</option>
+<option value="stream">Streaming show</option><option value="music">Music project</option></select>
+<label for="world-characters">Characters (one name per line)</label>
+<textarea id="world-characters" name="characters" maxlength="4000" rows="3"></textarea>
+<label for="world-places">Locations (one per line)</label>
+<textarea id="world-places" name="places" maxlength="4000" rows="3"></textarea>
+<label for="world-scenes">Scenes, chapters, quests or episodes (one title per line)</label>
+<textarea id="world-scenes" name="scenes" maxlength="8000" rows="5" required></textarea>
+<label for="world-seconds">Planned seconds per scene (optional; leave blank if unknown)</label>
+<input id="world-seconds" name="secondsPerScene" type="number" min="1" max="86400" step="1">
+<button type="submit">Preview world bible</button></form></article>`
+      ]
+    }));
+  });
+
+  app.post("/creator-studio/worldbuilding", access, (req, res) => {
+    const parsed = parseWorldbuildingForm(req.body);
+    const result = parsed.ok ? planWorldbuilding(parsed.input) : parsed;
+    res.set("Cache-Control", "private, no-store");
+    return res.status(result.ok ? 200 : 400).type("html").send(layout({
+      title: result.ok ? "World Bible Preview" : "Check your World Bible",
+      eyebrow: "Creator Studio",
+      heading: result.ok ? result.blueprint.title : "Check your World Bible",
+      body: result.ok
+        ? "Validated plan, not saved. Export by copying the JSON. No media was generated and no content was published."
+        : "The blueprint could not be validated. Correct the fields and submit again.",
+      actions: [linkAction("/creator-studio/worldbuilding", "Create another preview")],
+      sections: result.ok
+        ? [brandCard("Planning coverage", result.blueprint.estimates.timingCoverage),
+          `<article class="card"><h2>Versioned preview JSON</h2><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(result.blueprint, null, 2))}</pre></article>`]
+        : [brandCard("Validation", result.code)]
+    }));
+  });
+
+  // Advanced structured API supports entity references and causal dependencies.
+  // The same creator workspace guard applies as for the existing media tools.
+  app.post("/api/creator/worldbuilding/plan", access, (req, res) => {
+    const result = planWorldbuilding(req.body);
+    return res.status(result.ok ? 200 : 400)
+      .set("Cache-Control", "private, no-store").json(result);
   });
 
   app.get(CREATOR_MUSIC_ROUTES.createSystem, access, (req, res) => {
@@ -161,6 +224,34 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
     }
   });
 };
+
+function parseWorldbuildingForm(body) {
+  if (!body || typeof body !== "object"
+      || ["title", "medium", "characters", "places", "scenes", "secondsPerScene"].some((key) =>
+        body[key] !== undefined && (typeof body[key] !== "string" || body[key].length > 8000))) {
+    return { ok: false, code: "invalid_worldbuilding_form" };
+  }
+  const lines = (value) => String(value || "").split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+  const characters = lines(body.characters);
+  const places = lines(body.places);
+  const scenes = lines(body.scenes);
+  if (characters.length + places.length > 128 || scenes.length === 0 || scenes.length > 64) {
+    return { ok: false, code: "worldbuilding_form_limit" };
+  }
+  const seconds = body.secondsPerScene ? Number(body.secondsPerScene) : undefined;
+  if (seconds !== undefined && (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 86400)) {
+    return { ok: false, code: "invalid_scene_duration" };
+  }
+  return { ok: true, input: {
+    title: body.title, medium: body.medium,
+    entities: [
+      ...characters.map((name, index) => ({ id: `character-${index + 1}`, kind: "character", name })),
+      ...places.map((name, index) => ({ id: `place-${index + 1}`, kind: "place", name }))
+    ],
+    scenes: scenes.map((title, index) => ({ id: `scene-${index + 1}`, title,
+      ...(seconds === undefined ? {} : { durationSeconds: seconds }) }))
+  } };
+}
 
 function mediaInputError(req, res, message, layout, linkAction) {
   if (!req.accepts("html")) return res.status(400).json({ ok: false, code: "invalid_media_input", message });

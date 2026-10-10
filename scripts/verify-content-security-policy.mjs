@@ -68,7 +68,7 @@ try {
 // both quote kinds stops at the first `'` and yields one directive. The first
 // version did exactly that, and the blindness guard below is what reported it
 // rather than the check passing over a policy it had misread.
-const match = source.match(/setHeader\(\s*"Content-Security-Policy"\s*,\s*"([^"]+)"/);
+const match = source.match(/const contentSecurityPolicy\s*=\s*"([^"]+)"/);
 if (!match) {
   console.error(
     "No Content-Security-Policy header found in server.js.\n" +
@@ -79,6 +79,9 @@ if (!match) {
 }
 
 const policy = match[1];
+if (!source.includes('isProductionEnvironment() ? \`${contentSecurityPolicy}; upgrade-insecure-requests\` : contentSecurityPolicy')) {
+  findings.push("Production must append upgrade-insecure-requests while local HTTP omits it for WebKit loopback compatibility.");
+}
 const directives = new Map();
 for (const part of policy.split(";")) {
   const tokens = part.trim().split(/\s+/).filter(Boolean);

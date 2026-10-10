@@ -1,9 +1,19 @@
 name: Docker Image CI
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   push:
     branches: ["main", "feat/sonara-platform-redesign"]
   pull_request:
+
+concurrency:
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -11,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check for Dockerfile
         id: dockerfile

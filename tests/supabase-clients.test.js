@@ -20,6 +20,9 @@ const {
   serviceRoleHeaders,
   userScopedHeaders,
   chooseClient,
+  requireVerifiedUserScopedRead,
+  isVerifiedUserScopedRead,
+  createUserScopedRlsReadinessVerifier,
   SupabaseClientError
 } = require("../lib/sonara-supabase-clients.cjs");
 
@@ -203,5 +206,224 @@ describe("the policies that make user-scoped reads possible", () => {
   it("skips a table that is not there rather than failing the whole migration", () => {
     assert.match(sql, /to_regclass\('public\.[a-z0-9_]+'\) is null/);
     assert.match(sql, /raise notice 'skipping/);
+  });
+});
+
+
+describe("fail-closed scoped evidence reads (new learning-adapter preflight)", () => {
+  const org = "11111111-1111-4111-8111-111111111111";
+  const user = "22222222-2222-4222-8222-222222222222";
+  const liveProof = Object.freeze({
+    status: "verified_live_user_rls",
+    table: "sonara_learning_aggregates",
+    organizationId: org,
+    userId: user,
+    grantVerified: true,
+    sameTenantReadVerified: true,
+    crossTenantDeniedVerified: true,
+    measuredAt: "2026-10-09T12:00:00.000Z"
+  });
+  const valid = Object.freeze({
+    config: CONFIG,
+    accessToken: "verified-user-access-token",
+    table: liveProof.table,
+    organizationId: org,
+    serverOrganizationId: org,
+    userId: user,
+    serverUserId: user,
+    trustedNow: "2026-10-09T13:00:00.000Z"
+  });
+  const foreign = Object.freeze({
+    organizationId: "33333333-3333-4333-8333-333333333333",
+    userId: "44444444-4444-4444-8444-444444444444",
+    rowId: "55555555-5555-4555-8555-555555555555",
+    token: "foreign-user-access-token"
+  });
+  const ownRowId = "66666666-6666-4666-8666-666666666666";
+  function makeVerifier(overrides = {}) {
+    return createUserScopedRlsReadinessVerifier({
+      inspectTableSecurity: overrides.inspectTableSecurity || (async ({ table }) => ({
+        table, grantVerified: true, rlsEnabled: true, sourceVerified: true
+      })),
+      readExactRow: overrides.readExactRow || (async ({ accessToken, rowId }) => {
+        if (accessToken === valid.accessToken && rowId === ownRowId) {
+          return { status: 200, rows: [{ id: ownRowId, organization_id: org }] };
+        }
+        if (accessToken === foreign.token && rowId === foreign.rowId) {
+          return { status: 200, rows: [{ id: foreign.rowId, organization_id: foreign.organizationId }] };
+        }
+        return { status: 200, rows: [] };
+      })
+    });
+  }
+  async function verifiedInput() {
+    const proof = await makeVerifier().verify({
+      table: valid.table,
+      organizationId: org, userId: user, rowId: ownRowId,
+      accessToken: valid.accessToken,
+      otherOrganizationId: foreign.organizationId,
+      otherUserId: foreign.userId,
+      otherRowId: foreign.rowId,
+      otherAccessToken: foreign.token,
+      trustedNow: "2026-10-09T12:55:00.000Z"
+    });
+    return { ...valid, liveProof: proof };
+  }
+
+  it("returns only a caller-scoped GET; never falls back to service role", async () => {
+    const answer = requireVerifiedUserScopedRead(await verifiedInput());
+    assert.equal(answer.client, "user");
+    assert.equal(answer.mode, "rls_scoped_read_only");
+    assert.equal(answer.serviceRoleFallbackAllowed, false);
+    assert.equal(answer.method, "GET");
+    assert.equal(answer.headers.apikey, CONFIG.anonKey);
+    assert.equal(answer.headers.Authorization, "Bearer verified-user-access-token");
+    assert.notEqual(answer.headers.apikey, CONFIG.serviceRoleKey);
+  });
+
+  it("brands real selector results and hides bearer credentials from serialization", async () => {
+    const selected = requireVerifiedUserScopedRead(await verifiedInput());
+    const scope = { table: valid.table, organizationId: org, userId: user };
+    assert.equal(isVerifiedUserScopedRead(selected, scope), true);
+    assert.equal(isVerifiedUserScopedRead(selected, { ...scope, organizationId: user }), false);
+    assert.equal(Object.hasOwn(selected, "headers"), true);
+    assert.equal(Object.keys(selected).includes("headers"), false);
+    assert.equal(JSON.stringify(selected).includes(valid.accessToken), false);
+    assert.equal(selected.headers.Authorization, "Bearer " + valid.accessToken);
+
+    for (const clone of [
+      { ...selected }, Object.assign({}, selected),
+      JSON.parse(JSON.stringify(selected)), { ...selected, headers: selected.headers }
+    ]) {
+      assert.equal(isVerifiedUserScopedRead(clone, scope), false);
+    }
+  });
+
+  it("accepts a modern low-privilege publishable key without changing legacy routes", async () => {
+    const published = requireVerifiedUserScopedRead({
+      ...(await verifiedInput()),
+      config: {
+        publishableKey: "sb_publishable_test_public", secretKey: "sb_secret_test_private",
+        serviceRoleKey: "legacy-private-key"
+      }
+    });
+    assert.equal(published.headers.apikey, "sb_publishable_test_public");
+    assert.equal(published.headers.Authorization, "Bearer verified-user-access-token");
+    assert.equal(isVerifiedUserScopedRead(published, {
+      table: valid.table, organizationId: org, userId: user
+    }), true);
+    assert.equal(JSON.stringify(published).includes("verified-user-access-token"), false);
+  });
+
+  it("refuses modern privileged keys and API keys masquerading as bearer tokens", async () => {
+    const keys = {
+      publishableKey: "sb_publishable_test_public", secretKey: "sb_secret_test_private",
+      serviceRoleKey: "legacy-private-key"
+    };
+    const verified = await verifiedInput();
+    for (const override of [
+      { config: { ...keys, publishableKey: keys.secretKey } },
+      { config: { ...keys, publishableKey: keys.serviceRoleKey } },
+      { accessToken: keys.secretKey, config: keys },
+      { accessToken: keys.publishableKey, config: keys },
+      { accessToken: "sb_secret_other", config: keys },
+      { accessToken: "sb_publishable_other", config: keys }
+    ]) {
+      assert.throws(() => requireVerifiedUserScopedRead({ ...verified, ...override }),
+        SupabaseClientError);
+    }
+  });
+
+  it("rejects failed or forged scope, unauthorized credentials, and RLS proof failures", async () => {
+    const verified = await verifiedInput();
+    for (const bad of [
+      { accessToken: null }, { accessToken: CONFIG.serviceRoleKey },
+      { accessToken: CONFIG.anonKey }, { config: { ...CONFIG, anonKey: CONFIG.serviceRoleKey } },
+      { config: { ...CONFIG, anonKey: "" } },
+      { table: "other_table" }, { table: "bad.table" },
+      { organizationId: user }, { serverOrganizationId: user },
+      { userId: org }, { serverUserId: org },
+      { liveProof: null },
+      { liveProof: { ...liveProof, status: "pending" } },
+      { liveProof: { ...liveProof, grantVerified: false } },
+      { liveProof: { ...liveProof, sameTenantReadVerified: false } },
+      { liveProof: { ...liveProof, crossTenantDeniedVerified: false } },
+      { liveProof: { ...liveProof, organizationId: user } },
+      { liveProof: { ...liveProof, userId: org } },
+      { liveProof: { ...liveProof, table: "another_table" } },
+      { trustedNow: "bad" },
+      { liveProof: { ...liveProof, measuredAt: "yesterday" } },
+      { liveProof: { ...liveProof, measuredAt: "2026-10-09T13:30:00.000Z" } },
+      { trustedNow: "2026-10-11T14:00:00.000Z" }
+    ]) {
+      assert.throws(
+        () => requireVerifiedUserScopedRead({ ...verified, ...bad }),
+        error => error instanceof SupabaseClientError
+          && error.message === "verified user-scoped evidence read unavailable",
+        JSON.stringify(bad)
+      );
+    }
+  });
+
+  it("binds proof to the original access token and rejects expiry after fifteen minutes", async () => {
+    const verified = await verifiedInput();
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, accessToken: "different-access-token"
+    }), SupabaseClientError);
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, trustedNow: "2026-10-09T13:11:00.000Z"
+    }), SupabaseClientError);
+    assert.equal(requireVerifiedUserScopedRead({
+      ...verified, trustedNow: "2026-10-09T13:10:00.000Z"
+    }).client, "user");
+  });
+
+  it("requires four observed reads and positive seeded rows in both tenants", async () => {
+    const verified = await verifiedInput();
+    assert.equal(verified.liveProof.probeCount, 4);
+    assert.equal(verified.liveProof.seededPositiveTenants, 2);
+    assert.equal(verified.liveProof.grantVerified, true);
+    assert.equal(JSON.stringify(verified.liveProof).includes("access-token"), false);
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, liveProof: { ...verified.liveProof }
+    }), SupabaseClientError, "JSON-equivalent proof objects are not trusted");
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, liveProof
+    }), SupabaseClientError, "caller flags never certify a live RLS test");
+  });
+
+  it("refuses empty positive fixtures, cross-tenant leaks and unverified grants", async () => {
+    const probeParams = {
+      table: valid.table, organizationId: org, userId: user,
+      rowId: ownRowId, accessToken: valid.accessToken,
+      otherOrganizationId: foreign.organizationId, otherUserId: foreign.userId,
+      otherRowId: foreign.rowId, otherAccessToken: foreign.token,
+      trustedNow: "2026-10-09T12:00:00.000Z"
+    };
+    const scenarios = [
+      makeVerifier({ readExactRow: async () => ({ status: 200, rows: [] }) }),
+      makeVerifier({ readExactRow: async () => ({
+        status: 200, rows: [{ id: ownRowId, organization_id: org }]
+      }) }),
+      makeVerifier({ inspectTableSecurity: async () => ({
+        table: valid.table, grantVerified: false, rlsEnabled: true, sourceVerified: true
+      }) }),
+      makeVerifier({ readExactRow: async () => { throw new Error("private database diagnostic"); } })
+    ];
+    for (const verifier of scenarios) {
+      await assert.rejects(() => verifier.verify(probeParams),
+        err => err instanceof SupabaseClientError
+          && err.message === "two-tenant RLS proof unavailable");
+    }
+  });
+
+  it("does not change legacy chooseClient fallback behavior for existing routes", async () => {
+    const verified = await verifiedInput();
+    assert.equal(chooseClient({
+      method: "GET", table: "sonara_learning_aggregates",
+      accessToken: "", readyTables: new Set([liveProof.table])
+    }).client, "service_role");
+    assert.throws(() => requireVerifiedUserScopedRead({ ...verified, accessToken: "" }),
+      SupabaseClientError);
   });
 });

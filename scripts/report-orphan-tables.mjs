@@ -123,11 +123,16 @@ function createdTables() {
   const dropped = new Set();
   for (const name of fs.readdirSync(dir).filter((file) => file.endsWith(".sql")).sort()) {
     const sql = fs.readFileSync(path.join(dir, name), "utf8");
-    for (const match of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi)) {
-      tables.add(match[1].toLowerCase());
+    // Capture the table, not the schema. Previously a private CREATE TABLE
+    // was misclassified as a table called "sonara_private" and its real name
+    // disappeared from the unused-table audit.
+    for (const match of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:(?:"?([a-z0-9_]+)"?)\.)?"?([a-z0-9_]+)"?/gi)) {
+      const schema = (match[1] || "public").toLowerCase();
+      if (schema === "public" || schema === "sonara_private") tables.add(match[2].toLowerCase());
     }
-    for (const match of sql.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?(?:public\.|retired\.)?"?([a-z0-9_]+)"?/gi)) {
-      dropped.add(match[1].toLowerCase());
+    for (const match of sql.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?(?:(?:"?([a-z0-9_]+)"?)\.)?"?([a-z0-9_]+)"?/gi)) {
+      const schema = (match[1] || "public").toLowerCase();
+      if (schema === "public" || schema === "sonara_private" || schema === "retired") dropped.add(match[2].toLowerCase());
     }
     // drop table retired.%I cascade, driven by an array of names above it.
     if (/drop\s+table\s+retired\.%I/i.test(sql)) {

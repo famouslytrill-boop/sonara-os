@@ -4,6 +4,7 @@
 
 const { createHash, randomUUID } = require("node:crypto");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { settledMapBounded } = require("../lib/sonara-bounded-source-reads.cjs");
 const {
   getGrowthProvider,
   _getGrowthProviderReadiness,
@@ -43,23 +44,15 @@ const { createSendRecorder, createSendRecordReader, remainderFrom } = require(".
 // batching. The number is derived from the same budget as before and the working
 // is here so it can be rechecked rather than trusted.
 //
-// Vercel's duration limits, read from
-// vercel.com/docs/functions/configuring-functions/duration on 10 September
-// 2026: with fluid compute (enabled by default) the DEFAULT is 300 seconds on
-// Hobby, Pro and Enterprise alike, and `vercel.json` sets no `maxDuration`, so
-// 300 seconds is what this actually gets. Costs are figured at a deliberately
-// pessimistic 500ms per call -- not the ~150ms a healthy call takes, because a
-// cap has to hold on a bad day:
+// This 1,000-recipient ceiling is deliberately retained until a durable
+// cross-invocation campaign queue is qualified. A healthy batch of 100 needs
+// at most ten provider requests, plus bounded suppression reads. An ambiguous
+// batch response now HALTS further requests and is reconciled independently:
+// no retry-as-individual fallback, no 200-call amplification, and no claim
+// that the client knows whether those messages were accepted.
 //
-//   * 1,000 recipients in batches of 100 is **10 calls, 5 seconds**.
-//   * The suppression read is at most 30 pages, **15 seconds**.
-//   * The worst case is the fallback: a batch that does not return one id per
-//     email is resent one recipient at a time, and `MAX_FALLBACK_BATCHES`
-//     bounds that at two batches -- **200 calls, 100 seconds**.
-//
-// 5 + 15 + 100 is 120 seconds against 300, so the cap holds even when the two
-// permitted fallbacks both fire. It is the fallback rather than the batching
-// that sets this ceiling, which is why raising MAX_FALLBACK_BATCHES is not free.
+// The cap is not a throughput guarantee; runtime, provider rate limits and
+// suppression latency still require performance and failure testing.
 //
 // **Above the cap the campaign is refused, never truncated.** Sending to the
 // first 1,000 of 3,000 and reporting "1,000 sent" is true and useless: the owner
@@ -505,6 +498,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       code: sent.code,
       sent: sent.sent,
       failed: sent.failed.length,
+      unconfirmed: (sent.uncertain || []).length,
       skipped: (sent.skipped || []).length,
       charge: sent.charge?.code || null,
       audience,
@@ -531,6 +525,9 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       detail: sent.detail,
       sent: sent.sent,
       failed: sent.failed,
+      // Provider may already have accepted these. They must be reconciled,
+      // not sent again under the remainder action.
+      uncertain: sent.uncertain || [],
       skipped: sent.skipped,
       // The recipients nothing was tried for. Computed by the dispatcher,
       // returned by it, and dropped here until 15 September 2026 -- so the
@@ -1157,20 +1154,24 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     // question. A count that cannot be read comes back null rather than 0.
     const scoped = campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "";
     const scopedById = campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : "";
+    // Bounded exact-count reads prevent a nine-request burst per campaign
+    // report. One failed query yields an unknown count, never zero.
+    const countTasks = [
+      () => countRows(config, TABLES.campaigns, context, scopedById),
+      () => countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
+      () => countRows(config, TABLES.leads, context, scoped),
+      () => countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
+      () => countRows(config, TABLES.touchpoints, context, scoped),
+      () => countRows(config, TABLES.conversions, context, scoped),
+      () => countRows(config, TABLES.content, context, scoped),
+      () => countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
+      () => countRows(config, TABLES.experiments, context, scoped)
+    ];
+    const settledCounts = await settledMapBounded(countTasks, (read) => read(), { concurrency: 3 });
     const [
       campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount,
       touchpointCount, conversionCount, contentCount, publishedCount, experimentCount
-    ] = await Promise.all([
-      countRows(config, TABLES.campaigns, context, scopedById),
-      countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
-      countRows(config, TABLES.leads, context, scoped),
-      countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
-      countRows(config, TABLES.touchpoints, context, scoped),
-      countRows(config, TABLES.conversions, context, scoped),
-      countRows(config, TABLES.content, context, scoped),
-      countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
-      countRows(config, TABLES.experiments, context, scoped)
-    ]);
+    ] = settledCounts.map((item) => item.ok ? item.value : { ok: false, count: null });
 
     // A conversion with no value recorded counted as zero and disappeared into
     // the total, which then read as the value of every sale. Number(null) is 0
@@ -1377,8 +1378,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   async function readInBatches(ids, limit, readBatch) {
     const batches = [];
     for (let start = 0; start < ids.length; start += BATCH) batches.push(ids.slice(start, start + BATCH).map(encodeURIComponent).join(","));
-    const results = await Promise.all(batches.map(readBatch));
-    if (!results.every((result) => result.ok)) return { ok: false, rows: [] };
+    // A large campaign can span many 100-id pages. Keep at most three in
+    // flight here, rather than sending a provider one query per page at once.
+    const settled = await settledMapBounded(batches, readBatch, { concurrency: 3 });
+    if (!settled.every((item) => item.ok && item.value?.ok && Array.isArray(item.value.rows))) {
+      return { ok: false, rows: [] };
+    }
+    const results = settled.map((item) => item.value);
     return { ok: true, rows: results.flatMap((result) => result.rows), truncated: results.some((result) => result.rows.length >= limit) };
   }
   async function readWhatCustomersPaid(config, context, campaignId, leads) {

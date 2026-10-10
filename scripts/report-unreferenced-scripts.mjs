@@ -93,6 +93,10 @@ const MINIMUM_REACHABLE = 60;
 // reach for it, because "a dev script" is what every one of these looks like
 // until it is the one that stopped working two years ago.
 const OPERATOR_TOOLS = Object.freeze({
+  "scripts/report-actions-queue.cjs":
+    "Manual, offline exact-commit GitHub Actions evidence diagnostic. An authorized operator exports a sanitized " +
+    "GitHub API snapshot and runs node scripts/report-actions-queue.cjs <snapshot.json> to inspect unfinished jobs, " +
+    "workflow-to-job provenance and page completeness. It neither fetches tokens nor reruns or approves CI.",
   "scripts/bootstrap-local.mjs":
     "First-run local setup: installs from pnpm-lock.yaml and refuses outright if the lockfile or package.json is absent. " +
     "Run once on a fresh checkout. Nothing in CI needs it because the workflows install directly.",

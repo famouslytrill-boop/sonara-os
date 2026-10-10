@@ -1,6 +1,9 @@
 name: Node Runtime Compatibility
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   pull_request:
   push:
     branches:
@@ -16,6 +19,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # A new PR head invalidates only earlier runs of that same PR.
+  # Main push, manual, and merge_group runs use independent run IDs;
+  # never cancel an exact-main-SHA or merge-queue attestation.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   blocking-compatibility:
     name: Node ${{ matrix.node }} blocking compatibility
@@ -27,6 +37,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -66,6 +78,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:

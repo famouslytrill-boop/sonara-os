@@ -29,6 +29,43 @@ Uses GitHub's read-only GET /repos/OWNER/REPO/branches/main and GET /repos/OWNER
 
 A network error, GitHub 403, an absent setting or uncertain metadata is NOT interpreted as a safe deployment. Nothing here modifies GitHub settings or deploys the application.
 
+## Additional enforced rules verification — 9 October 2026, draft PR #563
+
+The previous implementation proved `main.protected === true` and production environment reviewer policy but **did not prove which branch rules caused the protected flag**. This pass extends the existing release gate, `scripts/verify-production-environment-governance.cjs`, instead of adding a second conflicting release script.
+
+After reading `/branches/main`, the gate now reads GitHub's read-only `/rules/branches/main?per_page=100` endpoint to inspect the rules **actually enforced on main** (repository and inherited organization rules). Evaluate-only and disabled rules are not returned by this GitHub API. The script then reads `/environments/production`; all three requests must succeed. The policy denies the release when any of these requirements is unverified:
+
+1. An effective `pull_request` rule requiring one or more approvals, dismissal of stale reviews on new pushes, and an independent last-push approval.
+2. Effective `non_fast_forward` and `deletion` rules.
+3. Strict `required_status_checks` rules that include at least these **actual observed job names**, not guessed workflow titles: `sonara-industries`, `Node 24 blocking compatibility`, `Node 26 blocking compatibility`, `Node 24 / PostgreSQL 16 replay`, `scanners`, and `Architecture, SAST, tenant isolation, and release evidence`.
+4. All original requirements: current head SHA, `main.protected`, production environment reviewer, no self-review, environment admin bypass disabled, and protected-branches-only deployment.
+
+**These six are a minimum**, not the full required CI matrix. The exact-release chain still requires other mandatory checks including the complete nine-lane database replay matrix, Docker, dependency scan, browser/accessibility and relevant security checks. GitHub check contexts must be verified with the job/check-run API before administration changes.
+
+**Evidence limitation:** GitHub's effective branch-rules API does *not* expose ruleset `bypass_actors` metadata, so the new gate cannot independently prove there are no exemptions. The repository owner must inspect and attest that all applicable rulesets are actively enforced, have acceptable bypass actor lists, and do not permit an unreviewed push. Any protected classic-branch configuration without sufficiently strong effective rules is intentionally classified as unverified by this new gate. If GitHub denies access to the rules endpoint, production promotion fails closed; never silently fall back to the boolean `protected` flag.
+
+**Current connected snapshot:** GitHub still reports `main.protected=false`, and the repository-level ruleset listing is empty. No owner/admin settings were modified. The connected GitHub resource reader cannot request `/rules/branches/main` through its approved fetch surface, so live effective rule contents could not be independently read in this session. The new production script instead performs that read at approved workflow execution time, with explicit fail-closed handling.
+
+**Focused verification:** 10 existing/added governance test cases and 45 assertions passed with mock GitHub responses. Exact-commit pnpm, full CI, and a genuinely protected GitHub branch are still **not** verified.
+
+Source: https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch ; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+
+## Least-privilege production workflow secret isolation — 9 October 2026
+
+This draft also narrows the credential process-exposure window in `.github/workflows/controlled-production-deploy.yml`.
+
+**Before:** `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` were injected at the top of the entire `validate-migrate-deploy` job. Thus checkout, dependency installation, tests, source scans, builds, and unrelated diagnostic steps inherited these secrets, regardless of whether those steps needed them. The release remained protected by the production GitHub environment authorization and manual dispatch; this was a separate process-level least-privilege weakness.
+
+**After (draft only):** the job-wide injection of those three secrets is removed. Exactly eight credential-consuming steps have explicit narrow `env` entries: credential preflight, Supabase project identity, Supabase migration preview, Vercel environment pull, explicitly approved Stripe runtime-secret synchronization, pre-migration schema checkpoint, reviewed migration execution, and controlled Vercel deployment. Each step receives only the relevant credential(s). The existing service-role key and Stripe keys were already step-scoped and remain so. Non-authentication project refs, URLs, and Vercel project IDs remain job-level configuration.
+
+GitHub's documented distinction between `jobs.<job_id>.env` and `jobs.<job_id>.steps[*].env` ensures later steps do not automatically inherit tokens declared on previous steps. This is process-environment reduction, not isolation from a malicious or compromised runner, and it does not eliminate deployment-environment approval requirements or erase sensitive configuration files pulled for explicit verification.
+
+**Regression enforcement:** `tests/production-environment-governance.test.js` checks that no token/password remains in the job-wide env, that the exact eight allowed step names contain required credential variables, and that every other named step is credential-free. The test compares actual expressions to expected protected-secret mappings, rejecting accidental insertion into unrelated build/test steps. In an isolated JS test harness, the 11 governance test cases passed 162 assertions; full GitHub Actions execution is still queued and has not been established as green.
+
+**No production secret values were accessed or changed**, and the workflow was not manually dispatched. The existing canary, exact SHA, branch governance, project identity, authorization and rollback requirements remain mandatory.
+
+Official reference: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
 ## Owner/admin changes that remain mandatory
 
 ### Settings → Rules → Rulesets (or Branches)

@@ -1,46 +1,18 @@
 "use strict";
 
-// The send route's response, for the recipients nothing was tried for.
+// A failed/short provider batch response is not proof that anybody received
+// nothing: some or all of the hundred emails might have been accepted. This
+// route must report which addresses are uncertain, which were not attempted,
+// and must never re-mail an uncertain contact as a silent fallback.
 //
-// `lib/growth-studio-dispatch.cjs` bounds its per-recipient fallback at two
-// batches, because 1,000 individual sends would run the function out of time
-// mid-campaign. Past that bound the remaining recipients are reported as **not
-// attempted** -- a state an owner can act on, as opposed to "attempted and
-// untracked".
-//
-// It computed them, returned them, and the route dropped them. So the detail
-// line read "200 sent, 100 not attempted" and there was no way for an owner to
-// learn which hundred. `tests/a-campaign-sends-only-to-who-was-authorised.test.js`
-// asserts those "must be reported, not silently dropped" -- true at the
-// dispatcher boundary, which is one layer below the boundary that dropped them.
-// That is the sixth shape in `.claude/skills/checks-that-cannot-lie`: a check
-// too weak to catch the thing it was written for.
-//
-// The second assertion here is about a sentence rather than a value. The
-// summary used to end "not attempted -- send again to reach them", and
-// following that instruction mails everybody a second time: nothing records who
-// was accepted, and the charge is keyed on the campaign, so the duplicate send
-// is refused as a duplicate *charge* and the owner is never billed -- which
-// removes the one signal that would have told them. The product's own output was
-// walking an owner into a silent double-send.
-//
-// ## Why this needs 301 recipients
-//
-// Batches are 100 and two may fall back. Reaching "not attempted" needs a third
-// batch that falls back with the budget already spent, so: batch 1 falls back,
-// batch 2 falls back, batch 3 is reported. 301 leads gives 100/100/100/1, and
-// the trailing single goes down the one-at-a-time path rather than the batch
-// endpoint.
-//
-// **No route-level test exercised the batch endpoint at all before this one.**
-// Every send test here used few enough recipients to stay on the single-send
-// path, which is not the path a real campaign takes.
-
+// The previous version of this test expected two ambiguous batches to be
+// replayed individually. That was precisely the duplicate-send defect.
+// This replacement exercises the real route and checks the opposite contract.
 const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/growth-studio-control-routes.cjs");
-const { MAX_PER_REQUEST, MAX_FALLBACK_BATCHES } = require("../lib/growth-studio-dispatch.cjs");
+const { MAX_PER_REQUEST } = require("../lib/growth-studio-dispatch.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
@@ -48,9 +20,9 @@ const CAMPAIGN_ID = "33333333-3333-4333-8333-333333333333";
 const SEND_PATH = `/api/growth/campaigns/${CAMPAIGN_ID}/send`;
 const MESSAGE = { approved: true, subject: "Spring service check", body: "Your annual service is due. Reply to book." };
 
-// Enough to reach a third batch, plus one so the trailing remainder is a single
-// send rather than a batch.
-const RECIPIENTS = MAX_PER_REQUEST * (MAX_FALLBACK_BATCHES + 1) + 1;
+// Three full batches plus a final singleton would be authorized; only the
+// first ambiguous batch may be attempted. All later recipients stay untouched.
+const RECIPIENTS = MAX_PER_REQUEST * 3 + 1;
 
 function uuid(index) {
   const hex = String(index).padStart(12, "0");
@@ -184,69 +156,45 @@ describe("an owner told a hundred were missed can find out which", () => {
     }
   });
 
-  it("actually went down the batch path", () => {
-    // Without this the rest of the file could pass over a campaign that never
-    // batched, which is how every other send test in this repository misses
-    // the path a real campaign takes.
-    assert.ok(calls.batchRequests >= MAX_FALLBACK_BATCHES + 1, `only ${calls.batchRequests} batch requests; this test is not exercising the batch path`);
-    assert.equal(response.status, 200);
+  it("uses exactly one batch and stops instead of retrying it as individual sends", () => {
+    assert.equal(calls.batchRequests, 1);
+    assert.deepEqual(calls.singleSends, []);
+    assert.equal(response.status, 502, "unconfirmed sends are not verified success");
+    assert.equal(response.body.code, "delivery_unconfirmed");
   });
 
-  it("reports the recipients nothing was tried for, by address", () => {
-    assert.ok(Array.isArray(response.body.notAttempted), "the route must forward notAttempted; an owner cannot act on a count alone");
-    assert.equal(response.body.notAttempted.length, MAX_PER_REQUEST);
-    for (const entry of response.body.notAttempted) {
-      assert.match(entry.email, /@example\.com$/, "each entry names the address, not just a reason");
-      assert.equal(entry.reason, "fallback_budget_spent");
+  it("lists uncertain recipients separately from recipients never attempted", () => {
+    assert.equal(response.body.sent, 0);
+    assert.equal(response.body.uncertain.length, MAX_PER_REQUEST);
+    assert.ok(Array.isArray(response.body.notAttempted));
+    assert.equal(response.body.notAttempted.length, RECIPIENTS - MAX_PER_REQUEST);
+    for (const item of response.body.uncertain) {
+      assert.match(item.email, /@example\\.com$/);
+      assert.equal(item.reason, "provider_outcome_unknown");
+    }
+    for (const item of response.body.notAttempted) {
+      assert.equal(item.reason, "earlier_batch_unconfirmed");
+    }
+    const unknown = new Set(response.body.uncertain.map((x) => x.email));
+    for (const item of response.body.notAttempted) {
+      assert.ok(!unknown.has(item.email), "an unknown recipient must not also be reported as never attempted");
     }
   });
 
-  it("names a hundred addresses that were genuinely never sent to", () => {
-    // The two halves have to agree. A `notAttempted` list that overlapped the
-    // addresses the fallback actually mailed would be worse than no list.
-    const mailed = new Set(calls.singleSends);
-    for (const entry of response.body.notAttempted) {
-      assert.ok(!mailed.has(entry.email), `${entry.email} is reported as not attempted and was mailed`);
-    }
-    assert.equal(mailed.size, MAX_PER_REQUEST * MAX_FALLBACK_BATCHES + 1, "the two permitted fallbacks plus the trailing single send");
+  it("does not tell an owner to retry an unverified campaign", () => {
+    assert.match(response.body.detail, /delivery outcomes unconfirmed/);
+    assert.match(response.body.detail, /do not send the remainder until reconciliation/);
+    assert.ok(!/only the remainder needs sending/.test(response.body.detail));
+    assert.ok(!/send again/i.test(response.body.detail));
+    assert.equal(response.body.recorded.ok, true, "uncertainty reason rows should be recorded");
   });
 
-  it("does not tell the owner to send the campaign again", () => {
-    // The instruction that caused the harm. Following it mails everyone above a
-    // second time, and the duplicate charge key means the owner is not billed
-    // and so never finds out.
-    assert.match(response.body.detail, /not attempted/);
-    assert.ok(
-      !/send again/i.test(response.body.detail),
-      `the summary tells the owner to send again, which re-mails everyone already sent: ${response.body.detail}`
+  it("preserves all addresses and never labels unknown outcomes as accepted or rejected", () => {
+    assert.equal(
+      response.body.sent + response.body.uncertain.length + response.body.notAttempted.length,
+      RECIPIENTS
     );
-
-    // Since 16 September 2026 this sentence has two forms, because there is now
-    // a per-recipient record that can make the remainder reachable -- and which
-    // can itself fail to write. The wording has to follow the record rather
-    // than being fixed, or a failed write reads exactly like a successful one.
-    //
-    // This fixture's fetch stub answers the send-record insert as well as the
-    // mail requests, so the record IS written here and the sentence says the
-    // remainder is reachable. Asserted against the forwarded state rather than
-    // the prose alone: a sentence that claims a record while `recorded.ok` is
-    // false would be the same defect in a new place.
-    assert.equal(response.body.recorded.ok, true, "the fixture wrote the send record; the response must say so");
-    assert.match(
-      response.body.detail,
-      /who was already reached is on record, so only the remainder needs sending/,
-      `with the send record written the summary must say the remainder is reachable: ${response.body.detail}`
-    );
-    // The two forms are mutually exclusive, and the un-recorded one is asserted
-    // in tests/an-unrecorded-send-is-not-a-send-to-nobody.test.js.
-    assert.ok(
-      !/would re-mail everyone above/.test(response.body.detail),
-      "the summary warns of a re-mail while reporting a written record"
-    );
-  });
-
-  it("counts the sent and the missed separately and consistently", () => {
-    assert.equal(response.body.sent + response.body.notAttempted.length, RECIPIENTS);
-    assert.equal(response.body.failed.length, 0);
+    assert.deepEqual(response.body.failed, []);
+    assert.equal(calls.singleSends.length, 0);
   });
 });

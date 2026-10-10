@@ -20,9 +20,15 @@ function workflowStep(workflow, name) {
 }
 
 const workflow = read(".github/workflows/controlled-production-deploy.yml");
-const jobEnvStart = workflow.indexOf("    env:\n");
-const stepsStart = workflow.indexOf("\n    steps:");
-assert.ok(jobEnvStart !== -1 && stepsStart > jobEnvStart, "Unable to isolate controlled deployment job env");
+// A credential-free release attestation preflight now runs before deployment.
+// Never inspect the first job's env: that would mistake a safe preflight for
+// evidence that the protected deployment job has an appropriate secret scope.
+const deployJobStart = workflow.indexOf("\n  validate-migrate-deploy:\n");
+assert.notEqual(deployJobStart, -1, "Missing protected deployment job");
+const jobEnvStart = workflow.indexOf("\n    env:\n", deployJobStart);
+const stepsStart = workflow.indexOf("\n    steps:\n", deployJobStart);
+assert.ok(jobEnvStart > deployJobStart && stepsStart > jobEnvStart,
+  "Unable to isolate controlled deployment job env");
 
 const jobEnv = workflow.slice(jobEnvStart, stepsStart);
 assert.doesNotMatch(
@@ -280,5 +286,29 @@ assert.match(claudeSync, /claude\/fix-deploy-service-role-secret/);
 assert.match(claudeSync, /375a2ef1b3809be76ccd4f3a00a107d8d9f788a9/);
 assert.match(claudeSync, /fa9402a8671bae7934925c5c64f147a221bf4e16/);
 assert.doesNotMatch(claudeSync, /service[_ -]?role[_ -]?key\s*[:=]\s*[A-Za-z0-9._-]{20,}/i);
+
+// The shared assistant index must enumerate current skills and formula catalogues,
+// not merely point to files that existed when the documentation was written.
+const knowledgeIndex = spawnSync(process.execPath, ["scripts/generate-assistant-knowledge-index.mjs", "--check"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(knowledgeIndex.status, 0,
+  "Shared assistant knowledge is stale or undiscoverable:\\n" + (knowledgeIndex.stderr || knowledgeIndex.stdout || ""));
+
+// Codex discovers a different skill directory. Require a byte-for-byte
+// generated bridge for each canonical Claude/shared skill; missing or stale
+// manifests must fail the existing release chain, not silently drop a method.
+const codexSkills = spawnSync(process.execPath, ["scripts/generate-codex-skill-bridges.mjs", "--check"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(codexSkills.status, 0,
+  "Codex individual-model skill bridges are stale or missing:\\n" + (codexSkills.stderr || codexSkills.stdout || ""));
+
+// Validate portable model packaging inputs without generating files or using provider APIs.
+const packagedSkills = spawnSync(process.execPath, ["scripts/export-assistant-model-skill-packs.mjs", "--dry-run"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(packagedSkills.status, 0,
+  "Portable model skill export failed: " + (packagedSkills.stderr || packagedSkills.stdout || ""));
 
 console.log("Agent development sync verified: scoped Supabase secrets, deep database gate, catalog idempotency, dependency override, and shared state are aligned.");

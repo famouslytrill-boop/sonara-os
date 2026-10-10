@@ -1,0 +1,241 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
+"use strict";
+const assert = require("node:assert/strict");
+const { gunzipSync } = require("node:zlib");
+const { createHash } = require("node:crypto");
+const {
+  VERTICALS, VERTICAL_KEYS, SEASONS, MAX_EVENTS,
+  getVerticalPlaybook, planSeasonalCapacity, calculateJobQuote,
+  summarizeOperationalEvents, compressOperationalSummary
+} = require("../lib/sonara-seasonal-vertical-playbooks.cjs");
+
+const ORG_A = "11111111-1111-4111-8111-111111111111";
+const ORG_B = "22222222-2222-4222-8222-222222222222";
+function event(overrides = {}) {
+  return {
+    organizationId: ORG_A, eventId: "evt_1", recordId: "work_1",
+    status: "delivered", revision: 2, ...overrides
+  };
+}
+
+describe("seasonal vertical planning boundary", () => {
+  it("covers all requested operations without implying they are live", () => {
+    assert.equal(VERTICALS.length, 16);
+    assert.equal(new Set(VERTICAL_KEYS).size, VERTICALS.length);
+    for (const definition of VERTICALS) {
+      for (const season of definition.seasons) assert.ok(SEASONS.includes(season));
+      const plan = getVerticalPlaybook(definition.key);
+      assert.equal(plan.runtimeExecution, false);
+      assert.equal(plan.activeProviderIntegrations, false);
+      assert.ok(plan.operations.length);
+      assert.ok(plan.requiresExplicitHumanReview.length);
+    }
+  });
+
+  it("separates seasonal and year-round work", () => {
+    assert.equal(getVerticalPlaybook("winter_services", "winter").seasonFit, true);
+    assert.equal(getVerticalPlaybook("winter_services", "summer").seasonFit, false);
+    assert.equal(getVerticalPlaybook("bars", "summer").seasonFit, true);
+    assert.equal(getVerticalPlaybook("food_trucks", "year_round").seasonFit, true);
+    assert.equal(getVerticalPlaybook("construction", "year_round").seasonFit, true);
+    assert.equal(getVerticalPlaybook("winter_services", "year_round").seasonFit, false);
+    assert.throws(() => getVerticalPlaybook("unknown"), /unknown_vertical/);
+    assert.throws(() => getVerticalPlaybook("bars", "monsoon"), /unknown_season/);
+  });
+
+  it("does not silently perform a regulated sale or worker classification", () => {
+    assert.ok(getVerticalPlaybook("bars").requiresExplicitHumanReview.includes("regulated_sale"));
+    assert.ok(getVerticalPlaybook("food_trucks").requiresExplicitHumanReview.includes("food_safety"));
+    assert.ok(getVerticalPlaybook("independent_contractors").requiresExplicitHumanReview.includes("worker_classification"));
+    assert.ok(getVerticalPlaybook("tow_trucks").requiresExplicitHumanReview.includes("autonomous_dispatch"));
+  });
+
+  it("calculates crew capacity and an explicit seasonal scenario exactly", () => {
+    const result = planSeasonalCapacity({
+      baselineJobs: 100, seasonFactorBasisPoints: 15000,
+      workers: 2, minutesPerWorker: 480, minutesPerJob: 45,
+      reserveBasisPoints: 1000
+    });
+    assert.equal(result.scenarioJobs, 150);
+    assert.equal(result.usableCrewMinutes, 864);
+    assert.equal(result.capacityJobs, 19);
+    assert.equal(result.feasibleJobs, 19);
+    assert.equal(result.unservedJobs, 131);
+    assert.equal(result.weatherDataConnected, false);
+    assert.equal(result.classification, "user_supplied_capacity_scenario_not_prediction");
+  });
+
+  it("does not count unrequested capacity as feasible work", () => {
+    const plan = planSeasonalCapacity({
+      baselineJobs: 3, workers: 4,
+      minutesPerWorker: 480, minutesPerJob: 60
+    });
+    assert.equal(plan.scenarioJobs, 3);
+    assert.equal(plan.capacityJobs, 32);
+    assert.equal(plan.feasibleJobs, 3);
+    assert.equal(plan.unusedCapacityJobs, 29);
+    assert.equal(plan.unservedJobs, 0);
+    assert.equal(plan.feasibleJobs + plan.unservedJobs, plan.scenarioJobs);
+    assert.equal(plan.feasibleJobs + plan.unusedCapacityJobs, plan.capacityJobs);
+  });
+
+  it("preserves demand and capacity conservation across a small integer grid", () => {
+    for (const baselineJobs of [0, 1, 3, 17, 100]) {
+      for (const workers of [0, 1, 2, 8]) {
+        for (const minutesPerJob of [1, 30, 60, 90]) {
+          const result = planSeasonalCapacity({
+            baselineJobs, workers, minutesPerWorker: 480,
+            minutesPerJob, reserveBasisPoints: 1250,
+            seasonFactorBasisPoints: 17500
+          });
+          assert.equal(result.feasibleJobs + result.unservedJobs, result.scenarioJobs);
+          assert.equal(result.feasibleJobs + result.unusedCapacityJobs, result.capacityJobs);
+          assert.ok(result.feasibleJobs <= result.scenarioJobs);
+          assert.ok(result.feasibleJobs <= result.capacityJobs);
+          assert.ok(result.unservedJobs >= 0 && result.unusedCapacityJobs >= 0);
+        }
+      }
+    }
+  });
+
+  it("assumes no seasonal uplift without owner-provided evidence", () => {
+    const plan = planSeasonalCapacity({
+      baselineJobs: 3, workers: 0, minutesPerWorker: 480, minutesPerJob: 30
+    });
+    assert.equal(plan.seasonFactorBasisPoints, 10000);
+    assert.equal(plan.scenarioJobs, 3);
+    assert.equal(plan.unservedJobs, 3);
+  });
+
+  it("rejects impossible, fractional, negative and unbounded resources", () => {
+    const base = { baselineJobs: 2, workers: 1, minutesPerWorker: 480, minutesPerJob: 30 };
+    assert.throws(() => planSeasonalCapacity({ ...base, minutesPerJob: 0 }), /invalid_zero_minutes/);
+    assert.throws(() => planSeasonalCapacity({ ...base, workers: 1.5 }), /invalid_workers/);
+    assert.throws(() => planSeasonalCapacity({ ...base, reserveBasisPoints: 10000 }), /invalid_reserve_basis_points/);
+    assert.throws(() => planSeasonalCapacity({ ...base, seasonFactorBasisPoints: NaN }), /invalid_season_factor_basis_points/);
+    assert.throws(() => planSeasonalCapacity({ ...base, minutesPerWorker: 2000 }), /invalid_minutes_per_worker/);
+  });
+
+  it("computes precise revenue, variable cost and contribution without payment execution", () => {
+    const quote = calculateJobQuote({
+      lineItems: [
+        { quantity: 2, unitPriceCents: 12500, unitCostCents: 8500 },
+        { quantity: 1, unitPriceCents: 5000, unitCostCents: 2500 }
+      ],
+      deliveryFeeCents: 2500, deliveryCostCents: 1000
+    });
+    assert.equal(quote.revenueCents, 32500);
+    assert.equal(quote.variableCostCents, 20500);
+    assert.equal(quote.contributionCents, 12000);
+    assert.equal(quote.contributionMarginBasisPoints, 3692);
+    assert.equal(quote.customerActionExecuted, false);
+    assert.ok(quote.excluded.includes("taxes"));
+  });
+
+  it("never accepts customer details or payment data in quote lines", () => {
+    const valid = { quantity: 2, unitPriceCents: 12500, unitCostCents: 8500 };
+    for (const unexpected of [
+      { customerEmail: "secret@example.com" },
+      { customerAddress: "private address" },
+      { paymentToken: "tok_secret_test" },
+      { originLat: 40.1 }
+    ]) {
+      assert.throws(
+        () => calculateJobQuote({ lineItems: [{ ...valid, ...unexpected }] }),
+        /invalid_line_item_shape/
+      );
+    }
+    assert.throws(
+      () => calculateJobQuote({ lineItems: [{ quantity: 1, unitPriceCents: 100 }] }),
+      /invalid_line_item_shape/
+    );
+    const correct = calculateJobQuote({ lineItems: [valid] });
+    assert.equal(correct.revenueCents, 25000);
+    assert.equal(correct.variableCostCents, 17000);
+  });
+
+  it("reports losses, zero revenue and overflows without losing cents", () => {
+    const negative = calculateJobQuote({
+      lineItems: [{ quantity: 1, unitPriceCents: 100, unitCostCents: 125 }]
+    });
+    assert.equal(negative.contributionCents, -25);
+    assert.equal(negative.contributionMarginBasisPoints, -2500);
+    assert.equal(calculateJobQuote({ lineItems: [{ quantity: 1, unitPriceCents: 0, unitCostCents: 0 }] }).contributionMarginBasisPoints, null);
+    assert.throws(() => calculateJobQuote({ lineItems: [] }), /invalid_line_items/);
+    assert.throws(() => calculateJobQuote({
+      lineItems: [{ quantity: 2, unitPriceCents: -1, unitCostCents: 0 }]
+    }), /invalid_unit_price_cents/);
+    assert.throws(() => calculateJobQuote({
+      lineItems: Array.from({ length: 10 }, () => ({ quantity: 10000, unitPriceCents: 100000000000, unitCostCents: 0 }))
+    }), /scenario_overflow/);
+  });
+
+  it("counts duplicate envelopes without ever accepting raw customer payloads", () => {
+    const input = event();
+    const summary = summarizeOperationalEvents({
+      organizationId: ORG_A,
+      events: [input, { ...input }, event({ eventId: "evt_2", status: "invoiced" })]
+    });
+    assert.equal(summary.totalReceived, 3);
+    assert.equal(summary.uniqueEvents, 2);
+    assert.equal(summary.exactDuplicates, 1);
+    assert.equal(summary.statusCounts.delivered, 1);
+    assert.equal(summary.statusCounts.invoiced, 1);
+    assert.equal(summary.containsRawCustomerData, false);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A,
+      events: [event({ customerEmail: "private@example.com" })]
+    }), /invalid_event_shape/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A,
+      events: [event({ deliveryAddress: "private street" })]
+    }), /invalid_event_shape/);
+    assert.ok(!JSON.stringify(summary).includes("evt_1"));
+    assert.ok(!JSON.stringify(summary).includes("work_1"));
+    const packed = compressOperationalSummary(summary);
+    assert.equal(packed.format, "gzip+base64");
+    assert.equal(packed.encrypted, false);
+    const raw = gunzipSync(Buffer.from(packed.data, "base64"));
+    assert.equal(packed.originalBytes, raw.length);
+    assert.equal(packed.sha256, createHash("sha256").update(raw).digest("hex"));
+    assert.equal(packed.sha256.length, 64);
+    assert.notEqual(packed.sha256, createHash("sha256").update(Buffer.from(raw.toString("utf8") + " ")).digest("hex"));
+    const original = JSON.parse(raw.toString("utf8"));
+    assert.equal(original.uniqueEvents, 2);
+    assert.equal(original.version, 1);
+    assert.ok(!JSON.stringify(original).includes("private@example.com"));
+    assert.ok(!JSON.stringify(summary).includes("private@example.com"));
+    assert.ok(!JSON.stringify(summary).includes("private street"));
+  });
+
+  it("fails closed on mixed organizations and conflicting event identities", () => {
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: [event(), event({ organizationId: ORG_B, eventId: "evt_3" })]
+    }), /organization_mismatch/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: [event(), event({ status: "cancelled" })]
+    }), /conflicting_event_identity/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: "not-a-uuid", events: []
+    }), /invalid_organization/);
+    assert.throws(() => compressOperationalSummary({
+      organizationId: ORG_A, customerEmail: "private@example.com"
+    }), /unvalidated_operational_summary/);
+  });
+
+  it("bounds event batch sizes and disallows arbitrary status/revision values", () => {
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: Array.from({ length: MAX_EVENTS + 1 }, () => event())
+    }), /invalid_event_batch/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: [event({ status: "__proto__" })]
+    }), /invalid_event_fields/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: [event({ revision: 1.25 })]
+    }), /invalid_event_fields/);
+    assert.throws(() => summarizeOperationalEvents({
+      organizationId: ORG_A, events: [event({ eventId: "bad/id" })]
+    }), /invalid_event_fields/);
+  });
+});

@@ -138,3 +138,40 @@ ORDER BY p.oid::regprocedure::text;
 
 -- PostgreSQL counters are resettable, and small data sets often prefer seq
 -- scans. These alone never authorize CREATE INDEX or DROP INDEX.
+
+-- Subscription migration-vs-catalog RLS drift (metadata only, zero writes).
+-- The canonical member/admin rule comes from 011_sonara_saas_launch_system.sql.
+-- Two different user_id ownership rules were found in preview but not in the
+-- checked-in migration history. Do not automatically copy/drop them: compare
+-- real tenant membership semantics and obtain an approved migration first.
+-- A clean native replay expects the canonical rule and neither extra rule.
+WITH policy_names(name, origin) AS (
+  VALUES ('subscriptions_select_member'::text, 'checked-in migration 011'::text),
+         ('Users can view own subscriptions'::text, 'not in checked-in migrations'::text),
+         ('Users can view their own subscription'::text, 'not in checked-in migrations'::text)
+), observed AS (
+  SELECT policyname, permissive, roles::text AS roles, cmd, qual, with_check
+  FROM pg_policies
+  WHERE schemaname='public' AND tablename='subscriptions'
+)
+SELECT n.name AS policy_name, n.origin AS expected_origin,
+       o.policyname IS NOT NULL AS exists_in_catalog,
+       o.roles, o.cmd, o.qual,
+       CASE
+         WHEN n.name='subscriptions_select_member' AND o.policyname IS NULL
+           THEN 'missing_migration_policy'
+         WHEN n.name='subscriptions_select_member' AND (
+           o.permissive IS DISTINCT FROM 'PERMISSIVE'
+           OR o.roles IS DISTINCT FROM '{authenticated}'
+           OR o.cmd IS DISTINCT FROM 'SELECT'
+           OR replace(regexp_replace(lower(coalesce(o.qual,'')),'[[:space:]()]','','g'),'public.','')
+              IS DISTINCT FROM 'is_org_memberorganization_idoris_admin_or_founder'
+           OR o.with_check IS NOT NULL
+         ) THEN 'migration_policy_definition_drift'
+         WHEN n.name='subscriptions_select_member' THEN 'migration_policy_matches'
+         WHEN o.policyname IS NOT NULL THEN 'extra_policy_not_in_migration_history'
+         ELSE 'extra_policy_absent'
+       END AS review_status
+FROM policy_names n
+LEFT JOIN observed o ON o.policyname=n.name
+ORDER BY n.name;

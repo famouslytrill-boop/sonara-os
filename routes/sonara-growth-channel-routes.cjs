@@ -38,12 +38,14 @@ const { CATALOG: FREE_SURFACE_CATALOG } = require("../lib/sonara-free-platform-s
 // anything a business would later ask about.
 
 const channels = require("../lib/sonara-growth-channels.cjs");
+const safety = require("../lib/sonara-growth-channel-safety.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
   "requireWorkspaceAccess", "getCustomerPrimaryOrganization",
-  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter"
+  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter",
+  "requireCustomer", "resolveCustomerSession", "getEnv"
 ];
 
 const CHANNEL_TABLE = "growth_channels";
@@ -51,6 +53,8 @@ const POST_TABLE = "growth_channel_posts";
 const REPORT_TABLE = "growth_post_reports";
 const DIRECTORY_TABLE = "growth_channel_directory";
 const EVENT_TABLE = "growth_events";
+const BLOCK_TABLE = "growth_channel_blocks";
+const MODERATION_AUDIT_TABLE = "growth_channel_moderation_events";
 
 // Read one past each cap, so a truncated list says so rather than looking short.
 const CHANNEL_CAP = channels.CHANNELS_PER_ORGANIZATION;
@@ -65,11 +69,16 @@ function registerGrowthChannelRoutes(app, deps = {}) {
   const {
     layout, brandCard, linkAction, escapeHtml,
     requireWorkspaceAccess, getCustomerPrimaryOrganization,
-    getSupabaseServerConfig, supabaseHeaders, createRateLimiter
+    getSupabaseServerConfig, supabaseHeaders, createRateLimiter,
+    requireCustomer, resolveCustomerSession, getEnv
   } = deps;
 
   const enc = encodeURIComponent;
   const OWNER_PAGE = "/growth-studio/owner/channels";
+  // Keep the pre-existing public channel/report experience available until the
+  // new tables and RPCs have passed isolated DB replay and operator approval.
+  const advancedSafetyEnabled = () =>
+    getEnv("SONARA_GROWTH_CHANNEL_SAFETY_ENABLED") === "true";
   const guard = requireWorkspaceAccess("growth_studio");
 
   async function scopeFor(req) {
@@ -100,6 +109,172 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       body: payload === undefined ? undefined : JSON.stringify(payload)
     }).catch(() => undefined);
     return { ok: Boolean(response?.ok), status: response?.status || 0 };
+  }
+
+
+  // Account-level block lists are private, server-read and must fail closed.
+  // Anonymous readers have no account block state. RSS readers without a session
+  // are also anonymous and must not be advertised as block-aware.
+  async function reviewerMembership(scope) {
+    if (!safety.isUuid(scope?.userId) || !safety.isUuid(scope?.organizationId)) return false;
+    const read = await rest(scope.config,
+      `organization_memberships?select=role,status&organization_id=eq.${enc(scope.organizationId)}&user_id=eq.${enc(scope.userId)}&status=eq.active&limit=1`);
+    // A failed membership read is NOT a moderator grant.
+    return read.ok && read.rows.some((row) =>
+      row.status === "active" && ["owner", "admin"].includes(row.role));
+  }
+
+  async function viewerBlocks(req, res, config) {
+    if (!advancedSafetyEnabled()) return { ok: true, viewer: null, rows: [] };
+    const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
+    const viewer = session?.ok ? session.user : null;
+    if (!viewer?.id) return { ok: true, viewer: null, rows: [] };
+    if (!safety.isUuid(viewer.id)) return { ok: false, viewer, rows: [] };
+    const blocks = await rest(config,
+      `${BLOCK_TABLE}?select=channel_id&viewer_user_id=eq.${enc(viewer.id)}&limit=${safety.MAX_BLOCKED + 1}`);
+    if (!blocks.ok || blocks.rows.length > safety.MAX_BLOCKED ||
+      !safety.visibleDirectory([], blocks.rows).ok) {
+      return { ok: false, viewer, rows: [] };
+    }
+    return { ok: true, viewer, rows: blocks.rows };
+  }
+
+  const blockLimiter = createRateLimiter({
+    name: "growth_channel_block_toggle",
+    windowSeconds: 3600, maxAttempts: 600, scopes: ["ip"],
+    getSupabaseServerConfig
+  });
+
+  app.get("/account/blocked-channels", requireCustomer, async (req, res) => {
+    if (!advancedSafetyEnabled()) return res.status(200).type("html").send(layout({
+      title: "Blocked channels", eyebrow: "Your account",
+      heading: "Blocked channels", body: "Blocking channels is not available yet.",
+      sections: [], actions: [linkAction("/channels", "All channels")]
+    }));
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return failedPage(res, "Your blocked channels cannot be read just now.", 503);
+    const blocks = await rest(config,
+      `${BLOCK_TABLE}?select=channel_id&viewer_user_id=eq.${enc(req.sonaraUser.id)}&limit=${safety.MAX_BLOCKED + 1}`);
+    if (!blocks.ok || blocks.rows.length > safety.MAX_BLOCKED || !safety.visibleDirectory([], blocks.rows).ok) {
+      return failedPage(res, "Your blocked channels cannot be read just now. Nothing was changed.", 503);
+    }
+    res.setHeader("Cache-Control", "private, no-store");
+    const directory = await rest(config,
+      `${DIRECTORY_TABLE}?select=channel_id,handle,title&limit=${DIRECTORY_CAP + 1}`);
+    if (!directory.ok) return failedPage(res, "We could not load channel names. Your blocks are still in place.", 503);
+    const labels = new Map(directory.rows.map((item) => [item.channel_id, item]));
+    const entries = blocks.rows.map((entry) => {
+      const item = labels.get(entry.channel_id);
+      const title = item ? item.title || item.handle : "A channel not currently listed";
+      return `<li><span>${escapeHtml(title)}</span> <form method="post" action="/api/growth/channels/${enc(entry.channel_id)}/unblock">
+        <button type="submit">Unblock channel</button></form></li>`;
+    });
+    return res.status(200).type("html").send(layout({
+      title: "Blocked channels", eyebrow: "Your account", heading: "Blocked channels",
+      body: "Blocked channels are removed from your signed-in SONARA directory and channel pages. Anonymous browsers and outside feed readers are not tied to this account.",
+      sections: [brandCard("Your blocks", entries.length ? `<ul>${entries.join("")}</ul>` : "You have not blocked any channels.")],
+      actions: [linkAction("/channels", "All channels"), linkAction("/account", "Your account")]
+    }));
+  });
+
+  async function changeBlock(req, res, blocking) {
+    if (!advancedSafetyEnabled()) {
+      return res.status(503).type("text/plain").send("Channel blocking is not available yet.");
+    }
+    // Cookie-backed mutation: reject forged cross-origin form submissions.
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
+    }
+    const id = String(req.params.id || "");
+    if (!safety.isUuid(id) || !safety.isUuid(req.sonaraUser?.id)) {
+      return res.status(400).type("text/plain").send("Invalid channel.");
+    }
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    // One server-only PostgreSQL transaction enforces a shared 500-block
+    // ceiling even when requests arrive concurrently from multiple devices.
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_growth_channel_block_action`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_actor_user_id: req.sonaraUser.id,
+        p_channel_id: id,
+        p_action: blocking ? "block" : "unblock"
+      })
+    }).catch(() => undefined);
+    if (!response?.ok) return res.status(503).type("text/plain").send("Your block could not be saved.");
+    const result = await response.json().catch(() => null);
+    if (result === "block_limit_reached") {
+      return res.status(409).type("text/plain").send("You have reached the limit of 500 blocked channels. Unblock one to add another.");
+    }
+    if (result === "unknown_channel" || result === "denied") {
+      return res.status(404).type("text/plain").send("This channel is not available.");
+    }
+    if (result !== (blocking ? "blocked" : "unblocked")) {
+      return res.status(503).type("text/plain").send("Your block could not be saved.");
+    }
+    return res.redirect(303, "/account/blocked-channels");
+  }
+
+  app.post("/api/growth/channels/:id/block", requireCustomer, blockLimiter,
+    (req, res) => changeBlock(req, res, true));
+  app.post("/api/growth/channels/:id/unblock", requireCustomer, blockLimiter,
+    (req, res) => changeBlock(req, res, false));
+
+  // One database RPC changes the post/reports AND inserts the audit event in
+  // one transaction. It checks the current organization membership itself.
+  async function moderatePost(req, res, action) {
+    if (!safety.trustedWriteOrigin(req, getEnv("NEXT_PUBLIC_SITE_URL"))) {
+      return res.status(403).type("text/plain").send("This action needs a verified same-site request.");
+    }
+    const scope = await scopeFor(req);
+    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    if (!(await reviewerMembership(scope))) return res.status(403).type("text/plain").send("Moderator access required.");
+    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
+    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
+    const intent = safety.moderationInput({
+      action, actorId: scope.userId, organizationId: scope.organizationId,
+      postId: owned.post.id, ownedPostId: owned.post.id, ownedOrganizationId: scope.organizationId
+    });
+    if (!intent.ok) return res.redirect(303, back({ problem: "save_failed" }));
+    if (!advancedSafetyEnabled()) {
+      // Preserve the existing owner moderation workflow until the proposed
+      // atomic audit procedure has been installed. It remains tenant-scoped
+      // and owner/admin-checked, but is not yet an atomic/audited transition.
+      const now = new Date().toISOString();
+      if (action === "remove") {
+        const removed = await write(scope.config,
+          `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
+          { state: "removed", removed_at: now, updated_at: now }, "PATCH");
+        if (!removed.ok) return res.redirect(303, back({ problem: "save_failed" }));
+        await write(scope.config,
+          `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
+          { state: "actioned", decided_at: now }, "PATCH");
+      } else if (action === "restore") {
+        const restored = await write(scope.config,
+          `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
+          { state: "published", removed_at: null, updated_at: now }, "PATCH");
+        if (!restored.ok) return res.redirect(303, back({ problem: "save_failed" }));
+      } else {
+        const dismissed = await write(scope.config,
+          `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
+          { state: "dismissed", decided_at: now }, "PATCH");
+        if (!dismissed.ok) return res.redirect(303, back({ problem: "save_failed" }));
+      }
+      return res.redirect(303, back({ done: action === "remove" ? "removed" :
+        action === "restore" ? "restored" : "dismissed" }));
+    }
+    const response = await fetch(`${scope.config.url}/rest/v1/rpc/sonara_moderate_growth_post`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_organization_id: intent.organizationId,
+        p_post_id: intent.postId, p_actor_user_id: intent.actorId, p_action: action
+      })
+    }).catch(() => undefined);
+    const committed = response?.ok ? await response.json().catch(() => false) : false;
+    if (committed !== true) return res.redirect(303, back({ problem: "save_failed" }));
+    return res.redirect(303, back({ done: action === "remove" ? "removed" : action === "restore" ? "restored" : "dismissed" }));
   }
 
   // Codes in the URL, sentences looked up here, so a crafted link cannot put text
@@ -136,16 +311,18 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       return failedPage(res, "We could not reach your workspace just now. This is a problem on our side, and it is not telling you that you have no channels.", 503);
     }
     const org = `organization_id=eq.${enc(scope.organizationId)}`;
-    const [list, posts, reports, events] = await Promise.all([
+    const canReview = await reviewerMembership(scope);
+    const [list, posts, reports, events, audit] = await Promise.all([
       rest(scope.config, `${CHANNEL_TABLE}?select=id,handle,title,about,state,published_at&${org}&order=created_at.desc&limit=${CHANNEL_CAP + 1}`),
       rest(scope.config, `${POST_TABLE}?select=id,channel_id,kind,body,event_id,state,created_at&${org}&order=created_at.desc&limit=${POST_CAP + 1}`),
-      rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`),
-      rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`)
+      canReview ? rest(scope.config, `${REPORT_TABLE}?select=post_id,reason,state&${org}&state=eq.open&limit=${REPORT_CAP + 1}`) : Promise.resolve({ ok: true, rows: [] }),
+      rest(scope.config, `${EVENT_TABLE}?select=id,title,slug&${org}&status=eq.published&order=starts_at.desc&limit=100`),
+      canReview && advancedSafetyEnabled() ? rest(scope.config, `${MODERATION_AUDIT_TABLE}?select=post_id,actor_user_id,action,created_at&${org}&order=created_at.desc&limit=21`) : Promise.resolve({ ok: true, rows: [] })
     ]);
 
     // A failed read renders as a failed read. An empty page here is a sentence:
     // it says you have no channels, or nobody has flagged anything.
-    if (!list.ok || !posts.ok || !reports.ok || !events.ok) {
+    if (!list.ok || !posts.ok || !reports.ok || !events.ok || !audit.ok) {
       return failedPage(res, "We could not read part of your channels just now. Nothing has changed, and this is not a list of them -- try again shortly.");
     }
 
@@ -157,6 +334,13 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     }
 
     const sections = [];
+    if (canReview && advancedSafetyEnabled()) sections.push(brandCard("Moderation decision history",
+      audit.rows.length
+        ? "<ul>" + audit.rows.slice(0, 20).map((decision) =>
+          `<li>${escapeHtml(decision.action)} on post ${escapeHtml(decision.post_id)} by ${escapeHtml(decision.actor_user_id)}
+          at ${escapeHtml(String(decision.created_at))}</li>`).join("") + "</ul>"
+        : "No moderation decisions have been recorded."));
+    if (canReview && advancedSafetyEnabled() && audit.rows.length > 20) sections.push(brandCard("Older decisions", "Showing the latest 20. Earlier audit records remain stored."));
     // A Growth channel is a basic free login-based SONARA social surface.
     // The subscription policy is shared across parent, Business Builder,
     // Creator Studio and Growth Studio; it is NOT a payment or publish grant.
@@ -186,7 +370,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       lines.push(channel.state === "public" ? hideForm(channel) : publishForm(channel));
       lines.push(postForm(channel, events.rows));
       if (own.length) {
-        lines.push("<ul>" + own.slice(0, 30).map((post) => postItem(post, summary.byPost.get(post.id))).join("") + "</ul>");
+        lines.push("<ul>" + own.slice(0, 30).map((post) => postItem(post, canReview ? summary.byPost.get(post.id) : null, canReview)).join("") + "</ul>");
         if (own.length > 30) lines.push(`<p>Showing the newest 30 of ${own.length}.</p>`);
       } else {
         lines.push("<p>Nothing posted yet.</p>");
@@ -257,14 +441,14 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       <button type="submit">Post</button>
     </form>`;
 
-  function postItem(post, flagged) {
+  function postItem(post, flagged, canReview = false) {
     const reasons = flagged
       ? Object.entries(flagged.reasons).map(([reason, count]) => `${escapeHtml(reason)} ${count}`).join(", ")
       : "";
-    const action = post.state === "removed"
+    const action = !canReview ? "" : post.state === "removed"
       ? `<form action="/api/growth/channels/posts/restore" method="post">${hidden("post_id", post.id)}<button type="submit">Put it back</button></form>`
       : `<form action="/api/growth/channels/posts/remove" method="post">${hidden("post_id", post.id)}<button type="submit">Take it down</button></form>`;
-    const dismiss = flagged && post.state !== "removed"
+    const dismiss = canReview && flagged && post.state !== "removed"
       ? `<form action="/api/growth/channels/reports/dismiss" method="post">${hidden("post_id", post.id)}<button type="submit">Leave it up and dismiss the reports</button></form>`
       : "";
     return `<li><p>${post.kind === "announcement" ? "<strong>Announcement.</strong> " : ""}${channels.bodyHtml(post.body, escapeHtml)}</p>`
@@ -393,49 +577,12 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     return res.redirect(303, back(written.ok ? { done: "posted" } : { problem: "save_failed" }));
   });
 
-  app.post("/api/growth/channels/posts/remove", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const now = new Date().toISOString();
-    const patched = await write(scope.config,
-      `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
-      { state: "removed", removed_at: now, updated_at: now }, "PATCH");
-    if (!patched.ok) return res.redirect(303, back({ problem: "save_failed" }));
-
-    // The post is down whatever happens next; the reports catching up is
-    // bookkeeping, and a failure there does not put the post back.
-    await write(scope.config,
-      `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
-      { state: "actioned", decided_at: now }, "PATCH");
-    return res.redirect(303, back({ done: "removed" }));
-  });
-
-  app.post("/api/growth/channels/posts/restore", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const patched = await write(scope.config,
-      `${POST_TABLE}?id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}`,
-      { state: "published", removed_at: null, updated_at: new Date().toISOString() }, "PATCH");
-    return res.redirect(303, back(patched.ok ? { done: "restored" } : { problem: "save_failed" }));
-  });
-
-  app.post("/api/growth/channels/reports/dismiss", guard, async (req, res) => {
-    const scope = await scopeFor(req);
-    if (!scope.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    const owned = await ownedPost(scope, String(req.body?.post_id || "").trim());
-    if (!owned.ok) return res.redirect(303, back({ problem: "post_missing" }));
-
-    const patched = await write(scope.config,
-      `${REPORT_TABLE}?post_id=eq.${enc(owned.post.id)}&organization_id=eq.${enc(scope.organizationId)}&state=eq.open`,
-      { state: "dismissed", decided_at: new Date().toISOString() }, "PATCH");
-    return res.redirect(303, back(patched.ok ? { done: "dismissed" } : { problem: "save_failed" }));
-  });
+  app.post("/api/growth/channels/posts/remove", guard, (req, res) =>
+    moderatePost(req, res, "remove"));
+  app.post("/api/growth/channels/posts/restore", guard, (req, res) =>
+    moderatePost(req, res, "restore"));
+  app.post("/api/growth/channels/reports/dismiss", guard, (req, res) =>
+    moderatePost(req, res, "dismiss"));
 
   // ---------------------------------------------------------------------------
   // The public pages
@@ -472,7 +619,7 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     // it must never do is render a failed read as "no public channels yet".
     const config = getSupabaseServerConfig();
     const listed = config?.ok
-      ? await rest(config, `${DIRECTORY_TABLE}?select=handle,title,about&order=listed_at.desc&limit=${DIRECTORY_CAP + 1}`)
+      ? await rest(config, `${DIRECTORY_TABLE}?select=channel_id,handle,title,about&order=listed_at.desc&limit=${DIRECTORY_CAP + 1}`)
       : { ok: false, rows: [] };
     if (!listed.ok) {
       return publicPage(res, {
@@ -484,18 +631,32 @@ function registerGrowthChannelRoutes(app, deps = {}) {
           "That is a problem on our side, and it does not mean there are no channels. Nothing has been removed.")]
       });
     }
-    const rows = listed.rows.slice(0, DIRECTORY_CAP);
+    const blockRead = await viewerBlocks(req, res, config);
+    if (blockRead.viewer) res.setHeader("Cache-Control", "private, no-store");
+    if (!blockRead.ok) return publicPage(res, {
+      heading: "Channels unavailable", body: "We could not verify your blocked-channel settings, so we are not showing the directory.",
+      sections: [], status: 503
+    });
+    const visible = safety.visibleDirectory(listed.rows.slice(0, DIRECTORY_CAP), blockRead.rows);
+    if (!visible.ok) return unavailable(res);
+    const rows = visible.rows;
     const sections = rows.length
       ? [brandCard(`${rows.length}${listed.rows.length > DIRECTORY_CAP ? "+" : ""} public ${rows.length === 1 ? "channel" : "channels"}`,
         "<ul>" + rows.map((row) => `<li><a href="/channels/${escapeHtml(enc(row.handle))}">${escapeHtml(row.title || row.handle)}</a>`
           + `${row.about ? ` -- ${escapeHtml(String(row.about).slice(0, 200))}` : ""}</li>`).join("") + "</ul>")]
-      : [brandCard("No public channels yet", "Businesses on SONARA One can start a channel from Growth Studio. When one is made public it is listed here.")];
+      : [brandCard("No channels shown",
+        blockRead.rows.length ? "Your block preferences hide the available channels in this view. Manage your blocks to show them again."
+          : "No public channels are available in this view yet.")];
     return publicPage(res, {
       eyebrow: "Growth Studio",
       surface: "marketing",
       heading: "Channels",
       body: "Public pages businesses post updates and announcements to. Read any of them without an account; nothing here signs you up for anything.",
-      sections
+      sections: [
+        ...sections,
+        ...(blockRead.viewer ? [brandCard("Your controls",
+          '<a href="/account/blocked-channels">Manage blocked channels</a>')] : [])
+      ]
     });
   });
 
@@ -559,6 +720,18 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     if (!found.ok) return unavailable(res);
     if (!found.channel) return notFound(res);
 
+    const blocked = await viewerBlocks(req, res, config);
+    if (blocked.viewer) res.setHeader("Cache-Control", "private, no-store");
+    if (!blocked.ok) return unavailable(res);
+    const decision = safety.blockState(blocked.rows, found.channel.id);
+    if (!decision.ok) return unavailable(res);
+    if (decision.blocked) return publicPage(res, {
+      heading: "You blocked this channel",
+      body: "Its posts are hidden in this signed-in session. You can change that choice in your account.",
+      sections: [brandCard("Your control",
+        `<form action="/api/growth/channels/${enc(found.channel.id)}/unblock" method="post"><button type="submit">Unblock this channel</button></form>`)]
+    });
+
     const posts = await publicPostsFor(config, found.channel);
     const sections = [];
     if (!posts.ok) {
@@ -576,6 +749,10 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       + "Nothing is sent to you, and nobody here learns that you follow it.</p>"));
     sections.push(brandCard("About reports",
       "A report goes to the business that runs this channel, with no name or address attached. Reporting does not take a post down by itself; the business decides."));
+    if (blocked.viewer) sections.push(brandCard("Control your feed",
+      `<form method="post" action="/api/growth/channels/${enc(found.channel.id)}/block">
+        <button type="submit">Block this channel</button></form>
+        <p><a href="/account/blocked-channels">Manage your blocks</a>. This affects your signed-in view, not public or third-party RSS readers.</p>`));
 
     return publicPage(res, {
       heading: found.channel.title || found.channel.handle,
@@ -595,11 +772,16 @@ function registerGrowthChannelRoutes(app, deps = {}) {
     const found = await findPublicChannel(config, checked.channel.handle);
     if (!found.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
     if (!found.channel) return res.status(404).type("text/plain").send("No such channel.");
+    const blocked = await viewerBlocks(req, res, config);
+    if (!blocked.ok) return res.status(503).type("text/plain").send("Your block preferences cannot be verified.");
+    const state = safety.blockState(blocked.rows, found.channel.id);
+    if (!state.ok) return res.status(503).type("text/plain").send("Your block preferences cannot be verified.");
+    if (state.blocked) return res.status(404).type("text/plain").send("Blocked in this account.");
     const posts = await publicPostsFor(config, found.channel);
     // An unreadable post list is not an empty channel. A feed answering with no
     // entries would tell every reader the channel had gone quiet.
     if (!posts.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Cache-Control", blocked.viewer ? "private, no-store" : "public, max-age=300");
     return res.status(200).type("application/atom+xml; charset=utf-8").send(channels.atomFeed({
       channel: found.channel,
       arranged: posts.arranged,

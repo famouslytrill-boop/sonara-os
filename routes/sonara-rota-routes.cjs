@@ -23,6 +23,8 @@
 
 const { layOutWeek, weekStartFor, shiftWeek, hoursAndMinutes, isoDayParts } = require("../lib/sonara-rota-week.cjs");
 const registerOperationsExpansionRoutes = require("./sonara-operations-expansion-routes.cjs");
+const registerCateringRoutes = require("./sonara-catering-routes.cjs");
+const registerFinancialScenarioPages = require("./sonara-financial-scenario-pages.cjs");
 
 const SCHEDULES_TABLE = "employee_schedules";
 const STAFF_TABLE = "business_employee_profiles";
@@ -48,6 +50,8 @@ function registerRotaRoutes(app, deps = {}) {
   // by rota management. This avoids a second, subtly different authorization
   // path for analytics, reservations, mapping, and automations.
   registerOperationsExpansionRoutes(app, deps);
+  registerCateringRoutes(app, deps);
+  registerFinancialScenarioPages(app, deps);
 
   const enc = encodeURIComponent;
   const PAGE = "/business-builder/owner/schedules/week";

@@ -55,6 +55,66 @@ describe("runtime capability control plane", () => {
     assert.equal(checks.length, 2);
   });
 
+  it("denies Business, Creator and Growth paid capabilities when entitlement verification was not wired", async () => {
+    const capabilities = Object.fromEntries(
+      ["business.point-of-sale", "creator.licensed-export", "growth.provider-publish"].map((key) => [
+        key, { enabled: true, tenantScoped: true, allowedOrganizations: [ORG],
+          requiredEntitlements: [key + ".paid"] }
+      ])
+    );
+    const service = createRuntimeCapabilityService({ capabilities });
+    for (const capability of Object.keys(capabilities)) {
+      const result = await service.evaluate(capability, { organizationId: ORG, userId: "user-1" });
+      assert.deepEqual(result, { allowed: false, capability, reason: "entitlement_required" });
+    }
+  });
+
+  it("denies missing, falsy, and truthy-but-not-boolean billing decisions", async () => {
+    for (const response of [undefined, null, false, 1, "true", { allowed: true }]) {
+      const service = createRuntimeCapabilityService({
+        entitlementChecker: async () => response,
+        capabilities: { "business.paid": {
+          enabled: true, tenantScoped: true, allowedOrganizations: [ORG],
+          requiredEntitlements: ["business_builder"]
+        } }
+      });
+      assert.equal((await service.evaluate("business.paid", { organizationId: ORG })).allowed, false);
+    }
+  });
+
+  it("denies a provider or database entitlement outage without exposing the thrown error", async () => {
+    const service = createRuntimeCapabilityService({
+      entitlementChecker: async () => { throw new Error("private billing token do not log"); },
+      capabilities: { "creator.paid": {
+        enabled: true, tenantScoped: true, allowedOrganizations: [ORG],
+        requiredEntitlements: ["creator_studio"]
+      } }
+    });
+    const result = await service.evaluate("creator.paid", { organizationId: ORG });
+    assert.deepEqual(result, {
+      allowed: false, capability: "creator.paid", reason: "entitlement_check_unavailable"
+    });
+    assert.equal(JSON.stringify(result).includes("private billing token"), false);
+  });
+
+  it("allows a paid action only with an explicit positive entitlement for the matching tenant", async () => {
+    const decisions = [];
+    const service = createRuntimeCapabilityService({
+      entitlementChecker: async (request) => {
+        decisions.push(request);
+        return request.organizationId === ORG && request.entitlement === "growth_studio";
+      },
+      capabilities: { "growth.allowed": {
+        enabled: true, tenantScoped: true, allowedOrganizations: [ORG],
+        requiredEntitlements: ["growth_studio"]
+      } }
+    });
+    assert.equal(await service.enabled("growth.allowed", { organizationId: ORG, userId: "user-1" }), true);
+    assert.equal(await service.enabled("growth.allowed", { organizationId: OTHER }), false);
+    assert.deepEqual(decisions.map(({ organizationId, entitlement }) => [organizationId, entitlement]),
+      [[ORG, "growth_studio"]]);
+  });
+
   it("maps the existing event-consumer canary environment into OpenFeature without inventing a second switch", async () => {
     const service = createDefaultRuntimeCapabilityService({
       env: {

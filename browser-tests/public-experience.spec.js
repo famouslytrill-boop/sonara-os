@@ -5,24 +5,106 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
+// CI browser failures must show whether the isolated local runtime actually
+// delivered its own JS/CSS, rather than displaying only a missing DOM element.
+// Log only local asset path and bounded browser reason; never query strings.
+test.beforeEach(async ({ page }) => {
+  page.on("requestfailed", (req) => {
+    try {
+      const u = new URL(req.url());
+      if (u.hostname === "127.0.0.1" && /\.(?:css|js)$/.test(u.pathname))
+        console.error("SONARA_BROWSER_ASSET_FAILURE", u.pathname, String(req.failure()?.errorText || "unknown").slice(0, 180));
+    } catch {}
+  });
+  page.on("response", (res) => {
+    try {
+      const u = new URL(res.url());
+      if (u.hostname === "127.0.0.1" && /\.(?:css|js)$/.test(u.pathname) && res.status() >= 400)
+        console.error("SONARA_BROWSER_ASSET_HTTP", u.pathname, res.status());
+    } catch {}
+  });
+  page.on("console", (msg) => {
+    const message = String(msg.text() || "");
+    if (msg.type() === "error" && /refused to load|failed to load|content security policy|stylesheet|script/i.test(message))
+      console.error("SONARA_BROWSER_CONSOLE", message.slice(0, 240).replace(/[?#][^\s)]*/g, ""));
+  });
+});
+// setContent() installs isolated fixture markup. WebKit can refuse an
+// absolute URL script injected into a synthetic document. Retrieve the exact
+// asset served by this candidate server and inject its bytes; missing assets
+// and HTML fallbacks fail instead of masquerading as a passing browser test.
+async function mountShippedScript(page, scriptPath) {
+  if (typeof scriptPath !== "string" || !scriptPath.startsWith("/") ||
+      !scriptPath.endsWith(".js") || !/^[a-z0-9/._-]+$/i.test(scriptPath) ||
+      scriptPath.includes("..")) {
+    throw new Error("Invalid browser fixture script path");
+  }
+  const response = await page.request.get(`${BASE_URL}${scriptPath}`, { maxRedirects: 0 });
+  expect(response.status(), `${scriptPath} must be served from the app`).toBe(200);
+  expect(response.headers()["content-type"] || "", `${scriptPath} must be JavaScript`).toMatch(/(?:java|ecma)script/i);
+  const source = await response.text();
+  expect(source.trim().length, `${scriptPath} must not be empty`).toBeGreaterThan(0);
+  await page.addScriptTag({ content: source });
+}
+
+// Component fixtures only need a same-origin document for IndexedDB and
+// same-origin scripts, not the full marketing /tools page. Route fulfillment
+// removes a second-tab Firefox load race without replacing the shipped JS.
+async function primeComponentOrigin(page) {
+  const url = `${BASE_URL}/tools`;
+  const fixture = async (route) => {
+    // Keep the real route's security headers, notably script-src 'self'.
+    // Only the large page body is replaced; shipped JS still comes from HTTP.
+    const response = await route.fetch();
+    if (response.status() !== 200 || !response.headers()["content-security-policy"]) {
+      throw new Error("The browser fixture cannot bypass a failed route or missing CSP.");
+    }
+    await route.fulfill({
+      response, contentType: "text/html",
+      body: "<!doctype html><html><head><title>Browser component fixture</title></head><body></body></html>"
+    });
+  };
+  await page.route(url, fixture);
+  try { await page.goto(url, { waitUntil: "domcontentloaded" }); }
+  finally { await page.unroute(url, fixture); }
+}
 async function mountLocalComponent(page, markup, scriptPath) {
   const inertMarkup = await page.evaluate((html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
     for (const script of doc.querySelectorAll("script")) script.remove();
     return doc.body.innerHTML;
   }, markup);
-  await page.setContent(inertMarkup);
+  // Keep the origin of the real /tools document. Replacing the entire
+  // document with setContent can move WebKit into an opaque document context,
+  // causing the actual served /creator-*.js script loads to fail.
+  // The markup is still stripped of embedded scripts, and the component code
+  // still loads over HTTP from the running SONARA application server.
+  if (new URL(page.url()).origin !== new URL(BASE_URL).origin) {
+    throw new Error("browser_component_origin_mismatch");
+  }
+  await page.evaluate((html) => { document.body.innerHTML = html; }, inertMarkup);
   await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
 }
+test("isolated fixture loader requires shipped JavaScript, not a missing-route fallback", async ({ page }) => {
+  await page.goto(`${BASE_URL}/tools`);
+  await mountShippedScript(page, "/creator-image-core.js");
+  expect(await page.evaluate(() => typeof window.SonaraImageCore)).toBe("object");
+  // An unavailable script must fail, not inject the site's HTML 404/fallback
+  // as if it were a valid Creator processing engine.
+  await expect(mountShippedScript(page, "/nonexistent-sonara-fixture.js")).rejects.toThrow();
+  // File scope is intentionally restricted to shipped public JS assets.
+  await expect(mountShippedScript(page, "/../secrets.js")).rejects.toThrow("Invalid browser fixture script path");
+});
+
 const projectId = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const draftProject = () => ({ id: projectId(100), title: "My original film", medium: "video", revision: 1, graph: { version: 1, nodes: [] }, archived_at: null });
 async function mountDraft(page, project = draftProject(), scope = `${projectId(101)}:${projectId(102)}`) {
   const { offlineDraftForm } = require("../routes/sonara-creator-project-routes.cjs");
   const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-  await page.goto(`${BASE_URL}/tools`);
+  await primeComponentOrigin(page);
   await mountLocalComponent(page, offlineDraftForm(project, scope, esc), "/creator-project-graph-core.js");
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-device-store.js` });
-  await page.addScriptTag({ url: `${BASE_URL}/creator-project-draft.js` });
+  await mountShippedScript(page, "/creator-project-device-store.js");
+  await mountShippedScript(page, "/creator-project-draft.js");
 }
 async function addDraftCaption(page, text) {
   const form = page.locator("[data-draft-caption]");
@@ -203,8 +285,9 @@ test.describe("public experience browser contract", () => {
     wav.write("data", 36); wav.writeUInt32LE(160, 40);
     for (let at = 44; at < wav.length; at += 2) wav.writeInt16LE(12000, at);
     await page.locator("input[type=file]").setInputFiles({ name: "owned-recording.wav", mimeType: "audio/wav", buffer: wav });
-    await page.getByRole("button", { name: "Render WAV", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Rendered 0.01 seconds on CPU");
+    await page.getByRole("button", { name: /Render (stereo )?WAV/, exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Rendered 0.01 seconds at 44.1 kHz.");
+    await expect(page.getByRole("status")).toContainText("0 clipped samples.");
     expect(await page.locator("audio").evaluate((audio) => audio.paused)).toBe(true);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByText("Download WAV", { exact: true }).click()]);
     expect(download.suggestedFilename()).toBe(`project-${project.id}.wav`);
@@ -215,6 +298,82 @@ test.describe("public experience browser contract", () => {
     await expect(page.getByText("Download WAV", { exact: true })).toBeHidden();
     await expect(page.locator("audio")).toBeHidden();
     expect(errors).toEqual([]); expect(uploads).toEqual([]);
+  });
+
+  test("Creator MIDI sketch downloads an authentic Format 0 file without uploads", async ({ page }) => {
+    const { midiSketchForm } = require("../routes/sonara-creator-project-routes.cjs");
+    const errors = [], uploads = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.goto(`${BASE_URL}/tools`);
+    await mountLocalComponent(page, midiSketchForm(), "/creator-project-midi.js");
+    await page.locator('[data-midi-export] [name="notes"]').fill("C4,0,480,100");
+    await page.getByRole("button", { name: "Create MIDI file" }).click();
+    await expect(page.locator("[data-midi-export] [role=status]")).toContainText("Standard MIDI File Format 0 ready");
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByText("Download MIDI", { exact: true }).click()
+    ]);
+    expect(download.suggestedFilename()).toBe("sonara-note-sketch.mid");
+    const bytes = require("node:fs").readFileSync(await download.path());
+    expect(bytes.toString("ascii", 0, 4)).toBe("MThd");
+    expect(bytes.readUInt32BE(4)).toBe(6);
+    expect(bytes.readUInt16BE(8)).toBe(0);
+    expect(bytes.readUInt16BE(10)).toBe(1);
+    expect(bytes.readUInt16BE(12)).toBe(480);
+    expect(bytes.toString("ascii", 14, 18)).toBe("MTrk");
+    expect(bytes.readUInt32BE(18)).toBe(bytes.length - 22);
+    expect(bytes.subarray(22).toString("hex")).toBe("00ff510307a12000903c648360803c0000ff2f00");
+    await page.locator('[data-midi-export] [name="notes"]').fill("C4,0,480,0");
+    await expect(page.getByText("Download MIDI", { exact: true })).toBeHidden();
+    await page.getByRole("button", { name: "Create MIDI file" }).click();
+    await expect(page.locator("[data-midi-export] [role=status]")).toContainText("Velocity");
+    expect(uploads).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("Creator multitrack MIDI downloads independent notes and a conductor tempo track", async ({ page }) => {
+    const { midiSketchForm } = require("../routes/sonara-creator-project-routes.cjs");
+    const errors = [], uploads = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.goto(`${BASE_URL}/tools`);
+    await mountLocalComponent(page, midiSketchForm(), "/creator-project-midi.js");
+    const form = page.locator("[data-midi-multitrack]");
+    await form.locator('[name="notes1"]').fill("C4,0,480,100");
+    await form.locator('[name="notes2"]').fill("C2,0,960,95");
+    await form.getByRole("button", { name: "Create multitrack MIDI" }).click();
+    await expect(form.getByRole("status")).toContainText("Format 1 ready with 2 named note tracks");
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      form.getByText("Download multitrack MIDI", { exact: true }).click()
+    ]);
+    expect(download.suggestedFilename()).toBe("sonara-multitrack.mid");
+    const bytes = require("node:fs").readFileSync(await download.path());
+    expect(bytes.toString("ascii", 0, 4)).toBe("MThd");
+    expect(bytes.readUInt32BE(4)).toBe(6);
+    expect(bytes.readUInt16BE(8)).toBe(1);
+    expect(bytes.readUInt16BE(10)).toBe(3);
+    expect(bytes.readUInt16BE(12)).toBe(480);
+    let cursor = 14;
+    const names = [];
+    for (let index = 0; index < 3; index++) {
+      expect(bytes.toString("ascii", cursor, cursor + 4)).toBe("MTrk");
+      const size = bytes.readUInt32BE(cursor + 4);
+      const data = bytes.subarray(cursor + 8, cursor + 8 + size);
+      expect(data.subarray(-4).toString("hex")).toBe("00ff2f00");
+      if (index === 0) expect(data.toString("hex")).toBe("00ff510307a12000ff2f00");
+      else names.push(data.toString("ascii", 4, 4 + data[3]));
+      cursor += 8 + size;
+    }
+    expect(names).toEqual(["Piano", "Bass"]);
+    expect(cursor).toBe(bytes.length);
+    await form.locator('[name="notes1"]').fill("C4,0,480,0");
+    await expect(form.getByText("Download multitrack MIDI", { exact: true })).toBeHidden();
+    await form.getByRole("button", { name: "Create multitrack MIDI" }).click();
+    await expect(form.getByRole("status")).toContainText("Velocity");
+    expect(errors).toEqual([]);
+    expect(uploads).toEqual([]);
   });
 
   test("Creator local image processing exports exact CPU pixels without uploads", async ({ page }) => {
@@ -230,8 +389,8 @@ test.describe("public experience browser contract", () => {
     const userId = "33333333-3333-4333-8333-333333333333";
     await page.route("**/api/account/device-permissions", (route) => route.fulfill({ json: { ok: true, userId, permissions: [{ key: "local_compute", state: "granted", allowed: true }] } }));
     await mountLocalComponent(page, LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${userId}"`), "/creator-image-core.js");
-    await page.addScriptTag({ url: `${BASE_URL}/creator-device-access.js` });
-    await page.addScriptTag({ url: `${BASE_URL}/creator-local-image.js` });
+    await mountShippedScript(page, "/creator-device-access.js");
+    await mountShippedScript(page, "/creator-local-image.js");
     const pixels = await page.evaluate(async () => {
       const canvas = document.createElement("canvas"); canvas.width = 2; canvas.height = 1;
       canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray([100, 50, 20, 255, 0, 255, 10, 255]), 2, 1), 0, 0);
@@ -290,7 +449,7 @@ test.describe("public experience browser contract", () => {
 
   test("public tool forms fit on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto(`${BASE_URL}/tools/data-formatter`);
+    await page.goto(`${BASE_URL}/tools/data-formatter`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-parent-tool]")).toBeVisible();
     const width = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
     expect(width.scroll).toBeLessThanOrEqual(width.client + 1);
@@ -319,7 +478,10 @@ test.describe("public experience browser contract", () => {
 
   test("first steady-state Tab lands on the skip link", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto(BASE_URL, { waitUntil: "load" });
+    // Keyboard readiness depends on parsed markup and the loader being gone,
+    // not every externally sourced image/font reaching window.load. Firefox
+    // intermittently hung at load under parallel browser CI despite a ready DOM.
+    await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#sonara-loader")).toBeHidden({ timeout: 3000 });
 
     const skip = page.locator(".sonara-skip");
@@ -421,8 +583,33 @@ test.describe("public experience browser contract", () => {
 test.describe("device media and bounded image processing", () => {
   const USER = "33333333-3333-4333-8333-333333333333";
   const media = require("../routes/creator-generation-routes.cjs");
+  // Native capture APIs are platform-specific: Linux WebKit may lack canvas
+  // captureStream and MediaRecorder. Assert a visible fail-closed fallback on
+  // such runners while testing real recording where browser APIs exist.
+  // A browser can expose canvas.captureStream yet fail to play that stream
+  // (notably Linux WebKit). Determine support from the *actual* application
+  // outcome: either a usable preview, or its explicit fail-closed message.
+  // Unknown errors and a stuck permission/preview flow remain test failures.
+  async function cameraReadyOrUnavailable(page) {
+    const photo = page.getByRole("button", { name: "Take photo", exact: true });
+    const status = page.locator("[data-local-capture] [role=status]");
+    await expect.poll(async () => {
+      if (await photo.isVisible()) return "ready";
+      const message = await status.textContent() || "";
+      return message.includes("Camera capture is unavailable in this browser.")
+        ? "unavailable" : "pending";
+    }, { timeout: 12000, message: "Camera must provide a preview or explicitly refuse unsupported playback" }).not.toBe("pending");
+    if (await photo.isVisible()) return true;
+    await verifyCameraUnavailable(page);
+    return false;
+  }
+  async function verifyCameraUnavailable(page) {
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Camera capture is unavailable in this browser.");
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
+  }
   async function mountMedia(page, permission = { allowed: true }) {
-    await page.goto(`${BASE_URL}/tools`);
+    await primeComponentOrigin(page);
     await page.route("**/api/account/device-permissions", async (route) => {
       if (permission.delay) await new Promise((resolve) => setTimeout(resolve, permission.delay));
       if (permission.offline) return route.fulfill({ status: 503, json: { ok: false } });
@@ -432,16 +619,26 @@ test.describe("device media and bounded image processing", () => {
     const markup = media.LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${USER}"`)
       + media.LOCAL_CAPTURE_FORM.replace("data-local-capture", `data-local-capture data-user-id="${USER}"`);
     await mountLocalComponent(page, markup, "/creator-image-core.js");
-    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await page.addScriptTag({ url: `${BASE_URL}/${file}` });
+    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await mountShippedScript(page, `/${file}`);
     await page.evaluate(() => {
       Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
       window.captureCalls = 0; window.stoppedTracks = 0;
       navigator.mediaDevices.getUserMedia = async (constraints) => {
         window.captureCalls++;
         let stream;
-        if (constraints.video) {
+        if (constraints.video && window.syntheticPendingCapture) {
+          // The pending-prompt cases must not depend on whether a Linux
+          // browser's synthetic canvas stream contains any live video tracks.
+          // Production only touches getTracks()/stop() before the prompt
+          // resolves; model that contract with one observable test track.
+          const track = { stop() {}, addEventListener() {} };
+          stream = { getTracks: () => [track] };
+        } else if (constraints.video) {
           const canvas = document.createElement("canvas"); canvas.width = canvas.height = 2;
           canvas.getContext("2d").fillStyle = "rgb(100, 120, 140)"; canvas.getContext("2d").fillRect(0, 0, 2, 2);
+          if (typeof canvas.captureStream !== "function") {
+            throw new Error("Camera capture is unavailable in this browser. You can still open your own files.");
+          }
           stream = canvas.captureStream(5);
         } else {
           window.testAudio = new AudioContext();
@@ -457,6 +654,31 @@ test.describe("device media and bounded image processing", () => {
       };
     });
   }
+  // Playwright's Linux WebKit may lack generated canvas streams and
+  // MediaRecorder codecs. Never label unavailable hardware as successful:
+  // assert the product's safe fallback, while the browser with a working
+  // stream must still complete the full photo and revocation workflow.
+  async function startFixtureCamera(page, browserName) {
+    // A foreground page is the only valid starting state for user-initiated
+    // device capture. On Linux headless WebKit it can remain hidden; the
+    // product must then explicitly refuse capture rather than stall.
+    await page.bringToFront();
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    const photoButton = page.getByRole("button", { name: "Take photo", exact: true });
+    try { await expect(photoButton).toBeVisible({ timeout: 2500 }); return true; }
+    catch (error) {
+      if (browserName !== "webkit") throw error;
+      await expect(page.locator("[data-local-capture] [role=status]"))
+        .toContainText(/Camera preview is unavailable|Capture is unavailable in this browser|Capture stopped because this page is no longer visible/);
+      const status = await page.locator("[data-local-capture] [role=status]").innerText();
+      const calls = await page.evaluate(() => window.captureCalls);
+      if (status.includes("no longer visible")) expect(calls).toBe(0);
+      else expect(calls).toBe(1);
+      await expect(page.locator("[data-local-capture] video")).toBeHidden();
+      await expect(page.locator("[data-capture-download]")).toBeHidden();
+      return false;
+    }
+  }
   async function imageFile(page, width = 3840, height = 2160) {
     const bytes = await page.evaluate(async ({ width, height }) => {
       const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
@@ -466,6 +688,42 @@ test.describe("device media and bounded image processing", () => {
     }, { width, height });
     await page.locator("[data-local-image] input[type=file]").setInputFiles({ name: "owned-4k-image.png", mimeType: "image/png", buffer: Buffer.from(bytes) });
   }
+  test("a stalled camera preview releases its stream and never reports success", async ({ page }) => {
+    await mountMedia(page);
+    await page.bringToFront();
+    await page.evaluate(() => {
+      // Exercise a permanently unsettled video.play Promise even on browsers
+      // where synthetic canvas capture or a real camera is unavailable.
+      Object.defineProperty(document, "hidden", { value: false, configurable: true });
+      const syntheticStream = new MediaStream();
+      const testTrack = new EventTarget();
+      testTrack.stop = () => { window.stoppedTracks++; };
+      syntheticStream.getTracks = () => [testTrack];
+      navigator.mediaDevices.getUserMedia = async () => {
+        window.captureCalls++;
+        return syntheticStream;
+      };
+      HTMLMediaElement.prototype.play = () => new Promise(() => {});
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]"))
+      .toContainText("Camera preview is unavailable in this browser or device.", { timeout: 10000 });
+    expect(await page.evaluate(() => window.captureCalls)).toBe(1);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Start camera", exact: true })).toBeEnabled();
+  });
+  test("hidden page refuses capture without getting stuck checking permissions", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => Object.defineProperty(document, "hidden", { configurable: true, value: true }));
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]"))
+      .toContainText("Capture stopped because this page is no longer visible.");
+    expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
+  });
   test("capture is off by default and denied account access never opens a device", async ({ page }) => {
     await mountMedia(page, { allowed: false });
     expect(await page.evaluate(() => window.captureCalls)).toBe(0);
@@ -473,10 +731,40 @@ test.describe("device media and bounded image processing", () => {
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
     expect(await page.evaluate(() => window.captureCalls)).toBe(0);
   });
+  test("a pending camera playback request fails closed and releases its device track", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      window.cameraPlayCalls = 0;
+      const original = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function (...args) {
+        if (this.tagName === "VIDEO") {
+          window.cameraPlayCalls++;
+          // Emulate a browser permission/playback promise that never settles.
+          // Merely exposing captureStream must not keep the device active.
+          return new Promise(() => {});
+        }
+        return original.apply(this, args);
+      };
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText(
+      "Camera capture is unavailable in this browser.", { timeout: 9000 }
+    );
+    await verifyCameraUnavailable(page);
+    if (await page.evaluate(() => window.cameraPlayCalls > 0)) {
+      expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    }
+    await expect(page.getByRole("button", { name: "Start camera", exact: true })).toBeEnabled();
+  });
   test("a camera photo enters the image editor without selecting or uploading a file", async ({ page }) => {
     const errors = []; page.on("pageerror", (error) => errors.push(error.message));
     await mountMedia(page);
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    if (!(await cameraReadyOrUnavailable(page))) {
+      await verifyCameraUnavailable(page);
+      expect(errors).toEqual([]);
+      return;
+    }
     await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Take photo", exact: true }).click();
     await expect(page.locator("[data-local-image] [role=status]")).toContainText("2 × 2 image ready");
@@ -486,9 +774,75 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
     await expect(page.locator("[data-capture-download]")).toBeVisible(); expect(errors).toEqual([]);
   });
+  test("audio Stop preserves microphone tracks until the final MediaRecorder data event", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      window.finalChunkSawLiveMicrophone = null;
+      class ControlledMediaRecorder {
+        constructor(stream) { this.stream = stream; this.state = "inactive"; this.mimeType = "audio/webm"; }
+        static isTypeSupported() { return true; }
+        start() { this.state = "recording"; }
+        stop() {
+          this.state = "inactive";
+          setTimeout(() => {
+            window.finalChunkSawLiveMicrophone =
+              this.stream.getAudioTracks().length > 0 &&
+              this.stream.getAudioTracks().every((track) => track.readyState === "live");
+            this.ondataavailable?.({ data: new Blob(["locally recorded audio"], { type: this.mimeType }) });
+            this.onstop?.();
+          }, 20);
+        }
+      }
+      window.MediaRecorder = ControlledMediaRecorder;
+    });
+    await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Finishing your recording");
+    await expect(page.locator("[data-capture-download]")).toBeVisible();
+    expect(await page.evaluate(() => window.finalChunkSawLiveMicrophone)).toBe(true);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("[data-capture-download]").click()
+    ]);
+    expect(require("node:fs").statSync(await download.path()).size).toBeGreaterThan(0);
+  });
+  test("stalled MediaRecorder finalization releases the microphone and provides no download", async ({ page }) => {
+    await mountMedia(page);
+    await page.evaluate(() => {
+      const nativeTimeout = window.setTimeout.bind(window);
+      window.setTimeout = (fn, delay, ...args) => {
+        if (delay === 5000) { window.forceFinalizationTimeout = fn; return 4242; }
+        return nativeTimeout(fn, delay, ...args);
+      };
+      class StalledRecorder {
+        constructor() { this.state = "inactive"; this.mimeType = "audio/webm"; }
+        static isTypeSupported() { return true; }
+        start() { this.state = "recording"; }
+        stop() { this.state = "inactive"; /* browser never fires onstop */ }
+      }
+      window.MediaRecorder = StalledRecorder;
+    });
+    await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => typeof window.forceFinalizationTimeout)).toBe("function");
+    await page.evaluate(() => window.forceFinalizationTimeout());
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Microphone disconnected");
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-capture-download]")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Start voice recording", exact: true })).toBeEnabled();
+  });
   test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page }) => {
     await mountMedia(page);
     await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    if (!(await page.evaluate(() => typeof MediaRecorder === "function"))) {
+      await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Voice recording is unavailable in this browser.");
+      await expect(page.locator("[data-capture-download]")).toBeHidden();
+      expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+      return;
+    }
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
     await page.waitForTimeout(700);
     await page.getByRole("button", { name: "Stop capture", exact: true }).click();
@@ -498,7 +852,7 @@ test.describe("device media and bounded image processing", () => {
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
   });
   test("stopping during a pending browser prompt stops a late-arriving stream", async ({ page }) => {
-    await mountMedia(page); await page.evaluate(() => { window.deferCapture = true; });
+    await mountMedia(page); await page.evaluate(() => { window.deferCapture = true; window.syntheticPendingCapture = true; });
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
     await expect.poll(() => page.evaluate(() => typeof window.resolveCapture)).toBe("function");
     await page.getByRole("button", { name: "Stop capture", exact: true }).click(); await page.evaluate(() => window.resolveCapture());
@@ -512,16 +866,18 @@ test.describe("device media and bounded image processing", () => {
     }
   });
   test("account revocation during a browser prompt stops its arriving stream", async ({ page }) => {
-    const permission = { allowed: true }; await mountMedia(page, permission); await page.evaluate(() => { window.deferCapture = true; });
+    const permission = { allowed: true }; await mountMedia(page, permission); await page.evaluate(() => { window.deferCapture = true; window.syntheticPendingCapture = true; });
     await page.getByRole("button", { name: "Start camera", exact: true }).click();
     await expect.poll(() => page.evaluate(() => typeof window.resolveCapture)).toBe("function");
     permission.allowed = false; await page.evaluate(() => window.resolveCapture());
     await expect.poll(() => page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
   });
-  test("revoked account permission stops active capture on the next check", async ({ page }) => {
+  test("revoked account permission stops supported capture; unsupported capture is denied", async ({ page }) => {
     const permission = { allowed: true }; await mountMedia(page, permission);
-    await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    if (!(await cameraReadyOrUnavailable(page))) { await verifyCameraUnavailable(page); return; }
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
     permission.allowed = false;
     await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Capture stopped", { timeout: 9000 });
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
@@ -540,24 +896,58 @@ test.describe("device media and bounded image processing", () => {
     expect(errors).toEqual([]); expect(uploads).toEqual([]);
   });
   test("cancelled work keeps the original and creates no download", async ({ page }) => {
-    await mountMedia(page, { allowed: true, delay: 150 }); await imageFile(page, 20, 20);
-    await page.getByRole("button", { name: "Process image", exact: true }).click(); await page.getByRole("button", { name: "Cancel processing", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled(); await expect(page.locator("[data-local-download]")).toBeHidden();
+    await mountMedia(page); await imageFile(page, 20, 20);
+    // A 20×20 CPU job is often faster than a real pointer click in Firefox.
+    // Hold the permission read pending to prove actual mid-flight cancellation,
+    // rather than racing after a completed job and hiding a genuine failure.
+    await page.evaluate(() => {
+      const originalVerify = window.SonaraDeviceAccess.verify;
+      window.SonaraDeviceAccess.verify = (keys, userId, signal) => {
+        if (!keys.includes("local_compute")) return originalVerify(keys, userId, signal);
+        return new Promise((resolve, reject) => {
+          if (signal?.aborted) return reject(new Error("cancelled"));
+          signal?.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
+        });
+      };
+    });
+    await page.getByRole("button", { name: "Process image", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Cancel processing", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel processing", exact: true }).click();
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("Processing cancelled");
+    await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled();
+    await expect(page.locator("[data-local-download]")).toBeHidden();
     expect(await page.evaluate(() => [...document.querySelector("[data-local-image] canvas").getContext("2d").getImageData(0, 0, 1, 1).data])).toEqual([100, 120, 140, 255]);
   });
   test("low-memory devices refuse a 4K image before processing", async ({ page }) => {
     await mountMedia(page); await page.evaluate(() => Object.defineProperty(navigator, "deviceMemory", { value: 2, configurable: true })); await imageFile(page);
     await expect(page.locator("[data-local-image] [role=status]")).toContainText("up to 4 megapixels"); await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeDisabled();
   });
-  test("leaving the visible page stops capture and discards temporary playback", async ({ page }) => {
-    await mountMedia(page); await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+  test("leaving the visible page stops supported capture; unsupported capture is denied", async ({ page }) => {
+    await mountMedia(page); await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    if (!(await cameraReadyOrUnavailable(page))) { await verifyCameraUnavailable(page); return; }
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
     await page.evaluate(() => { Object.defineProperty(document, "hidden", { value: true, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
     expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden(); await expect(page.locator("[data-capture-download]")).toBeHidden();
   });
-  test("the camera automatically stops at its 60-second limit", async ({ page }) => {
-    await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
-    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
+  test("the camera timeout is enforced when recording is supported; unsupported capture is denied", async ({ page }) => {
+    await mountMedia(page);
+    // Verify that the actual 60-second timeout is scheduled, then trigger its
+    // registered callback. Installing a fake clock before video.play() can
+    // freeze a legitimate preview startup on WebKit and misdiagnose support.
+    await page.evaluate(() => {
+      const schedule = window.setTimeout.bind(window);
+      window.setTimeout = (callback, delay, ...args) => {
+        if (delay === 60000) window.captureLeaseExpiry = callback;
+        return schedule(callback, delay, ...args);
+      };
+    });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    if (!(await cameraReadyOrUnavailable(page))) { await verifyCameraUnavailable(page); return; }
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => typeof window.captureLeaseExpiry)).toBe("function");
+    await page.evaluate(() => window.captureLeaseExpiry());
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
 });
 
@@ -634,3 +1024,213 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.screenshot({ path: `artifacts/browser/check-in-recovery-${viewport.width}.png`, fullPage: true });
   });
 }
+
+test.describe("cross-device adaptive workspace browser contract", () => {
+  const frame = require("../lib/sonara-page-frame.cjs").createPageFrame({
+    legalPages: () => [],
+    safeListTable: async () => ({ ok: true, rows: [] })
+  });
+
+  async function mountWorkScreen(page) {
+    const html = frame.layout({
+      title: "Workspace",
+      heading: "Your work",
+      eyebrow: "SONARA One",
+      body: "Continue without losing your work",
+      authenticated: true,
+      sections: ['<article class="card"><label for="device-draft">Draft note</label><input id="device-draft" type="text" value=""></article>'],
+      actions: []
+    });
+    await page.goto(BASE_URL);
+    await page.evaluate((markup) => {
+      const parsed = new DOMParser().parseFromString(markup, "text/html");
+      document.body.className = parsed.body.className;
+      document.body.innerHTML = parsed.body.innerHTML;
+      document.querySelector("#sonara-loader")?.remove();
+      document.documentElement.dataset.sonaraWorkspaceDock = "true";
+    }, html);
+  }
+
+  test("nested studio navigation highlights its section and keeps local labels concise", async ({ page }) => {
+    const html = frame.layout({
+      title: "Creator project",
+      eyebrow: "Creator Studio",
+      heading: "My project",
+      body: "Continue your project.",
+      sections: [],
+      actions: [],
+      authenticated: true
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem("sonara:nexus:preferences:v2", JSON.stringify({
+        language: "es", theme: "system", motion: "off", sound: "off", haptics: "off"
+      }));
+    });
+    await page.route("**/creator-studio/projects", (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: html }));
+    await page.goto(BASE_URL + "/creator-studio/projects");
+    const dock = page.getByRole("navigation", { name: "Workspace shortcuts" });
+    await expect(dock.locator("a")).toHaveText(["Inicio", "Negocio", "Crear", "Crecer"]);
+    await expect(dock.locator('a[href="/creator-studio/assets"]')).toHaveAttribute("aria-current", "location");
+    await expect(dock.locator('a[aria-current]')).toHaveCount(1);
+  });
+
+  test("touch dock respects safe scrolling, keyboard focus and window resizing", async ({ browser }) => {
+    const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await mountWorkScreen(page);
+      const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
+      expect(coarse).toBe(true);
+      const dock = page.getByRole("navigation", { name: "Workspace shortcuts" });
+      await expect(dock).toBeVisible();
+      await expect(dock.locator("a")).toHaveCount(4);
+      const metric = await page.evaluate(() => ({
+        clearance: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBlockEnd),
+        dockHeight: document.querySelector(".sonara-workspace-dock").getBoundingClientRect().height,
+        targetHeights: [...document.querySelectorAll(".sonara-workspace-dock a")].map((link) => link.getBoundingClientRect().height),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      }));
+      expect(metric.clearance).toBeGreaterThanOrEqual(metric.dockHeight);
+      expect(metric.targetHeights.every((height) => height >= 48)).toBe(true);
+      expect(metric.overflow).toBeLessThanOrEqual(1);
+      await page.getByLabel("Draft note").fill("Unfinished work survives resizing");
+      await expect(dock).toBeHidden();
+      const whileEditing = await page.evaluate(() => ({
+        scrollClearance: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBlockEnd),
+        bodyClearance: parseFloat(getComputedStyle(document.body).paddingBlockEnd)
+      }));
+      expect(whileEditing).toEqual({ scrollClearance: 0, bodyClearance: 0 });
+      await page.setViewportSize({ width: 820, height: 900 });
+      await expect(dock).toBeHidden();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(page.getByLabel("Draft note")).toHaveValue("Unfinished work survives resizing");
+      await page.getByLabel("Draft note").evaluate((element) => element.blur());
+      await expect(dock).toBeVisible();
+      await page.setViewportSize({ width: 320, height: 700 });
+      await expect(dock).toBeVisible();
+      const narrow = await page.evaluate(() => ({
+        horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        smallestTarget: Math.min(...[...document.querySelectorAll(".sonara-workspace-dock a")].map((link) => link.getBoundingClientRect().height))
+      }));
+      expect(narrow.horizontalOverflow).toBeLessThanOrEqual(1);
+      expect(narrow.smallestTarget).toBeGreaterThanOrEqual(48);
+      await page.screenshot({ path: "artifacts/browser/cross-device-workspace-touch.png" });
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a mouse layout never receives a fixed touch dock", async ({ browser }) => {
+    const context = await browser.newContext({ hasTouch: false, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await mountWorkScreen(page);
+      await expect(page.getByRole("navigation", { name: "Workspace shortcuts" })).toBeHidden();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("operational command controls adapt to the panel, not just the window", async ({ page }) => {
+    await page.goto(BASE_URL);
+    const result = await page.evaluate(() => {
+      const panel = document.createElement("section");
+      panel.className = "sonara-ops-panel";
+      panel.style.width = "310px";
+      panel.innerHTML = '<div class="sonara-ops-commandbar"><button type="button">Find records</button><button type="button" data-primary-action>Save changes</button></div>';
+      document.body.appendChild(panel);
+      const command = panel.querySelector(".sonara-ops-commandbar");
+      const narrow = getComputedStyle(command).display;
+      panel.style.width = "700px";
+      const wide = getComputedStyle(command).display;
+      panel.remove();
+      return { narrow, wide };
+    });
+    expect(result).toEqual({ narrow: "grid", wide: "flex" });
+  });  // This runs in an actual Playwright browser with a real service worker,
+  // unlike the VM-only unit tests. No live sign-in or user data is involved.
+  test("installed public worker isolates retired caches and private responses", async ({ browser }) => {
+    // Playwright's service-worker inspection support is Chromium-only.
+    // Firefox/WebKit remain covered by the existing standard browser suites.
+    test.skip(browser.browserType().name() !== "chromium", "Native service-worker lifecycle proof runs in Chromium");
+    const context = await browser.newContext({ serviceWorkers: "allow" });
+    try {
+      const page = await context.newPage();
+      // The registration code deliberately excludes sign-in routes. Prepare
+      // a retired namespace before triggering the real worker installation.
+      await page.goto(BASE_URL + "/login");
+      const oldCache = "sonara-public-synthetic-previous-release";
+      await page.evaluate(async (name) => {
+        const cache = await caches.open(name);
+        await cache.put("/old-public-resource.js", new Response("retired", {
+          headers: { "Content-Type": "text/javascript", "Cache-Control": "public, max-age=60" }
+        }));
+      }, oldCache);
+
+      await page.goto(BASE_URL + "/pricing");
+      await page.evaluate(() =>
+        navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }));
+      await expect.poll(() => page.evaluate(async () =>
+        Boolean((await navigator.serviceWorker.getRegistration("/"))?.active)
+      )).toBe(true);
+      // A newly installed worker controls navigations beginning with the next
+      // page load, not retroactively taking over an existing tab.
+      await page.reload();
+      await expect.poll(() => page.evaluate(() =>
+        Boolean(navigator.serviceWorker.controller)
+      )).toBe(true);
+
+      const initial = await page.evaluate(async () => {
+        const names = (await caches.keys()).filter((key) => key.startsWith("sonara-public-"));
+        const entries = await Promise.all(names.map(async (name) => ({
+          name,
+          urls: (await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)
+        })));
+        return { names, entries };
+      });
+      expect(initial.names).not.toContain(oldCache);
+      expect(initial.names).toHaveLength(1);
+      expect(initial.entries[0].urls).toContain("/offline");
+      expect(initial.entries[0].urls).toContain("/sonara-one.js");
+      expect(initial.entries[0].urls.every((url) =>
+        !url.startsWith("/api/") && !url.startsWith("/account/"))).toBe(true);
+
+      // The fixture intentionally says "public" even for account-specific
+      // content, proving that a permissive header alone cannot authorize the
+      // worker to intercept or retain a forbidden URL.
+      await page.route("**/api/account/tenant-summary.js", (route) =>
+        route.fulfill({
+          status: 200, contentType: "application/javascript",
+          headers: { "Cache-Control": "public, max-age=60" },
+          body: route.request().headers()["x-tenant-fixture"] === "A" ? "tenant-A" : "tenant-B"
+        }));
+      const observed = await page.evaluate(async () => {
+        const fetchRecord = async (tenant) => {
+          const reply = await fetch("/api/account/tenant-summary.js", {
+            headers: { "X-Tenant-Fixture": tenant },
+            cache: "no-store"
+          });
+          return reply.text();
+        };
+        const results = [await fetchRecord("A"), await fetchRecord("B")];
+        const retained = await caches.match("/api/account/tenant-summary.js");
+        return { results, retained: Boolean(retained) };
+      });
+      expect(observed).toEqual({ results: ["tenant-A", "tenant-B"], retained: false });
+
+      // The current worker's anonymous offline fallback must remain usable
+      // without making any authenticated or private page available offline.
+      await context.setOffline(true);
+      await page.goto(BASE_URL + "/pricing");
+      await expect(page.getByText("You are offline")).toBeVisible();
+      await context.setOffline(false);
+      const live = await page.goto(BASE_URL + "/pricing");
+      expect(live.status()).toBe(200);
+    } finally {
+      await context.setOffline(false);
+      await context.close();
+    }
+  });
+
+});
