@@ -512,6 +512,46 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
     }
   });
 
+  it("rejects expired, invalid and revoked consent before reading any aggregate", async () => {
+    for (const receipt of [
+      { ...valid.consentReceipt, expiresAt: "2026-10-08T19:00:00.000Z" },
+      { ...valid.consentReceipt, retentionDays: 91 },
+      { ...valid.consentReceipt, receiptId: "not-a-uuid" },
+      { ...valid.consentReceipt, method: "passive_tracking" },
+      { ...valid.consentReceipt, revision: 0 },
+      { ...valid.consentReceipt, revokedAt: valid.observedAt }
+    ]) {
+      let aggregateReads = 0;
+      const { reader } = mockAdaptiveReaders({
+        readLatestConsent: async () => ({ verifiedLatest: true, receipt }),
+        readAggregateEvidence: async () => { aggregateReads++; return adapterEvidence; }
+      });
+      const result = await reader.preview({ organizationId: ORG, changeType: "workspace_layout" });
+      assert.equal(result.state, "blocked", JSON.stringify(receipt));
+      assert.equal(aggregateReads, 0);
+    }
+  });
+
+  it("rejects oversized or control-character-laden provenance and explanation", async () => {
+    for (const provenance of ["x".repeat(241), "verified" + String.fromCharCode(10) + "spoof"]) {
+      const { reader } = mockAdaptiveReaders({
+        readAggregateEvidence: async () => ({ ...adapterEvidence, provenance })
+      });
+      assert.equal((await reader.preview({
+        organizationId: ORG, changeType: "workspace_layout"
+      })).state, "blocked");
+    }
+    const { reader } = mockAdaptiveReaders({
+      readGovernance: async () => ({
+        controlsVerified: true, rollbackPlanReviewed: true,
+        explanation: "approve" + String.fromCharCode(10) + "injected message"
+      })
+    });
+    assert.equal((await reader.preview({
+      organizationId: ORG, changeType: "workspace_layout"
+    })).state, "blocked");
+  });
+
   it("does not accept request body verified flags as an authority", async () => {
     const { reader, calls } = mockAdaptiveReaders({
       readLatestConsent: async () => ({ verifiedLatest: false, receipt: valid.consentReceipt })
