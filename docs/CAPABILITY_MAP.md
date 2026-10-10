@@ -8,18 +8,18 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 957 |
-| GET / POST / PATCH / DELETE | 577 / 367 / 10 / 3 |
-| Declared page routes / workspace groups | 303 / 12 |
+| Registered HTTP route operations | 958 |
+| GET / POST / PATCH / DELETE | 578 / 367 / 10 / 3 |
+| Declared page routes / workspace groups | 304 / 12 |
 | API operations matched to OpenAPI | 338 |
-| Destinations using workspace-home fallback | 15 |
+| Destinations using workspace-home fallback | 14 |
 | Form action destinations traced to registered pages | 132 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 0 |
 | Active migration tables | 362 |
 | Runtime-queried / never-queried tables | 321 / 41 |
-| Migration files | 161 |
-| SQL functions / triggers / calling routes / missing function definition | 38 / 51 / 667 / 0 |
+| Migration files | 164 |
+| SQL functions / triggers / calling routes / missing function definition | 38 / 51 / 668 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
 | Deterministic formulas with evaluators | 59 / 59 |
@@ -28,7 +28,7 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Reviewed repository records across catalogs | 532 |
 | Other tool/AI catalog entries / enabled repo records | 25 / 0 |
 | Research/reference-only repository records | 289 |
-| Infrastructure services / pipeline layers / expansion tracks | 16 / 16 / 20 |
+| Infrastructure services / pipeline layers / expansion tracks | 16 / 16 / 21 |
 
 ## How to use the inventory
 
@@ -41,10 +41,10 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 957 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 958 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 338 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 15 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- 14 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 
@@ -54,15 +54,15 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_formula_result_registry` | 1 |
 | `explicit_no_persistent_table_expected` | 155 |
 | `explicit_resource_registry` | 262 |
-| `handler_source_table_reference` | 507 |
-| `provider_endpoint_reference` | 29 |
+| `handler_source_table_reference` | 509 |
+| `provider_endpoint_reference` | 28 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
 
 | Workspace | Route prefixes | Operations | Pages | Home |
 | --- | --- | ---: | ---: | --- |
-| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 345 | 98 | `/business-builder/dashboard` |
+| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 346 | 99 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
 | Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 136 | 69 | `/creator-studio/dashboard` |
 | Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 133 | 58 | `/growth-studio/dashboard` |
@@ -81,21 +81,20 @@ These operations still resolve to workspace homes. Each needs a real destination
 
 | Operation | Workspace | Current fallback | Source |
 | --- | --- | --- | --- |
-| `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1357` |
-| `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:309` |
-| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1539` |
-| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1563` |
+| `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1358` |
+| `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:497` |
+| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1540` |
+| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1564` |
 | `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:93` |
-| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2259` |
-| `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1999` |
+| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2352` |
+| `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2052` |
 | `GET /api/invention-systems/catalog` | sonara_shared_api | `/dashboard` | `routes/invention-systems-routes.cjs:17` |
-| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2247` |
+| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2340` |
 | `GET /api/prompt-library/discovery` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:97` |
 | `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
-| `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:511` |
+| `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:512` |
 | `POST /api/creator/workflows/plan` | sonara_shared_api | `/dashboard` | `routes/creator-music-system-readonly.cjs:128` |
-| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2274` |
-| `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2223` |
+| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2367` |
 
 ### Research-only repositories
 
