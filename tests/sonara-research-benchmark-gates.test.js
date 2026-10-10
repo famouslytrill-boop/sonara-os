@@ -89,7 +89,9 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
   it("scores research ideas but never authorizes production", () => {
     const results = scoreCapabilityIdeas([idea()]);
     assert.equal(results.length, 1);
-    assert.equal(results[0].status, "scoping_review_ready");
+    assert.equal(results[0].status, "independent_validation_required");
+    assert.equal(results[0].evidenceIndependentlyVerified, false);
+    assert.deepEqual(results[0].unrecognizedRiskTags, []);
     assert.ok(results[0].score100 > 0 && results[0].score100 <= 100);
     assert.equal(results[0].ownerApprovalRequired, true);
     assert.equal(results[0].productionAuthorized, false);
@@ -114,6 +116,44 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(result.score100, 100);
     assert.equal(result.status, "specialist_and_owner_review");
     assert.equal(result.productionAuthorized, false);
+  });
+
+  it("rejects invalid rows even when ranks 1–50 are otherwise present", () => {
+    const records = Array.from({ length: 50 }, (_, index) => row(index + 1));
+    records.push({ rank: 51, name: "Injected", sourceUrl: "https://fake.invalid/" });
+    const result = inspect({ records });
+    assert.equal(result.missingRanks.length, 0);
+    assert.equal(result.status, "invalid_transcription");
+    assert.equal(result.rejected.length, 1);
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
+  it("unknown or mismatched financial risk tags cannot be classified as safe", () => {
+    for (const tag of ["securitiesAdvice", "unknown_high_impact"]) {
+      const result = scoreCapabilityIdeas([idea({ riskTags: [tag] })])[0];
+      assert.equal(result.status, "specialist_and_owner_review");
+      assert.deepEqual(result.unrecognizedRiskTags, [tag]);
+      assert.equal(result.productionAuthorized, false);
+    }
+    const known = scoreCapabilityIdeas([idea({ riskTags: ["money_movement"] })])[0];
+    assert.equal(known.status, "specialist_and_owner_review");
+    assert.deepEqual(known.unrecognizedRiskTags, []);
+  });
+
+  it("supports low-impact research categories without treating links as verified evidence", () => {
+    const result = scoreCapabilityIdeas([idea({ riskTags: ["read_only", "simulation_only"] })])[0];
+    assert.equal(result.status, "independent_validation_required");
+    assert.equal(result.evidenceIndependentlyVerified, false);
+    assert.equal(result.productionAuthorized, false);
+  });
+
+  it("refuses malformed, duplicate and oversized risk classifications", () => {
+    for (const riskTags of [null, ["read_only", "read_only"], Array(17).fill("read_only")]) {
+      const result = scoreCapabilityIdeas([idea({ riskTags })])[0];
+      assert.equal(result.status, "specialist_and_owner_review");
+      assert.ok(result.missing.includes("risk_classification"));
+      assert.equal(result.ownerApprovalRequired, true);
+    }
   });
 
   it("prevents invalid numeric inputs and duplicated project ids", () => {
