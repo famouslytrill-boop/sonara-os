@@ -146,10 +146,17 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.ok(migration.includes("grant select,insert on public.inventory_stock_count_requests to service_role"));
   });
   it("accepts active tenant-bound staff membership without granting employee review authority", () => {
+    const functionBlock = (name) => {
+      const offset = migration.indexOf(`create function public.${name}(`);
+      assert.ok(offset >= 0, `missing ${name}`);
+      const end = migration.indexOf("$function$;",offset);
+      assert.ok(end > offset,`unterminated ${name}`);
+      return migration.slice(offset,end);
+    };
     const blocks = [
-      migration.slice(migration.indexOf("create function public.sonara_apply_stock_count_adjustment(")),
-      migration.slice(migration.indexOf("create function public.sonara_submit_stock_count_request(")),
-      migration.slice(migration.indexOf("create function public.sonara_review_stock_count_request("))
+      functionBlock("sonara_apply_stock_count_adjustment"),
+      functionBlock("sonara_submit_stock_count_request"),
+      functionBlock("sonara_review_stock_count_request")
     ];
     for (const sql of blocks) {
       assert.ok(sql.includes("from public.organization_memberships m"));
