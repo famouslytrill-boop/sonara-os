@@ -441,29 +441,49 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
 });
 
 
-const { requireVerifiedUserScopedRead, isVerifiedUserScopedRead } =
-  require("../lib/sonara-supabase-clients.cjs");
+const {
+  requireVerifiedUserScopedRead, isVerifiedUserScopedRead,
+  createUserScopedRlsReadinessVerifier
+} = require("../lib/sonara-supabase-clients.cjs");
 
 const adapterReadConfig = Object.freeze({
   serviceRoleKey: "server-only-test-secret",
   anonKey: "sb_publishable_test_public_key"
 });
-function mintedTestEvidenceRead() {
+async function mintedTestEvidenceRead() {
+  const foreignOrg = "44444444-4444-4444-8444-444444444444";
+  const foreignUser = "55555555-5555-4555-8555-555555555555";
+  const ownRow = "66666666-6666-4666-8666-666666666666";
+  const foreignRow = "77777777-7777-4777-8777-777777777777";
+  const ownToken = "test-user-access-token";
+  const foreignToken = "test-other-user-access-token";
+  const verifier = createUserScopedRlsReadinessVerifier({
+    inspectTableSecurity: async ({ table }) => ({
+      table, grantVerified: true, rlsEnabled: true, sourceVerified: true
+    }),
+    readExactRow: async ({ accessToken, rowId }) => {
+      if (accessToken === ownToken && rowId === ownRow) {
+        return { status: 200, rows: [{ id: ownRow, organization_id: ORG }] };
+      }
+      if (accessToken === foreignToken && rowId === foreignRow) {
+        return { status: 200, rows: [{ id: foreignRow, organization_id: foreignOrg }] };
+      }
+      return { status: 200, rows: [] };
+    }
+  });
+  const proof = await verifier.verify({
+    table: "sonara_learning_aggregates",
+    organizationId: ORG, userId: USER, rowId: ownRow,
+    otherOrganizationId: foreignOrg, otherUserId: foreignUser,
+    otherRowId: foreignRow, accessToken: ownToken, otherAccessToken: foreignToken,
+    trustedNow: "2026-10-09T18:00:00.000Z"
+  });
   return requireVerifiedUserScopedRead({
-    config: adapterReadConfig,
-    accessToken: "test-user-access-token",
+    config: adapterReadConfig, accessToken: ownToken,
     table: "sonara_learning_aggregates",
     organizationId: ORG, serverOrganizationId: ORG,
     userId: USER, serverUserId: USER,
-    trustedNow: valid.trustedNow,
-    liveProof: {
-      status: "verified_live_user_rls",
-      table: "sonara_learning_aggregates",
-      organizationId: ORG, userId: USER,
-      grantVerified: true, sameTenantReadVerified: true,
-      crossTenantDeniedVerified: true,
-      measuredAt: "2026-10-09T18:00:00.000Z"
-    }
+    trustedNow: valid.trustedNow, liveProof: proof
   });
 }
 
@@ -640,7 +660,7 @@ describe("trusted-source adaptive preview adapter (inactive integration boundary
   });
 
   it("rejects forged object copies while a branded scoped read may pass", async () => {
-    const minted = mintedTestEvidenceRead();
+    const minted = await mintedTestEvidenceRead();
     assert.equal(isVerifiedUserScopedRead(minted, {
       table: "sonara_learning_aggregates", organizationId: ORG, userId: USER
     }), true);
