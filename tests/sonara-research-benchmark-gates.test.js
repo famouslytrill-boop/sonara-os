@@ -1,0 +1,124 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const { SOURCES, inspectRanking, scoreCapabilityIdeas } = require("../lib/sonara-research-benchmark-gates.cjs");
+
+function row(rank, name = "Company " + rank, sourceId = "us_revenue_2026") {
+  return { rank, name, sourceUrl: SOURCES[sourceId].url };
+}
+function inspect(overrides = {}) {
+  return inspectRanking({
+    sourceId: "us_revenue_2026",
+    observedAt: "2026-10-09",
+    checkedAt: "2026-10-09",
+    records: [row(1, "Amazon"), row(2, "Walmart")],
+    ...overrides
+  });
+}
+function idea(overrides = {}) {
+  return {
+    id: "read-only-inventory-forecast",
+    title: "Explainable inventory forecast",
+    owner: "Product owner",
+    costCeilingUsd: 400,
+    customerCommitments: 1,
+    evidenceUrls: ["https://www.nist.gov/"],
+    riskTags: [],
+    customerValue: 4, sharedReuse: 5, sourceQuality: 4,
+    deliveryFeasibility: 3, costControl: 4, safetyReadiness: 5,
+    ...overrides
+  };
+}
+
+describe("SONARA source-grounded top-50 benchmark gates", () => {
+  it("keeps source, edition, region, and metric independently identifiable", () => {
+    assert.equal(Object.keys(SOURCES).length, 4);
+    assert.equal(SOURCES.us_revenue_2026.region, "US");
+    assert.equal(SOURCES.europe_revenue_2026.region, "Europe");
+    assert.equal(SOURCES.global_revenue_2026.region, "Global");
+    assert.equal(SOURCES.billionaires_realtime.metric, "estimated_net_worth");
+  });
+
+  it("reports missing ranks without manufacturing the other 48", () => {
+    const result = inspect();
+    assert.equal(result.status, "incomplete_transcription");
+    assert.equal(result.count, 2);
+    assert.equal(result.missingRanks.length, 48);
+    assert.equal(result.missingRanks[0], 3);
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
+  it("never converts a complete transcription into independent verification", () => {
+    const result = inspect({ records: Array.from({length: 50}, (_, i) => row(i + 1)) });
+    assert.equal(result.missingRanks.length, 0);
+    assert.equal(result.status, "source_transcription_needs_audit");
+    assert.equal(result.independentlyVerified, false);
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
+  it("rejects forged publisher URLs, repeated ranks, and duplicate organizations", () => {
+    const result = inspect({ records: [
+      row(1, "Amazon"),
+      row(1, "Another"),
+      row(2, "amazon"),
+      { rank: 3, name: "False source", sourceUrl: "https://example.net/" },
+      row(4, "Valid")
+    ] });
+    assert.deepEqual(result.entries.map(x => x.rank), [1, 4]);
+    assert.equal(result.rejected.length, 3);
+  });
+
+  it("keeps realtime net-worth rankings freshness-limited", () => {
+    const result = inspectRanking({
+      sourceId: "billionaires_realtime",
+      observedAt: "2026-10-01",
+      checkedAt: "2026-10-09",
+      records: [row(1, "Subject", "billionaires_realtime")]
+    });
+    assert.equal(result.status, "stale_source");
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
+  it("rejects invalid dates, a future observation and invalid list sizes", () => {
+    assert.throws(() => inspect({ observedAt: "2026-02-30" }), /real calendar/);
+    assert.throws(() => inspect({ observedAt: "2026-10-10" }), /future/);
+    assert.throws(() => inspect({ targetSize: 51 }), /targetSize/);
+    assert.throws(() => inspect({ sourceId: "__proto__" }), /Unknown ranked source/);
+  });
+
+  it("scores research ideas but never authorizes production", () => {
+    const results = scoreCapabilityIdeas([idea()]);
+    assert.equal(results.length, 1);
+    assert.equal(results[0].status, "scoping_review_ready");
+    assert.ok(results[0].score100 > 0 && results[0].score100 <= 100);
+    assert.equal(results[0].ownerApprovalRequired, true);
+    assert.equal(results[0].productionAuthorized, false);
+  });
+
+  it("fails closed without verifiable sources, customers, owner and budget", () => {
+    const result = scoreCapabilityIdeas([idea({
+      owner: "", customerCommitments: 0, costCeilingUsd: -1,
+      evidenceUrls: ["http://not-https.example/"]
+    })])[0];
+    assert.equal(result.status, "evidence_required");
+    assert.deepEqual(result.missing, [
+      "accountable_owner", "cost_ceiling", "customer_commitment", "traceable_evidence"
+    ]);
+  });
+
+  it("sends risky high-scoring ideas to specialist review", () => {
+    const result = scoreCapabilityIdeas([idea({
+      riskTags: ["securities_advice"], customerValue: 5, sharedReuse: 5,
+      sourceQuality: 5, deliveryFeasibility: 5, costControl: 5, safetyReadiness: 5
+    })])[0];
+    assert.equal(result.score100, 100);
+    assert.equal(result.status, "specialist_and_owner_review");
+    assert.equal(result.productionAuthorized, false);
+  });
+
+  it("prevents invalid numeric inputs and duplicated project ids", () => {
+    assert.throws(() => scoreCapabilityIdeas([idea({ safetyReadiness: NaN })]), /safetyReadiness/);
+    assert.throws(() => scoreCapabilityIdeas([idea(), idea()]), /unique id/);
+    assert.throws(() => scoreCapabilityIdeas([idea({ customerValue: 6 })]), /customerValue/);
+  });
+});
