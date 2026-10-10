@@ -7,6 +7,8 @@ const it = global.it || nodeTest.it;
 const { publicationSnapshotHash, evaluatePublicationBatch } =
   require("../lib/sonara-multi-channel-publication-preflight.cjs");
 
+const { classifyPublicationReceipt } = require("../lib/sonara-publication-receipt-reconciliation.cjs");
+
 const ORG = "11111111-1111-4111-8111-111111111111";
 const OWNER = "22222222-2222-4222-8222-222222222222";
 const REQUEST = "33333333-3333-4333-8333-333333333333";
@@ -172,4 +174,105 @@ describe("multi-channel publishing is preflight only", () => {
     assert.equal(candidate.executionAuthorized, false);
   });
 
+});
+
+
+function receiptInput(overrides = {}) {
+  const defaults = {
+    organizationId: ORG, serverOrganizationId: ORG,
+    snapshotHash: "a".repeat(64), approvedSnapshotHash: "a".repeat(64),
+    providerKey:"linkedin_marketing", expectedProviderKey:"linkedin_marketing",
+    accountId:"company-page", expectedAccountId:"company-page",
+    idempotencyKey:"publish_attempt_key_00001",
+    expectedIdempotencyKey:"publish_attempt_key_00001",
+    lastKnownState:"dispatched", requestedVisibility:"public",
+    attemptedAt:"2026-10-10T15:00:00.000Z",
+    serverNow:"2026-10-10T15:03:00.000Z",
+    receipt:{kind:"published",remoteId:"urn:li:share:12345",
+      publicationVisibility:"public",visibilityVerified:true,
+      observedAt:"2026-10-10T15:02:00.000Z",
+      providerEvidenceVerified:true}
+  };
+  return {...defaults,...overrides};
+}
+describe("provider receipt classification is non-executing and never enables blind retry", () => {
+  it("accepts an authenticated matching published status as a receipt, not independent visibility certification", () => {
+    const result = classifyPublicationReceipt(receiptInput());
+    assert.equal(result.state, "provider_published_receipt");
+    assert.equal(result.providerPostId, "urn:li:share:12345");
+    assert.equal(result.executionAuthorized, false);
+    assert.equal(result.providerVisibilityCertified, false);
+  });
+  it("never blindly retries an unacknowledged dispatch or transport timeout", () => {
+    for (const receipt of [null, {
+      kind:"transport_unknown",observedAt:"2026-10-10T15:02:00.000Z",providerEvidenceVerified:true
+    }]) {
+      const result = classifyPublicationReceipt(receiptInput({receipt}));
+      assert.equal(result.state, "reconciliation_required");
+      assert.equal(result.safeToBlindlyRetry,false);
+    }
+  });
+  it("does not misreport upload accepted/processing as a published post", () => {
+    for (const kind of ["accepted","processing"]) {
+      const result = classifyPublicationReceipt(receiptInput({receipt:{
+        kind,observedAt:"2026-10-10T15:02:00.000Z",providerEvidenceVerified:true
+      }}));
+      assert.equal(result.state, "provider_processing");
+      assert.equal(result.providerPostId,undefined);
+    }
+  });
+  it("rejects cross-tenant, account, content and idempotency mismatch", () => {
+    const cases = [
+      {serverOrganizationId:"55555555-5555-4555-8555-555555555555"},
+      {expectedAccountId:"another-account"},
+      {approvedSnapshotHash:"b".repeat(64)},
+      {expectedIdempotencyKey:"publish_attempt_key_00002"}
+    ];
+    for (const mismatch of cases) {
+      assert.equal(classifyPublicationReceipt(receiptInput(mismatch)).state,"blocked");
+    }
+  });
+  it("rejects unverifiable or future-dated provider status evidence", () => {
+    const cases = [
+      {providerEvidenceVerified:false},
+      {observedAt:"2026-10-10T15:05:00.000Z"},
+      {observedAt:"2026-10-10"},
+    ];
+    for (const record of cases) {
+      assert.equal(classifyPublicationReceipt(receiptInput({
+        receipt:{...receiptInput().receipt,...record}
+      })).state,"blocked");
+    }
+  });
+  it("requires exact provider visibility and stable remote identifier", () => {
+    for (const receipt of [
+      {...receiptInput().receipt, publicationVisibility:"private"},
+      {...receiptInput().receipt, visibilityVerified:false}
+    ]) {
+      assert.equal(classifyPublicationReceipt(receiptInput({receipt})).state,"reconciliation_required");
+    }
+    const conflict = classifyPublicationReceipt(receiptInput({existingRemoteId:"urn:li:share:99999"}));
+    assert.equal(conflict.code,"provider_remote_id_missing_or_conflicting");
+  });
+  it("does not auto-retry 429 unless the provider confirms no acceptance", () => {
+    const receipt={kind:"throttled",observedAt:"2026-10-10T15:02:00.000Z",
+      providerEvidenceVerified:true,retryAfterSeconds:60};
+    assert.equal(classifyPublicationReceipt(receiptInput({receipt})).state,"reconciliation_required");
+    const known = classifyPublicationReceipt(receiptInput({receipt:{
+      ...receipt,providerConfirmedNotAccepted:true
+    }}));
+    assert.equal(known.state,"retry_review_candidate");
+    assert.equal(known.minimumRetryAfterSeconds,60);
+    assert.equal(known.safeToBlindlyRetry,false);
+  });
+  it("blocks decisions on terminal states and rejected post cannot be assumed published", () => {
+    assert.equal(classifyPublicationReceipt(receiptInput({lastKnownState:"published"})).state,"blocked");
+    const receipt={kind:"rejected",observedAt:"2026-10-10T15:02:00.000Z",
+      providerEvidenceVerified:true};
+    assert.equal(classifyPublicationReceipt(receiptInput({receipt})).state,"manual_review_required");
+  });
+  it("rejects malformed receipt inputs instead of throwing", () => {
+    assert.equal(classifyPublicationReceipt(null).state,"blocked");
+    assert.equal(classifyPublicationReceipt({}).state,"blocked");
+  });
 });
