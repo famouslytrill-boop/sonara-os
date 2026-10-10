@@ -85,6 +85,21 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(result.canPublishAsOfficialTop50, false);
   });
 
+  it("does not let staleness hide poisoned ranking rows", () => {
+    const result = inspect({
+      records: [
+        row(1, "Valid"),
+        { rank: 2, name: "=BAD()", sourceUrl: SOURCES.us_revenue_2026.url }
+      ],
+      observedAt: "2024-01-01",
+      checkedAt: "2026-10-09"
+    });
+    assert.ok(result.ageDays > SOURCES.us_revenue_2026.maxSourceAgeDays);
+    assert.equal(result.rejected.length, 1);
+    assert.equal(result.status, "invalid_transcription");
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
   it("rejects invalid dates, a future observation and invalid list sizes", () => {
     assert.throws(() => inspect({ observedAt: "2026-02-30" }), /real calendar/);
     assert.throws(() => inspect({ observedAt: "2026-10-10" }), /future/);
