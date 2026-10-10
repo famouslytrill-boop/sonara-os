@@ -257,6 +257,24 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.deepEqual(packet.claims.map((item) => item.status), ["stale_evidence", "unsupported_claim"]);
   });
 
+  it("rejects hidden or customer-identifying fields in source receipts", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09",
+      observations: [
+        { claimId: "service_cost", stance: "supports",
+          sourceUrl: "https://example.org/a", observedAt: "2026-10-09",
+          customerEmail: "someone@example.org" },
+        { claimId: "service_cost", stance: "supports",
+          sourceUrl: "https://example.org/b", observedAt: "2026-10-09" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "invalid_intake");
+    assert.equal(packet.acceptedEvidenceCount, 1);
+    assert.equal(packet.rejected.length, 1);
+    assert.equal(JSON.stringify(packet).includes("someone@example.org"), false);
+    assert.equal(packet.authorizedForProduction, false);
+  });
+
   it("rejects duplicated, future-dated and malformed provenance receipts", () => {
     const valid = { claimId: "source_a", stance: "supports", observedAt: "2026-10-08", sourceUrl: "https://example.org/a" };
     const packet = auditEvidencePacket({
