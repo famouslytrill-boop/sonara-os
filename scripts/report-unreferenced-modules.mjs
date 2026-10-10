@@ -94,6 +94,8 @@ const TEST_ONLY = new Map([
     "Review authorship/moderation preflight; waits for separate customer text confirmation and owner publication workflows."],
   ["lib/sonara-deterministic-capacity-planner.cjs",
     "Integer scenario planning; waits for measured workload/pricing inputs and a customer scenario screen. Outputs are not benchmarks."],
+  ["lib/sonara-seasonal-vertical-playbooks.cjs",
+    "Reviewed test-only seasonal planning and counts-only compression. Waits for measured owner inputs, authenticated tenant adapter, audited approval gates and an explicitly reviewed customer scenario screen; not live dispatch, food compliance or payments."],
   ["lib/sonara-deterministic-risk-assessment.cjs",
     "Risk triage math; waits for a tenant-scoped risk register with measured evidence. It cannot decide credit, housing or insurance eligibility."],
   ["lib/sonara-file-storage-policy.cjs",
