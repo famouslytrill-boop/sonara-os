@@ -32,3 +32,22 @@ No adapter is wired to a route yet; this change cannot establish the truth of a 
 ## Validation evidence
 
 Run `pnpm exec mocha tests/industry-package-blueprints.test.js tests/industry-package-preflight.test.js` with the **real** repository dependencies, then `pnpm test`, lint, typecheck, build, tenant/route/agent-sync, and native migration replay. An isolated Node 22 harness using stubbed planners passed 7 original blueprint + 8 preflight tests; this is not the full integration suite or Node 24/26 compatibility proof. CI of the previous commit on PR #623 had 7 failed and 4 successful workflow families; do not label release green based on the focused tests.
+
+
+## 2026-10-10 engineering increment: canonical session and billing reads
+
+Added `lib/sonara-industry-session-preflight.cjs` plus `tests/industry-session-preflight.test.js` and `tests/industry-paid-entitlement-readonly.test.js`.
+
+- Resolve organization membership using the **authenticated session user** and `getCustomerPrimaryOrganization(user, {autoBootstrap:false})`; reject unrecognized membership sources. No client-supplied tenant, role or plan can select the organization.
+- Reuse the real `getCustomerPaidEntitlement(user, product, {autoBootstrap:false})`. The optional no-bootstrap parameter was added to the existing paid reader without changing its default for established callers. Check that the canonical billing reader's returned organization exactly matches membership, and accept only subscription/entitlement proof sources it knows.
+- Parallel preflight requests use distinct per-call scopes; an earlier result cannot be reused by a later request. A billing outage remains `entitlement_unavailable`, not a prompt to buy again.
+- Provider evidence remains a **required injected reader**. Until real rights/moderation/calendar/payment verification is built, a caller must provide an adapter that fails on unavailable data. This is not approval to fabricate green `verified` rows. No server route was registered.
+- The three products remain `template_only`, with `canActivate`, `canExecute`, `canPublish`, and `canDeliverPaidAssets` false.
+
+### Source-specific acceptance criteria
+
+1. Creator Studio: BWF source time references are sample-index metadata, not a DAW project import claim. EBU Tech 3285: https://tech.ebu.ch/publications/tech3285/ . OpenTimelineIO interchange references external audio/video and is not a renderer: https://opentimelineio.readthedocs.io/en/latest/ .
+2. Growth Studio: current TikTok Content Posting API demands `video.publish` app approval and user authorization; unaudited clients are private-only and creator information/visibility must be checked before posting: https://developers.tiktok.com/docs/en/content-posting-api-get-started . Meta Instagram with Facebook Login requires a linked professional account and appropriately scoped token: https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api .
+3. Business Builder: Google Calendar FreeBusy can return calendar-level errors. Fail closed on those errors, then recheck SONARA booking resource conflicts atomically before confirmation: https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query .
+
+**Integration still outstanding:** bind a read-only authenticated route only after there are true tenant-safe media rights, provider permissions, social moderation and booking evidence readers; test it in two-tenant integration fixtures and the actual production-like authentication/migration environment. Do not treat stubbed reader tests as live proof. PR checks and native database replay remain release gates.
