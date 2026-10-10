@@ -329,8 +329,9 @@ function main() {
     // The current migration state has already hardened service-only RLS to
     // service_role/TRUE, and optimized user policies to scalar initplans.
     // The historic P1 rewriting dry-run expects obsolete PUBLIC policies, so
-    // re-running it here is invalid. Verify all 25 *current* exact predicates
-    // and both subscription policies; never skip or weaken the security gate.
+    // re-running it here is invalid. Verify all 25 *current* exact predicates;
+    // named subscription policies are not seeded by this disposable replay.
+    // Check those in a separate production/staging authorization matrix.
     behaves(psql, "P1 current RLS security policy and overlap attestation",
       fs.readFileSync(path.join(root, "tests/sql/p1-current-policy-contract.sql"), "utf8"),
       ["p1_current_policy_contract_passed"]);
