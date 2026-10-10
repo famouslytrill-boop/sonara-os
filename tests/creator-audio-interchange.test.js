@@ -63,7 +63,7 @@ describe("Creator DAW WAV interoperability and local meters", () => {
     }
     const compressed = sourceWav({ samples: repeated(10) });
     new DataView(compressed).setUint16(20, 6, true);
-    assert.throws(() => readWav(compressed), /PCM 16\/24\/32-bit/);
+    assert.throws(() => readWav(compressed), /PCM 16-bit/);
     const invalid = sourceWav({ samples: repeated(10) });
     new DataView(invalid).setUint32(40, 0xffffffff, true);
     assert.throws(() => readWav(invalid), /incomplete/);
