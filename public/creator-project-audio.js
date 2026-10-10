@@ -12,7 +12,8 @@
     let format, audio;
     for (let at = 12; at + 8 <= buffer.byteLength;) {
       const size = view.getUint32(at + 4, true), start = at + 8;
-      if (start + size > buffer.byteLength) throw new Error("The WAV recording is incomplete.");
+      const paddedEnd = start + size + (size % 2);
+      if (paddedEnd > buffer.byteLength) throw new Error("The WAV recording is incomplete.");
       if (tag(at) === "fmt ") {
         if (format || size < 16) throw new Error("Invalid WAV format.");
         format = { encoding: view.getUint16(start, true), channels: view.getUint16(start + 2, true), rate: view.getUint32(start + 4, true), bytesPerSecond: view.getUint32(start + 8, true), alignment: view.getUint16(start + 12, true), bits: view.getUint16(start + 14, true) };
@@ -21,7 +22,7 @@
         if (audio) throw new Error("Use a WAV with one audio data section.");
         audio = { start, size };
       }
-      at = start + size + (size % 2);
+      at = paddedEnd;
     }
     if (!format || !audio || ![1, 2].includes(format.channels) || format.rate < 8000 || format.rate > 96000 ||
       !((format.encoding === 1 && [16, 24, 32].includes(format.bits)) || (format.encoding === 3 && format.bits === 32)) ||
