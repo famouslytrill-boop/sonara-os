@@ -84,17 +84,22 @@ BEGIN
    RAISE EXCEPTION 'subscriptions duplicate policy command/permissive definitions drifted; abort';
  END IF;
 
- IF (SELECT count(*) FROM (
-       SELECT p.polcmd, p.polroles, p.polpermissive, p.polqual, p.polwithcheck
-       FROM pg_policy p
-       JOIN pg_class c ON c.oid=p.polrelid
-       JOIN pg_namespace n ON n.oid=c.relnamespace
-       WHERE n.nspname='public' AND c.relname='subscriptions'
-         AND p.polname IN ('Users can view own subscriptions',
-                           'Users can view their own subscription')
-       GROUP BY p.polcmd, p.polroles, p.polpermissive, p.polqual, p.polwithcheck
-       HAVING count(*)=2
-     ) exact_duplicate) <> 1 THEN
+ IF (SELECT count(*)
+     FROM pg_policy left_policy
+     JOIN pg_class c ON c.oid=left_policy.polrelid
+     JOIN pg_namespace n ON n.oid=c.relnamespace
+     JOIN pg_policy right_policy
+       ON right_policy.polrelid=left_policy.polrelid
+      AND right_policy.polname='Users can view their own subscription'
+     WHERE n.nspname='public'
+       AND c.relname='subscriptions'
+       AND left_policy.polname='Users can view own subscriptions'
+       AND left_policy.polcmd=right_policy.polcmd
+       AND left_policy.polroles=right_policy.polroles
+       AND left_policy.polpermissive=right_policy.polpermissive
+       AND left_policy.polqual::text IS NOT DISTINCT FROM right_policy.polqual::text
+       AND left_policy.polwithcheck::text IS NOT DISTINCT FROM right_policy.polwithcheck::text
+   ) <> 1 THEN
    RAISE EXCEPTION 'subscriptions policies are not exact catalog-AST duplicates; abort';
  END IF;
 END
