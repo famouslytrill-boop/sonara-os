@@ -18,6 +18,16 @@ describe("Model skill packages are complete offline snapshots",function(){
    assert.ok(p.files.has(t+"/skills/checks-that-cannot-lie/SKILL.md"));
   }
  });
+ it("includes all indexed quantitative modules and formula SQL references",function(){
+  const paths=api.formulaPaths(),p=api.plan();
+  assert.ok(paths.length>=24);
+  assert.equal(paths.filter(x=>x.startsWith("lib/")).length,19);
+  assert.ok(paths.includes("lib/sonara-inventory-science.cjs"));
+  for(const source of paths){
+   for(const target of ["claude","openai"])
+    assert.ok(p.files.has(target+"/skills/sonara-formula-evidence/references/repository/"+source),source);
+  }
+ });
  it("rejects malformed skill metadata",function(){
   assert.throws(()=>api.metadata("bad","no frontmatter"),/missing_frontmatter/);
   assert.throws(()=>api.metadata("bad","---\nname: bad_name\ndescription: wrong\n---"),/invalid_skill_metadata/);
