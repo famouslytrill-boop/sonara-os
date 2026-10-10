@@ -424,6 +424,80 @@ describe("SONARA source-grounded top-50 benchmark gates", () => {
     assert.equal(invalid.productionAuthorized, false);
   });
 
+  it("reports invalid ranking rows, age and missing ranks at the same time", () => {
+    const result = inspect({
+      observedAt: "2024-01-01", checkedAt: "2026-10-09",
+      records: [
+        row(1, "Valid One"),
+        { rank: 2, name: "Valid Two", sourceUrl: SOURCES.us_revenue_2026.url,
+          customerEmail: "do-not-collect@example.org" }
+      ]
+    });
+    assert.equal(result.status, "invalid_transcription");
+    assert.deepEqual(result.issueCodes, [
+      "invalid_transcription", "stale_source", "incomplete_transcription"
+    ]);
+    assert.equal(result.rejected.length, 1);
+    assert.equal(result.entries.length, 1);
+    assert.equal(JSON.stringify(result).includes("do-not-collect@example.org"), false);
+    assert.equal(result.timestampProvenance, "caller_supplied_unverified");
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
+  it("keeps all contradictory, stale, invalid and unsupported evidence blockers", () => {
+    const packet = auditEvidencePacket({
+      reviewedAt: "2026-10-09", maxAgeDays: 7,
+      observations: [
+        { claimId: "alpha", stance: "supports", observedAt: "2026-09-01",
+          sourceUrl: "https://example.org/a" },
+        { claimId: "alpha", stance: "contradicts", observedAt: "2026-10-09",
+          sourceUrl: "https://another.example.org/b" },
+        { claimId: "beta", stance: "contradicts", observedAt: "2026-10-09",
+          sourceUrl: "https://third.example.org/c" },
+        { claimId: "gamma", stance: "supports", observedAt: "2026-10-09",
+          sourceUrl: "http://localhost/private" }
+      ]
+    });
+    assert.equal(packet.overallStatus, "invalid_intake");
+    assert.deepEqual(packet.issueCodes, [
+      "invalid_intake", "contradictions_found", "unsupported_claims", "stale_evidence"
+    ]);
+    assert.equal(packet.timestampProvenance, "caller_supplied_unverified");
+    assert.equal(packet.authorizedForPublication, false);
+    assert.equal(packet.authorizedForProduction, false);
+  });
+
+  it("carries every issue to the formula plan without granting authority", () => {
+    const plan = planResearchFormulaEvaluation({
+      formulaKey: "eoq", claimId: "reorder_evidence",
+      reviewedAt: "2026-10-09", maxAgeDays: 7,
+      observations: [
+        { claimId: "reorder_evidence", stance: "supports",
+          observedAt: "2026-08-01", sourceUrl: "https://example.org/one" },
+        { claimId: "reorder_evidence", stance: "contradicts",
+          observedAt: "2026-10-09", sourceUrl: "https://example.net/two" }
+      ]
+    });
+    assert.equal(plan.evidenceStatus, "contradictions_found");
+    assert.ok(plan.blockingReasons.includes("contradictions_found"));
+    assert.ok(plan.blockingReasons.includes("stale_evidence"));
+    assert.ok(plan.blockingReasons.includes("formula_inputs_and_units_unverified"));
+    assert.equal(plan.timestampProvenance, "caller_supplied_unverified");
+    assert.equal(plan.formulaEvaluated, false);
+    assert.equal(plan.productionAuthorized, false);
+  });
+
+  it("requires independent human audit even for an otherwise complete clean ranking", () => {
+    const result = inspect({
+      targetSize: 2,
+      records: [row(1, "Company A"), row(2, "Company B")]
+    });
+    assert.deepEqual(result.issueCodes, []);
+    assert.equal(result.status, "source_transcription_needs_audit");
+    assert.equal(result.independentlyVerified, false);
+    assert.equal(result.canPublishAsOfficialTop50, false);
+  });
+
   it("prevents invalid numeric inputs and duplicated project ids", () => {
     assert.throws(() => scoreCapabilityIdeas([idea({ safetyReadiness: NaN })]), /safetyReadiness/);
     assert.throws(() => scoreCapabilityIdeas([idea(), idea()]), /unique id/);
