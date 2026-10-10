@@ -381,14 +381,33 @@ begin
 
   -- Both roles checked under a service-only transaction, not from editable
   -- JWT user_metadata. Server MUST also bind actor to real auth session.
-  if not exists (
-    select 1 from public.organization_memberships m
-    where m.organization_id = p_organization_id and m.user_id = p_actor_user_id
-      and m.status = 'active'
-  ) or not exists (
-    select 1 from public.organization_memberships m
-    where m.organization_id = p_organization_id and m.user_id = p_reviewer_user_id
-      and m.status = 'active' and lower(m.role) in ('owner','admin','business_owner')
+  -- The application resolves active tenant membership from TWO canonical
+  -- sources: owner organization_memberships and staff business_memberships.
+  -- Restrict both to the exact supplied tenant. No global role shortcut.
+  if not (
+    exists (
+      select 1 from public.organization_memberships m
+      where m.organization_id = p_organization_id
+        and m.user_id = p_actor_user_id and m.status = 'active'
+    )
+    or exists (
+      select 1 from public.business_memberships b
+      where b.organization_id = p_organization_id
+        and b.user_id = p_actor_user_id and b.status = 'active'
+    )
+  ) or not (
+    exists (
+      select 1 from public.organization_memberships m
+      where m.organization_id = p_organization_id
+        and m.user_id = p_reviewer_user_id and m.status = 'active'
+        and lower(m.role) in ('owner','admin','business_owner')
+    )
+    or exists (
+      select 1 from public.business_memberships b
+      where b.organization_id = p_organization_id
+        and b.user_id = p_reviewer_user_id and b.status = 'active'
+        and lower(b.role) in ('owner','admin','business_owner')
+    )
   ) then
     raise exception 'stock_adjustment_actor_or_reviewer_unauthorized';
   end if;
@@ -533,10 +552,19 @@ begin
      or p_counted_quantity <> trunc(p_counted_quantity,3) then
     raise exception 'stock_count_request_invalid';
   end if;
-  if not exists (
-    select 1 from public.organization_memberships m
-    where m.organization_id=p_organization_id and m.user_id=p_actor_user_id
-      and m.status='active'
+  -- Both membership sources are used by Business Builder session
+  -- resolution. A business employee can count; only an owner can approve.
+  if not (
+    exists (
+      select 1 from public.organization_memberships m
+      where m.organization_id=p_organization_id
+        and m.user_id=p_actor_user_id and m.status='active'
+    )
+    or exists (
+      select 1 from public.business_memberships b
+      where b.organization_id=p_organization_id
+        and b.user_id=p_actor_user_id and b.status='active'
+    )
   ) then
     raise exception 'stock_count_actor_unauthorized';
   end if;
@@ -602,11 +630,19 @@ begin
   if p_organization_id is null or p_request_id is null or p_reviewer_user_id is null then
     raise exception 'stock_review_invalid';
   end if;
-  if not exists (
-    select 1 from public.organization_memberships m
-    where m.organization_id=p_organization_id
-      and m.user_id=p_reviewer_user_id and m.status='active'
-      and lower(m.role) in ('owner','admin','business_owner')
+  if not (
+    exists (
+      select 1 from public.organization_memberships m
+      where m.organization_id=p_organization_id
+        and m.user_id=p_reviewer_user_id and m.status='active'
+        and lower(m.role) in ('owner','admin','business_owner')
+    )
+    or exists (
+      select 1 from public.business_memberships b
+      where b.organization_id=p_organization_id
+        and b.user_id=p_reviewer_user_id and b.status='active'
+        and lower(b.role) in ('owner','admin','business_owner')
+    )
   ) then
     raise exception 'stock_review_owner_role_required';
   end if;
