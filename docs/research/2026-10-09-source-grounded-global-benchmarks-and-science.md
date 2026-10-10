@@ -301,3 +301,30 @@ GitHub's current documentation states that **standard** GitHub-hosted `ubuntu-la
 GitHub also documents that naïve concurrency grouping can replace an earlier pending run instead of completing every required exact-head check. Therefore, **do not add automatic concurrency/cancellation changes to mandatory release workflows without a separate owner-reviewed gate analysis**. See https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency.
 
 **Next release step:** Owner/admin investigates existing P0 issue #579, obtains GitHub's actual scheduling/runner evidence, and successfully executes a single controlled exact-SHA build/test/security/database/tenant matrix. Keep PR #605 draft, review branch protection separately, and deploy only via a separately approved staged release.
+
+## Phase 9 — Repository queue-pressure snapshot and trigger-churn evidence (2026-10-09 US Eastern / 2026-10-10 UTC)
+
+### Directly observed GitHub evidence
+
+Separate repository-wide Actions API queries returned **697 queued workflow runs** and **2 in progress** when inspected. The first 100 recently created workflow runs (a *non-exhaustive* sample across multiple commits, not just #605) contained **17 distinct head SHAs**, **20 cancelled** workflow runs, **76 queued** runs, and at most **16 workflow runs per single commit SHA** in that sample. The exact PR #605 head still showed **62 queued / 2 skipped checks**.
+
+These observations indicate substantial repository-wide backlog and repeated workflow-trigger activity, but **do not prove** that trigger volume caused the queue, that all cancelled runs resulted from `concurrency`, or that billing/runner failures occurred. GitHub workflow fan-out means many runs for one SHA can be normal. The sample is not a population estimate and cannot determine a root cause.
+
+### Implementation and security boundary
+
+`analyzeActionsQueueSnapshot` now optionally accepts **bounded caller-supplied** `repositoryRunCounts: {queued, inProgress}` and `recentRuns` (at most 200 raw records). The resulting `repositoryLoad` contains count/ratio context plus a sanitized summary of distinct head SHAs, cancelled and queued sample runs, and the largest workflow-run count for one SHA. It includes `repositoryQueueCauseDetermined: false`. Raw records and any accidental secret fields are never echoed.
+
+**Important:** Repository queue-pressure data is informational and does **not** affect `issueCodes` or certify an individual PR's required checks. A complete exact-head status still needs independent required-check scope verification and admin branch protection. The existing hard fail-closed `exactHeadReleaseGreen:false` and `productionAuthorized:false` remain intact.
+
+### Validation
+
+**17/17 native Node.js 22.16.0 test cases passed** through Node's built-in `node:test` adapter with the existing Mocha-style test definitions; no third-party packages were installed. The locally tested module and test files match GitHub blob SHAs `2ba14a5776f5a1520ef1db52c6150de76b621fa5` and `fe94bd26e92d266acd6c2499c37ee4c591d4f328`. Syntax checks for the module and standalone CLI passed. A queued JSON CLI fixture produced exit code 1 as expected.
+
+The online repository's blocking **Node 24 and pnpm/Mocha/full security/database matrix has not run successfully**. This isolated local test does not establish customer deployment readiness.
+
+### Controlled next steps
+
+1. **Reduce redundant draft-head pushes and CI-producing automation where safe**, rather than triggering more identical mandatory matrix runs. Do not cancel or skip the latest required exact-head signal; any workflow-filter change must be reviewed against branch rules and release evidence requirements.
+2. Authorized admin: use **Settings → Actions → Runners** to inspect active and queued GitHub-hosted jobs, concurrency allowance and assignment (https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/monitoring-your-current-jobs), then verify Actions policy, account usage and limits. Do not infer a private-repo minute exhaustion cause from SONARA's public repository.
+3. Preserve the currently unassigned job/run IDs and sample timing evidence and escalate to GitHub Support if admin checks do not identify a repository-level cause.
+4. After the backlog clears, run one controlled exact-head release verification and repair **real failures**, then review protected branch governance and conduct a separately authorized production release. GitHub: https://docs.github.com/en/actions/how-tos/troubleshoot-workflows and https://docs.github.com/en/actions/reference/limits.
