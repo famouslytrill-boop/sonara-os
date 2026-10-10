@@ -334,7 +334,7 @@ describe("HTTP observability middleware", () => {
       originalUrl: "/organizations/tenant-secret-123/jobs/order-secret-456?token=sensitive",
       route: { path: "/jobs/:jobId" }
     };
-    assert.equal(safeRouteTemplate(requestWithSensitiveMount), "/jobs/:jobId");
+    assert.equal(safeRouteTemplate(requestWithSensitiveMount), "unmatched");
     assert.doesNotMatch(safeRouteTemplate(requestWithSensitiveMount), /tenant-secret|order-secret|sensitive/);
     assert.equal(safeRouteTemplate({ route: { path: "/api/health" }, baseUrl: "" }), "/api/health");
     assert.equal(safeRouteTemplate({ route: null, originalUrl: "/private/customer@example.com" }), "unmatched");
@@ -354,7 +354,7 @@ describe("HTTP observability middleware", () => {
     const eventLine = lines.find((line) => line.includes('"http.request"'));
     assert.ok(eventLine, "the completed request never emitted a structured event");
     const event = JSON.parse(eventLine);
-    assert.equal(event.detail.route, "/jobs/:jobId");
+    assert.equal(event.detail.route, "unmatched");
     assert.doesNotMatch(eventLine, /tenant-secret|job-secret/, "a path identifier reached the telemetry event");
     assert.equal(event.reason, "2xx");
   });
@@ -367,5 +367,30 @@ describe("HTTP observability middleware", () => {
     // caller mint unbounded metric attributes by varying the URL.
     assert.equal(event.detail.route, "unmatched");
     assert.equal(event.detail.status, 404);
+  });
+
+  it("omits an unknown metric route while retaining declared templates", async () => {
+    const recorded = [];
+    const originalLoad = Module._load;
+    const api = require("@opentelemetry/api");
+    Module._load = function (name, ...args) {
+      if (name === "@opentelemetry/api") return { ...api, metrics: { getMeter: () => ({
+        createCounter: () => ({ add: (value, attributes) => recorded.push(attributes) }),
+        createHistogram: () => ({ record: (value, attributes) => recorded.push(attributes) })
+      }) } };
+      return originalLoad.call(this, name, ...args);
+    };
+    let observability;
+    try { observability = freshModule(); }
+    finally { Module._load = originalLoad; }
+    const app = express();
+    observability.installHttpObservability(app);
+    app.get("/records/:recordId", (req, res) => res.json({ ok: true }));
+    await captureStderrUntilSettled(() => request(app).get("/records/private-id"));
+    await captureStderrUntilSettled(() => request(app).get("/missing/private-id?token=secret"));
+    assert.equal(recorded.length, 4, "both instruments must observe both requests");
+    for (const attributes of recorded.slice(0, 2)) assert.equal(attributes["http.route"], "/records/:recordId");
+    for (const attributes of recorded.slice(2)) assert.equal(Object.hasOwn(attributes, "http.route"), false);
+    assert.doesNotMatch(JSON.stringify(recorded), /private-id|secret/);
   });
 });

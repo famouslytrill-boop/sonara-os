@@ -29789,3 +29789,8 @@ explicit notice. This is intentionally not a guessed mapping to a legacy key;
 granting access through the wrong tenant relationship would be worse than
 leaving that future user-scoped read unavailable. Current service-role reads
 are unchanged, and canonical tables still receive the same policy.
+
+
+## 2026-10-10 — Post-consolidation telemetry and replay fixture repair
+
+Started from main 6044be8e after owner merge of #619. Unknown route metrics now omit http.route; structured diagnostics retain the bounded unmatched label. The regression guard was proved red by restoring the old unconditional attribute, then restored and passed. Existing-project Supabase default table grants are represented before migration replay; removing the documented DML defaults made its static guard fail. All 175 frozen migrations remain unchanged. Native replay execution remains a CI requirement, not a static-test claim. Campaign receipt tests now prove incomplete batches cannot auto-resend or charge; claim fixtures carry actual fencing ownership; Stripe period fixtures bind the configured Price and event timestamp. Details: docs/research/consolidation-2026-10-10/post-consolidation.md.

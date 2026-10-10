@@ -169,7 +169,7 @@ describe("an owner told a hundred were missed can find out which", () => {
     assert.ok(Array.isArray(response.body.notAttempted));
     assert.equal(response.body.notAttempted.length, RECIPIENTS - MAX_PER_REQUEST);
     for (const item of response.body.uncertain) {
-      assert.match(item.email, /@example\\.com$/);
+      assert.match(item.email, /@example\.com$/);
       assert.equal(item.reason, "provider_outcome_unknown");
     }
     for (const item of response.body.notAttempted) {

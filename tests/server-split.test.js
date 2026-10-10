@@ -1021,6 +1021,7 @@ describe("the billing module stands on its own", () => {
   it("falls back to this deployment's own URLs when none are configured", () => {
     const billing = createBilling(deps());
     assert.deepEqual(billing.getCheckoutRedirectUrls({}), {
+      ok: true,
       successUrl: "https://app.example.com/account",
       cancelUrl: "https://app.example.com/pricing"
     });

@@ -85,6 +85,9 @@ const SHIM = [
             "do $$ begin\n  create role authenticated nologin noinherit;\nexception when duplicate_object then null; end $$;\n" +
             "do $$ begin\n  create role service_role nologin noinherit bypassrls;\nexception when duplicate_object then null; end $$;",
    "the three PostgREST roles Supabase creates; every grant in this repository names one"],
+  ["legacy public Data API defaults", "grant usage on schema public to anon, authenticated, service_role;\n" +
+    "alter default privileges for role postgres in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role;",
+   "Existing Supabase projects grant table DML by default: https://supabase.com/docs/guides/api/securing-your-api . This replay models SONARA's existing-project history, not the newer opt-in project setting. No SONARA relation is created or repaired by this shim."],
   ["auth schema", "create schema if not exists auth;", "Supabase Auth owns it"],
   ["auth.users", "create table if not exists auth.users (\n  id uuid primary key default gen_random_uuid(),\n  email text,\n  raw_user_meta_data jsonb default '{}'::jsonb,\n  created_at timestamptz default now()\n);",
    "Supabase Auth's own table; referenced by foreign keys throughout"],
