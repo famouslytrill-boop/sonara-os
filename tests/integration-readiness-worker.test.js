@@ -50,16 +50,29 @@ describe("integration readiness worker", () => {
         connection_mode: "oauth",
         secret: "must-not-pass"
       },
-      connection: {
-        connection_status: "connected",
-        connection_mode: "oauth",
-        last_checked_at: "2026-10-09T20:00:00.000Z",
-        credential_reference: "secret-ref",
-        settings: { token: "secret" }
-      },
+      connections: [
+        {
+          provider_key: "google_search_console",
+          connection_status: "setup_required",
+          connection_mode: "oauth",
+          last_checked_at: "2026-10-09T19:00:00.000Z",
+          credential_reference: "secret-ref",
+          settings: { token: "secret" }
+        },
+        {
+          provider_key: "google_search_console",
+          connection_status: "connected",
+          connection_mode: "oauth",
+          last_checked_at: "2026-10-09T20:00:00.000Z",
+          credential_reference: "another-secret-ref"
+        }
+      ],
       checkedAt: "2026-10-09T20:01:00.000Z"
     });
     assert.equal(receipt.readiness, "connected");
+    assert.equal(receipt.connection_count, 2);
+    assert.equal(receipt.connection_status, "connected");
+    assert.equal(receipt.last_checked_at, "2026-10-09T20:00:00.000Z");
     const serialized = JSON.stringify(receipt);
     assert.doesNotMatch(serialized, /secret|credential_reference|settings|token/i);
   });
