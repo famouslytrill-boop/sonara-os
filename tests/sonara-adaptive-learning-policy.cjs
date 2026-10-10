@@ -307,6 +307,31 @@ describe("adaptive prediction and sequence mapping policy (no runtime execution)
     assert.equal(mapLearningSequence(null).state, "blocked");
   });
 
+  it("does not mislabel incomplete sequences as completed audited workflows", () => {
+    const partial = mapLearningSequence({
+      organizationId: ORG, serverOrganizationId: ORG,
+      purpose: "proposal-only plan",
+      steps: orderedStages.slice(0, 4)
+    });
+    assert.equal(partial.state, "incomplete_sequence_requires_review");
+    assert.equal(partial.endToEndComplete, false);
+    assert.deepEqual(partial.missingPhases, PHASES.slice(4));
+    assert.equal(partial.canScheduleOrExecute, false);
+    const complete = mapLearningSequence({
+      organizationId: ORG, serverOrganizationId: ORG,
+      purpose: "audited",
+      steps: orderedStages
+    });
+    assert.equal(complete.endToEndComplete, true);
+    assert.deepEqual(complete.missingPhases, []);
+    for (const bad of ["x".repeat(241), "untrusted\\nlog injection"]) {
+      assert.equal(mapLearningSequence({
+        organizationId: ORG, serverOrganizationId: ORG,
+        purpose: bad, steps: orderedStages
+      }).state, "blocked");
+    }
+  });
+
   it("maps parallel branches without claiming to execute or approve them", () => {
     const steps = [...orderedStages, {
       id: "validate_extra", phase: "validate", dependsOn: ["observe"], estimatedCostUnits: 5
