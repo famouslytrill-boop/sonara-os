@@ -79,6 +79,8 @@ const TEST_ONLY = new Map([
     "Draft pure user-owned feed preference mutation planner and CAS preflight; waits for server-authenticated actor proof, independent consent receipts, isolated private-schema SQL replay and a separately reviewed writer. It performs no DB action or reciprocal account blocking."],
   ["lib/sonara-growth-public-projections.cjs",
     "Unconnected Growth discovery projection policy; canonical public post/channel states alone do not provide moderation, rights or disclosure approval. Requires independently verified fresh version-bound attestations, approved public-only source and real RLS evidence before a runtime consumer."],
+  ["lib/sonara-review-attestation-verifier.cjs",
+    "Staged, unmounted Ed25519 dual-role moderation and rights verifier. Test-only until independent reviewer roster, signer-key custody, durable report holds, revocation ledger, public projection source, native crypto and DB concurrency proof, and owner-approved release. It cannot sign, moderate, grant rights or publish."],
   // Explicitly staged governance work from #442/#443; these remain unconnected.
   ["lib/sonara-content-compliance-engine.cjs",
     "Draft content/legal review policy; waits for authenticated tenant evidence and a human-review route. It does not certify compliance or publish."],
