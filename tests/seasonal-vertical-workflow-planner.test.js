@@ -106,7 +106,7 @@ describe("seasonal vertical planning boundary", () => {
       lineItems: [{ quantity: 2, unitPriceCents: -1, unitCostCents: 0 }]
     }), /invalid_unit_price_cents/);
     assert.throws(() => calculateJobQuote({
-      lineItems: [{ quantity: 10000, unitPriceCents: 100000000000, unitCostCents: 0 }]
+      lineItems: Array.from({ length: 10 }, () => ({ quantity: 10000, unitPriceCents: 100000000000, unitCostCents: 0 }))
     }), /scenario_overflow/);
   });
 
