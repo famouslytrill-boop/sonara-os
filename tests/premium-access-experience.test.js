@@ -39,15 +39,36 @@ describe("premium access experience", () => {
     assert.doesNotMatch(response.text || "", /organization_created/i);
   });
 
-  it("applies production security headers without exposing implementation data", async () => {
-    const response = await request(app).get("/");
-    assert.equal(response.status, 200);
-    assert.equal(response.headers["x-content-type-options"], "nosniff");
-    assert.equal(response.headers["referrer-policy"], "strict-origin-when-cross-origin");
-    assert.match(response.headers["permissions-policy"], /camera=\(\)/);
-    assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
-    assert.match(response.headers["content-security-policy"], /object-src 'none'/);
-    assert.match(response.headers["content-security-policy"], /fonts\.googleapis\.com/);
+  it("applies security headers without making the local HTTP test origin upgrade itself", async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "test";
+    try {
+      const response = await request(app).get("/");
+      assert.equal(response.status, 200);
+      assert.equal(response.headers["x-content-type-options"], "nosniff");
+      assert.equal(response.headers["referrer-policy"], "strict-origin-when-cross-origin");
+      assert.match(response.headers["permissions-policy"], /camera=\(\)/);
+      assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
+      assert.match(response.headers["content-security-policy"], /object-src 'none'/);
+      assert.match(response.headers["content-security-policy"], /fonts\.googleapis\.com/);
+      assert.doesNotMatch(response.headers["content-security-policy"], /upgrade-insecure-requests/);
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
+  });
+
+  it("keeps the insecure-request upgrade directive on production responses", async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const response = await request(app).get("/");
+      assert.equal(response.status, 200);
+      assert.match(response.headers["content-security-policy"], /upgrade-insecure-requests/);
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
   });
 
   it("serves the lightweight SONARA One experience assets", async () => {
