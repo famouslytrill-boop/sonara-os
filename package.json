@@ -137,7 +137,8 @@
     "open-source:up:reviewed": "node scripts/setup-open-source-local.mjs up --reviewed",
     "open-source:status": "node scripts/setup-open-source-local.mjs status",
     "open-source:down": "node scripts/setup-open-source-local.mjs down",
-    "verify:stripe-connect-canary": "node scripts/verify-stripe-env.mjs --require-live --require-connect-canary"
+    "verify:stripe-connect-canary": "node scripts/verify-stripe-env.mjs --require-live --require-connect-canary",
+    "integration-readiness:run-once": "node scripts/run-integration-readiness-worker.mjs"
   },
   "license": "UNLICENSED",
   "devDependencies": {
