@@ -298,4 +298,11 @@ const codexSkills = spawnSync(process.execPath, ["scripts/generate-codex-skill-b
 assert.equal(codexSkills.status, 0,
   "Codex individual-model skill bridges are stale or missing:\\n" + (codexSkills.stderr || codexSkills.stdout || ""));
 
+// Validate portable model packaging inputs without generating files or using provider APIs.
+const packagedSkills = spawnSync(process.execPath, ["scripts/export-assistant-model-skill-packs.mjs", "--dry-run"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(packagedSkills.status, 0,
+  "Portable model skill export failed: " + (packagedSkills.stderr || packagedSkills.stdout || ""));
+
 console.log("Agent development sync verified: scoped Supabase secrets, deep database gate, catalog idempotency, dependency override, and shared state are aligned.");
