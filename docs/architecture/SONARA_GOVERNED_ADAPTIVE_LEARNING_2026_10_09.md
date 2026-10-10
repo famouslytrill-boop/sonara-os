@@ -33,6 +33,22 @@ Inputs come **only from an independently verified server-owned source** after a 
 
 The numeric rule is an **offline triage heuristic**, not a powered statistical experiment design. Before real A/B evaluation: define treatment assignment, randomization, sample-size/power, guardrail metrics, pre-registered primary outcome, multiple-testing policy, and sequential-testing policy.
 
+## Implemented next-stage consent snapshot contract (policy-only)
+
+The proposal evaluator now additionally calls `evaluateLearningConsent` in `lib/sonara-adaptive-learning-policy.cjs`.
+
+It **requires**, in addition to the already governed proposal rules:
+
+- A trusted server's independently authenticated latest consent-state read; a client-supplied `latestConsentReadVerified=true` or forged receipt is never adequate in a real route. There is currently no connected consent database reader or write endpoint.
+- An explicitly opted-in consent receipt bearing a UUID, matching organization ID and exact user ID, adaptation scope, a nonempty notice version, positive revision, canonical UTC grant/expiration dates, and an explicit user-action method.
+- A fresh unrevoked state with `revokedAt: null`, a consent lifetime of 90 days or less and a recorded retention period of 1–90 days.
+- The entire measured evidence window beginning no earlier than consent and within the specified retention window, with observed evidence ending after the window starts.
+- All authorized outputs remain **proposals**; the evaluator does not store consent, collect habits, hash or sign receipts, grant new permissions, modify memory, or execute a tool.
+
+**Threat boundary:** A typed JavaScript object can be forged by any caller. The receipt contract provides necessary structural checks, not cryptographic proof, authenticated identity, valid consent, or production authorization. Until a trusted authenticated source and tested RLS-backed lifecycle exist, the product must keep customer adaptation disabled.
+
+**Current review-only statuses:** malformed/missing/stale/revoked receipt `blocked`, insufficient aggregate evidence `needs_more_evidence`, conservatively supported candidate `review_ready`. None authorizes execution.
+
 ## User experience and product scope
 
 | Product | Initial safe learning output | Not automatically allowed |
@@ -68,6 +84,6 @@ Suggested future tables (names only, **no SQL applied**): `org_learning_consents
 ## Research references
 
 - NIST AI RMF and Generative AI Profile: https://www.nist.gov/itl/ai-risk-management-framework
-- OWASP Top 10 for Agentic Applications 2026: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+- OWASP Top 10 for Agentic Applications 2026: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/\n- OWASP Memory & Context Poisoning (ASI06): https://genai.owasp.org/2026/05/13/memory-is-a-feature-it-is-also-an-attack-surface/\n- Supabase row-level security and role boundaries: https://supabase.com/docs/guides/database/postgres/row-level-security
 - OpenAI Agents SDK human review: https://openai.github.io/openai-agents-js/guides/human-in-the-loop/
 - OpenFeature evaluation context: https://openfeature.dev/specification/sections/evaluation-context/
