@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   INTEGRATION_JOB_TYPE,
   PLATFORM_JOB_TYPE,
+  platformJobTypeForOrganization,
   readIntegrationReadinessActivationConfig,
   createIntegrationReadinessService,
   createIntegrationReadinessWorker,
@@ -128,7 +129,7 @@ describe("integration readiness worker", () => {
     assert.equal(result.ok, true);
     assert.equal(result.integrationJobId, REQUEST);
     assert.equal(platformCalls.length, 1);
-    assert.equal(platformCalls[0].jobType, PLATFORM_JOB_TYPE);
+    assert.equal(platformCalls[0].jobType, platformJobTypeForOrganization(ORG));
     assert.equal(platformCalls[0].idempotencyKey, `integration-readiness:${ORG}:${REQUEST}`);
     const visible = calls.find((call) => call.url.includes("/integration_jobs?on_conflict=id"));
     assert.equal(visible.body.status, "queued");
@@ -213,6 +214,25 @@ describe("integration readiness worker", () => {
     const result = await worker.runOnce({ enabled: false });
     assert.equal(result.status, "disabled");
     assert.equal(claims, 0);
+  });
+
+  it("asks the durable queue only for the canary organization's job type", async () => {
+    const claims = [];
+    const recoveries = [];
+    const worker = createIntegrationReadinessWorker({
+      service: { executeProbe: async () => ({ ok: true, receipt: {} }) },
+      platformJobs: {
+        recoverStale: async (input) => { recoveries.push(input); return { ok: true, recovered: 0 }; },
+        claim: async (input) => { claims.push(input); return { ok: true, row: null }; },
+        settle: async () => ({ ok: true })
+      },
+      workerIdFactory: () => "instance-1"
+    });
+    const result = await worker.runOnce({ enabled: true, organizationId: ORG });
+    assert.equal(result.status, "idle");
+    assert.equal(recoveries[0].jobType, platformJobTypeForOrganization(ORG));
+    assert.equal(claims[0].jobType, platformJobTypeForOrganization(ORG));
+    assert.notEqual(claims[0].jobType, PLATFORM_JOB_TYPE);
   });
 
   it("refuses a claimed job whose tenant payload does not match the canary", async () => {
