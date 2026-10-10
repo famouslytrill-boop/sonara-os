@@ -1,0 +1,59 @@
+name: Regenerate motion and device evidence
+
+on:
+  push:
+    branches: [codex/consented-motion-capture-20261009]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sonara-regenerate-motion-device-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: codex/consented-motion-capture-20261009
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 12.7.0
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Regenerate exact-head repository evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run capability-map:write
+          pnpm run report:capability-coverage
+          node scripts/generate-handoff-prompt.mjs
+
+      - name: Remove this temporary workflow and commit generated evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/codex-regenerate-motion-device-evidence.yml
+          if git diff --quiet --cached && git diff --quiet --             data/capability-inventory.json             docs/CAPABILITY_MAP.md             docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md             docs/HANDOFF_PROMPT.md; then
+            echo "No generated evidence changed."
+            exit 0
+          fi
+          git add             data/capability-inventory.json             docs/CAPABILITY_MAP.md             docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md             docs/HANDOFF_PROMPT.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Regenerate motion and device capability evidence"
+          git push origin HEAD:codex/consented-motion-capture-20261009
