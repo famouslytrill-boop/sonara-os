@@ -1,4 +1,25 @@
 # Creator Studio: DAW, audio/video I/O and interchange — 2026-10-10
+## Follow-on source-stem export increment (stacked feature branch)
+
+**Status:** implemented in `feature/creator-source-stems-20261010`, which builds on the unmerged draft PR #611. This section is not evidence of a deployed capability, main-branch integration, formal CI approval or mobile-device quality signoff.
+
+- `public/creator-project-audio.js`: new `renderSourceStems(graph, files, options)` returns individually downloadable, stereo PCM16 WAV files at 44.1/48 kHz. Stems group timeline clips by original project source ID, not by mix bus or independent DAW track. Files have the **same number of samples**, start at sample zero and are zero-padded where that source is silent. The active source IDs are sorted for reproducible output order.
+- `routes/sonara-creator-project-routes.cjs`: paid Creator project form exposes an explicit `Render source stems` button. The browser worker transfers resulting ArrayBuffers and the UI creates one individual, user-clicked local download link per source. Existing stereo mixdown remains the default path; no server upload or automatic publishing.
+- `tests/creator-source-stems.test.js`: assertions for 48 kHz alignment and gaps, mute treatment, deterministic output, invalid sources/rates, source cap, aggregate input-byte cap, 96 MB output budget and mixdown duration overrides.
+- Limits: maximum four active sources; 64 MiB total selected input buffers; 96 MiB calculated WAV output bytes; source WAV <=20 MiB each; timeline <=3 minutes; total active clip time <=10 minutes. Source-stem export can exceed device memory despite respecting these output caps because the DSP mixer uses temporary Float64 buffers; browser/device-memory benchmarking is still mandatory.
+- A source used by two clips appears in one shared source-group stem. Multiple instruments recorded together in the same source cannot be separated by this grouping. No model-assisted source separation or native .als/.flp/.ptx sessions are claimed.
+- Existing input decoding and output use linear-interpolation sample-rate conversion. It is a preview and handoff path, **not** certified mastering-grade SRC, oversampled true-peak metering, BS.1770 LUFS or full Dolby/ADM handling.
+
+### Why this interchange sequence is supported
+
+- The MIDI Association describes Standard MIDI Files as a transportable representation of time-stamped events with tempo/track structures, **not** native DAW session files: https://midi.org/standard-midi-files . The current Creator Project Graph has audio clips and captions, but no note events, so MIDI should be built only when a typed note/tempo event model exists; do not synthesize fictitious MIDI from audio.
+- EBU Tech 3285 Broadcast Wave (BWF) adds metadata including a 64-bit sample TimeReference (since midnight) for audio delivery and interchange: https://tech.ebu.ch/publications/tech3285/ . SONARA currently writes plain RIFF/WAVE with no `bext` timestamp; deterministic zero-padding aligns files but does **not** make them BWF.
+- FFmpeg's libswresample supports a higher-quality, configurable resampling/filtering pipeline with optional SoXr where available: https://www.ffmpeg.org/ffmpeg-resampler.html . Before any worker/runtime adoption: check build/license flags, external media rights, execution isolation, server costs and anti-aliasing tests.
+
+### Next release proof
+
+Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm run lint`, `pnpm run typecheck`, `pnpm run build`, and the exact-head workflow gates. Browser test two real WAV sources at 44.1/48 kHz and assert separate file downloads and identical durations. Prove oversized pack denial before memory allocation. Follow repo approval, security and release rules; do not auto-merge stacked PRs or deploy production.
+
 
 Status: **working branch implementation + researched roadmap**, **not an activated production or native-DAW integration**.
 
