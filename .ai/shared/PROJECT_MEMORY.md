@@ -67,6 +67,11 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - `lib/sonara-batch-convergence-engine.cjs` consumes this as Batch 13. Both lanes remain non-executing in convergence; an install target is not evidence of runtime installation or activation.
 - No third-party repository source was bulk-copied into SONARA. Package/tool adoption still requires a pnpm lockfile change, a real SONARA call site or explicitly developer/test-only classification, full CI/security/tenant checks, and the product-specific canary gate.
 
+## Creator Studio MIDI Format 1 (stacked draft, October 10, 2026)
+
+- Development branch `feature/creator-midi-format1-20261010` adds a bounded real SMF1 writer and an optional two-instrument download form, stacked on #614's SMF0 MIDI. Writer supports one tempo conductor track, 1–4 named instrument tracks with distinct MIDI channels and at most 128 total explicit notes (UI shows two). No cloud worker or MIDI 2.0, VST/AAX, audio rendering, transcription, native DAW project or persistence.
+- Proof: `tests/creator-midi-format1.test.js` binary framing, event reuse, ordering, validations; `browser-tests/public-experience.spec.js` real download test pending GitHub Playwright. Re-run exact-head CI, review and controlled release. Unmerged branches are NOT production features.
+
 ## Creator Studio DAW/media interchange (October 10, 2026; draft-only)
 
 - Development PR chain: #611 (PCM16/24/32 and float WAV import, 44.1/48 kHz stereo mixdown and waveform meters) → #613 (four-source, zero-aligned stereo WAV source-group stems) → #614 (real SMF Format 0 note sketch export). These are **unmerged drafts**, never proof of production activation. Check exact-head status before quoting readiness.
