@@ -563,7 +563,7 @@ because focused tests pass.
    and confirmed that a `NULL` predicate would be rejected.
 3. **Gitleaks-current**: The security gate reported **two unreviewed
    generic-key findings**, both at repeat synthetic
-   `idempotency_key='employee-count-001'` lookups in
+   static synthetic idempotency-key comparison expressions in
    `tests/sql/stock-adjustment-journal.sql`. Both lookups now use an
    equivalent expression instead of a key-shaped literal. The scanner
    remains enabled with no allowlist expansion. Fresh Gitleaks scanning
