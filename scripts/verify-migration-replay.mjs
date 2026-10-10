@@ -347,6 +347,22 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
       ["p1_rls_hygiene_staging_passed"]);
 
+    // The P1 file runs through one psql connection and ends with ROLLBACK.
+    // Probe again through a separate connection: a success marker printed
+    // before rollback is not by itself proof that the database was restored.
+    behaves(psql, "P1 transaction did not persist the duplicate-policy trial",
+      `SELECT CASE WHEN
+        (SELECT count(*) FROM pg_policies
+          WHERE schemaname='public' AND tablename='subscriptions'
+          AND policyname IN ('Users can view own subscriptions',
+                             'Users can view their own subscription')
+          AND permissive='PERMISSIVE' AND roles=ARRAY['authenticated']::name[]
+          AND cmd='SELECT' AND qual='(( SELECT auth.uid() AS uid) = user_id)'
+          AND with_check IS NULL) = 2
+        THEN 'p1_subscription_duplicate_rollback_proven'
+        ELSE 'p1_subscription_duplicate_rollback_failed' END;`,
+      ["p1_subscription_duplicate_rollback_proven"]);
+
     behaves(psql, "included generation reserves, settles and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
       ["generation_reserves_settles_and_isolates"]);
