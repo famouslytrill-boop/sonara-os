@@ -201,6 +201,90 @@ describe("SONARA read-only Actions queue diagnostics", () => {
     assert.equal(result.exactHeadReleaseGreen, false);
     assert.equal(result.productionAuthorized, false);
   });
+  it("rejects incomplete check-run pagination despite successful returned checks", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ id: 1, head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ id: 301, run_id: 101, status: "completed", conclusion: "success" }],
+      apiTotals: { checkRuns: 2, workflowRuns: 1,
+        jobsByWorkflow: [{ runId: 101, totalCount: 1 }] }
+    }));
+    assert.ok(result.issueCodes.includes("incomplete_check_run_pagination"));
+    assert.equal(result.apiCoverage.checkRunsReportedTotal, 2);
+    assert.equal(result.apiCoverage.enumerationConsistent, false);
+    assert.equal(result.exactHeadReleaseGreen, false);
+  });
+  it("rejects partial workflow and job pagination even if the only observed job succeeded", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ id: 1, head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ id: 301, run_id: 101, status: "completed", conclusion: "success" }],
+      apiTotals: { checkRuns: 1, workflowRuns: 2,
+        jobsByWorkflow: [{ runId: 101, totalCount: 2 }] }
+    }));
+    assert.ok(result.issueCodes.includes("incomplete_workflow_run_pagination"));
+    assert.ok(result.issueCodes.includes("incomplete_job_pagination"));
+  });
+  it("detects duplicate IDs across overlapped pages and retains no raw secrets", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [
+        { id: 1, head_sha: headSha, status: "completed", conclusion: "success" },
+        { id: 1, head_sha: headSha, status: "completed", conclusion: "success" }
+      ],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [
+        { id: 301, run_id: 101, status: "completed", conclusion: "success", authToken: "private-value" },
+        { id: 301, run_id: 101, status: "completed", conclusion: "success" }
+      ],
+      apiTotals: { checkRuns: 2, workflowRuns: 1,
+        jobsByWorkflow: [{ runId: 101, totalCount: 2 }] }
+    }));
+    assert.ok(result.issueCodes.includes("invalid_or_duplicate_check_id"));
+    assert.ok(result.issueCodes.includes("invalid_or_duplicate_job_id"));
+    assert.equal(result.apiCoverage.enumerationConsistent, false);
+    assert.equal(JSON.stringify(result).includes("private-value"), false);
+  });
+  it("reports consistent page counts without granting release or check-policy evidence", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ id: 1, head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ id: 301, run_id: 101, status: "completed", conclusion: "success" }],
+      apiTotals: { checkRuns: 1, workflowRuns: 1,
+        jobsByWorkflow: [{ runId: 101, totalCount: 1 }] }
+    }));
+    assert.deepEqual(result.issueCodes, []);
+    assert.equal(result.apiCoverage.enumerationConsistent, true);
+    assert.equal(result.apiCoverage.apiResponsesIndependentlyVerified, false);
+    assert.equal(result.requiredChecksPolicyVerified, false);
+    assert.equal(result.productionAuthorized, false);
+  });
+  it("never certifies a vacuous zero-record collection as complete release evidence", () => {
+    const result = analyzeActionsQueueSnapshot(base({
+      checkRuns: [], workflowRuns: [], jobs: [],
+      apiTotals: { checkRuns: 0, workflowRuns: 0, jobsByWorkflow: [] }
+    }));
+    assert.equal(result.apiCoverage.countMatch, true);
+    assert.equal(result.apiCoverage.enumerationConsistent, false);
+    assert.ok(result.issueCodes.includes("missing_check_evidence"));
+    assert.equal(result.exactHeadReleaseGreen, false);
+  });
+  it("refuses unknown, duplicate, missing and impossible reported totals", () => {
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ apiTotals: {
+      checkRuns: 1, workflowRuns: 1, jobsByWorkflow: [
+        { runId: 101, totalCount: 1 }, { runId: 101, totalCount: 2 }
+      ] } })), /unique bounded/);
+    assert.throws(() => analyzeActionsQueueSnapshot(base({ apiTotals: {
+      checkRuns: 1, workflowRuns: -1, jobsByWorkflow: []
+    } })), /bounded total_count/);
+    const missing = analyzeActionsQueueSnapshot(base({
+      checkRuns: [{ id: 1, head_sha: headSha, status: "completed", conclusion: "success" }],
+      workflowRuns: [{ id: 101, head_sha: headSha, status: "completed", conclusion: "success" }],
+      jobs: [{ id: 301, run_id: 101, status: "completed", conclusion: "success" }],
+      apiTotals: { checkRuns: 1, workflowRuns: 1, jobsByWorkflow: [] }
+    }));
+    assert.ok(missing.issueCodes.includes("workflow_job_total_missing"));
+    assert.equal(missing.apiCoverage.enumerationConsistent, false);
+  });
   it("does not disclose raw job fields or tokens in the generated summary", () => {
     const result = analyzeActionsQueueSnapshot(base({ jobs: [{ status: "queued", secret: "never_echo_me", created_at: "2026-10-09T22:00:00Z" }] }));
     assert.ok(!JSON.stringify(result).includes("never_echo_me"));
