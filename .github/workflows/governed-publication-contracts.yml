@@ -30,6 +30,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Set up pinned pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 12.7.0
+          run_install: false
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -39,5 +44,7 @@ jobs:
           node --check lib/sonara-multi-channel-publication-preflight.cjs
           node --check lib/sonara-publishing-manifest.cjs
           node --check lib/sonara-publication-receipt-reconciliation.cjs
-      - name: Execute offline real-dependency publication contract tests
-        run: node --test tests/sonara-multi-channel-publication-preflight.test.js
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile --config.engine-strict=false
+      - name: Execute offline real-dependency Mocha contracts
+        run: pnpm exec mocha tests/sonara-multi-channel-publication-preflight.test.js --reporter spec
