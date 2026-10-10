@@ -21,8 +21,19 @@ describe("the manual organization escape hatch", () => {
     // If another appears, it needs the same production guard, and this is where
     // somebody finds that out.
     const gated = [...SOURCE.matchAll(/process\.env\.([A-Z_]+) === "true"/g)].map((match) => match[1]);
+    // Not every feature flag is a security bypass. The review flag is an
+    // explicit fail-closed activation gate which still requires authenticated
+    // staff identity and independent owner approval. Assert those safeguards
+    // before excluding it from the manual-organization bypass census.
+    if (gated.includes("SONARA_ENABLE_STOCK_COUNT_REVIEW")) {
+      assert.match(SOURCE, /stock_review_not_activated/);
+      assert.match(SOURCE, /stockReviewIdentity\(req\)/);
+      assert.match(SOURCE, /stockReviewOriginValid\(req\)/);
+      assert.match(SOURCE, /independent_owner_review_required/);
+      assert.match(SOURCE, /stock_review_posting_refused/);
+    }
     assert.deepEqual(
-      [...new Set(gated)],
+      [...new Set(gated)].filter((flag) => flag !== "SONARA_ENABLE_STOCK_COUNT_REVIEW"),
       ["SONARA_ALLOW_MANUAL_ORG_ID"],
       "a new env-gated bypass appeared; give it a production guard and add it here"
     );
