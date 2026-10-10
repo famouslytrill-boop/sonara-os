@@ -17,6 +17,8 @@ on:
       - "lib/**"
       - "routes/**"
       - "scripts/**"
+      # Test fixtures can contain embedded credentials too; scan test-only PRs.
+      - "tests/**"
       - "server.js"
   workflow_dispatch:
 
