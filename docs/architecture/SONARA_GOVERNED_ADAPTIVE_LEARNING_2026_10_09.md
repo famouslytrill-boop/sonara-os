@@ -118,15 +118,16 @@ OpenTelemetry guidance on HTTP metrics and `error.type` informs this planned ada
 
 `createAdaptiveProposalReader` is now exported from `lib/sonara-adaptive-learning-policy.cjs`. It is an **injectable integration seam**, **not** a live route, a verified database adapter, or a permit to collect user habits.
 
-A future authenticated route must provide **five independent server-controlled functions**:
+A future authenticated route must provide **six independent server-controlled functions**:
 
 1. `resolvePrincipal`: resolve an authenticated user and active organization membership through the existing trusted SONARA session and authorization stack; identify permission to read learning evidence. Do not accept a user ID or verified role from the HTTP body.
 2. `readLatestConsent`: fetch the latest scoped, revisioned opt-in receipt for that exact user, organization and change type. It must be current and distinguish revoke/expiry, missing records and provider errors.
 3. `readAggregateEvidence`: obtain only approved organization-wide cohort summary counts, checked evidence windows, measurement definition, source provenance, minimum contributor population, and small-cell suppression; **never raw user events, emails, messages, personal traits, or secrets**.
 4. `readGovernance`: retrieve separately verified **inspect**, **correction** and **deletion** availability flags, overall review status, rollback readiness and a bounded explanation from an independently governed policy source. Missing or false rights-control flags block evidence access; no caller may hardcode their availability.
-5. `clock`: produce server-owned canonical UTC timestamps; never trust browser clocks for authorization decisions.
+5. `authorizeUserScopedEvidenceRead`: require a **caller JWT, never service-role**, through `requireVerifiedUserScopedRead()` from `lib/sonara-supabase-clients.cjs`; reject unverified table grants/RLS, missing tenant checks, proof mismatches or stale target-database evidence before reading aggregates. The proof must come from authenticated server-side staging/live test observations, not a request or user-supplied flag.
+6. `clock`: produce server-owned canonical UTC timestamps; never trust browser clocks for authorization decisions.
 
-The service first resolves the server principal and reads/validates opt-in **before** touching aggregate evidence. It then independently validates governance, **before** making the aggregate read (no concurrent speculative aggregate access when governance would deny the request). After the evidence read it re-reads the consent receipt **and** independently re-resolves the authenticated principal to detect mid-read membership, permission, organization, or account changes. A missing/mismatching/stale/revoked receipt, altered revision, invalid aggregate shape, inadequate privacy safeguards, unsafe provenance, absent governance review, or a reader exception gives a **blocked, non-executing** outcome. Exceptions are returned as a generic refusal; provider/database error strings are not disclosed to callers. A passing result is still just a *review-ready proposal*.
+The service first resolves the server principal and reads/validates opt-in **before** touching aggregate evidence. It then independently validates governance **and an independently verified user-scoped database read**, **before** making the aggregate read (no concurrent speculative aggregate access when governance/RLS would deny the request). After the evidence read it re-reads the consent receipt **and** independently re-resolves the authenticated principal to detect mid-read membership, permission, organization, or account changes. A missing/mismatching/stale/revoked receipt, altered revision, invalid aggregate shape, inadequate privacy safeguards, unsafe provenance, absent governance review, or a reader exception gives a **blocked, non-executing** outcome. Exceptions are returned as a generic refusal; provider/database error strings are not disclosed to callers. A passing result is still just a *review-ready proposal*.
 
 **Critical limitation:** The injected functions are deliberately not wired to production. Their booleans and objects are test seams, **not cryptographic security proofs**. The production integration needs real provider identity, durable session membership checks, approved and least-privileged database readers, server-resolved organization filtering, audited RLS/grants and revocation semantics. A second consent read can detect a change *during these reads* but is **not transactional isolation** and cannot prevent a revocation that happens after the second read. Because no action is executed, this residual race does not authorize anything. Any later action must independently reauthorize consent and permissions within its own transaction or equivalent durable operation boundary.
 
@@ -136,6 +137,26 @@ The service first resolves the server principal and reads/validates opt-in **bef
 - Deliver a private, separately reviewed schema and tenant/role allow-and-deny test suite. Do not create or connect a new customer-data store until release governance, provenance, retention and data-deletion controls are approved.
 - For a future read-only customer preview route, require account authentication, active tenant membership, anti-abuse limits, source-of-truth consent, verified grants/RLS behavior, and one-tenant canary observation. Use caller-scoped RLS when practicable; where service-role authority is required, make tenant filtering and independent membership verification explicit and adversarially tested. No auto-posting, payments, code merging, tenant permission changes or self-modification is permitted.
 - During failure drills, test replayed consent, revoked user sessions, changed membership, schema drift, missing aggregate rows, provider outages and log redaction. The current isolated test suite does not replace these end-to-end tests.
+
+## Stage 5: fail-closed user-JWT selection contract — implemented, not activated
+
+The current `lib/sonara-supabase-clients.cjs` includes `chooseClient()`, which correctly preserves existing legacy page behavior but defaults to **service_role** for an unknown or unready table. That fallback is **not acceptable for a newly introduced private learning-evidence route**, because the service-role credential bypasses RLS.
+
+The new `requireVerifiedUserScopedRead()` function is an opt-in **fail-closed** route-independent helper. It requires all of the following before constructing customer-scoped GET headers:
+
+- Explicit canonical table and server-resolved matching user ID and organization ID.
+- A nonempty customer access token distinct from the public/anon key and privileged service-role key.
+- A recent (24-hour maximum), canonical-UTC **server-attested target-database** RLS-readiness proof identifying the same table, user and organization, with grants checked, a same-tenant positive read and a cross-tenant denial test.
+- A public or anonymous API key in `apikey` paired with the caller token in `Authorization`. It refuses equal/privileged keys.
+- A `client: "user"`, `mode: "rls_scoped_read_only"`, `serviceRoleFallbackAllowed: false` result. No retry to service role, no write method, no separate data read.
+
+The `createAdaptiveProposalReader()` adapter now additionally requires `authorizeUserScopedEvidenceRead()` and refuses to invoke `readAggregateEvidence` until the callback returns the exact **read-only** scope and table `sonara_learning_aggregates`. It must be implemented on the server using `requireVerifiedUserScopedRead()`, not a manually forged result. The learning aggregate table **does not exist as a released, verified SONARA customer schema**; this boundary is therefore **inactive**, and real requests must not use it.
+
+**Evidence is not self-certifying:** `liveProof`, `membershipVerified`, `controlsVerified` and `sourceVerified` are fields that any JavaScript caller can fabricate. The security system must issue/read these exclusively from server-owned authorization logic and independently verified database tests, never deserialize them from an HTTP body or from agent output. A successful local test with a mocked token/attestation proves *only* the fail-closed structural contract, not a real Supabase JWT, deployed RLS, a live data source, or access control.
+
+**Prerequisites:** independently reviewed and reconciled production schema; private learning-aggregate storage with least-privilege grants, RLS and real two-tenant access/deny proofs; user read and deletion/correction paths; server-authenticated principal and live consent; bounded retention/audit; rollback tests; exact-head release CI green. No production database migration, provider secret update or customer-data activation occurred in this PR.
+
+Supabase key and RLS references, current as of this engineering date: https://supabase.com/docs/guides/getting-started/api-keys and https://supabase.com/docs/guides/database/postgres/row-level-security. Supabase now favors publishable/secret keys rather than legacy anon/service_role; migrating key configuration requires a separately tested change, not a silent alias swap.
 
 ## User experience and product scope
 
