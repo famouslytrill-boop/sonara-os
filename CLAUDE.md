@@ -2,6 +2,9 @@
 
 # What else to read before working here
 
+**Shared, current discovery:** `.ai/shared/PROJECT_MEMORY.md` plus `.ai/shared/ASSISTANT_KNOWLEDGE_INDEX.md` contain the cross-assistant project context, all skill manifest paths, formula catalogue keys, and source-module pointers. Read the index and then the relevant full source; do not paste or execute every formula and skill at startup. Regenerate the index with `node scripts/generate-assistant-knowledge-index.mjs` when sources change.
+
+
 `AGENTS.md` above is the rules. These are the accumulated facts, and they are
 generated from the repository rather than written by hand, so they cannot drift
 away from what the code actually does.
