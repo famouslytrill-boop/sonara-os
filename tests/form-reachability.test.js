@@ -112,12 +112,13 @@ const NO_FORM_NEEDED = {
   // routes/creator-generation-routes.cjs. It is the owner's to make, and a form
   // would make it for them.
   "/api/creator/reference-analyses": "Nothing reads creator_reference_analyses -- no list, no reviewer, no runner -- and offering the submission is an anti-clone safety decision that is the owner's to make. A form would collect requests nobody acts on.",
-  // Examined. integration_jobs is inserted here and read by nothing: no runner,
-  // no page, no status transition anywhere in the repository. A form would let
-  // somebody queue work that will never run, which is worse than no form. Its
-  // default status is manual_required rather than queued for the same reason --
-  // a row that says "queued" claims a worker this system does not have.
-  "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
+  // The generic endpoint remains deliberately manual. /account/integrations
+  // now lists readiness-probe jobs, and its dedicated
+  // /api/integrations/readiness-probes form can queue exactly one read-only
+  // job type for an explicitly enabled canary organization. Arbitrary job_type
+  // values posted here still have no provider executor and must not inherit
+  // that canary's authority.
+  "/api/integrations/jobs": "The generic integration-job API remains manual-only. The dedicated /api/integrations/readiness-probes form and worker consume only provider_readiness_probe; arbitrary provider jobs still require their own reviewed adapters.",
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
