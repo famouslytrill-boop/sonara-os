@@ -870,7 +870,9 @@ registerRouteRegistryRoutes(app, {
   adminRowsPage,
   recordAdminAuditEvent,
   getDeploymentInfo,
-  safeListTable
+  safeListTable,
+  createRateLimiter,
+  getEnv
 });
 
 app.get("/", (req, res) => {
