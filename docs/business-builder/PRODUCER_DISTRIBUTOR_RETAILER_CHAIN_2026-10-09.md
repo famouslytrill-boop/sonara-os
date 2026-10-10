@@ -645,6 +645,63 @@ GitHub commit before the branch becomes mergeable for production.
 production migration, no stock movement, no provider payment,
 no branch merge and no production deployment were performed.
 
+## Phase 13 — Staff inventory reconciliation role integrity (October 9, 2026)
+
+**A real integration mismatch was found.** Business Builder authenticates
+management from `business_memberships` and the customer-organization
+resolver accepts either `organization_memberships` or
+`business_memberships`. The draft stock-count PostgreSQL RPCs
+previously checked **only organization_memberships**, so valid staff
+whose membership exists solely in the business workspace could not
+submit a physical count. Separately, the count API had the
+`requireBusinessManager` middleware which only allows business
+**owners/managers**, excluding ordinary employees.
+
+**Code repair:**
+
+- `sonara_submit_stock_count_request` and
+  `sonara_apply_stock_count_adjustment` now accept an **active member of
+  the requested organization** from either membership source. A
+  `business_memberships` record must have exactly the same
+  `organization_id` as the stock item and must be active. Organization
+  members must also hold an explicit staff/manager/owner role, so a
+  viewer-only org membership cannot submit counts.
+- Reviewer authorization in `sonara_review_stock_count_request`
+  and the posting RPC independently requires a **different active
+  owner/admin**, from either membership source. A business employee
+  cannot approve, including by passing reviewer IDs in a request.
+- All three APIs now require the verified `requireCustomer`
+  middleware plus the route's membership and role checks, rather than
+  `requireBusinessManager`'s manager-only access. **Submission and
+  personal request-listing** permit active staff; **review/posting**
+  additionally requires independently verified owner authority.
+  `getCustomerPrimaryOrganization(user,{autoBootstrap:false})` prevents
+  a stock operation from silently creating a new unrelated workspace.
+- The queue uses the server's service-role credential, so it now applies
+  a mandatory `organization_id` filter and, for nonowners, an additional
+  **`actor_user_id` filter**. Only owner/admin reviewers may see all
+  records for the organization; an employee does not get coworkers'
+  counted quantities or identity via the queue.
+
+**Evidence and tests:**
+
+The live PostgreSQL catalogs were checked **read-only**. Both
+membership tables have `organization_id`, `user_id`, `status` and
+`role`. `business_memberships` is constrained to workspace/tenant
+foreign keys with roles `owner/manager/employee`; no live mutation was
+performed. A disposable native replay fixture now creates a business
+workspace with active employee, active owner, disabled employee and a
+viewer-only organization member; it checks that only authorized
+requests/reviews can modify the stock exactly once. Focused source
+checks also test employee submissions, reviewer rejection, protected
+queue listing and non-bootstrapping behavior.
+
+**Release limitations:** The native PostgreSQL fixture, full CI, and
+real-session integration tests are still awaiting executable exact-head
+workflow evidence. The migration file and its corresponding SHA-256
+pin are staged in draft PR #566. `SONARA_ENABLE_STOCK_COUNT_REVIEW`
+stays OFF. No production database changes or stock movements occurred.
+
 ## Required integration work before customer activation
 
 ### 1. Canonical transaction and database migration
