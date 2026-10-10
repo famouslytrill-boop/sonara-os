@@ -3,6 +3,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { createECDH } = require("node:crypto");
 const retry = require("../lib/sonara-delivery-retry-policy.cjs");
 const push = require("../lib/sonara-web-push.cjs");
 
@@ -61,10 +62,14 @@ describe("deterministic push retry decisions", () => {
         VAPID_SUBJECT: "mailto:test@example.com"
       })[name]
     };
+    // Synthetically generate a valid P-256 subscriber key for encryption tests.
+    // It is neither an account credential nor a production subscription.
+    const recipient = createECDH("prime256v1");
+    recipient.generateKeys();
     const subscription = {
       endpoint: "https://push.example.net/one",
-      p256dh: "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4",
-      auth: "BTBZMqHH6r4Tts7J_aSIgg"
+      p256dh: recipient.getPublicKey().toString("base64url"),
+      auth: Buffer.alloc(16, 7).toString("base64url")
     };
     const result = await push.send(deps, subscription, "test", {
       now: NOW,
