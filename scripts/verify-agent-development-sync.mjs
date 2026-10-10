@@ -289,4 +289,13 @@ const knowledgeIndex = spawnSync(process.execPath, ["scripts/generate-assistant-
 assert.equal(knowledgeIndex.status, 0,
   "Shared assistant knowledge is stale or undiscoverable:\\n" + (knowledgeIndex.stderr || knowledgeIndex.stdout || ""));
 
+// Codex discovers a different skill directory. Require a byte-for-byte
+// generated bridge for each canonical Claude/shared skill; missing or stale
+// manifests must fail the existing release chain, not silently drop a method.
+const codexSkills = spawnSync(process.execPath, ["scripts/generate-codex-skill-bridges.mjs", "--check"], {
+  cwd: root, encoding: "utf8"
+});
+assert.equal(codexSkills.status, 0,
+  "Codex individual-model skill bridges are stale or missing:\\n" + (codexSkills.stderr || codexSkills.stdout || ""));
+
 console.log("Agent development sync verified: scoped Supabase secrets, deep database gate, catalog idempotency, dependency override, and shared state are aligned.");
