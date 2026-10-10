@@ -29,12 +29,11 @@ concurrency:
 
 jobs:
   production-deploy-dry-run:
+    name: production-deploy-dry-run
     runs-on: ubuntu-latest
-    environment: production
-    env:
-      VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
-      VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
 
+    # This job executes pull-request code and therefore carries no production
+    # environment and no production/provider secrets.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -72,51 +71,6 @@ jobs:
           node scripts/verify-release-branch-governance.cjs main-branch.json main main-rules.json
           rm -f main-branch.json main-rules.json
 
-      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
-        with:
-          version: 2.118.0
-
-      - name: Require protected production credentials without exposing values
-        shell: bash
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
-          STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-        run: |
-          set -euo pipefail
-
-          missing=""
-          for name in VERCEL_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID SUPABASE_DB_PASSWORD; do
-            if [ -z "$(eval "printf '%s' \"\${$name:-}\"")" ]; then
-              missing="${missing}${missing:+, }${name}"
-            fi
-          done
-          if [ -z "${STRIPE_VERIFIER_SECRET_KEY:-}" ]; then
-            missing="${missing}${missing:+, }STRIPE_SECRET_KEY"
-          fi
-          if [ -z "${STRIPE_RUNTIME_SECRET_KEY:-}" ]; then
-            missing="${missing}${missing:+, }STRIPE_RUNTIME_SECRET_KEY"
-          fi
-
-          if [ -n "$missing" ]; then
-            echo "Missing protected production credentials: $missing" >&2
-            exit 1
-          fi
-
-          case "$STRIPE_VERIFIER_SECRET_KEY" in
-            sk_live_*|rk_live_*) ;;
-            *) echo "STRIPE_SECRET_KEY is not a live Stripe verifier credential." >&2; exit 1 ;;
-          esac
-          case "$STRIPE_RUNTIME_SECRET_KEY" in
-            sk_live_*) ;;
-            *) echo "STRIPE_RUNTIME_SECRET_KEY must be a full live sk_live_ credential." >&2; exit 1 ;;
-          esac
-
-          echo "Protected production credentials are present with expected non-secret shapes."
-
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
@@ -149,6 +103,106 @@ jobs:
 
       - name: Verify release open-source controls
         run: pnpm run verify:open-source
+ 
+      - name: Verify frozen migration integrity
+        run: node scripts/verify-applied-migrations.mjs
+
+      - name: Record candidate dry-run result
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "### Controlled production candidate dry run"
+            echo
+            echo "Validated the exact pull-request candidate with build, tests, dependency audit, client-secret scan, lint, route/database/API/open-source contracts, branch governance, and frozen migration integrity."
+            echo
+            echo "**No production credentials were available to this job and no production provider was contacted.**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  production-readonly-verification:
+    name: production-readonly-verification
+    needs: production-deploy-dry-run
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
+      VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
+
+    # Secrets are available only on an explicit manual dispatch of trusted main.
+    # This job never checks out a pull-request head.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.118.0
+
+      - name: Reconfirm protected main before reading production
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/branches/main" \
+            > main-branch.json
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/rules/branches/main?per_page=100" \
+            > main-rules.json
+          node scripts/verify-release-branch-governance.cjs main-branch.json main main-rules.json
+          current_main="$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('main-branch.json','utf8')).commit.sha)")"
+          test "$(git rev-parse HEAD)" = "$current_main"
+          rm -f main-branch.json main-rules.json
+
+      - name: Require protected production credentials without exposing values
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
+          STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          for name in VERCEL_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY STRIPE_RUNTIME_SECRET_KEY STRIPE_VERIFIER_SECRET_KEY; do
+            if [ -z "$(eval "printf '%s' "\${$name:-}"")" ]; then
+              missing="${missing}${missing:+, }${name}"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Missing protected production credentials: $missing" >&2
+            exit 1
+          fi
+          case "$STRIPE_VERIFIER_SECRET_KEY" in sk_live_*|rk_live_*) ;; *) echo "STRIPE_SECRET_KEY is not a live verifier credential." >&2; exit 1 ;; esac
+          case "$STRIPE_RUNTIME_SECRET_KEY" in sk_live_*) ;; *) echo "STRIPE_RUNTIME_SECRET_KEY must be a full live sk_live_ credential." >&2; exit 1 ;; esac
+          echo "Protected production credentials are present with expected non-secret shapes."
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Verify production project identity
         env:
@@ -168,19 +222,6 @@ jobs:
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
           supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Allow only migrations introduced by this pull request to remain pending
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          mapfile -t pending_versions < <(
-            git diff --diff-filter=A --name-only "$base" "$head" -- 'supabase/migrations/*.sql' |
-              sed -nE 's#^supabase/migrations/([0-9]+)_.*\.sql$#\1#p'
-          )
-          printf 'SONARA_ALLOWED_PENDING_MIGRATIONS=%s\n' "$(IFS=,; echo "${pending_versions[*]}")" >> "$GITHUB_ENV"
-
       - name: Pull production environment for read-only configuration verification
         shell: bash
         env:
@@ -195,16 +236,8 @@ jobs:
             --token="$VERCEL_TOKEN"
           test -s .env.production.dry-run
 
-      - name: Verify active production database tables without reading customer rows
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node --env-file=.env.production.dry-run scripts/verify-production-supabase.mjs
-
       - name: Require live Google sign-in provider
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --env-file=.env.production.dry-run scripts/verify-google-oauth-provider.mjs --require
+        run: node --env-file=.env.production.dry-run scripts/verify-google-oauth-provider.mjs --require
 
       - name: Verify live Stripe prices with read-only verifier credential
         env:
@@ -218,19 +251,18 @@ jobs:
 
       - name: Remove temporary production environment material
         if: always()
-        shell: bash
         run: |
           rm -f .env.production.dry-run
           test ! -e .env.production.dry-run
 
-      - name: Record dry-run result
+      - name: Record production read-only result
         if: success()
         shell: bash
         run: |
           {
-            echo "### Controlled production deployment dry run"
+            echo "### Production read-only verification"
             echo
-            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, active production table access, linked migration preview, hosted Google provider readiness, Vercel production configuration readability, and both Stripe production credentials."
+            echo "Trusted current main passed the linked Supabase migration preview plus production project, hosted Google, Vercel configuration, and Stripe credential checks."
             echo
             echo "**No production mutation was performed.**"
             echo "- No Supabase migration apply"

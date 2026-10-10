@@ -56,6 +56,27 @@ describe("production release rejects unprotected main", () => {
     assert.match(dryRun, /- name: Pull production environment for read-only configuration verification[\s\S]*?VERCEL_TOKEN: \$\{\{ secrets\.VERCEL_TOKEN \}\}/);
   });
 
+  it("never exposes production secrets to the pull-request dry-run job", () => {
+    const dryRun = fs.readFileSync(
+      path.join(__dirname, "..", ".github", "workflows", "controlled-production-deploy-dry-run.yml"),
+      "utf8"
+    );
+    const liveStart = dryRun.indexOf("production-readonly-verification:");
+    assert.ok(liveStart > 0, "trusted main-only production verification job must exist");
+
+    const candidate = dryRun.slice(0, liveStart);
+    const live = dryRun.slice(liveStart);
+    assert.doesNotMatch(candidate, /\$\{\{\s*secrets\./);
+    assert.doesNotMatch(candidate, /environment:\s*production/);
+    assert.match(candidate, /name:\s*production-deploy-dry-run/);
+
+    assert.match(live, /github\.event_name == 'workflow_dispatch'/);
+    assert.match(live, /github\.ref == 'refs\/heads\/main'/);
+    assert.match(live, /environment:\s*production/);
+    assert.match(live, /SUPABASE_ACCESS_TOKEN:\s*\$\{\{ secrets\.SUPABASE_ACCESS_TOKEN \}\}/);
+    assert.match(live, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
+  });
+
   it("keeps the production secrets and deploy steps after the branch gate", () => {
     assert.ok(workflow.indexOf("- name: Require exact-SHA post-merge green matrix")
       < workflow.indexOf("- name: Require protected production credentials"));

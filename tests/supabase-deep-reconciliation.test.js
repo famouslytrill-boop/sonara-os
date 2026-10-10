@@ -52,20 +52,28 @@ describe("Supabase deep database reconciliation", () => {
     assert.doesNotMatch(verifier, /appendFileSync\([^\n]*(?:serviceRoleKey|SUPABASE_SERVICE_ROLE_KEY)/);
   });
 
-  it("previews linked migrations in pull-request CI", () => {
-    assert.match(ciWorkflow, /supabase link --project-ref/);
-    assert.match(ciWorkflow, /supabase db push --linked --include-all --dry-run/);
-    assert.match(ciWorkflow, /supabase migration list --linked/);
-  });
+  it("keeps pull-request migration checks credential-free and reserves linked preview for trusted main", () => {
+    const previewStart = ciWorkflow.indexOf("supabase-preview:");
+    assert.ok(previewStart >= 0);
+    const preview = ciWorkflow.slice(previewStart);
+    assert.match(preview, /verify-applied-migrations\.mjs/);
+    assert.doesNotMatch(preview, /secrets\.SUPABASE_/);
+    assert.doesNotMatch(preview, /supabase link --project-ref/);
 
-  it("allows only migrations added by the pull request to be pending during the read-only dry run", () => {
-    assert.match(dryRunWorkflow, /git diff --diff-filter=A --name-only/);
-    assert.match(dryRunWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
-    assert.match(dryRunWorkflow, /github\.event\.pull_request\.base\.sha/);
-    assert.match(dryRunWorkflow, /github\.event\.pull_request\.head\.sha/);
-    assert.match(verifier, /allowedPendingMigrations\.has\(version\)/);
-    assert.match(verifier, /allowed pending migration is not present in this checkout/);
-    assert.match(verifier, /pull-request migration is intentionally pending production apply/);
+    const liveStart = dryRunWorkflow.indexOf("production-readonly-verification:");
+    assert.ok(liveStart >= 0, "main-only production read-only job is missing");
+    const candidate = dryRunWorkflow.slice(0, liveStart);
+    const live = dryRunWorkflow.slice(liveStart);
+
+    assert.doesNotMatch(candidate, /\$\{\{\s*secrets\./);
+    assert.doesNotMatch(candidate, /environment:\s*production/);
+    assert.match(live, /github\.event_name == 'workflow_dispatch'/);
+    assert.match(live, /github\.ref == 'refs\/heads\/main'/);
+    assert.match(live, /environment:\s*production/);
+    assert.match(live, /supabase link --project-ref/);
+    assert.match(live, /supabase db push --linked --include-all --dry-run/);
+    assert.match(live, /supabase migration list --linked/);
+    assert.doesNotMatch(dryRunWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
     assert.doesNotMatch(productionWorkflow, /SONARA_ALLOWED_PENDING_MIGRATIONS/);
   });
 
