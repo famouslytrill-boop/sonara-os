@@ -264,6 +264,106 @@ describe("integration readiness worker", () => {
     assert.equal(settlements[0].outcome, "failed");
   });
 
+  it("does not release a stale durable lease until the visible job is reconciled", async () => {
+    let beforeRecover = null;
+    const worker = createIntegrationReadinessWorker({
+      service: {
+        executeProbe: async () => ({ ok: true, receipt: {} }),
+        markFailed: async () => ({ ok: false, code: "visible_update_failed" }),
+        markRetry: async () => ({ ok: false, code: "visible_update_failed" })
+      },
+      platformJobs: {
+        recoverStale: async (input) => {
+          beforeRecover = input.beforeRecover;
+          const result = await input.beforeRecover({
+            job: {
+              input: { organizationId: ORG, integrationJobId: REQUEST, providerKey: "google_search_console" }
+            },
+            exhausted: false
+          });
+          return { ok: true, recovered: result.ok ? 1 : 0, skipped: result.ok ? 0 : 1 };
+        },
+        claim: async () => ({ ok: true, row: null }),
+        settle: async () => ({ ok: true })
+      },
+      workerIdFactory: () => "instance-1"
+    });
+    const result = await worker.runOnce({ enabled: true, organizationId: ORG });
+    assert.equal(typeof beforeRecover, "function");
+    assert.equal(result.status, "idle");
+    assert.equal(result.recovered, 0);
+  });
+
+  it("keeps the durable claim processing when retry status cannot be written visibly", async () => {
+    let settlements = 0;
+    const worker = createIntegrationReadinessWorker({
+      service: {
+        executeProbe: async () => {
+          const error = new Error("temporary");
+          error.code = "provider_state_unreadable";
+          error.retryable = true;
+          throw error;
+        },
+        markRetry: async () => ({ ok: false, code: "integration_job_update_failed" }),
+        markFailed: async () => ({ ok: true })
+      },
+      platformJobs: {
+        recoverStale: async () => ({ ok: true, recovered: 0 }),
+        claim: async () => ({
+          ok: true,
+          row: {
+            id: "platform-1",
+            job_type: platformJobTypeForOrganization(ORG),
+            attempts: 1,
+            max_attempts: 3,
+            input: { organizationId: ORG, integrationJobId: REQUEST, providerKey: "google_search_console" }
+          }
+        }),
+        settle: async () => { settlements += 1; return { ok: true }; }
+      },
+      workerIdFactory: () => "instance-1"
+    });
+    const result = await worker.runOnce({ enabled: true, organizationId: ORG });
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "visible_status_update_failed");
+    assert.equal(settlements, 0);
+  });
+
+  it("does not dead-letter the durable claim when terminal visible status cannot be written", async () => {
+    let settlements = 0;
+    const worker = createIntegrationReadinessWorker({
+      service: {
+        executeProbe: async () => {
+          const error = new Error("terminal");
+          error.code = "integration_job_missing";
+          error.retryable = false;
+          throw error;
+        },
+        markRetry: async () => ({ ok: true }),
+        markFailed: async () => ({ ok: false, code: "integration_job_update_failed" })
+      },
+      platformJobs: {
+        recoverStale: async () => ({ ok: true, recovered: 0 }),
+        claim: async () => ({
+          ok: true,
+          row: {
+            id: "platform-1",
+            job_type: platformJobTypeForOrganization(ORG),
+            attempts: 1,
+            max_attempts: 3,
+            input: { organizationId: ORG, integrationJobId: REQUEST, providerKey: "google_search_console" }
+          }
+        }),
+        settle: async () => { settlements += 1; return { ok: true }; }
+      },
+      workerIdFactory: () => "instance-1"
+    });
+    const result = await worker.runOnce({ enabled: true, organizationId: ORG });
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "visible_status_update_failed");
+    assert.equal(settlements, 0);
+  });
+
   it("settles a successful readiness probe and exposes no provider secret payload", async () => {
     const settlements = [];
     const worker = createIntegrationReadinessWorker({
