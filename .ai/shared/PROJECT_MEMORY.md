@@ -69,7 +69,7 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 
 ## Creator microphone capture finalization (October 10, 2026, draft-only)
 
-- On the WAV Creator branch #611, browser-test evidence showed Firefox sometimes produced no local voice download when `MediaRecorder.stop()` was followed by synchronous microphone-track release. The client now keeps tracks live through final `dataavailable`, releasing after `onstop`. Cancellation, permission-revocation and pagehide remain fail-closed and immediately discard pending media.
+- On the WAV Creator branch #611, browser-test evidence showed Firefox sometimes produced no local voice download when `MediaRecorder.stop()` was followed by synchronous microphone-track release. The client now keeps tracks live through final `dataavailable`, releasing after `onstop`. A 5000 ms onstop watchdog fails closed by releasing tracks and withholding incomplete downloads if finalization stalls; browser regression is `stalled MediaRecorder finalization releases the microphone and provides no download`. Both normal and stalled paths passed isolated event-sequence simulation (not full Playwright). Cancellation, permission-revocation and pagehide remain fail-closed and immediately discard pending media.
 - The `browser-tests/public-experience.spec.js` controlled-recorder regression asserts final-chunk-before-release, nonempty local download, and exactly one track stop. Isolated V8 event-sequence harness passed; real Firefox/WebKit/Chromium CI remains mandatory. W3C standard event ordering: https://www.w3.org/TR/mediastream-recording/ .
 - CI browser snapshots and production activation are not proved by in-memory tests. Never claim all-green until exact-head workflows complete.
 
