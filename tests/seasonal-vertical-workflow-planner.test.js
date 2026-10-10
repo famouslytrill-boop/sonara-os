@@ -56,10 +56,25 @@ describe("seasonal vertical planning boundary", () => {
     });
     assert.equal(result.scenarioJobs, 150);
     assert.equal(result.usableCrewMinutes, 864);
+    assert.equal(result.capacityJobs, 19);
     assert.equal(result.feasibleJobs, 19);
     assert.equal(result.unservedJobs, 131);
     assert.equal(result.weatherDataConnected, false);
     assert.equal(result.classification, "user_supplied_capacity_scenario_not_prediction");
+  });
+
+  it("does not count unrequested capacity as feasible work", () => {
+    const plan = planSeasonalCapacity({
+      baselineJobs: 3, workers: 4,
+      minutesPerWorker: 480, minutesPerJob: 60
+    });
+    assert.equal(plan.scenarioJobs, 3);
+    assert.equal(plan.capacityJobs, 32);
+    assert.equal(plan.feasibleJobs, 3);
+    assert.equal(plan.unusedCapacityJobs, 29);
+    assert.equal(plan.unservedJobs, 0);
+    assert.equal(plan.feasibleJobs + plan.unservedJobs, plan.scenarioJobs);
+    assert.equal(plan.feasibleJobs + plan.unusedCapacityJobs, plan.capacityJobs);
   });
 
   it("assumes no seasonal uplift without owner-provided evidence", () => {
