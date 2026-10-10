@@ -67,8 +67,14 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/$GITHUB_REPOSITORY/branches/main" \
             > main-branch.json
-          node scripts/verify-release-branch-governance.cjs main-branch.json main
-          rm -f main-branch.json
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/rules/branches/main?per_page=100" \
+            > main-rules.json
+          node scripts/verify-release-branch-governance.cjs main-branch.json main main-rules.json
+          rm -f main-branch.json main-rules.json
 
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:
