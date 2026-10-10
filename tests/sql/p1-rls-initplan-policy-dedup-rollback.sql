@@ -96,15 +96,52 @@ $preflight$;
 -- The connected preview database does have a pair, but those definitions must
 -- not be silently injected into a replay or mistaken for tracked migrations.
 -- This assertion will fail if the source history changes, forcing review.
+-- Attest the THREE different source-replay policies. Unlike the two
+-- preview-only user_id policies, these are not duplicate authorizations:
+-- membership/public SELECT, service_role ALL, authenticated SELECT.
+CREATE TEMP TABLE expected_subscription_rls (
+  policy_name text NOT NULL, permissive text NOT NULL, roles text NOT NULL,
+  cmd text NOT NULL, qualifier text, check_expr text
+) ON COMMIT DROP;
+INSERT INTO expected_subscription_rls VALUES
+  ('org members can read subscriptions', 'PERMISSIVE', '{public}', 'SELECT',
+    '((organization_id IS NOT NULL) AND is_org_member(organization_id))', NULL),
+  ('service role can manage subscriptions', 'PERMISSIVE', '{service_role}', 'ALL',
+    'true', 'true'),
+  ('subscriptions_select_member', 'PERMISSIVE', '{authenticated}', 'SELECT',
+    '(is_org_member(organization_id) OR is_admin_or_founder())', NULL);
+
 DO $history$
+DECLARE bad integer;
 BEGIN
+ IF (SELECT count(*) FROM expected_subscription_rls) <> 3
+ OR (SELECT count(*) FROM pg_policies
+       WHERE schemaname='public' AND tablename='subscriptions') <> 3 THEN
+   RAISE EXCEPTION 'source subscriptions policy count drift; abort';
+ END IF;
+
+ SELECT count(*) INTO bad
+ FROM expected_subscription_rls e
+ LEFT JOIN pg_policies p
+   ON p.schemaname='public' AND p.tablename='subscriptions'
+   AND p.policyname=e.policy_name
+ WHERE p.policyname IS NULL
+   OR p.permissive IS DISTINCT FROM e.permissive
+   OR p.roles::text IS DISTINCT FROM e.roles
+   OR p.cmd IS DISTINCT FROM e.cmd
+   OR p.qual IS DISTINCT FROM e.qualifier
+   OR p.with_check IS DISTINCT FROM e.check_expr;
+ IF bad <> 0 THEN
+   RAISE EXCEPTION 'source subscription role or predicate drift on % policies; abort',bad;
+ END IF;
+
  IF EXISTS (
    SELECT 1 FROM pg_policies WHERE schemaname='public'
      AND tablename='subscriptions'
      AND policyname IN ('Users can view own subscriptions',
                         'Users can view their own subscription')
  ) THEN
-   RAISE EXCEPTION 'subscription history now includes a named policy; re-review synthetic fixture';
+   RAISE EXCEPTION 'preview-only subscription policy appeared in source replay; re-review';
  END IF;
 END
 $history$;
