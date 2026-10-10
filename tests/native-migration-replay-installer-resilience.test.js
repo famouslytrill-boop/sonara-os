@@ -88,4 +88,20 @@ describe("native PostgreSQL replay infrastructure resilience", () => {
     assert.match(sql, /SELECT count\(\*\) FROM expected_rls_p1 WHERE roles='\{service_role\}' AND cmd='ALL'/);
     assert.match(sql, /SELECT count\(\*\) FROM expected_rls_p1 WHERE roles='\{authenticated\}' AND cmd='SELECT'/);
   });
+
+  it("checks the duplicate-policy rollback from an independent PostgreSQL connection", () => {
+    const replay = fs.readFileSync(
+      path.join(__dirname, "..", "scripts", "verify-migration-replay.mjs"), "utf8"
+    );
+    const index = replay.indexOf('behaves(psql, "P1 transaction did not persist the duplicate-policy trial"');
+    const after = replay.indexOf('behaves(psql, "included generation reserves', index);
+    assert.ok(index > 0 && after > index, "read-after-rollback verification must precede the next SQL probe");
+    const check = replay.slice(index, after);
+    assert.match(check, /policyname IN \('Users can view own subscriptions'/);
+    assert.match(check, /'Users can view their own subscription'/);
+    assert.match(check, /roles=ARRAY\['authenticated'\]::name\[\]/);
+    assert.match(check, /\) = 2/);
+    assert.match(check, /p1_subscription_duplicate_rollback_proven/);
+    assert.doesNotMatch(check, /ALTER POLICY|DROP POLICY|GRANT |REVOKE /);
+  });
 });
