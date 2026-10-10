@@ -97,6 +97,7 @@ OpenTelemetry guidance on HTTP metrics and `error.type` informs this planned ada
 - A step after `observe` must depend directly on a step of the immediately preceding phase.
 - Missing/deviating dependencies, duplicate identifiers, cycles, invalid step types and excess budgets are blocked.
 - Steps are returned in stable phase/name order with auditable dependency links, graph depth and potential parallel groups.
+- A partial but internally valid graph now returns `incomplete_sequence_requires_review`, with explicit missing phases and `endToEndComplete=false`. A full graph returns `reviewable_sequence_only` but **still is not an authorization**. The purpose field is limited to 240 characters and rejects control characters.
 - `review` in a graph is **not human authorization**, and the returned graph can neither execute nor schedule tools, create user data, modify source, or approve its own effects.
 
 ### 3. Operational awareness as verified telemetry
