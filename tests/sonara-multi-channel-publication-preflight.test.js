@@ -149,4 +149,27 @@ describe("multi-channel publishing is preflight only", () => {
     assert.equal(result.state, "blocked");
     assert.ok(result.targets[0].blockers.includes("provider_configuration_incomplete"));
   });
+  it("rejects an approval decision whose timestamp is in the future", () => {
+    const candidate = input();
+    candidate.approval.decisions[0].decidedAt = "2026-10-10T15:04:00.000Z";
+    assert.equal(evaluatePublicationBatch(candidate, env).code, "approval_decision_not_yet_effective");
+  });
+  it("rejects missing or malformed proposal input without throwing", () => {
+    assert.equal(evaluatePublicationBatch(null, env).state, "blocked");
+    assert.equal(evaluatePublicationBatch([], env).state, "blocked");
+    assert.equal(publicationSnapshotHash(null), null);
+    assert.equal(publicationSnapshotHash("not-a-proposal"), null);
+  });
+  it("blocks an unaudited TikTok client without SELF_ONLY and a private creator account", () => {
+    const tiktok = target({providerKey:"tiktok_content", format:"video", visibility:"private",
+      creatorInfoFresh:true, creatorVisibilityOptionAllowed:true});
+    const denied = evaluatePublicationBatch(input({destinations:[tiktok]}), env);
+    assert.equal(denied.state, "blocked");
+    assert.ok(denied.targets[0].blockers.includes("tiktok_unaudited_private_account_required"));
+    const allowed = target({...tiktok, creatorAccountPrivate:true, privacyLevel:"SELF_ONLY"});
+    const candidate = evaluatePublicationBatch(input({destinations:[allowed]}), env);
+    assert.equal(candidate.state, "worker_claim_candidate");
+    assert.equal(candidate.executionAuthorized, false);
+  });
+
 });
