@@ -65,3 +65,57 @@ describe("proposed social database migration preflight", () => {
     assert.equal(output.tables.length, 2);
   });
 });
+
+
+describe("disabled-only social schema references cannot silently become live", () => {
+  const root = path.join(__dirname, "..");
+  const verifier = fs.readFileSync(path.join(root, "scripts", "verify-supabase-contract.mjs"), "utf8");
+  const route = fs.readFileSync(path.join(root, "routes", "sonara-growth-channel-routes.cjs"), "utf8");
+
+  function check(routeSource, sqlSource) {
+    const start = verifier.indexOf("const SOCIAL_PROPOSAL_TABLES");
+    const end = verifier.indexOf("const reviewedExtensionTables", start);
+    assert.ok(start >= 0 && end > start, "pending social proposal must have a separate reviewed gate");
+    const code = verifier.slice(start, end);
+    const failures = [];
+    const fileAccess = { readFileSync(file) {
+      return String(file).endsWith(".sql") ? sqlSource : routeSource;
+    }};
+    const sandboxPath = { join: (...pieces) => pieces.join("/") };
+    new Function("fs", "path", "root", "fail", code)(
+      fileAccess, sandboxPath, "/repo", (error) => failures.push(error)
+    );
+    return failures;
+  }
+
+  it("recognizes review-only tables without claiming they are migrated", () => {
+    assert.deepEqual(check(route, channel), []);
+    const section = verifier.slice(verifier.indexOf("const SOCIAL_PROPOSAL_TABLES"),
+      verifier.indexOf("const reviewedExtensionTables"));
+    assert.ok(!section.includes("DATABASE_TABLES.push"));
+    assert.match(verifier, /!SOCIAL_PROPOSAL_TABLES\.includes\(table\)/);
+  });
+
+  it("fails the contract if the configured off-by-default safety switch is removed", () => {
+    const activated = route.replace(
+      'getEnv("SONARA_GROWTH_CHANNEL_SAFETY_ENABLED") === "true"',
+      "true"
+    );
+    assert.notEqual(activated, route);
+    assert.ok(check(activated, channel).some(m => m.includes("default-off")));
+  });
+
+  it("fails contract if review-only SQL loses RLS or its least-privilege revoke", () => {
+    const rlsRemoved = channel.replace(
+      "alter table public.growth_channel_blocks enable row level security;", ""
+    );
+    assert.notEqual(rlsRemoved, channel);
+    assert.ok(check(route, rlsRemoved).some(m => m.includes("growth_channel_blocks")));
+    const grantLeak = channel.replace(
+      "revoke all on public.growth_channel_moderation_events from public, anon, authenticated, service_role;",
+      "revoke all on public.growth_channel_moderation_events from public, anon, authenticated;"
+    );
+    assert.notEqual(grantLeak, channel);
+    assert.ok(check(route, grantLeak).some(m => m.includes("growth_channel_moderation_events")));
+  });
+});
