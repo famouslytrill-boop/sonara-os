@@ -14,13 +14,34 @@ create function pg_temp.expect_error(command text, expected text) returns void l
 
 insert into auth.users(id,email) values
   ('25000000-0000-4000-8000-000000000001','counted@example.invalid'),
-  ('25000000-0000-4000-8000-000000000002','reviewer@example.invalid');
+  ('25000000-0000-4000-8000-000000000002','reviewer@example.invalid'),
+  ('25000000-0000-4000-8000-000000000015','business-staff@example.invalid'),
+  ('25000000-0000-4000-8000-000000000016','business-owner@example.invalid'),
+  ('25000000-0000-4000-8000-000000000017','suspended-staff@example.invalid');
 insert into public.organizations(id,name) values
   ('25000000-0000-4000-8000-000000000003','Stock adjustment tenant'),
   ('25000000-0000-4000-8000-000000000004','Unrelated tenant');
 insert into public.organization_memberships(organization_id,user_id,role,status) values
   ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000001','manager','active'),
   ('25000000-0000-4000-8000-000000000003','25000000-0000-4000-8000-000000000002','owner','active');
+
+-- Application session resolver also accepts active business_memberships.
+-- Those employees must be admitted by the service-only SQL contract, but
+-- role='employee' and status='disabled' must never gain reviewer powers.
+insert into public.business_workspaces(id,organization_id,name) values
+  ('25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000003','Staff inventory workspace');
+insert into public.business_memberships(organization_id,workspace_id,user_id,role,status)
+values
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000015','employee','active'),
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000016','owner','active'),
+  ('25000000-0000-4000-8000-000000000003',
+   '25000000-0000-4000-8000-000000000099',
+   '25000000-0000-4000-8000-000000000017','employee','disabled');
 
 insert into public.inventory_items(id,organization_id,name,quantity,unit,status) values
   ('25000000-0000-4000-8000-000000000010','25000000-0000-4000-8000-000000000003','Tracked stock',10,'each','active'),
@@ -385,6 +406,61 @@ select pg_temp.require_true(
     where id='25000000-0000-4000-8000-000000000013'),
   'self-review did not mutate stock');
 
+
+
+-- Business Builder supports a second membership authority for staff. A
+-- worker in business_memberships ONLY (no organization_memberships row)
+-- must be allowed to count stock, while an inactive worker fails closed.
+insert into public.inventory_items(id,organization_id,name,quantity,unit,status) values
+  ('25000000-0000-4000-8000-000000000014',
+   '25000000-0000-4000-8000-000000000003','Business-only employee count',10,'each','active');
+
+select pg_temp.expect_error($q$select public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000017',
+    'inactive-count-002',0,7)$q$,
+  'stock_count_actor_unauthorized');
+
+select pg_temp.require_true(
+  (public.sonara_submit_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    '25000000-0000-4000-8000-000000000014',
+    '25000000-0000-4000-8000-000000000015',
+    'staff-count-002',0,7)->>'code')='review_requested',
+  'active business-only employee can submit a stock count');
+select pg_temp.require_true(
+  (select quantity=10 and stock_version=0 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000014'),
+  'staff submission does not mutate stock');
+
+-- The actual service-only reviewer role must be ACTIVE and privileged.
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000017')$q$,
+  'stock_review_owner_role_required');
+select pg_temp.expect_error($q$select public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000015')$q$,
+  'stock_review_owner_role_required');
+
+select pg_temp.require_true(
+  (public.sonara_review_stock_count_request(
+    '25000000-0000-4000-8000-000000000003',
+    (select id from public.inventory_stock_count_requests
+      where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+    '25000000-0000-4000-8000-000000000016')->>'code')='adjustment_recorded',
+  'active business-only owner can review another staff member count');
+select pg_temp.require_true(
+  (select quantity=7 and stock_version=1 from public.inventory_items
+    where id='25000000-0000-4000-8000-000000000014')
+  and (select count(*)=1 from public.inventory_stock_adjustments
+    where inventory_item_id='25000000-0000-4000-8000-000000000014'),
+  'business-only employee and owner produce a single atomic stock adjustment');
 
 reset role;
 select pg_temp.require_true(
