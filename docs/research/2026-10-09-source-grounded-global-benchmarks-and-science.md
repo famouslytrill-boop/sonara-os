@@ -3,7 +3,7 @@
 
 ## What this work actually does
 
-This change adds a **read-only CommonJS research gate** at \`lib/sonara-research-benchmark-gates.cjs\`, with negative tests. It does not add a new database, external API consumer, live web crawler, paid financial advice, executive directory, autonomous operation, UI route, marketing publication, or production activation. \`source_transcription_needs_audit\` deliberately remains unverified even if all 50 entries appear; neither user-supplied ranks nor URL strings independently verify publisher content.
+This change adds a **read-only CommonJS research gate** at `lib/sonara-research-benchmark-gates.cjs`, with negative tests. It does not add a new database, external API consumer, live web crawler, paid financial advice, executive directory, autonomous operation, UI route, marketing publication, or production activation. `source_transcription_needs_audit` deliberately remains unverified even if all 50 entries appear; neither user-supplied ranks nor URL strings independently verify publisher content.
 
 ## Primary ranking authorities and incompatible metrics
 
@@ -32,7 +32,7 @@ This change adds a **read-only CommonJS research gate** at \`lib/sonara-research
 
 ## Curated set of 50 applied formulas to investigate, not a universal ranking
 
-Before implementing, check existing \`sonara-formula-engine.cjs\`, \`sonara-formula-library.cjs\` and current deterministic formula PRs to avoid duplicates. These are **concept references**, not proof that all 50 execute in production. Each needs domain validation, units, edge cases, numeric bounds and user-visible assumptions.
+Before implementing, check existing `sonara-formula-engine.cjs`, `sonara-formula-library.cjs` and current deterministic formula PRs to avoid duplicates. These are **concept references**, not proof that all 50 execute in production. Each needs domain validation, units, edge cases, numeric bounds and user-visible assumptions.
 
 | # | Concept / standard expression | SONARA use |
 |---|---|---|
@@ -93,7 +93,7 @@ Cautions: break-even denominators must be positive; sigma and appropriate sample
 
 1. **P0 release integrity:** verify current exact-SHA CI, migration/RLS proof, protected main, billing/checkout receipts and offline/production flags before customer activation.
 2. **P1 benchmark ingestion adapter:** approved import of official ranking exports with edition, metric, observation date, publisher URL, proof of source-page matching, and contradiction review; default read-only.
-3. **P1 research-to-capability scorer:** use \`scoreCapabilityIdeas\` only as a *planning aid*; require recorded owner, one customer commitment, source evidence, a cost ceiling and specialist/owner review for high-impact actions. Never auto-merge, auto-deploy or auto-charge based on score.
+3. **P1 research-to-capability scorer:** use `scoreCapabilityIdeas` only as a *planning aid*; require recorded owner, one customer commitment, source evidence, a cost ceiling and specialist/owner review for high-impact actions. Never auto-merge, auto-deploy or auto-charge based on score.
 4. **P1 formula coverage audit:** map 50 formula concepts to verified current handlers/tests; implement missing ones only with dimensional analysis and failing negative cases.
 5. **P2 cross-sector starter packs:** restaurant demand and waste, creator rights/readiness, service-business dispatch, distributor reorder, audio production planning and consent-safe growth; each must pass customer-value and cost-to-serve tests.
 6. **P2 company/people index:** opt-in and source-linked metadata for scientists, inventors, artists and business leaders, with attribution, jurisdiction, edition and deletion/retraction handling; no celebrity likeness cloning or unauthorized content ingestion.
