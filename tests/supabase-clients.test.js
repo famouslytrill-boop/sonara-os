@@ -265,7 +265,7 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", (
       otherUserId: foreign.userId,
       otherRowId: foreign.rowId,
       otherAccessToken: foreign.token,
-      trustedNow: "2026-10-09T12:00:00.000Z"
+      trustedNow: "2026-10-09T12:55:00.000Z"
     });
     return { ...valid, liveProof: proof };
   }
@@ -363,6 +363,19 @@ describe("fail-closed scoped evidence reads (new learning-adapter preflight)", (
         JSON.stringify(bad)
       );
     }
+  });
+
+  it("binds proof to the original access token and rejects expiry after fifteen minutes", async () => {
+    const verified = await verifiedInput();
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, accessToken: "different-access-token"
+    }), SupabaseClientError);
+    assert.throws(() => requireVerifiedUserScopedRead({
+      ...verified, trustedNow: "2026-10-09T13:11:00.000Z"
+    }), SupabaseClientError);
+    assert.equal(requireVerifiedUserScopedRead({
+      ...verified, trustedNow: "2026-10-09T13:10:00.000Z"
+    }).client, "user");
   });
 
   it("requires four observed reads and positive seeded rows in both tenants", async () => {
