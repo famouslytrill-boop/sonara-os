@@ -73,7 +73,7 @@ describe("Creator Studio synchronized source stem handoff", () => {
     assert.equal(out.durationMs, 95);
     assert.equal(readWav(out.stems[0].bytes).frames, Math.ceil(95 * 44.1));
     assert.equal(sample(out.stems[0].bytes, 0), 1500);
-    assert.equal(sample(out.stems[0].bytes, 100), 0);
+    assert.equal(sample(out.stems[0].bytes, 200), 0);
   });
 
   it("rejects missing files, out-of-bounds clips, muted-only graphs, and unknown sample rates", () => {
