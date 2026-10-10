@@ -1,32 +1,11 @@
 "use strict";
 
-// Whether revoking EXECUTE on an authorization function can lock a customer out.
-//
-// docs/owner/OWNER-STEPS.md item 4 carries the Supabase advisor's request to
-// revoke EXECUTE from `authenticated` on twelve SECURITY DEFINER functions, and
-// the warning against doing it: a policy evaluates as the calling role, so
-// removing the grant can turn a working policy into a denial -- customers locked
-// out of their own records, silently. `is_org_member` alone is called by 202
-// policies across 64 tables.
-//
-// **That warning describes a mechanism this application does not currently use.**
-// Measured on 19 August 2026: every table read in the running product goes
-// through `supabaseHeaders()`, which sends the service-role key as both `apikey`
-// and `Authorization`. The service role bypasses row level security entirely, so
-// no policy is evaluated on any live read, so no policy's calls to a SECURITY
-// DEFINER function are on any live path.
-//
-// lib/sonara-supabase-clients.cjs exists and is the machinery for changing that
-// -- CRIT-3 item (2), forwarding the caller's JWT so RLS becomes a real second
-// line of defence. It is required by exactly one file: its own test.
-//
-// So today, revoking that grant cannot break this product. **The day
-// lib/sonara-supabase-clients.cjs is wired into a read path, it can.**
-//
-// That is the whole reason this file exists. The reasoning in item 4 is true
-// when written and would go stale silently, and somebody reading it in six
-// months has no way to tell which. This fails the moment it stops being true,
-// and says so in the failure message.
+// RLS privilege-revoke safety ratchet (October 2026).
+// Historical service-role requests remain, but a guarded user-scoped read
+// capability is now imported by the offline learning-evidence adapter.
+// An import is not a live route; its presence must not be misrepresented as
+// absence. These static tests guard unexpected wiring and unsafe runbook
+// assurances. They do NOT replace live preview tenant/RLS verification.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -78,7 +57,7 @@ describe("the reasoning behind the revoke test is still true", () => {
     );
   });
 
-  it("still reads every table with the service-role key", () => {
+  it("confirms the legacy server header remains service-role based", () => {
     const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
     // The one helper 75 call sites go through. If this stops sending the
     // service-role key, reads start being evaluated against policies.
@@ -96,31 +75,52 @@ describe("the reasoning behind the revoke test is still true", () => {
     );
   });
 
-  it("has not wired the user-scoped client into the running product", () => {
-    // The module is deliberately allowed to exist -- it is CRIT-3 (2)'s
-    // machinery, built and waiting. What matters is whether anything runs it.
-    const wired = files
+  it("identifies exactly the known guarded user-scoped adapter import", () => {
+    const imports = files
       .filter((file) => !file.endsWith(`${USER_SCOPED_MODULE}.cjs`))
       .filter((file) => fs.readFileSync(file, "utf8").includes(USER_SCOPED_MODULE))
-      .map((file) => path.relative(root, file));
-
-    assert.deepEqual(
-      wired,
-      [],
-      `these runtime files now use the user-scoped Supabase client: ${wired.join(", ")}.${STALE_REASONING}`
-    );
+      .map((file) => path.relative(root, file))
+      .sort();
+    assert.deepEqual(imports, ["lib/sonara-adaptive-learning-policy.cjs"],
+      "Unexpected user-scoped Supabase consumer: re-audit the actual JWT/RLS route and owner runbook");
+    const source = fs.readFileSync(path.join(root, imports[0]), "utf8");
+    assert.match(source,
+      /const\s+\{\s*isVerifiedUserScopedRead\s*\}\s*=\s*require\("\.\/sonara-supabase-clients\.cjs"\)/,
+      "The known learning adapter import changed; re-audit its authorization boundary");
+    assert.match(source, /if\s*\(!isVerifiedUserScopedRead\(access,\s*\{/,
+      "Guarded learning evidence must check the verified user-scoped read capability");
+    assert.match(source, /return fail\("verified_user_scoped_evidence_read_required"\)/,
+      "Unverified learning evidence must fail closed, not fall back to service role");
   });
 
-  it("calls neither user-scoped helper from the running product", () => {
-    // Belt and braces, and not redundant: somebody could inline the same
-    // headers without importing the module, and the import check above would
-    // pass while reads went out as `authenticated`.
+  it("rejects direct user-scoped HTTP selectors outside the approved client module", () => {
     const offenders = files
       .filter((file) => !file.endsWith(`${USER_SCOPED_MODULE}.cjs`))
-      .filter((file) => /userScopedHeaders|chooseClient/.test(fs.readFileSync(file, "utf8")))
+      .filter((file) => {
+        // The old gate matched two function names inside explanatory comments
+        // and called this live RLS usage. Only executable call shapes count.
+        const code = fs.readFileSync(file, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/^\s*\/\/.*$/gm, "");
+        return /\b(?:userScopedHeaders|chooseClient)\s*\(/.test(code);
+      })
       .map((file) => path.relative(root, file));
+    assert.deepEqual(offenders, [],
+      "Direct JWT/RLS selector wired into runtime: require preview tenant proof before revoking EXECUTE");
+  });
 
-    assert.deepEqual(offenders, [], `user-scoped reads appear in: ${offenders.join(", ")}.${STALE_REASONING}`);
+  it("requires the owner runbook to prohibit production revoke without preview RLS proof", () => {
+    const docs = fs.readFileSync(path.join(root, "docs", "owner", "OWNER-STEPS.md"), "utf8");
+    const start = docs.indexOf("## 4 —");
+    const end = docs.indexOf("\n## 5", start);
+    assert.ok(start >= 0 && end > start, "Owner runbook RLS revoke decision section is missing");
+    const section = docs.slice(start, end);
+    assert.match(section, /Do not revoke `EXECUTE` in production/i);
+    assert.match(section, /cross-tenant deny/);
+    assert.match(section, /function-specific/);
+    assert.match(section, /explicit owner authorization/);
+    assert.doesNotMatch(section, /cannot lock a customer out of anything/i,
+      "Old unconditional RLS safety assurance has returned");
   });
 
   it("still has the module it is watching for", () => {
