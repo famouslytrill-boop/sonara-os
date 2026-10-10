@@ -62,19 +62,26 @@ BEGIN
  END IF;
 
  -- These two permissive policies must be identical in every security
- -- dimension before one can safely be dropped. pg_policies.qual is deparsed
- -- display text and is allowed to differ in harmless formatting across
- -- PostgreSQL versions. Compare PostgreSQL's catalog policy trees instead:
- -- same command, roles, permissive mode, USING AST and WITH CHECK AST.
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname IN ('Users can view own subscriptions',
-                          'Users can view their own subscription')
-       AND permissive='PERMISSIVE'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND with_check IS NULL) <> 2 THEN
-   RAISE EXCEPTION 'subscriptions duplicate policy role/command definitions drifted; abort';
+ -- dimension before one can safely be dropped. Do not require a guessed role
+ -- label here: CREATE POLICY defaults TO PUBLIC when TO is omitted, while
+ -- pg_policy.polroles records the actual role OIDs. The dedup invariant is
+ -- exact equivalence, not a particular role spelling.
+ --
+ -- pg_policies.qual is deparsed display text and may vary in harmless
+ -- formatting across PostgreSQL versions. Compare PostgreSQL's catalog policy
+ -- trees instead: same SELECT command, role set, permissive mode, USING AST
+ -- and WITH CHECK AST.
+ IF (SELECT count(*) FROM pg_policy p
+     JOIN pg_class c ON c.oid=p.polrelid
+     JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relname='subscriptions'
+       AND p.polname IN ('Users can view own subscriptions',
+                         'Users can view their own subscription')
+       AND p.polcmd='r'
+       AND p.polpermissive=true
+       AND p.polqual IS NOT NULL
+       AND p.polwithcheck IS NULL) <> 2 THEN
+   RAISE EXCEPTION 'subscriptions duplicate policy command/permissive definitions drifted; abort';
  END IF;
 
  IF (SELECT count(*) FROM (
@@ -115,16 +122,20 @@ BEGIN
  IF bad <> 0 THEN
    RAISE EXCEPTION 'P1 postflight failed % policies',bad;
  END IF;
- IF (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view own subscriptions'
-       AND permissive='PERMISSIVE'
-       AND roles=ARRAY['authenticated']::name[]
-       AND cmd='SELECT'
-       AND with_check IS NULL)<>1
- OR (SELECT count(*) FROM pg_policies
-     WHERE schemaname='public' AND tablename='subscriptions'
-       AND policyname='Users can view their own subscription')<>0
+ IF (SELECT count(*) FROM pg_policy p
+     JOIN pg_class c ON c.oid=p.polrelid
+     JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relname='subscriptions'
+       AND p.polname='Users can view own subscriptions'
+       AND p.polcmd='r'
+       AND p.polpermissive=true
+       AND p.polqual IS NOT NULL
+       AND p.polwithcheck IS NULL)<>1
+ OR (SELECT count(*) FROM pg_policy p
+     JOIN pg_class c ON c.oid=p.polrelid
+     JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relname='subscriptions'
+       AND p.polname='Users can view their own subscription')<>0
  THEN RAISE EXCEPTION 'P1 subscription dedup failed'; END IF;
 END
 $postflight$;
