@@ -250,6 +250,50 @@ test.describe("public experience browser contract", () => {
     expect(errors).toEqual([]);
   });
 
+  test("Creator multitrack MIDI downloads independent notes and a conductor tempo track", async ({ page }) => {
+    const { midiSketchForm } = require("../routes/sonara-creator-project-routes.cjs");
+    const errors = [], uploads = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.goto(`${BASE_URL}/tools`);
+    await mountLocalComponent(page, midiSketchForm(), "/creator-project-midi.js");
+    const form = page.locator("[data-midi-multitrack]");
+    await form.locator('[name="notes1"]').fill("C4,0,480,100");
+    await form.locator('[name="notes2"]').fill("C2,0,960,95");
+    await form.getByRole("button", { name: "Create multitrack MIDI" }).click();
+    await expect(form.getByRole("status")).toContainText("Format 1 ready with 2 named note tracks");
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      form.getByText("Download multitrack MIDI", { exact: true }).click()
+    ]);
+    expect(download.suggestedFilename()).toBe("sonara-multitrack.mid");
+    const bytes = require("node:fs").readFileSync(await download.path());
+    expect(bytes.toString("ascii", 0, 4)).toBe("MThd");
+    expect(bytes.readUInt32BE(4)).toBe(6);
+    expect(bytes.readUInt16BE(8)).toBe(1);
+    expect(bytes.readUInt16BE(10)).toBe(3);
+    expect(bytes.readUInt16BE(12)).toBe(480);
+    let cursor = 14;
+    const names = [];
+    for (let index = 0; index < 3; index++) {
+      expect(bytes.toString("ascii", cursor, cursor + 4)).toBe("MTrk");
+      const size = bytes.readUInt32BE(cursor + 4);
+      const data = bytes.subarray(cursor + 8, cursor + 8 + size);
+      expect(data.subarray(-4).toString("hex")).toBe("00ff2f00");
+      if (index === 0) expect(data.toString("hex")).toBe("00ff510307a12000ff2f00");
+      else names.push(data.toString("ascii", 4, 4 + data[3]));
+      cursor += 8 + size;
+    }
+    expect(names).toEqual(["Piano", "Bass"]);
+    expect(cursor).toBe(bytes.length);
+    await form.locator('[name="notes1"]').fill("C4,0,480,0");
+    await expect(form.getByText("Download multitrack MIDI", { exact: true })).toBeHidden();
+    await form.getByRole("button", { name: "Create multitrack MIDI" }).click();
+    await expect(form.getByRole("status")).toContainText("Velocity");
+    expect(errors).toEqual([]);
+    expect(uploads).toEqual([]);
+  });
+
   test("Creator local image processing exports exact CPU pixels without uploads", async ({ page }) => {
     const errors = [], uploads = [];
     page.on("pageerror", (error) => errors.push(error.message));
