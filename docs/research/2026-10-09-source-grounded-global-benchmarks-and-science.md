@@ -146,3 +146,31 @@ It reports:
 **Verifiable engineering boundary:** Unit assertions test contradictory signals, bad provenance, source freshness, private/internal citation URLs, unsafe ranking names, publisher rights restrictions and fail-closed authorization. A mutation test deliberately granting production authorization to a claim must fail. Since GitHub Actions remain queued, merge is blocked until full exact-SHA Node/CI validation completes. No extra claims of readiness follow from test counts alone.
 
 **Next implementation phase once exact-head gates are green:** typed imports from an approved source and explicit rights record, signed/tenant-scoped human review receipts, review UI reuse within the existing Research Lab route registration, and measured pilot. Any new database storage requires schema/RLS/migration review; do not create duplicate research source tables.
+
+## Phase 4: evidence source diversity, risk intake and release-queue inspection (2026-10-09)
+
+### Verified reference standards and engineering implications
+
+- **W3C PROV-O** (https://www.w3.org/TR/prov-o/): models Entity, Activity and Agent; a research link or claim alone is not an agent-backed verification event. SONARA's source-link counts are not signed PROV-O attestations.
+- **NIST AI RMF 1.0** (https://www.nist.gov/itl/ai-risk-management-framework): voluntary Govern, Map, Measure and Manage guidance. As of October 2026 NIST says the framework is undergoing revision; this PR does not confer certification or assert that the framework can replace software security controls.
+- **OWASP SSRF prevention** (https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html): URL input validation alone cannot prevent DNS rebinding when a future service performs network requests. The current research functions are non-networked. Any future fetch must add a vetted destination allowlist, DNS and resolved-IP safety checks, redirect restrictions, resource caps and egress isolation at request time.
+
+### Implemented, but not production activated
+
+1. Evidence review packets now expose `sourceHostCount` and `multipleObservationsFromOneHost` for each claim. `www.` is normalized for this *host* measure, but two distinct hosts **do not prove two independent publishers**, and host count never self-verifies a claim. Source URLs remain caller-supplied.
+2. Candidate scoring rejects an empty `riskTags` array as an unclassified idea; unknown risk tags remain specialist-review-only. An explicit low-risk label is *still* unverified self-reporting and can never grant production authorization.
+3. The ranking validator prioritizes `invalid_transcription` over `stale_source` if both are true, so malicious/poisoned rows cannot be masked by the document's age.
+4. No new dependency, network fetcher, customer route, database migration, payment pathway, external provider credential or autonomous action was added.
+
+### Targeted test results and limitations
+
+The 23 committed test cases passed in an isolated JavaScript V8 harness using a simplified URL constructor, **not** in the repository's Node 24/mocha environment. Mutating each of the following safeguards made tests fail: requiring at least one risk classification, prioritizing invalid ranking rows, and reporting single-host source concentration. This does not establish full-suite, production or real-network safety.
+
+GitHub Actions inspection of the exact PR branch showed all substantive check runs queued (62) with two skipped checks, no completed required-green evidence. An inspected `SONARA Industries CI` run likewise showed both jobs queued and no runner assigned. This is an operational blocker; this evidence does not establish why the runner queue has not drained. Avoid force-rerunning queued workflows without identifying the capacity/configuration problem. No production restoration, merge, payments, social activation or store publication is authorized by this research PR.
+
+### Next release sequence
+
+1. Diagnose GitHub Actions scheduling/runner entitlement and org/repository permissions without turning off required jobs. Confirm a genuinely executed exact-head CI result.
+2. Run `pnpm install --frozen-lockfile`, `pnpm audit --audit-level moderate`, `pnpm run typecheck`, `pnpm run lint`, `pnpm test`, `pnpm run build` with current Node 24 and appropriate blocking compatibility matrix.
+3. Review the source evidence packet against W3C/NIST research requirements, actual publisher terms, and existing SONARA registries. Stop before claiming publication rights or independent publisher diversity.
+4. Merge through protected branch governance only when all required checks and approvals pass. Production deployment remains a separate controlled authorization and may remain offline.
