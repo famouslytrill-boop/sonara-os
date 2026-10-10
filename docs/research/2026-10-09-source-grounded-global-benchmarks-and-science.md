@@ -274,3 +274,30 @@ The job API can omit a job creation timestamp; age analysis uses a workflow's `c
 **Validation actually executed:** Nine targeted test cases passed in **native Node 22.16.0** in the current tool environment via a minimal synchronous `describe/it` driver (not installed Mocha or the full SONARA repository). Git blob hashes for the source and tests match the local Node-tested files exactly. The standalone CLI was also exercised against a locally constructed queued-job fixture and returned exit code 1 with no secrets or root-cause claim. Official Node 24/pnpm full-suite tests remain pending.
 
 **Operational next step:** An authorized repository administrator must inspect runner account/billing quota and Actions usage, allowed workflows and concurrency groups, branch protection (integration's protection read returned 403), and raise a GitHub Support case with the queued run IDs if local restrictions do not explain them. The changes in this PR do not attempt to change those permissions.
+
+## Phase 8: accurate check/workflow/job conclusions (2026-10-09)
+
+### Verified problem
+
+The original offline Actions queue diagnostic was willing to treat an all-success check-run snapshot as having no observed blocker even if a matching **workflow run** or **individual job** had actually failed, timed out or been cancelled. It also treated `requested` and `waiting` check runs as unknown rather than unfinished. GitHub defines these statuses and conclusions separately; the check-runs API is not the only source of runtime evidence. See https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-checks and https://docs.github.com/en/pull-requests/reference/status-checks.
+
+### Fix implemented
+
+- `analyzeActionsQueueSnapshot()` now detects `failed_workflows`, `failed_jobs`, `failed_checks`, `missing_workflow_evidence`, `unfinished_execution`, `unknown_workflow_conclusion` and `unknown_job_conclusion` independently, including `failure`, `timed_out`, `cancelled`, `action_required`, `startup_failure` and `stale` final outcomes.
+- `requested`, `waiting`, `pending`, `queued` and `in_progress` are unfinished states. They can never count as completed required checks.
+- The analyzer reports additional `workflowQueue.unfinished/failed` and `jobCounts.unfinished/failed` counters. It still never asserts the queue's actual cause or authorizes release, because required-check configuration and branch governance must be separately verified.
+- The previous test fixture was corrected to contain an actual `conclusion: "success"` for a completed workflow and job. A blank conclusion must not be silently interpreted as success.
+
+### Tests and proof boundary
+
+**14/14 tests passed with native Node.js 22.16.0 using Node's `node:test` driver**, after a real failure in the initial candidate exposed an incomplete completed-state test fixture. Five regression cases cover failed workflows concealed by successful checks, failed jobs concealed by successful workflows, waiting/requested states, missing workflow data or undefined final results, and stale/startup-failure/cancelled outcomes. Both committed source and test Git blob hashes were verified against the exact locally tested files: module `e81f93b830d7363a9d4284e75a71fb02e3ab62bb`, test `b289cde3136ad339bf65d198cf4963322b1dd870`. The local offline CLI returned code 1 and `unfinished_execution` for a queued snapshot.
+
+**Do not confuse this test pass with Node 24, Mocha, pnpm, a full repository run, RLS proof, or production deployment.** The existing main CI runner and other release checks have not completed.
+
+### GitHub runner economics and concurrency research
+
+GitHub's current documentation states that **standard** GitHub-hosted `ubuntu-latest` runners are free for public repositories; SONARA's inspected repository is public and its workflow requests `ubuntu-latest`. Thus ordinary *private-repository included minutes* are not a sufficient explanation for this backlog. Usage and service restrictions, Actions settings, concurrency, or runner provisioning remain unverified by the connected integration. See https://docs.github.com/en/actions/concepts/billing-and-usage and https://docs.github.com/en/actions/reference/runners/github-hosted-runners.
+
+GitHub also documents that naïve concurrency grouping can replace an earlier pending run instead of completing every required exact-head check. Therefore, **do not add automatic concurrency/cancellation changes to mandatory release workflows without a separate owner-reviewed gate analysis**. See https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency.
+
+**Next release step:** Owner/admin investigates existing P0 issue #579, obtains GitHub's actual scheduling/runner evidence, and successfully executes a single controlled exact-SHA build/test/security/database/tenant matrix. Keep PR #605 draft, review branch protection separately, and deploy only via a separately approved staged release.
