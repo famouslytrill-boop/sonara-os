@@ -81,4 +81,6 @@ function main() {
  if(failures.length){console.error("Codex skills out of sync: "+failures.join(", "));process.exitCode=1;return;}
  console.log(`Codex skill bridges ${checking?"verified":"generated"}: ${list.size} (canonical + shared + formula).`);
 }
-main();
+// Importable pure helper functions allow non-mutating falsification tests.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+export { extract, front, bridge, sharedBridge, buildExpected };
