@@ -3,6 +3,7 @@
 "use strict";
 const assert = require("node:assert/strict");
 const { gunzipSync } = require("node:zlib");
+const { createHash } = require("node:crypto");
 const {
   VERTICALS, VERTICAL_KEYS, SEASONS, MAX_EVENTS,
   getVerticalPlaybook, planSeasonalCapacity, calculateJobQuote,
@@ -126,7 +127,12 @@ describe("seasonal vertical planning boundary", () => {
     const packed = compressOperationalSummary(summary);
     assert.equal(packed.format, "gzip+base64");
     assert.equal(packed.encrypted, false);
-    const original = JSON.parse(gunzipSync(Buffer.from(packed.data, "base64")).toString("utf8"));
+    const raw = gunzipSync(Buffer.from(packed.data, "base64"));
+    assert.equal(packed.originalBytes, raw.length);
+    assert.equal(packed.sha256, createHash("sha256").update(raw).digest("hex"));
+    assert.equal(packed.sha256.length, 64);
+    assert.notEqual(packed.sha256, createHash("sha256").update(Buffer.from(raw.toString("utf8") + " ")).digest("hex"));
+    const original = JSON.parse(raw.toString("utf8"));
     assert.equal(original.uniqueEvents, 2);
     assert.equal(original.version, 1);
     assert.ok(!JSON.stringify(original).includes("private@example.com"));
