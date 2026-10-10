@@ -29,6 +29,7 @@ jobs:
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           run_install: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -156,6 +157,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           python-version: "3.12"
       # Not `python -m unittest discover`. That exits 0 when it discovers
       # nothing -- a moved directory, a renamed file, a missing __init__ -- so
@@ -191,6 +193,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           python-version: "3.12"
       - name: Install sonara-ops
         run: |
@@ -238,6 +241,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
@@ -295,6 +299,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           python-version: "3.12"
       - name: Install ${{ matrix.project }}
         working-directory: tools/${{ matrix.project }}
@@ -336,6 +341,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           node-version: 24
       - name: Run the ${{ matrix.project }} tests
         working-directory: tools/${{ matrix.project }}
