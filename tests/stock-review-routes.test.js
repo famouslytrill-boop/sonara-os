@@ -72,6 +72,17 @@ describe("Feature-flagged SONARA two-person stock count review",()=>{
     assert.ok(!section.includes("resolveOrganization(req, deps)"));
     assert.ok(section.includes("autoBootstrap: false"));
   });
+  it("rejects viewer-only memberships for submission and queue reads",async()=>{
+    const e=make();
+    const post=await e.hit("POST",queue,{role:"viewer",body:valid});
+    const get=await e.hit("GET",queue,{role:"viewer"});
+    assert.equal(post.code,403);
+    assert.equal(get.code,403);
+    assert.equal(post.payload.code,"stock_count_staff_role_required");
+    assert.equal(get.payload.code,"stock_count_staff_role_required");
+    assert.equal(e.rpc.length,0);
+    assert.equal(e.queries.length,0);
+  });
   it("allows a verified business employee to submit but never approve a count",async()=>{
     const e=make();
     const request=await e.hit("POST",queue,{role:"employee",body:valid});
