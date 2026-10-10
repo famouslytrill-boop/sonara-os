@@ -144,6 +144,8 @@
     if (!active.size) throw new Error("At least one unmuted audio clip is needed for source stems.");
     if (active.size > MAX_STEMS) throw new Error("Export at most four active audio sources at once.");
     const sourceIds = [...active].sort();
+    const outputBytes = (44 + Math.ceil(durationMs * rate / 1000) * 4) * sourceIds.length;
+    if (outputBytes > MAX_STEM_OUTPUT_BYTES) throw new Error("The aligned source stems exceed the 96 MB local export budget. Shorten the timeline or export fewer sources.");
     let totalInputBytes = 0;
     for (const sourceId of sourceIds) {
       const input = files[sourceId];
@@ -152,8 +154,6 @@
       totalInputBytes += input.byteLength;
       if (totalInputBytes > MAX_BYTES) throw new Error("Use up to 64 MB of source recordings per export.");
     }
-    const outputBytes = (44 + Math.ceil(durationMs * rate / 1000) * 4) * sourceIds.length;
-    if (outputBytes > MAX_STEM_OUTPUT_BYTES) throw new Error("The aligned source stems exceed the 96 MB local export budget. Shorten the timeline or export fewer sources.");
     const stems = sourceIds.map((sourceId, index) => {
       const nodes = graph.nodes.filter((node) => node.kind === "source" ||
         (node.kind === "clip" && node.sourceId === sourceId));
