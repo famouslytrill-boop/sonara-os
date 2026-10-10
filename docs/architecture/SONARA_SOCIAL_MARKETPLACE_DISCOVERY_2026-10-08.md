@@ -280,3 +280,120 @@ website.** No production data or customer permissions are changed.
   https://support.google.com/googleplay/android-developer/answer/9876937
 - Apple App Store user-generated-content guideline 1.2:
   https://developer.apple.com/app-store/review/guidelines/
+
+## October 9 Phase 4: verified Growth public projection gate (DRAFT, unmounted)
+
+**New source:** lib/sonara-growth-public-projections.cjs; **stacked on PR
+#606**. Implements a pure, read-only projection builder suitable for plugging
+into the Phase 2 feed reader only after real source/security adapters are
+approved. This branch does not register Express routes, add DB columns,
+execute SQL, publish content, send messages, alter customer records or
+reinstate the intentionally offline website.
+
+### Grounding: live schema read-only evidence
+
+The connected Supabase PostgreSQL 17 preview project has the existing:
+growth_channels(id, organization_id, handle, state, updated_at, ...),
+growth_channel_posts(id, organization_id, channel_id, state, body, kind,
+created_at, updated_at, author_user_id, ...), growth_channel_directory,
+growth_post_reports, creator_artist_profiles, and creator_follows.
+
+**Important negative findings:** these Growth tables do not carry approved
+moderation, cleared licensed distribution rights, verified AI/sponsorship
+disclosure, audience classifications or a complete publish/revoke
+attestation. Inspecting pg_policies showed no SELECT/UPDATE policies on
+the Growth tables in this preview project; reads in the existing website use
+server-side service-role credentials and route-specific reviewed filters.
+Existing post report data is NOT moderation approval. There were no
+non-internal update triggers on growth_channel_posts or growth_channels
+in the connected preview, so updated_at alone is not immutable proof of
+unchanged content. A table-name inventory found license_reviews and
+growth_post_reports, but did not establish an authoritative approved
+social content attestation table. Do not map those tables by name alone.
+
+The platform MUST NOT upgrade a live public Growth post into recommended
+content merely because its channel has state=public, the post has
+state=published, or its creator profile has a public handle.
+
+### Proposed attestations (not currently created)
+
+The independent, server-controlled moderation/rights/disclosure authority
+must produce short-lived post ID, channel ID, organization ID, post/channel
+timestamp version matches, SHA-256 contentDigest, approved moderation,
+cleared distribution rights, explicit sponsorship and generated-media
+booleans, general/mature rating, approved country scope, topic, explicit
+rubric-backed quality/diversity and originality boolean, issuance timestamp
+and expiry. SHA-256 binds approval to the current canonical post bytes,
+channel routing and state even when updated_at fails to move. **The hash is
+not a signature or proof that a reviewer approved it.** The future adapter
+must independently validate issuance, reviewer identity/authority,
+revocation and policy version. This module cannot authenticate an injected
+callback or handle real-time moderation revocation without a source read.
+
+- A publication edit invalidates the old content digest; the content should
+  disappear from discovery pending a fresh review.
+- A channel becomes hidden or a post removed: excluded, even if an earlier
+  approval remains.
+- Rights missing/unknown, sponsored or AI field absent: exclude rather than
+  assume false.
+- Country/age rules are forwarded to the existing viewer policy for
+  enforcement. Raw profile voice identities, private prompts, org IDs,
+  payment records, report notes and full post bodies never leave the
+  projection builder.
+- A personal muted keyword is not reciprocal account blocking. Actual
+  blocking must come from the canonical, authenticated block state and be
+  tested across direct messages, follows and public interactions.
+
+### Data flow / authorization boundary
+
+Trusted server-only source reads at most 250 canonical Growth post/channel
+pairs, with current status and identical organization ownership; a separate
+trusted attestation reader answers for those post IDs. The module rejects
+duplicate post IDs and ambiguous/injected attestation sets. Stale, missing,
+denied or mismatched evidence excludes that candidate; failed source reads
+deny the entire operation. The module returns only explicit public fields.
+
+No new creator profiles, restaurant menus, business listings or marketplace
+assets are automatically ingested in this phase. Every product needs its
+own content-safe public read model, rights model and audience/age proof before
+participating. Do not create an owner-inferred social graph from payment,
+workplace or email contacts.
+
+### Acceptance tasks before runtime
+
+1. Resolve production database identity and migration checksums. Keep the
+   current connected preview separate from unverified production.
+2. Establish an independently governed moderation/rights/disclosure
+   authority with public-content revision/digest proof, revocation and
+   human report/appeal workflows. Define who may issue each attestation.
+3. Replace in-memory callback test seams with server-controlled, limited
+   credentials and verified canonical row selection; prove no wildcard
+   service-role reads into private creator/business tables.
+4. Prove native PostgreSQL source joins, tenant A/B cross-read denial,
+   content edit/revocation races, duplicate entries, proof expiry and
+   rollback. Verify published post timestamps and any planned version
+   triggers in an isolated DB.
+5. Enforce authenticated rate/cost limits and approval-gated flags; run
+   the exact-head CI matrix, then one tenant canary only when authorized.
+6. Resolve draft PRs #602, #603, #606 and other moderation/security PRs
+   in dependency order, protect main and separately approve any live
+   website restoration.
+
+### Test and research evidence
+
+Source + tracked tests passed **62/62 in an isolated JavaScript harness**
+including 19 asynchronous tests. The harness used a non-cryptographic
+stand-in for the Node crypto API to exercise digest binding logic; normal
+Node crypto SHA-256, native PostgreSQL concurrency/RLS, full Mocha/pnpm,
+Node 24/22 CI, production connectors and live browser checks are NOT
+established by that harness. No database migrations applied.
+
+References:
+- Supabase safe views and privileges:
+  https://supabase.com/docs/guides/database/views
+  https://supabase.com/docs/guides/database/postgres/row-level-security
+- OWASP API object authorization, selective field authorization, budgets:
+  https://api-security.owasp.org/editions/2023/en/0x11-t10/
+  https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/
+- Google Play and Apple public UGC user reporting/block rules remain
+  independent deployment requirements, not satisfied by this module.
