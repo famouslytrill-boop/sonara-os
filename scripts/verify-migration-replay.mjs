@@ -326,10 +326,11 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/p0-auth-rls-role-matrix.sql"), "utf8"),
       ["p0_auth_rls_matrix_staging_passed"]);
 
-    // P1 dry-run only: verify the 21 service-role-only policies hardened by
-    // migration 20261008100000 plus four preserved auth.uid() owner checks.
-    // Then prove an exactly duplicate subscriptions policy can be dropped
-    // and restored by ROLLBACK. Never reverse the hardened policies here.
+    // P1 replay-only: verify 21 role-scoped hardened policies and four
+    // authenticated owner checks. The tracked migration history has no
+    // subscription-policy pair, unlike preview. Prove exact duplicate
+    // removal and owner isolation on a synthetic table inside ROLLBACK;
+    // never claim this establishes preview/source schema equivalence.
     behaves(psql, "P1 post-hardening RLS role-scope and rollback proof",
       fs.readFileSync(path.join(root, "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"),
       ["p1_rls_hygiene_staging_passed"]);
