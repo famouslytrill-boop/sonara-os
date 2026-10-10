@@ -204,5 +204,72 @@ describe("free login-based SONARA platform surface policy", () => {
       assert.equal(run().personalized, true);
       assert.equal(run().items.every(x => typeof x.explanation === "string"), true);
     });
+
+    it("honors hidden content, full-word muted keywords and case-insensitive phrases", () => {
+      const post = base({ title: "Live ART Gallery show", topic: "visual" });
+      assert.equal(selectCommunityCandidates([post], { now: TIME,
+        hiddenContentIds: [post.id.toUpperCase()] }).items.length, 0);
+      assert.equal(selectCommunityCandidates([post], { now: TIME,
+        mutedKeywords: ["art"] }).items.length, 0);
+      assert.equal(selectCommunityCandidates([post], { now: TIME,
+        mutedKeywords: ["ART gallery"] }).items.length, 0);
+      assert.equal(selectCommunityCandidates([post], { now: TIME,
+        mutedKeywords: ["artist"] }).items.length, 1);
+      assert.equal(selectCommunityCandidates([base({ title: "Party invitation" })], { now: TIME,
+        mutedKeywords: ["art"] }).items.length, 1);
+      assert.equal(selectCommunityCandidates([post], { now: TIME,
+        mutedKeywords: ["sports"] }).items.length, 1);
+    });
+
+    it("fails closed on unreadable or oversized hidden-post and keyword preferences", () => {
+      for (const options of [
+        { hiddenContentIds: null },
+        { hiddenContentIds: ["not-a-uuid"] },
+        { hiddenContentIds: Array(201).fill(base().id) },
+        { mutedKeywords: null },
+        { mutedKeywords: [""] },
+        { mutedKeywords: ["###"] },
+        { mutedKeywords: ["x".repeat(65)] },
+        { mutedKeywords: Array(201).fill("music") }
+      ]) {
+        const result = selectCommunityCandidates([base()], { now: TIME, ...options });
+        assert.equal(result.code, "audience_preferences_invalid");
+        assert.equal(result.ok, false);
+        assert.deepEqual(result.items, []);
+      }
+    });
+
+    it("rejects public projections with absent or malformed sponsor and generated-media labels", () => {
+      for (const row of [
+        base({ sponsored: undefined }), base({ sponsored: "false" }),
+        base({ sponsored: null }), base({ aiGenerated: undefined }),
+        base({ aiGenerated: "false" }), base({ aiGenerated: null })
+      ]) {
+        assert.equal(selectCommunityCandidates([row], { now: TIME }).items.length, 0);
+      }
+      assert.equal(selectCommunityCandidates([base({ sponsored: true, aiGenerated: true })], {
+        now: TIME, aiContent: "include"
+      }).items[0].sponsored, true);
+    });
+
+    it("does not promise another page when every remaining post fails the publisher cap", () => {
+      const one = base();
+      const two = base({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        publishedAt: "2026-10-08T10:00:00.000Z" });
+      const three = base({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        publishedAt: "2026-10-08T09:00:00.000Z" });
+      const discover = selectCommunityCandidates([one, two, three], {
+        now: TIME, mode: "discover", discoveryOptIn: true, limit: 2
+      });
+      assert.equal(discover.items.length, 2);
+      assert.equal(discover.hasMoreCandidates, false);
+      const differentPublisher = base({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        publisherId: B, publishedAt: "2026-10-08T08:00:00.000Z" });
+      const latest = selectCommunityCandidates([one, differentPublisher], {
+        now: TIME, limit: 1
+      });
+      assert.equal(latest.items.length, 1);
+      assert.equal(latest.hasMoreCandidates, true);
+    });
   });
 });
