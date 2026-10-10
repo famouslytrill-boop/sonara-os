@@ -67,6 +67,13 @@ const UNIT_INTERVAL_SAMPLE_INPUTS = new Set([
   "correlation_coefficient"
 ]);
 
+function validSmokeInput(key) {
+  if (key === "ingredients") return [{ quantity: 2, unit_cost: 2 }];
+  if (key === "cash_flows") return [2, 2];
+  if (UNIT_INTERVAL_SAMPLE_INPUTS.has(key)) return 0.5;
+  return 2;
+}
+
 describe("a figure nobody can work out is not zero", () => {
   it("has the formulas it is testing", () => {
     const definitions = listFormulaDefinitions();
@@ -119,10 +126,9 @@ describe("a figure nobody can work out is not zero", () => {
     const definitions = listFormulaDefinitions();
     const failures = [];
     for (const definition of definitions) {
-      const inputs = Object.fromEntries(definition.requiredInputs.map((key) => [
-        key,
-        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : UNIT_INTERVAL_SAMPLE_INPUTS.has(key) ? 0.5 : 2,
-      ]));
+      const inputs = Object.fromEntries(
+        definition.requiredInputs.map((key) => [key, validSmokeInput(key)])
+      );
       const result = evaluateFormula(definition.formulaKey, inputs);
       if (!result.ok) failures.push(`${definition.formulaKey}: ${result.code}`);
     }
