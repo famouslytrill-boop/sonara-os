@@ -71,7 +71,7 @@ describe("Staged inventory stock version and journal SQL contract", () => {
     assert.match(migration,/constraint stock_approval_distinct_people check \(actor_user_id<>reviewer_user_id\)/i);
     assert.match(migration,/v_approval\.idempotency_key <> p_idempotency_key/i);
     assert.match(migration,/v_approval\.counted_quantity <> p_counted_quantity/i);
-    assert.match(migration,/m\.status = 'active' and lower\(m\.role\) in \('owner','admin','business_owner'\)/i);
+    assert.match(migration,/m\.status\s*=\s*'active'\s+and\s+lower\(m\.role\) in \('owner','admin','business_owner'\)/i);
     assert.match(migration,/stock_adjustment_approval_evidence_missing/i);
   });
   it("serializes stock updates and checks all outstanding holds before no-change return", () => {
