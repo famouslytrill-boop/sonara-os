@@ -80,6 +80,25 @@ describe("seasonal vertical planning boundary", () => {
     assert.equal(plan.feasibleJobs + plan.unusedCapacityJobs, plan.capacityJobs);
   });
 
+  it("preserves demand and capacity conservation across a small integer grid", () => {
+    for (const baselineJobs of [0, 1, 3, 17, 100]) {
+      for (const workers of [0, 1, 2, 8]) {
+        for (const minutesPerJob of [1, 30, 60, 90]) {
+          const result = planSeasonalCapacity({
+            baselineJobs, workers, minutesPerWorker: 480,
+            minutesPerJob, reserveBasisPoints: 1250,
+            seasonFactorBasisPoints: 17500
+          });
+          assert.equal(result.feasibleJobs + result.unservedJobs, result.scenarioJobs);
+          assert.equal(result.feasibleJobs + result.unusedCapacityJobs, result.capacityJobs);
+          assert.ok(result.feasibleJobs <= result.scenarioJobs);
+          assert.ok(result.feasibleJobs <= result.capacityJobs);
+          assert.ok(result.unservedJobs >= 0 && result.unusedCapacityJobs >= 0);
+        }
+      }
+    }
+  });
+
   it("assumes no seasonal uplift without owner-provided evidence", () => {
     const plan = planSeasonalCapacity({
       baselineJobs: 3, workers: 0, minutesPerWorker: 480, minutesPerJob: 30
