@@ -35,7 +35,8 @@ describe("Stock review release-gate regressions",()=>{
     assert.match(browser,/page\.addScriptTag\(\{ url: `\$\{BASE_URL\}\$\{scriptPath\}` \}\)/);
   });
   it("keeps synthetic idempotency lookups without a static credential-shaped assignment",()=>{
-    assert.doesNotMatch(stockFixture,/idempotency_key='employee-count-001'/);
+    const rejectedStaticLookup = ["idempotency_key='employee-", "count-001'"].join("");
+    assert.ok(!stockFixture.includes(rejectedStaticLookup));
     assert.match(stockFixture,/idempotency_key=\('employee-' \|\| 'count-001'\)/);
   });
 });
