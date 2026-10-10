@@ -139,6 +139,18 @@ describe("the infrastructure map says what is configured", () => {
       assert.match(android.target, /Capacitor server\.url is not a production/i);
     });
 
+    it("keeps iOS as a separately qualified client rather than inferring it from Android or web support", () => {
+      const ios = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "ios_native_client");
+      assert.ok(ios, "iOS native client track is missing");
+      assert.equal(ios.status, "next_build");
+      assert.equal(ios.productionEnabled, false);
+      assert.ok(ios.technologies.includes("SwiftUI"));
+      assert.ok(ios.technologies.includes("TestFlight"));
+      assert.match(ios.claimBoundary, /internal test shell/i);
+      assert.ok(ios.proofGates.some((gate) => /exact-SHA physical-device evidence/i.test(gate)));
+    });
+
+
     it("uses passkeys without creating a biometric identity database", () => {
       const passkeys = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "passkeys_device_security");
       assert.ok(passkeys, "passkey track is missing");
