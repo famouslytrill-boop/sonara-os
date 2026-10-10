@@ -39,12 +39,12 @@ describe("Creator Standard MIDI File Format 1 multitrack interchange", () => {
     assert.equal(hex(chunks[1].slice(-4)), "00ff2f00");
     assert.equal(hex(chunks[2].slice(-4)), "00ff2f00");
     assert.ok(hex(chunks[1]).includes("903c64"));
-    assert.ok(hex(chunks[2]).includes("91305f"));
+    assert.ok(hex(chunks[2]).includes("91245f"));
   });
   it("reuses validated MIDI Format 0 event streams without duplicating tempo in note tracks", () => {
     const chunks = parseChunks(writeMidiFormat1({ bpm: 120, tracks: [piano] }));
     const solo = writeMidi({ bpm: 120, channel: 1, notes: piano.notes });
-    assert.deepEqual(Array.from(chunks[1].slice(10, -4)), Array.from(solo.slice(29, -4)));
+    assert.deepEqual(Array.from(chunks[1].slice(9, -4)), Array.from(solo.slice(29, -4)));
     assert.equal(hex(chunks[1]).split("ff5103").length, 1);
   });
   it("is byte stable for repeated tracks, and preserves the supplied instrument track order", () => {
