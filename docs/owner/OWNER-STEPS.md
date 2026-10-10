@@ -191,76 +191,27 @@ this repository cannot answer from outside.
 
 ---
 
-## 4 — The revoke, and why it is far less dangerous than it looked
+## 4 — SECURITY BLOCKER: verify RLS function grants before any revoke
 
-**Rewritten 19 August 2026 after measuring the thing this step was afraid of.**
+**Updated 10 October 2026. Do not revoke `EXECUTE` in production based on the August service-role-only snapshot.**
 
-The advisor asks for `EXECUTE` to be revoked from `authenticated` on twelve
-`SECURITY DEFINER` functions. This step used to say: do not, because a policy
-evaluates as the calling role, so removing the grant can turn a working policy
-into a denial — customers locked out of their own records, silently, with
-`is_org_member` alone backing 202 policies across 64 tables.
+The August 19 inventory found `supabaseHeaders()` in `server.js` sending the service-role credential on legacy reads. That historical observation is not a complete inventory of live customer paths, later code, branches, background work, or database policies. In particular, `lib/sonara-adaptive-learning-policy.cjs` now imports `isVerifiedUserScopedRead()` from `lib/sonara-supabase-clients.cjs` for a guarded, non-executing learning-evidence preview adapter. Its existence **does not prove** that a customer HTTP route uses a caller JWT today, and **does invalidate** the earlier claim that the user-scoped module is required only by its test.
 
-**That mechanism is not currently reachable in this product.**
+PostgreSQL RLS policy expressions execute as the querying role. Removing `EXECUTE` from a function used by a live authenticated policy can deny legitimate access even when SQL/migrations parse correctly. Conversely, leaving a broadly callable `SECURITY DEFINER` function exposed can grant excessive privileges. Both directions require a measured, function-specific decision—not a blanket revoke, grant, or presumed absence of effects.
 
-Every table read in the running application goes through `supabaseHeaders()` in
-`server.js`, which sends the service-role key as both `apikey` and
-`Authorization`. **The service role bypasses row level security entirely.** 75
-call sites across 14 files, and no exceptions: no read is made as
-`authenticated`, so no policy is evaluated on any live path, so no policy's call
-to a `SECURITY DEFINER` function is on any live path either.
+### Required acceptance evidence (preview/staging, never production first)
 
-`lib/sonara-supabase-clients.cjs` is the machinery for changing that — CRIT-3
-item (2), forwarding the caller's JWT so RLS becomes a real second line of
-defence. It is built, and it is required by exactly one file: its own test.
+1. Resolve the exact target project and role identities; do not assume the only connected Supabase project is the live Vercel target. Export read-only function definitions, owners, role grants **including PUBLIC membership**, and every current policy referencing each candidate function. Reconcile drift against the applied migration list and repository files.
+2. Trace actual registered runtime routes, jobs and server-side adapters, including `requireVerifiedUserScopedRead`, `isVerifiedUserScopedRead`, and indirect calls. A text import or comment alone neither proves nor excludes an executable request path.
+3. With synthetic users belonging to two separate organizations, prove allowed same-tenant reads **and writes where supported**, cross-tenant deny, anonymous deny, unauthenticated deny, and legitimate non-owner/member access. Use the same signed-in JWT and app path a customer actually uses.
+4. On a disposable preview branch, compare the exact before/after GRANT and policy behavior for **one named function at a time**. Verify expected authorization and non-authorization outcomes after the proposed revoke, and perform rollback/regrant rehearsal. Never infer pass from zero fixtures, zero matching policies, or a mock database.
+5. Require owner-reviewed migration, fresh checksum/applied-history reconciliation, native PostgreSQL replay, browser flows, rollback evidence and exact-head full green CI before even proposing production promotion. Any missing, ambiguous, or contradictory evidence blocks the change.
 
-So the honest position today is that revoking that grant on any of the twelve
-cannot lock a customer out of anything, because nothing they do is authorized by
-a policy in the first place.
+### Operator decision
 
-### This is true today and is designed to stop being true
+**Do not revoke EXECUTE in production without a passing target-specific preview matrix and explicit owner authorization.** The old claim that no customer path could be affected is retired; the remaining question is empirical and function-specific. For Supabase/PostgreSQL privileges, review https://supabase.com/docs/guides/database/functions and https://www.postgresql.org/docs/current/ddl-rowsecurity.html.
 
-CRIT-3 (2) is work somebody intends to do. The day a user-scoped read is wired
-in, every sentence above becomes wrong, and the lockout this step originally
-warned about becomes exactly as real as it sounded.
-
-`tests/the-revoke-reasoning-is-still-true.test.js` fails the moment that
-happens, and its failure message says to re-read this section before revoking
-anything. That is the only reason it is safe to write the paragraph above down:
-otherwise it is a reassurance with an expiry date and no label.
-
-### So what should you actually do
-
-**Still the preview branch, and still `sonara_has_org_role` first.** Not because
-a lockout is likely — it is not, today — but because the reason it is unlikely
-rests on a measurement of this repository, and this repository cannot see the
-whole database. Item 3 is the proof: four authorization functions existed in the
-live database and in no migration. Policies are created outside migrations too,
-and a policy this repository cannot see is a policy this reasoning did not cover.
-
-```sql
--- Preview branch only. Reversible; the grant is restored at the bottom.
-revoke execute on function public.sonara_has_org_role(uuid, text[]) from authenticated;
-
--- If anything denies that should not:
--- grant execute on function public.sonara_has_org_role(uuid, text[]) to authenticated;
-```
-
-**How to tell it worked: nothing changes.** That is the expected result twice
-over — the function is called by no policy this repository can see, and no read
-this product makes is evaluated against a policy anyway.
-
-**Add the four from item 3 to the same branch test.** `is_admin`,
-`is_current_user_admin`, `has_scope` and `has_company_access` are called by no
-policy in any migration, and two of them read tables that exist nowhere in this
-repository. On the evidence here they are the next safest after
-`sonara_has_org_role`.
-
-**The remaining seven stay.** 202 policies is not a number to gamble with, and
-the fact that those policies are not currently on a live path is a statement
-about today rather than about the schema.
-
-Then tell me, and I will write whatever survived as a migration.
+Historical 19 August notes (75 service-role call sites, 12 proposed revocations and the four undeclared functions in item 3) remain research evidence, **not** today's authorization proof. The test `tests/the-revoke-reasoning-is-still-true.test.js` guards that scope distinction and unexpected new client wiring; it cannot substitute for live RLS validation.
 
 ---
 
