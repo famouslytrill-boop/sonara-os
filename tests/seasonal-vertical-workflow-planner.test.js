@@ -37,6 +37,9 @@ describe("seasonal vertical planning boundary", () => {
     assert.equal(getVerticalPlaybook("winter_services", "winter").seasonFit, true);
     assert.equal(getVerticalPlaybook("winter_services", "summer").seasonFit, false);
     assert.equal(getVerticalPlaybook("bars", "summer").seasonFit, true);
+    assert.equal(getVerticalPlaybook("food_trucks", "year_round").seasonFit, true);
+    assert.equal(getVerticalPlaybook("construction", "year_round").seasonFit, true);
+    assert.equal(getVerticalPlaybook("winter_services", "year_round").seasonFit, false);
     assert.throws(() => getVerticalPlaybook("unknown"), /unknown_vertical/);
     assert.throws(() => getVerticalPlaybook("bars", "monsoon"), /unknown_season/);
   });
