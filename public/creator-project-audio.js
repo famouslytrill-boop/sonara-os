@@ -28,7 +28,7 @@
       !((format.encoding === 1 && [16, 24, 32].includes(format.bits)) || (format.encoding === 3 && format.bits === 32)) ||
       format.alignment !== format.channels * (format.bits / 8) ||
       format.bytesPerSecond !== format.rate * format.alignment || !audio.size || audio.size % format.alignment) {
-      throw new Error("Use a mono or stereo PCM 16/24/32-bit or IEEE float 32-bit WAV (8–96 kHz).");
+      throw new Error("Use a PCM 16-bit WAV, PCM 24/32-bit WAV, or IEEE float 32-bit WAV (mono/stereo, 8–96 kHz).");
     }
     const frames = audio.size / format.alignment;
     if (frames / format.rate > MAX_SECONDS) throw new Error("Use source recordings up to three minutes.");
