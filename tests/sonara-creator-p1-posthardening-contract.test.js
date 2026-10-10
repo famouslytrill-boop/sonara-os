@@ -9,6 +9,8 @@ const SQL = fs.readFileSync(path.resolve(__dirname,
   "./sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
 const rowBlock = SQL.split("INSERT INTO expected_rls_p1 VALUES")[1]
   ?.split("CREATE TEMP TABLE expected_subscription_rls")[0] || "";
+const serviceCount = () => rows.filter(row => row.includes("'{service_role}'")).length;
+const ownershipCount = () => rows.filter(row => row.includes("'{authenticated}'")).length;
 const rows = rowBlock.split("\n").filter((line) => /^\s*\('/.test(line));
 
 describe("Post-hardening Creator release-gate contract", () => {
@@ -50,8 +52,9 @@ describe("Post-hardening Creator release-gate contract", () => {
     assert.match(SQL, /p\.with_check IS DISTINCT FROM e\.check_expr/);
     assert.match(SQL, /P1 policy definition drift on % policies; abort/);
     assert.match(SQL, /P1 subscription role or predicate drift; abort/);
-    assert.match(SQL, /P1 subscription policy postflight drift/);
-    assert.match(SQL, /IF service_count <> 21 OR ownership_count <> 4/);
+    assert.match(SQL, /P1 canonical subscription policy postflight drift/);
+    assert.equal(serviceCount(), 21);
+    assert.equal(ownershipCount(), 4);
     assert.match(SQL.trimEnd(), /ROLLBACK;$/);
     assert.equal(SQL.includes("DROP POLICY"), false);
     assert.equal(SQL.includes("ALTER POLICY"), false);

@@ -61,10 +61,10 @@ function harness({ status = 200, headers = {}, type = "basic", redirected = fals
   };
   class SyntheticRequest {
     constructor(input, options = {}) {
-      this.url = input.url;
+      this.url = typeof input === "string" ? input : input.url;
       this.method = input.method;
       this.mode = input.mode;
-      this.cache = input.cache;
+      this.cache = options.cache || input.cache;
       this.headers = input.headers;
       this.credentials = options.credentials || input.credentials;
     }
@@ -146,7 +146,7 @@ describe("PWA cache contains public assets only", () => {
   it("retains same-origin public assets and their single revision token", async () => {
     const worker = harness();
     for (const asset of [
-      "/sonara-one.js?v=sonara-ui-20261007-v23-native-navigation",
+      "/sonara-one.js?v=sonara-ui-20261009-v26-public-cache-boundary",
       "/sonara-application-ui.css",
       "/site.webmanifest",
       "/brand/sonara-one-mark-v3.svg",
@@ -245,7 +245,8 @@ describe("PWA cache contains public assets only", () => {
       "/sonara-one.js": { headers: { "content-type": "text/html" } },
       "/sonara-depth.js": { headers: { "set-cookie": "session=not-public" } }
     } });
-    await worker.install();
+    await assert.rejects(() => worker.install(), /unexpected content type/);
+    assert.ok(worker.removed.some(name => name.startsWith("sonara-public-")));
     assert.ok(worker.stored.some((item) => item.url.endsWith("/offline")));
     assert.equal(worker.stored.some((item) => item.url.includes("/sonara-one.js")), false);
     assert.equal(worker.stored.some((item) => item.url.includes("/sonara-depth.js")), false);

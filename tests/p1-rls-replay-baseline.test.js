@@ -14,7 +14,7 @@ const sqlCode = (source) => source.replace(/--[^\n]*/g, "");
 describe("native P1 RLS replay uses migration-defined policy baselines", () => {
   it("keeps exactly 21 service role and four owner policies without broadening anything", () => {
     const begin = replay.indexOf("INSERT INTO expected_rls_p1 VALUES");
-    const end = replay.indexOf("\n\nDO $drift$", begin);
+    const end = replay.indexOf("CREATE TEMP TABLE expected_subscription_rls", begin);
     assert.ok(begin >= 0 && end > begin, "missing expected policy table");
     const rows = replay.slice(begin, end).split("\n").filter((line) => /^\s+\('/.test(line));
     assert.equal(rows.length, 25, "the 25 hardened policy contracts cannot drift");
@@ -26,7 +26,9 @@ describe("native P1 RLS replay uses migration-defined policy baselines", () => {
     for (const predicate of ["p.roles::text IS DISTINCT FROM e.roles",
       "p.cmd IS DISTINCT FROM e.cmd", "p.qual IS DISTINCT FROM e.qualifier",
       "p.with_check IS DISTINCT FROM e.check_expr"]) {
-      assert.ok(replay.split(predicate).length >= 3, `both checks must enforce ${predicate}`);
+      for (const region of [replay.split("DO $drift$")[1].split("$drift$;")[0], replay.split("DO $postflight$")[1]]) {
+        assert.ok(region.includes(predicate), `both checks must enforce ${predicate}`);
+      }
     }
   });
   it("does not require preview-only subscriptions policies during native replay", () => {

@@ -93,6 +93,9 @@
         return;
       }
       stream = captured;
+      if (kind === "camera" && (!stream.getVideoTracks || stream.getVideoTracks().length === 0)) {
+        throw new Error("Camera preview is unavailable in this browser. You can still open your own files.");
+      }
       stream.getTracks().forEach((track) => track.addEventListener("ended", () => { if (revision === sequence) abort("Capture ended. Nothing is being recorded."); }, { once: true }));
       let checking = false;
       poll = window.setInterval(async () => {
@@ -115,6 +118,9 @@
           throw new Error("Camera capture is unavailable in this browser. You can still open your own files.");
         }
         if (revision !== sequence) return;
+        if (!video.videoWidth || !video.videoHeight) {
+          throw new Error("Camera preview is unavailable in this browser. You can still open your own files.");
+        }
         photo.hidden = false;
         status.textContent = "Camera preview is on. It stops after 60 seconds. Take a photo or stop when finished.";
       } else {

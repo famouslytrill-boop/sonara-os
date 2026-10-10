@@ -94,6 +94,20 @@ describe("the migrations are executed somewhere, not only read", () => {
       has(fixture, "DROP ROLE sonara_cohort_reader");
     });
 
+    it("separates source-only subscription policy proof from remote-only dedup claims", () => {
+      const sql = fs.readFileSync(path.join(root,
+        "tests/sql/p1-rls-initplan-policy-dedup-rollback.sql"), "utf8");
+      assert.match(sql, /policyname='subscriptions_select_member'/);
+      assert.match(sql, /roles=ARRAY\['authenticated'\]::name\[\]/);
+      assert.match(sql, /is_org_memberorganization_idoris_admin_or_founder/);
+      assert.match(sql, /native replay unexpectedly contains preview-only subscriptions policies; abort/);
+      assert.match(sql, /expected_subscription_rls/);
+      assert.match(sql, /P1 subscription role or predicate drift; abort/);
+      assert.match(sql, /ROLLBACK;\s*$/);
+      assert.doesNotMatch(sql, /\b(?:CREATE|ALTER|DROP)\s+POLICY\b/i,
+        "source replay must never mutate real subscription policies");
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);

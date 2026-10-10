@@ -15,10 +15,10 @@ const scope = {
   addEventListener: (type, handler) => { handlers[type] = handler; }
 };
 vm.runInNewContext(
-  source + "\nself.__contract = { isPublicStaticRequest, isPublicNavigation, isCacheableResponse, VERSION, PUBLIC_STAGE };",
+  source + "\nself.__contract = { isPublicStaticRequest, isPublicNavigation, isCacheableResponse, VERSION, PUBLIC_STAGE, CACHE_NAME };",
   { self: scope, URL }
 );
-const { isPublicStaticRequest, isPublicNavigation, isCacheableResponse, VERSION, PUBLIC_STAGE } = scope.__contract;
+const { isPublicStaticRequest, isPublicNavigation, isCacheableResponse, VERSION, PUBLIC_STAGE, CACHE_NAME } = scope.__contract;
 const allowed = (url) => isPublicStaticRequest(new URL(url, origin));
 
 function simulateWorkerInstall(overrides = {}) {
@@ -310,7 +310,7 @@ describe("cross-device service-worker cache boundary", () => {
       respondWith: (task) => { response = task; }
     });
     assert.equal(await response, offline);
-    assert.deepEqual(opened, ["sonara-public-" + VERSION]);
+    assert.deepEqual(opened, [CACHE_NAME]);
     assert.equal(globalCacheMatchCalled, false);
   });
 
@@ -327,7 +327,7 @@ describe("cross-device service-worker cache boundary", () => {
       keys: async () => [
         "other-app-cache",
         "sonara-public-previous-release",
-        "sonara-public-" + VERSION
+        CACHE_NAME
       ],
       delete: async (key) => { deleted.push(key); return true; }
     };
@@ -353,7 +353,7 @@ describe("cross-device service-worker cache boundary", () => {
 
   it("requires explicit public caching for the anonymous offline HTML", async () => {
     const job = simulateWorkerInstall({ noPublicAt: "/offline" });
-    await assert.rejects(job.installation, /explicit public cache policy/);
+    await assert.rejects(job.installation, /Public offline fallback unavailable/);
     assert.equal(job.deletions.length, 1);
   });
 

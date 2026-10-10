@@ -11,6 +11,8 @@ const source = fs.readFileSync(
   "utf8"
 );
 
+function rowsFor(sql) { return sql.split("INSERT INTO expected_rls_p1 VALUES")[1].split(";")[0].split("\n").filter(row => row.trim().startsWith("('")); }
+
 describe("native PostgreSQL replay infrastructure resilience", () => {
   it("initializes failure evidence before any network package installation", () => {
     const init = source.indexOf("- name: Initialize native replay evidence");
@@ -41,5 +43,62 @@ describe("native PostgreSQL replay infrastructure resilience", () => {
     assert.match(source, /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/);
     assert.match(source, /node scripts\/verify-migration-replay\.mjs --postgres-bin "\$POSTGRES_BIN"/);
     assert.doesNotMatch(source, /continue-on-error:\s*true/);
+  });
+
+  it("surfaces bounded P1 policy drift diagnostics without logging all replay query output", () => {
+    const replay = fs.readFileSync(
+      path.join(__dirname, "..", "scripts", "verify-migration-replay.mjs"), "utf8"
+    );
+    assert.match(replay, /const p1 = what === "P1 post-hardening RLS and canonical subscription proof"/);
+    assert.match(replay, /String\(result\.stdout \|\| ""\)\.split\(\/\\r\?\\n\/\)/);
+    assert.match(replay, /\.filter\(\(line\) => line\.includes\("\|"\) && line\.length <= 320\)/);
+    assert.match(replay, /\.slice\(0, 30\)\.join\("\\n"\)/);
+    assert.match(replay, /Policy attribute differences \(staging only\)/);
+    assert.match(replay, /String\(result\.stderr \|\| "SQL replay command failed without stderr\."\)/);
+    assert.doesNotMatch(replay, /continue-on-error:\\s*true/);
+  });
+
+  it("guards 25 already-optimized policies without mutating source policies", () => {
+    const sql = fs.readFileSync(
+      path.join(__dirname, "..", "tests", "sql", "p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"
+    );
+    const entries = sql.split("INSERT INTO expected_rls_p1 VALUES")[1].split(";")[0];
+    const rows = entries.split("\n").filter((line) => /^\s*\('/.test(line));
+    assert.equal(rows.length, 25, "all 25 reviewed policy contracts must be pinned");
+    assert.equal(rows.filter((line) => line.includes("'{service_role}'") && line.includes("'ALL'")).length, 21);
+    assert.equal(rows.filter((line) => line.includes("'{authenticated}'") && line.includes("'SELECT'")).length, 4);
+    assert.equal(rows.filter((line) => line.includes("'true', 'true'")).length, 21);
+    assert.equal(rows.filter((line) => line.includes("'(( SELECT auth.uid() AS uid) = user_id)', NULL")).length, 4);
+    assert.match(sql, /RAISE EXCEPTION 'P1 policy definition drift on % policies; abort'/);
+    assert.match(sql, /RAISE EXCEPTION 'P1 subscription role or predicate drift; abort'/);
+    assert.match(sql, /RAISE EXCEPTION 'P1 postflight failed % policies'/);
+    assert.doesNotMatch(sql, /\b(?:CREATE|ALTER|DROP)\s+POLICY\b/i);
+    assert.equal((sql.match(/^DROP POLICY /gm) || []).length, 0);
+    assert.doesNotMatch(sql, /^ALTER POLICY |^GRANT |^REVOKE |DISABLE ROW LEVEL SECURITY/mi);
+    assert.match(sql, /SELECT 'p1_rls_hygiene_staging_passed';\s*ROLLBACK;\s*$/);
+  });
+
+  it("does not accept a loose policy role or predicate as equivalent to the reviewed baseline", () => {
+    const sql = fs.readFileSync(
+      path.join(__dirname, "..", "tests", "sql", "p1-rls-initplan-policy-dedup-rollback.sql"), "utf8"
+    );
+    for (const check of ["p.roles::text IS DISTINCT FROM e.roles", "p.qual IS DISTINCT FROM e.qualifier",
+      "p.with_check IS DISTINCT FROM e.check_expr", "p.cmd IS DISTINCT FROM e.cmd",
+      "p.permissive IS DISTINCT FROM e.permissive"]) {
+      assert.ok(sql.split(check).length >= 4, `missing preflight, diagnostic or postflight guard: ${check}`);
+    }
+    assert.equal(rowsFor(sql).filter(row => row.includes("'{service_role}'")).length, 21);
+    assert.equal(rowsFor(sql).filter(row => row.includes("'{authenticated}'")).length, 4);
+  });
+
+  it("executes the canonical no-mutation attestation before later SQL probes", () => {
+    const replay = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-migration-replay.mjs"), "utf8");
+    const index = replay.indexOf('behaves(psql, "P1 post-hardening RLS and canonical subscription proof"');
+    const after = replay.indexOf('behaves(psql, "included generation reserves', index);
+    assert.ok(index > 0 && after > index);
+    const check = replay.slice(index, after);
+    assert.match(check, /p1-rls-initplan-policy-dedup-rollback\.sql/);
+    assert.match(check, /p1_post_hardening_rls_and_canonical_subscription_passed/);
+    assert.doesNotMatch(check, /ALTER POLICY|DROP POLICY|GRANT |REVOKE /);
   });
 });

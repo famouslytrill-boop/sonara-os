@@ -307,7 +307,13 @@ function main() {
     function behaves(run, what, sql, expected) {
       const result = run(sql);
       if (result.status !== 0) {
-        stop(`the behaviour probe "${what}" would not run against the replayed database:\n${result.stderr || result.stdout}`);
+        const p1 = what === "P1 post-hardening RLS and canonical subscription proof";
+        const diagnostics = p1 ? String(result.stdout || "").split(/\r?\n/)
+          .filter((line) => line.includes("|") && line.length <= 320)
+          .slice(0, 30).join("\n") : "";
+        const detail = String(result.stderr || "SQL replay command failed without stderr.");
+        stop(`the behaviour probe "${what}" would not run against the replayed database:\n${detail}` +
+          (diagnostics ? `\nPolicy attribute differences (staging only):\n${diagnostics}` : ""));
       }
       const output = String(result.stdout || "");
       const absent = expected.filter((marker) => !output.includes(marker));

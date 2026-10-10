@@ -57,7 +57,7 @@ describe("post-hardening P1 replay proof remains fail-closed", () => {
   const withoutComments = fixture.replace(/^--[^\n]*$/gm, "");
 
   it("requires exactly 21 service-only and four user-ownership policy definitions", () => {
-    const match = fixture.match(/INSERT INTO expected_rls_p1 VALUES([\s\S]*?);\s*DO \$drift\$/);
+    const match = fixture.match(/INSERT INTO expected_rls_p1 VALUES([\s\S]*?);/);
     assert.ok(match, "P1 exact baseline or drift guard is missing");
     const rows = match[1].split("\n").filter((row) => row.trim().startsWith("('"));
     assert.equal(rows.length, 25, "P1 policy catalog must not silently shrink");
@@ -74,10 +74,14 @@ describe("post-hardening P1 replay proof remains fail-closed", () => {
 
   it("enforces role/command/USING/WITH CHECK equality both before and after the probe", () => {
     assert.match(fixture, /p\.roles::text IS DISTINCT FROM e\.roles/g);
-    assert.equal((fixture.match(/p\.roles::text IS DISTINCT FROM e\.roles/g) || []).length, 2);
+    for (const region of [fixture.split("DO $drift$")[1].split("$drift$;")[0], fixture.split("DO $postflight$")[1]]) {
+      assert.ok(region.includes("p.roles::text IS DISTINCT FROM e.roles"));
+    }
     for (const criterion of ["p.cmd IS DISTINCT FROM e.cmd", "p.qual IS DISTINCT FROM e.qualifier",
       "p.with_check IS DISTINCT FROM e.check_expr", "p.permissive IS DISTINCT FROM e.permissive"]) {
-      assert.equal(fixture.split(criterion).length - 1, 2, criterion + " must be checked preflight and postflight");
+      for (const region of [fixture.split("DO $drift$")[1].split("$drift$;")[0], fixture.split("DO $postflight$")[1]]) {
+        assert.ok(region.includes(criterion), criterion + " must be checked preflight and postflight");
+      }
     }
     assert.match(fixture, /RAISE EXCEPTION 'P1 policy definition drift on % policies; abort'/);
     assert.match(fixture, /RAISE EXCEPTION 'P1 postflight failed % policies'/);
@@ -94,7 +98,7 @@ describe("post-hardening P1 replay proof remains fail-closed", () => {
 
   it("keeps the two-tenant write/deny test ahead of P1 and rolls its probe back", () => {
     const matrix = replay.indexOf("P0 synthetic two-tenant and role-based RLS write/deny matrix");
-    const p1 = replay.indexOf("P1 RLS initplan and policy-overlap guarded rollback proof");
+    const p1 = replay.indexOf('behaves(psql, "P1 post-hardening RLS and canonical subscription proof"');
     assert.ok(matrix >= 0 && p1 > matrix, "the P0 role matrix must run before P1");
     assert.match(fixture, /BEGIN;\s*SET LOCAL lock_timeout='2s';\s*SET LOCAL statement_timeout='30s';/);
     assert.match(fixture, /SELECT 'p1_rls_hygiene_staging_passed';\s*ROLLBACK;\s*$/);

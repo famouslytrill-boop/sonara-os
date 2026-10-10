@@ -1,5 +1,7 @@
 # SONARA all-PR consolidation candidate — 10 October 2026
 
+> **Continuation:** #618 and #615 were subsequently merged on GitHub. The [remaining-PR pass](remaining.md) includes all original intake heads and reports 8,676 passing / 76 failing tests. The original decisions below are historical; no release approval is implied.
+
 Intake: **107 open pull requests**, including **104 drafts**, and **45 discussion/review comments**. The complete source descriptions and comment text are retained in `source-review.json`. Intake does not mean acceptance.
 
 Branch: `upgrade/all-pr-consolidation-20261010`. Base: `9d141e68d1ec14c037f92d1eebb3c2718d583c0a`. **94 source heads are ancestors of this candidate**. The other 13 heads overlap newer canonical fixes and require explicit equivalence review before closure.

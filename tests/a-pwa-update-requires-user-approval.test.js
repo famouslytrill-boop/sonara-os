@@ -23,7 +23,7 @@ function workerHarness() {
   };
   vm.runInNewContext(source, {
     self,
-    URL,
+    URL, Request,
     Set,
     caches: {
       open: async () => cache,
@@ -31,7 +31,11 @@ function workerHarness() {
       delete: async () => true,
       match: async () => null
     },
-    fetch: async () => ({ ok: true, headers: { get: () => null, has: () => false } })
+    fetch: async (request) => {
+      const path = new URL(request.url).pathname;
+      const types = {js:"text/javascript",css:"text/css",svg:"image/svg+xml",webmanifest:"application/manifest+json",woff2:"font/woff2"};
+      return {ok:true,status:200,headers:new Headers({"cache-control":"public, max-age=0","content-type":path==="/offline"?"text/html":types[path.split(".").pop()]}),clone(){return this;}};
+    }
   }, { filename: "sw.js" });
   return { listeners, getActivations: () => activationsRequested };
 }

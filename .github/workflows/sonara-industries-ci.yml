@@ -31,6 +31,7 @@ concurrency:
 
 jobs:
   sonara-industries:
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,6 +58,7 @@ jobs:
       - run: pnpm run lint
 
       - name: Run tests
+        timeout-minutes: 15
         shell: bash
         run: |
           set +e
@@ -218,6 +220,7 @@ jobs:
 
 
   capability-inventory-regeneration-evidence:
+    timeout-minutes: 15
     # Diagnostic only: PR source is untrusted and must never run with a
     # contents:write token. A reviewer applies generated changes separately.
     if: github.event_name == 'pull_request'
@@ -226,6 +229,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           run_install: false
@@ -257,6 +262,7 @@ jobs:
           retention-days: 7
 
   supabase-preview:
+    timeout-minutes: 15
     # Keep this historical check context stable, but never hand production
     # Supabase credentials to pull-request code. Native migration replay proves
     # executable SQL behavior; this lane proves frozen migration integrity.
